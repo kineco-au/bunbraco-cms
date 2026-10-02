@@ -15,7 +15,7 @@ export const identityMigration: Migration = {
   to: STATE_IDENTITY,
   name: 'CreateIdentityTables',
   kind: 'expand',
-  release: '0.1.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

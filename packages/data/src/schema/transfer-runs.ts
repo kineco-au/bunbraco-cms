@@ -23,7 +23,7 @@ export const transferRunsMigration: Migration = {
   to: STATE_TRANSFER_RUNS,
   name: 'AddContentTransferRuns',
   kind: 'expand',
-  release: '0.8.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

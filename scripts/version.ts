@@ -6,8 +6,8 @@
  *   bun run scripts/version.ts 0.2.0
  *   bun run scripts/version.ts --backoffice-dist 18.3.0
  */
-import { readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import {
   BACKOFFICE_DIST,
   publishablePackages,
@@ -17,6 +17,24 @@ import {
 } from './packages.ts'
 
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
+const PLUGIN_DIR = join(ROOT, 'packages/backoffice-host/plugin')
+
+/**
+ * Every `umbraco-package.json` the backoffice host contributes, at the root of the
+ * plugin directory and one level down — the same shape `discoverManifests` reads,
+ * including the generated `localizations/` one, so a bump needs no regeneration.
+ */
+function backOfficeManifests(): string[] {
+  const found: string[] = []
+  const root = join(PLUGIN_DIR, 'umbraco-package.json')
+  if (existsSync(root)) found.push(root)
+  for (const entry of readdirSync(PLUGIN_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const nested = join(PLUGIN_DIR, entry.name, 'umbraco-package.json')
+    if (existsSync(nested)) found.push(nested)
+  }
+  return found
+}
 const CONFIG = join(ROOT, 'packages/server/src/config.ts')
 const VERSION_LINE = /^export const VERSION = '.*'$/m
 const VERSION_FIELD = /^(\s*"version":\s*)"[^"]*"/m
@@ -87,4 +105,15 @@ if (version) {
   if (!VERSION_LINE.test(config)) throw new Error(`No VERSION constant in ${CONFIG}`)
   writeFileSync(CONFIG, config.replace(VERSION_LINE, `export const VERSION = '${version}'`))
   console.log(`VERSION in packages/server/src/config.ts -> ${version}`)
+
+  // The backoffice package manifests carry a version too, and the client reports
+  // it in the manifest response — so leaving them behind means the editor tells
+  // you it is running a version that was never released. They are not npm
+  // packages, so `publishablePackages()` does not see them.
+  for (const file of backOfficeManifests()) {
+    const source = readFileSync(file, 'utf8')
+    if (!VERSION_FIELD.test(source)) throw new Error(`No version field in ${file}`)
+    writeFileSync(file, source.replace(VERSION_FIELD, `$1"${version}"`))
+    console.log(`${relative(ROOT, file)} -> ${version}`)
+  }
 }

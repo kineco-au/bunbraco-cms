@@ -15,7 +15,7 @@ export const sinceVersionMigration: Migration = {
   to: STATE_SINCE_VERSION,
   name: 'AddSinceVersion',
   kind: 'expand',
-  release: '0.2.0',
+  release: '0.3.0',
   async up(db: Db) {
     const ops = schemaOps(db)
     const type = db.dialect.types.varchar(50)

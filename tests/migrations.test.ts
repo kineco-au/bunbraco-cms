@@ -28,6 +28,7 @@ import {
   backupBefore,
   loadConfig,
   UpgradePendingError,
+  VERSION,
 } from '@bunbraco/server'
 import {
   canConnect,
@@ -98,6 +99,21 @@ describe('migration plan lint', () => {
       expect(m.kind).toBe('expand')
       expect(m.release).toBeDefined()
     }
+  })
+
+  test('no step claims a release that does not exist yet', () => {
+    // A migration declaring a release ahead of the version being built is a
+    // number nobody can act on: it lands in the ledger as `release 0.9.0` of a
+    // 0.3.0 install, and a later contract would compare against it wrongly. The
+    // numbers drifted exactly this way before the repository was split.
+    const ordinal = (version: string) =>
+      version
+        .split(/[.+-]/)
+        .slice(0, 3)
+        .map(Number)
+        .reduce((a, part) => a * 1000 + part, 0)
+    for (const m of bunbracoPlan.migrations)
+      expect([m.name, ordinal(m.release as string) <= ordinal(VERSION)]).toEqual([m.name, true])
   })
 })
 

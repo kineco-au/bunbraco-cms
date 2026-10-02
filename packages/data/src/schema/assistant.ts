@@ -28,7 +28,7 @@ export const assistantMigration: Migration = {
   to: STATE_ASSISTANT,
   name: 'AddAssistantChangesets',
   kind: 'expand',
-  release: '0.7.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

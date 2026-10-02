@@ -15,7 +15,7 @@ export const contentMigration: Migration = {
   to: STATE_CONTENT,
   name: 'CreateContentSchema',
   kind: 'expand',
-  release: '0.1.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

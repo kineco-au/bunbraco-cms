@@ -26,7 +26,7 @@ export const redirectsMigration: Migration = {
   to: STATE_REDIRECTS,
   name: 'AddRedirectUrl',
   kind: 'expand',
-  release: '0.6.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

@@ -26,7 +26,7 @@ export const elementsMigration: Migration = {
   to: STATE_ELEMENTS,
   name: 'AddElementRecycleBin',
   kind: 'expand',
-  release: '0.6.0',
+  release: '0.3.0',
   async up(db: Db) {
     // One statement, with both guards in SQL, because `bunbraco upgrade --plan`
     // runs every migration against a recorder whose `query` refuses to read —

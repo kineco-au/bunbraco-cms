@@ -1,4 +1,16 @@
-/** The migration chain. Append new migrations; never edit a released one. */
+/**
+ * The migration chain. Append new migrations; never edit a released one.
+ *
+ * Every step here declares `release: '0.3.0'`, because 0.3.0 is the first release
+ * there has ever been: nothing was published before the repository was split, so
+ * none of these shipped in any earlier version, whatever the numbers said while
+ * they were being written.
+ *
+ * `release` is only compared between a contract and the expand it removes — a
+ * contract may only take away what an *earlier* release added. A plan of nothing
+ * but expands at one release is therefore well-formed, and the first contract
+ * will simply have to name 0.4.0 or later.
+ */
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
 import { changeReportMigration } from './change-report.ts'

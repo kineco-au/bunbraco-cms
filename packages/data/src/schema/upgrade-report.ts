@@ -14,7 +14,7 @@ export const upgradeReportMigration: Migration = {
   to: STATE_UPGRADE_REPORT,
   name: 'AddUpgradeReport',
   kind: 'expand',
-  release: '0.2.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
     await db.exec(

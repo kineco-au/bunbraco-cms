@@ -22,7 +22,7 @@ export const membersMigration: Migration = {
   to: STATE_MEMBERS,
   name: 'AddMembers',
   kind: 'expand',
-  release: '0.5.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 

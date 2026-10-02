@@ -5,6 +5,12 @@
 # Needs an NPM_TOKEN secret with publish rights to the @bunbraco scope.
 name: Release
 
+# What the Actions list shows for the run. Without this, a push event is titled
+# with the tagged commit's message — so a release reads as whatever the last commit
+# happened to say, and two releases are told apart only by date. The tag is the one
+# thing a release is actually about, so it goes in the title.
+run-name: Release ${{ github.ref_name }}
+
 on:
   push:
     tags: ['v*']

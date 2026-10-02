@@ -822,7 +822,7 @@ interrupted one rolls back instead of cascading.
 | `bun run docker:reset`                                | the same, and delete the volumes too, including the database                                                                                                   |
 | `bun run docker:build`                                | rebuild the CMS image                                                                                                                                         |
 | `bun run db:up`                                       | start only Postgres (what `test:postgres` uses)                                                                                                               |
-| `bun run release:version <v>`                         | set one version across every published package, `bun.lock` and the `VERSION` constant; `--backoffice-dist <v>` bumps the vendored client instead              |
+| `bun run release:version <v>`                         | set one version across every published package, the backoffice plugin manifests, `bun.lock` and the `VERSION` constant; `--backoffice-dist <v>` bumps the vendored client instead |
 | `bun run release:dry-run`                             | pack every package and check the tarballs, publishing nothing                                                                                                 |
 | `bun run release:publish`                             | pack and publish to npm; skips versions the registry already holds                                                                                            |
 
@@ -1506,10 +1506,10 @@ client) are build-time only: `vendor:backoffice` bundles them into
 ### Cutting a release
 
 ```sh
-bun run release:version 0.2.0   # manifests, bun.lock and the VERSION constant
+bun run release:version 0.3.0   # manifests, bun.lock and the VERSION constant
 bun run check && bun run test:all
 bun run release:dry-run         # pack and verify, publish nothing
-git commit -am "release 0.2.0" && git tag v0.2.0 && git push --follow-tags
+git commit -am "release 0.3.0" && git tag v0.3.0 && git push --follow-tags
 ```
 
 The tag is what publishes. `release.yml` runs the whole of `ci.yml` first, checks

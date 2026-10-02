@@ -25,7 +25,7 @@ export const changeReportMigration: Migration = {
   to: STATE_CHANGE_REPORT,
   name: 'RenameUpgradeReportToChangeReport',
   kind: 'expand',
-  release: '0.8.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
     const ops = schemaOps(db)

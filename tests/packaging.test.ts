@@ -155,6 +155,34 @@ describe('the generated artefacts a release needs', () => {
   })
 })
 
+describe('the release workflow', () => {
+  const workflow = readFileSync(join(ROOT, '.github/workflows/release.yml'), 'utf8')
+
+  test('names the run after the tag, so two releases are told apart', () => {
+    // A push event is otherwise titled with the tagged commit's message, which
+    // makes the Actions list read as whatever the last commit happened to say.
+    expect(workflow).toMatch(/^run-name:.*github\.ref_name/m)
+  })
+
+  test('triggers only on a v tag, never a branch', () => {
+    expect(workflow).toContain("tags: ['v*']")
+    expect(workflow).not.toMatch(/^\s+branches:/m)
+  })
+
+  test('refuses a tag that disagrees with the package version', () => {
+    // What stops `git tag v0.9.0` publishing 0.3.0 to the registry under the
+    // wrong name — which cannot be taken back once uploaded.
+    expect(workflow).toContain('GITHUB_REF_NAME#v')
+    expect(workflow).toContain('does not match')
+  })
+
+  test('cannot publish without a green build', () => {
+    // `needs: ci` is the whole gate: without it a red suite still ships.
+    expect(workflow).toMatch(/needs:\s*ci/)
+    expect(workflow).toContain('bun run release:publish')
+  })
+})
+
 describe('every image a template redistributes', () => {
   /** The binaries under a template's bundle, which ship inside `@bunbraco/cli`. */
   const images = (dir: string): string[] =>

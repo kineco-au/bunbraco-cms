@@ -21,7 +21,7 @@ export const usersLocalisationMigration: Migration = {
   to: STATE_USERS_LOCALISATION,
   name: 'AddUserAndLocalisationTables',
   kind: 'expand',
-  release: '0.4.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
     // The seed inserted the built-in groups with explicit ids, which left

@@ -29,7 +29,7 @@ export const clientIdPrefixMigration: Migration = {
   to: STATE_CLIENT_ID_PREFIX,
   name: 'RenameClientIdPrefix',
   kind: 'expand',
-  release: '0.9.0',
+  release: '0.3.0',
   async up(db: Db) {
     // `client_id` is the primary key and nothing references it, so this is an
     // update in place. SUBSTR is 1-based in both dialects.

@@ -48,7 +48,7 @@ export const logViewerMigration: Migration = {
   to: STATE_LOG_VIEWER,
   name: 'AddLogViewerSavedSearches',
   kind: 'expand',
-  release: '0.4.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
     // The name is matched exactly, case and all, as Umbraco matches it

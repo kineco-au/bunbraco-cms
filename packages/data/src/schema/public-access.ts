@@ -20,7 +20,7 @@ export const publicAccessMigration: Migration = {
   to: STATE_PUBLIC_ACCESS,
   name: 'AddPublicAccess',
   kind: 'expand',
-  release: '0.5.0',
+  release: '0.3.0',
   async up(db: Db) {
     const t = db.dialect.types
 
