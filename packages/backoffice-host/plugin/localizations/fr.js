@@ -12,6 +12,12 @@ export default {
     "userinviteWelcomeMessage": "Bien le bonjour et bienvenue dans Bunbraco! Vous serez prêt.e dans moins d'1 minute, vous devez encore simplement configurer votre mot de passe.",
     "userinviteExpiredMessage": "Bienvenue dans Bunbraco! Malheureusement, votre invitation a expiré. Veuillez contacter votre administrateur et demandez-lui de vous l'envoyer à nouveau."
   },
+  "languages": {
+    "defaultLanguageHelp": "Un site Bunbraco ne peut avoir qu'une seule langue par défaut définie."
+  },
+  "paste": {
+    "errorMessage": "Le texte que vous tentez de coller contient des caractères spéciaux ou du formatage. Cela peut être dû à une copie d'un texte depuis Microsoft Word. Bunbraco peut supprimer automatiquement les caractères spéciaux et le formatage, de manière à ce que le texte collé convienne mieux pour le Web."
+  },
   "dashboard": {
     "nothinghappens": "Si Bunbraco ne s'ouvre pas, peut-être devez-vous autoriser l'ouverture des popups pour ce site."
   }

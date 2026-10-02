@@ -6,6 +6,9 @@ export default {
     "changePasswordDescription": "Możesz zmienić swoje hasło w Bunbraco backoffice przez wypełnienie formularza poniżej i kliknięcie przycisku \"Zmień hasło\"",
     "noConsole": "Wyłącz dostęp do Bunbraco"
   },
+  "paste": {
+    "errorMessage": "Tekst, który wklejasz zawiera specjalne znaki formatujące. Prawdopodobnie tekst pochodzi z programu Microsoft Word. Bunbraco może usunąć specjalne znaki lub formatowanie automatycznie, więc skopiowana treść będzie lepiej dopasowana do wyświetlania w Internecie."
+  },
   "dashboard": {
     "nothinghappens": "Jeśli Bunbraco się nie otwiera, prawdopodobnie musisz zezwolić tej stronie na otwieranie wyskakujących okienek"
   }

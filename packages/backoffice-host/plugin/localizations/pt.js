@@ -18,6 +18,15 @@ export default {
   "general": {
     "umbracoInfo": "Informação Bunbraco"
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Pesquisar no backoffice do Bunbraco"
+  },
+  "languages": {
+    "defaultLanguageHelp": "Um site Bunbraco só pode ter um idioma predefinido definido."
+  },
+  "paste": {
+    "errorMessage": "O texto que está a tentar colar contém caracteres especiais ou formatação. Isto pode ser causado pela cópia de texto do Microsoft Word. O Bunbraco pode remover caracteres especiais ou formatação automaticamente, para que o conteúdo colado seja mais adequado para a web."
+  },
   "dashboard": {
     "nothinghappens": "Se o Bunbraco não estiver a abrir, poderá ter de permitir popups deste site"
   },

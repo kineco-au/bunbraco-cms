@@ -11,6 +11,12 @@ export default {
     "userInvitedSuccessHelp": "Se ha enviado una invitación al nuevo usuario con detalles sobre cómo acceder a Bunbraco.",
     "userinviteWelcomeMessage": "¡Hola y bienvenido a Bunbraco!. En un minuto todo estará listo para empezar, sólo necesitamos que configures tu contraseña."
   },
+  "languages": {
+    "defaultLanguageHelp": "Un sitio de Bunbraco solo puede tener un conjunto de idiomas predeterminado."
+  },
+  "paste": {
+    "errorMessage": "El texto que estás intentando pegar contiene caracteres o formato especial. El problema puede ser debido al copiar texto desde Microsoft Word. Bunbraco puede eliminar estos caracteres o formato especial automáticamente, de esa manera el contenido será más adecuado para la web."
+  },
   "dashboard": {
     "nothinghappens": "Si Bunbraco no se ha abierto tendrás que permitir ventanas emergentes para este sitio Web"
   }

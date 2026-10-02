@@ -15,6 +15,15 @@ export default {
   "general": {
     "umbracoInfo": "Gwybodaeth Bunbraco"
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Chwilio'r swyddfa gefn Bunbraco"
+  },
+  "languages": {
+    "defaultLanguageHelp": "Gall wefan Bunbraco ddim ond cael un iaith ddiofyn."
+  },
+  "paste": {
+    "errorMessage": "Mae'r testun yr ydych yn ceisio gludo yn cynnwys nodauneu fformatio arbennig. Gall hyn gael ei achosi gan ludo testun o Microsoft Word. Gall Bunbraco ddileu nodau neu fformatio arbennig yn awtomatig, fel bod y cynnwys sy'n cael ei ludo yn fwy addas ar gyfer y we."
+  },
   "dashboard": {
     "nothinghappens": "Os nad yw Bunbraco yn agor, efallai byddwch angen galluogi popups o'r safle yma"
   }

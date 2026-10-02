@@ -19,6 +19,12 @@ export default {
   "general": {
     "umbracoInfo": "Bunbraco Information"
   },
+  "languages": {
+    "defaultLanguageHelp": "Eine Bunbraco site kann nur eine Standardsprache haben."
+  },
+  "paste": {
+    "errorMessage": "Der Text, den Sie einfügen möchten, enthält Sonderzeichen oder spezielle Formatierungen. Dies kann zum Beispiel beim Kopieren aus Microsoft Word heraus passieren. Bunbraco kann Sonderzeichen und spezielle Formatierungen automatisch entfernen, damit der eingefügte Inhalt besser für die Veröffentlichung im Web geeignet ist."
+  },
   "dashboard": {
     "nothinghappens": "Wenn Bunbraco nicht geöffnet wurde, wurde möglicherweise das Pop-Up unterdrückt."
   }

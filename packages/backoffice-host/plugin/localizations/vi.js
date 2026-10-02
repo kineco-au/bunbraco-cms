@@ -18,6 +18,18 @@ export default {
   "general": {
     "umbracoInfo": "Thông tin Bunbraco"
   },
+  "buttons": {
+    "viewSystemDetails": "Xem thông tin hệ thống Bunbraco CMS và số phiên bản"
+  },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Tìm kiếm trong Bunbraco backoffice"
+  },
+  "languages": {
+    "defaultLanguageHelp": "Một trang Bunbraco chỉ có thể có một ngôn ngữ mặc định được thiết lập."
+  },
+  "paste": {
+    "errorMessage": "Văn bản bạn đang cố dán chứa các ký tự hoặc định dạng đặc biệt. Điều này có thể do việc sao chép văn bản từ Microsoft Word. Bunbraco có thể tự động loại bỏ các ký tự hoặc định dạng đặc biệt, vì vậy nội dung được dán sẽ phù hợp hơn với web."
+  },
   "dashboard": {
     "nothinghappens": "Nếu Bunbraco không mở, bạn có thể cần cho phép cửa sổ bật lên từ trang này"
   },

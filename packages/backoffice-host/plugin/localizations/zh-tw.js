@@ -2,6 +2,9 @@
 // The product name in this language's own wording, for the keys
 // plugin/branding/localization-en.js curates.
 export default {
+  "paste": {
+    "errorMessage": "您所粘貼的文本含有特殊字元或格式，Bunbraco將清除以適應網頁。"
+  },
   "dashboard": {
     "nothinghappens": "如果Bunbraco沒有打開，您可能需要允許彈出式視窗。"
   }

@@ -217,9 +217,15 @@ test('the log viewer shows the overview and searches the log, with no error', as
   await page.goto('/bunbraco/section/settings/workspace/logviewer/view/overview')
   await expect(page.getByText('Find all logs that has an exception property').first()).toBeVisible()
   await expect(page.getByText(/Bunbraco .* started on node/).first()).toBeVisible()
-  // The search: the log itself, filtered by an expression
+  // The search: the log itself, filtered by an expression.
+  //
+  // `StartsWith` rather than `=`. The template gained ` as {role}` and this
+  // search went on naming the old string, so it matched nothing — while the
+  // looser overview assertion above still passed, which is why it went unnoticed.
+  // Matching the stable prefix means the next property added to that log line
+  // does not break the test either.
   await page.goto(
-    `/bunbraco/section/settings/workspace/logviewer/view/search?lq=${encodeURIComponent("@MessageTemplate = 'Bunbraco {version} started on node {nodeId}'")}`,
+    `/bunbraco/section/settings/workspace/logviewer/view/search?lq=${encodeURIComponent("StartsWith(@MessageTemplate, 'Bunbraco {version} started on node')")}`,
   )
   // The version is not asserted: the point is that the search renders the event
   // with its properties, and a literal here breaks on every release. Importing

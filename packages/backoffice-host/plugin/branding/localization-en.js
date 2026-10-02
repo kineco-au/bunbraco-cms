@@ -43,6 +43,30 @@ export default {
   general: {
     umbracoInfo: 'Bunbraco info',
   },
+  buttons: {
+    // The accessible name of the header logo button, on every page of the editor.
+    // Nothing renders it as visible text, which is why the first sweep through
+    // these dictionaries missed it; it surfaced in the accessibility snapshot
+    // attached to an unrelated Playwright failure.
+    viewSystemDetails: 'View Bunbraco system information and version number',
+  },
+  visuallyHiddenTexts: {
+    searchOverlayTitle: 'Search the Bunbraco backoffice',
+  },
+  dashboardTabs: {
+    contentIntro: 'Welcome to Bunbraco',
+  },
+  languages: {
+    defaultLanguageHelp: 'A Bunbraco site can only have one default language set.',
+  },
+  member: {
+    externalMemberDescription:
+      'This member is managed by an external authentication provider. Identity data such as email and username is maintained by the provider, not Bunbraco.',
+  },
+  paste: {
+    errorMessage:
+      "The text you're trying to paste contains special characters or formatting. This could be caused by copying text from Microsoft Word. Bunbraco can remove special characters or formatting automatically, so the pasted content will be more suitable for the web.",
+  },
   dashboard: {
     nothinghappens: "If Bunbraco isn't opening, you might need to allow popups from this site",
   },

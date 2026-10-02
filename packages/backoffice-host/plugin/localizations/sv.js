@@ -12,6 +12,12 @@ export default {
     "inviteUserHelp": "Bjud in nya användare för att ge dom åtkomst till Bunbraco. Ett e-postmeddelande kommer skikcas till användaren med information om hur man loggar in i Bunbraco. Inbjudningar är giltiga i 72 timmar.",
     "noConsole": "Inaktivera tillgång till Bunbraco"
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Sök i Bunbraco backoffice"
+  },
+  "paste": {
+    "errorMessage": "Texten du försöker klistra in innehåller specialtecken och/eller formateringstaggar. Detta kan bero på att texten kommer från t.ex. Microsoft Word. Bunbraco kan ta bort specialtecken och formateringstaggar automatiskt så att innehållet lämpar sig bättre för webbpublicering."
+  },
   "dashboard": {
     "nothinghappens": "Om Bunbraco inte öppnas kan det bero på att du måste tillåta poppuppfönster att öppnas från denna webbplats"
   }

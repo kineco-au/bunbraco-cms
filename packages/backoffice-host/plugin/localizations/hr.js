@@ -15,6 +15,12 @@ export default {
   "general": {
     "umbracoInfo": "Bunbraco info"
   },
+  "languages": {
+    "defaultLanguageHelp": "Bunbraco stranica može imati samo jedan zadani jezik."
+  },
+  "paste": {
+    "errorMessage": "Tekst koji pokušavate zalijepiti sadrži posebne znakove ili formatiranje. Ovo bi moglo biti\n       uzrokovano kopiranjem teksta iz programa Microsoft Word. Bunbraco može automatski ukloniti posebne znakove ili formatiranje, tako da\n       zalijepljeni sadržaj će biti prikladniji za web.\n    "
+  },
   "dashboard": {
     "nothinghappens": "Ako se Bunbraco ne otvara, možda ćete morati dozvoliti skočne prozore sa ove stranice"
   }

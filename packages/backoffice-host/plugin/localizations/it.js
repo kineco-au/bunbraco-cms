@@ -12,6 +12,15 @@ export default {
     "userinviteWelcomeMessage": "Ciao e benvenuto su Bunbraco! In solo 1 minuto sarai pronto a partire, dovrai\n      solamente impostare una password.\n    ",
     "userinviteExpiredMessage": "Benvenuto su Bunbraco! Purtroppo il tuo invito è scaduto. Per favore contatta l'amministratore e chiedigli di rispedirlo."
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Cerca nel backoffice di Bunbraco"
+  },
+  "languages": {
+    "defaultLanguageHelp": "Un sito web Bunbraco può avere solo una lingua di default."
+  },
+  "paste": {
+    "errorMessage": "Il testo che stai cercando di incollare contiene caratteri speciali o una formattazione. Questo potrebbe essere causato da Microsoft Word. Bunbraco può rimuovere carattere speciali o formattazioni automaticamente, per rendere il contenuto da incollare più adatto per il web."
+  },
   "dashboard": {
     "nothinghappens": "se Bunbraco non si sta aprendo, potresti aver bisogno di rimuovere il blocco popup"
   }

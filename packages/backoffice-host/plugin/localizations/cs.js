@@ -10,6 +10,12 @@ export default {
     "userinviteWelcomeMessage": "Dobrý den, vítejte v Bunbraco! Za pouhou 1 minutu budete moci používat Bunbraco. Jenom od vás potřebujeme, abyste si nastavili heslo.",
     "userinviteExpiredMessage": "Vítejte v Bunbraco! Vaše pozvánka bohužel vypršela. Obraťte se na svého správce a požádejte jej, aby jí znovu odeslal."
   },
+  "languages": {
+    "defaultLanguageHelp": "Web Bunbraco může mít nastaven pouze jeden výchozí jazyk."
+  },
+  "paste": {
+    "errorMessage": "Text, který chcete vložit, obsahuje speciální znaky nebo formatování. Toto může být způsobeno kopirováním textu z Microsoft Wordu. Bunbraco může odstranit speciální znaky nebo formatování, takže vložený obsah bude pro web vhodnější."
+  },
   "dashboard": {
     "nothinghappens": "Jestli se Bunbraco neotevírá, možná budete muset povolit na tomto webu vyskakovací okna"
   }

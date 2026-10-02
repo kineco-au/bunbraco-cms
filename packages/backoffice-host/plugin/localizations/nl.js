@@ -15,6 +15,12 @@ export default {
     "userinviteWelcomeMessage": "Hallo en welkom in Bunbraco! Binnen ongeveer één minuut kan je aan de slag. Je\n      moet enkel je wachtwoord instellen.\n    ",
     "userinviteExpiredMessage": "Welkom bij Bunbraco! Helaas is je uitnodiging vervallen. Vraag aan je\n      administrator om de uitnodiging opnieuw te versturen.\n    "
   },
+  "languages": {
+    "defaultLanguageHelp": "Een Bunbraco site kan maar één standaardtaal hebben."
+  },
+  "paste": {
+    "errorMessage": "De tekst die je probeert te plakken bevat speciale tekens en/of opmaak. Dit kan\n      veroorzaakt worden doordat de tekst vanuit Microsoft Word is gekopieerd. Bunbraco kan deze speciale tekens en\n      formattering automatisch verwijderen zodat de geplakte tekst geschikt is voor het web.\n    "
+  },
   "dashboard": {
     "nothinghappens": "Als Bunbraco niet geopend wordt dan moet je mogelijk popups toestaan voor deze site.\n    "
   }

@@ -6,6 +6,9 @@ export default {
     "changePasswordDescription": "você pode alterar sua senha para acessar a área administrativa do Bunbraco preenchendo o formulário abaixo e clicando no botão 'Alterar Senha'",
     "noConsole": "Desabilitar Acesso Bunbraco"
   },
+  "paste": {
+    "errorMessage": "O texto que você está tentando colar contém caracteres ou formatação especial. Isto pode ser causado ao copiar textos diretamente do Microsoft Word. Bunbraco pode remover os caracteres ou formatação especial automaticamente para que o conteúdo colado seja mais adequado para a internet."
+  },
   "dashboard": {
     "nothinghappens": "Se Bunbraco não estiver abrindo talvez você precise hablitar pop-ups para este site"
   }

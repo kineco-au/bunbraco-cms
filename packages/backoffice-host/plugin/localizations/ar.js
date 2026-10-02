@@ -18,6 +18,15 @@ export default {
   "general": {
     "umbracoInfo": "معلومات Bunbraco"
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "بحث في مكتب Bunbraco الخلفي"
+  },
+  "languages": {
+    "defaultLanguageHelp": "يمكن لموقع Bunbraco أن يحتوي فقط على لغة افتراضية واحدة."
+  },
+  "paste": {
+    "errorMessage": "النص الذي تحاول لصقه يحتوي على أحرف خاصة أو تنسيق. قد يكون ذلك بسبب نسخ النص من Microsoft Word. يمكن لـ Bunbraco إزالة الأحرف الخاصة أو التنسيق تلقائيًا، بحيث يكون المحتوى الملصق أكثر ملاءمة للويب.\n"
+  },
   "dashboard": {
     "nothinghappens": "إذا لم يفتح Bunbraco، قد تحتاج إلى السماح بالنوافذ المنبثقة من هذا الموقع"
   },

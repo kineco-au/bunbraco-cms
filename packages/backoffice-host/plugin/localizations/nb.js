@@ -13,6 +13,9 @@ export default {
   "general": {
     "umbracoInfo": "Bunbraco-info"
   },
+  "paste": {
+    "errorMessage": "Teksten du er i ferd med å lime inn, inneholder spesialtegn eller formattering. Dette kan skyldes at du kopierer fra f.eks. Microsoft Word. Bunbraco kan fjerne denne spesialformatteringen automatisk slik at innholdet er mer velegnet for visning på en webside."
+  },
   "dashboard": {
     "nothinghappens": "Hvis Bunbraco ikke starter, kan det skyldes at pop-up vinduer ikke er tillatt"
   }

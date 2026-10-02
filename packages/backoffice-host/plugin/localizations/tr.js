@@ -12,6 +12,12 @@ export default {
     "userinviteWelcomeMessage": "Merhabalar, Bunbraco'ya hoş geldiniz! Sadece 1 dakika içinde hazır olacaksınız, sadece bir şifre belirlemeniz.",
     "userinviteExpiredMessage": "Bunbraco'ya hoş geldiniz! Maalesef davetinizin süresi doldu. Lütfen yöneticinizle iletişime geçin ve yeniden göndermesini isteyin."
   },
+  "languages": {
+    "defaultLanguageHelp": "Bir Bunbraco sitesinde yalnızca bir varsayılan dil ayarı olabilir."
+  },
+  "paste": {
+    "errorMessage": "Yapıştırmaya çalıştığınız metin özel karakterler veya biçimlendirme içeriyor. Bunun nedeni Microsoft Word'den metin kopyalanması olabilir. Bunbraco, özel karakterleri veya biçimlendirmeyi otomatik olarak kaldırabilir, böylece yapıştırılan içerik web için daha uygun olacaktır."
+  },
   "dashboard": {
     "nothinghappens": "Bunbraco açılmıyorsa, bu siteden pop-up'lara izin vermeniz gerekebilir"
   }

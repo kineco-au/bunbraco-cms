@@ -6,6 +6,9 @@ export default {
     "changePasswordDescription": "You can change your password for accessing the Bunbraco backoffice by filling out the form below and click the 'Change Password' button",
     "noConsole": "Bunbraco 접속 비활성화"
   },
+  "paste": {
+    "errorMessage": "붙여넣으려는 텍스트에 특수한 문자나 포맷이 포함되어있습니다. Microsoft Word문서에서 바로 복사해와서 문제가 발생된것일 수 있습니다. Bunbraco는 붙여넣으려는 컨텐츠가 웹에 적합하도록 특수한 문자나 포맷을 자동으로 제거합니다"
+  },
   "dashboard": {
     "nothinghappens": "Bunbraco 가 열리지 않으면, 이 사이트의 팝업을 허용하여야 합니다"
   }

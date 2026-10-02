@@ -20,6 +20,15 @@ export default {
   "general": {
     "umbracoInfo": "Bunbraco info"
   },
+  "visuallyHiddenTexts": {
+    "searchOverlayTitle": "Søg i Bunbraco backoffice"
+  },
+  "languages": {
+    "defaultLanguageHelp": "Et Bunbraco-site kan kun have ét standardsprog."
+  },
+  "paste": {
+    "errorMessage": "Den tekst du er ved at indsætte indeholder specialtegn eller formatering. Dette kan\n      skyldes at du kopierer fra f.eks. Microsoft Word. Bunbraco kan fjerne denne specialformatering automatisk så\n      indholdet er mere velegnet til visning på en webside.\n    "
+  },
   "dashboard": {
     "nothinghappens": "Hvis Bunbraco ikke starter, kan det skyldes at din browser ikke tillader pop-up vinduer\n    "
   },
