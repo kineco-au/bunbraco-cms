@@ -1,0 +1,87 @@
+{
+  "key": "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
+  "kind": "document",
+  "contentType": {
+    "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
+    "alias": "expression"
+  },
+  "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+  "sortOrder": 1,
+  "template": "expression",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Harbourstone Peated",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "abv",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "48.0%"
+    },
+    {
+      "property": "age",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Integer",
+      "value": 10
+    },
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Ten years, lightly peated to 18ppm with local turf, and the same coastal warehousing. The smoke sits on top; the floral spirit is still underneath it.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "bottleImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "20dcdbc2-32fa-4bec-8f27-cb68a19121ab",
+          "mediaKey": "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "20dcdbc2-32fa-4bec-8f27-cb68a19121ab",
+        "913c89e8-c3a1-4722-b37f-0e4d44a71d8f"
+      ]
+    },
+    {
+      "property": "tastingNotes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "22144db2-e214-4006-a0bb-53b5bd121fd6",
+        "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
+        "97469df2-107c-4010-8c14-4de88f735529"
+      ],
+      "references": [
+        "22144db2-e214-4006-a0bb-53b5bd121fd6",
+        "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
+        "97469df2-107c-4010-8c14-4de88f735529"
+      ]
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Harbourstone Peated"
+    }
+  ]
+}

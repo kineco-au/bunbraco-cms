@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
+  "name": "Bunbraco Assistant",
+  "id": "Bunbraco.Assistant",
+  "version": "0.2.0",
+  "allowPublicAccess": false,
+  "extensions": [
+    {
+      "type": "headerApp",
+      "alias": "Bunbraco.HeaderApp.Assistant",
+      "name": "Bunbraco Assistant",
+      "element": "/bunbraco-plugin/assistant/drawer.js",
+      "weight": 900
+    }
+  ]
+}

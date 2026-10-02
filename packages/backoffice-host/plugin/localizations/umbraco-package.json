@@ -1,0 +1,249 @@
+{
+  "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
+  "name": "Bunbraco Localizations",
+  "id": "Bunbraco.Localizations",
+  "version": "0.2.0",
+  "allowPublicAccess": false,
+  "extensions": [
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.AR",
+      "name": "Bunbraco Localization Overrides (ar)",
+      "weight": 0,
+      "meta": {
+        "culture": "ar"
+      },
+      "js": "/bunbraco-plugin/localizations/ar.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.BS",
+      "name": "Bunbraco Localization Overrides (bs)",
+      "weight": 0,
+      "meta": {
+        "culture": "bs"
+      },
+      "js": "/bunbraco-plugin/localizations/bs.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.CS",
+      "name": "Bunbraco Localization Overrides (cs)",
+      "weight": 0,
+      "meta": {
+        "culture": "cs"
+      },
+      "js": "/bunbraco-plugin/localizations/cs.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.CY",
+      "name": "Bunbraco Localization Overrides (cy)",
+      "weight": 0,
+      "meta": {
+        "culture": "cy"
+      },
+      "js": "/bunbraco-plugin/localizations/cy.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.DA",
+      "name": "Bunbraco Localization Overrides (da)",
+      "weight": 0,
+      "meta": {
+        "culture": "da"
+      },
+      "js": "/bunbraco-plugin/localizations/da.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.DE",
+      "name": "Bunbraco Localization Overrides (de)",
+      "weight": 0,
+      "meta": {
+        "culture": "de"
+      },
+      "js": "/bunbraco-plugin/localizations/de.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.ES",
+      "name": "Bunbraco Localization Overrides (es)",
+      "weight": 0,
+      "meta": {
+        "culture": "es"
+      },
+      "js": "/bunbraco-plugin/localizations/es.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.FR",
+      "name": "Bunbraco Localization Overrides (fr)",
+      "weight": 0,
+      "meta": {
+        "culture": "fr"
+      },
+      "js": "/bunbraco-plugin/localizations/fr.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.HR",
+      "name": "Bunbraco Localization Overrides (hr)",
+      "weight": 0,
+      "meta": {
+        "culture": "hr"
+      },
+      "js": "/bunbraco-plugin/localizations/hr.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.IT",
+      "name": "Bunbraco Localization Overrides (it)",
+      "weight": 0,
+      "meta": {
+        "culture": "it"
+      },
+      "js": "/bunbraco-plugin/localizations/it.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.JA",
+      "name": "Bunbraco Localization Overrides (ja)",
+      "weight": 0,
+      "meta": {
+        "culture": "ja"
+      },
+      "js": "/bunbraco-plugin/localizations/ja.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.KO",
+      "name": "Bunbraco Localization Overrides (ko)",
+      "weight": 0,
+      "meta": {
+        "culture": "ko"
+      },
+      "js": "/bunbraco-plugin/localizations/ko.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.NB",
+      "name": "Bunbraco Localization Overrides (nb)",
+      "weight": 0,
+      "meta": {
+        "culture": "nb"
+      },
+      "js": "/bunbraco-plugin/localizations/nb.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.NL",
+      "name": "Bunbraco Localization Overrides (nl)",
+      "weight": 0,
+      "meta": {
+        "culture": "nl"
+      },
+      "js": "/bunbraco-plugin/localizations/nl.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.PL",
+      "name": "Bunbraco Localization Overrides (pl)",
+      "weight": 0,
+      "meta": {
+        "culture": "pl"
+      },
+      "js": "/bunbraco-plugin/localizations/pl.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.PT",
+      "name": "Bunbraco Localization Overrides (pt)",
+      "weight": 0,
+      "meta": {
+        "culture": "pt"
+      },
+      "js": "/bunbraco-plugin/localizations/pt.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.PT_BR",
+      "name": "Bunbraco Localization Overrides (pt-br)",
+      "weight": 0,
+      "meta": {
+        "culture": "pt-br"
+      },
+      "js": "/bunbraco-plugin/localizations/pt-br.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.RU",
+      "name": "Bunbraco Localization Overrides (ru)",
+      "weight": 0,
+      "meta": {
+        "culture": "ru"
+      },
+      "js": "/bunbraco-plugin/localizations/ru.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.SV",
+      "name": "Bunbraco Localization Overrides (sv)",
+      "weight": 0,
+      "meta": {
+        "culture": "sv"
+      },
+      "js": "/bunbraco-plugin/localizations/sv.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.TR",
+      "name": "Bunbraco Localization Overrides (tr)",
+      "weight": 0,
+      "meta": {
+        "culture": "tr"
+      },
+      "js": "/bunbraco-plugin/localizations/tr.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.UK",
+      "name": "Bunbraco Localization Overrides (uk)",
+      "weight": 0,
+      "meta": {
+        "culture": "uk"
+      },
+      "js": "/bunbraco-plugin/localizations/uk.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.ZH",
+      "name": "Bunbraco Localization Overrides (zh)",
+      "weight": 0,
+      "meta": {
+        "culture": "zh"
+      },
+      "js": "/bunbraco-plugin/localizations/zh.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.ZH_TW",
+      "name": "Bunbraco Localization Overrides (zh-tw)",
+      "weight": 0,
+      "meta": {
+        "culture": "zh-tw"
+      },
+      "js": "/bunbraco-plugin/localizations/zh-tw.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.VI",
+      "name": "Bunbraco Localization Overrides (vi)",
+      "weight": 0,
+      "meta": {
+        "culture": "vi"
+      },
+      "js": "/bunbraco-plugin/localizations/vi.js"
+    }
+  ]
+}

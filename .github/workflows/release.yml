@@ -1,0 +1,69 @@
+# A tag push runs the whole CI build, then publishes the workspace to npm as one
+# fixed-version set. Versions the registry already holds are skipped, so a tag
+# that only moves some packages is safe to push.
+#
+# Needs an NPM_TOKEN secret with publish rights to the @bunbraco scope.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+
+env:
+  BUN_VERSION: '1.4.2'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    # A release always runs the browser suite, whatever the tagged commit says.
+    with:
+      browser_tests: true
+
+  publish:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Signs npm provenance from this workflow's identity.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      # For the npm CLI, which uploads the tarballs Bun packs, and the .npmrc it
+      # authenticates with.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check the tag matches the package version
+        run: |
+          version="$(bun --print 'require("./packages/bunbraco/package.json").version')"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match bunbraco@$version" >&2
+            exit 1
+          fi
+
+      - run: bun run generate:types
+
+      - uses: actions/cache@v4
+        id: dist
+        with:
+          path: packages/backoffice-dist/dist
+          key: >-
+            backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+            'packages/backoffice-dist/upstream-static/**') }}
+      - if: steps.dist.outputs.cache-hit != 'true'
+        run: bun run vendor:backoffice
+
+      - run: bun run release:publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

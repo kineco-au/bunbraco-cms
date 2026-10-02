@@ -1,0 +1,7 @@
+[document-type]
+key = "f9563dfc-329c-4ccc-8662-30357588ef93"
+alias = "contentPage"
+name = "Content Page"
+compositions = ["homePage"]
+templates = ["contentPage"]
+default-template = "contentPage"

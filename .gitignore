@@ -1,0 +1,22 @@
+node_modules/
+*.sqlite
+*.sqlite-*
+.env
+.env.local
+dist/
+output/
+packages/backoffice-dist/dist/
+packages/contracts/generated/
+# Uploaded media belongs to the site's content, not the repository
+apps/site/media/
+
+# Site logs, written by the server and read by the log viewer
+logs/
+
+# Copied beside each manifest while packing; see scripts/publish-packages.ts
+packages/*/LICENSE
+packages/*/NOTICE
+# View snapshots: cache, rebuilt from Views/ at boot, per node.
+apps/site/.bunbraco/
+
+.bunbraco/

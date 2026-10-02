@@ -1,0 +1,12 @@
+[document-type]
+key = "41c3fbec-bb14-4046-a9e4-549bed2ae75b"
+alias = "contact"
+name = "Contact Page"
+
+[[property]]
+key = "3bb38659-77e8-40e2-8151-3a14d621a72e"
+alias = "email"
+name = "email"
+description = "test 123"
+type = "textstring"
+regex = "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"

@@ -1,0 +1,110 @@
+name: bunbraco
+
+# Postgres, and the test services that run the suite in a container.
+#
+# The multi-node topology — the api node, the renderer pool and the nginx proxy in
+# front of it — is not here. It is the enterprise distribution's, and lives in
+# that repo's own compose file. What remains is what the CMS itself needs to be
+# developed and tested: a database, and a container per test shape.
+
+# The image and the mounted source, with nothing else. A SQLite run needs no
+# database, so it uses this rather than the anchor below and `up` never starts
+# Postgres for it.
+x-cms-image: &cms-image
+  build:
+    context: ./docker
+    dockerfile: Dockerfile.cms
+  image: bunbraco-cms
+  volumes:
+    - .:/app
+    - cms_node_modules:/app/node_modules
+
+x-cms: &cms
+  <<: *cms-image
+  depends_on:
+    db:
+      condition: service_healthy
+
+# What `bun run test` sets on the host, so the two paths test the same thing. The
+# dialect is not here: each test service picks its own.
+x-test-environment: &test-environment
+  BUNBRACO_SQLITE_FILE: ':memory:'
+  BUNBRACO_ADMIN_PASSWORD: test-password
+  BUNBRACO_VIEWS_DIR: output/test-views
+  BUNBRACO_MEDIA_DIR: output/test-media
+  BUNBRACO_LOGS_DIR: output/test-logs
+  BUNBRACO_LOG_TO_CONSOLE: 'false'
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: bunbraco
+      POSTGRES_PASSWORD: bunbraco
+      POSTGRES_DB: bunbraco
+    ports:
+      # 5433 on the host: 5432 is usually taken by a local Postgres install.
+      - '5433:5432'
+    volumes:
+      - db_data:/var/lib/postgresql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bunbraco -d bunbraco']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # No test service is started by `up`; the `docker:test:*` scripts run them on
+  # demand. Each takes a command override, so
+  # `docker compose run --rm cms-test-sqlite bun test tests/redirects.test.ts`
+  # runs one file. On the Postgres service pass `--timeout 20000` too: `run`
+  # replaces the service's command, so the timeout set below goes with it.
+  cms-test-sqlite:
+    <<: *cms-image
+    profiles: ['test']
+    working_dir: /app
+    command: ['bun', 'test']
+    environment:
+      <<: *test-environment
+      BUNBRACO_DB: sqlite
+
+  cms-test:
+    <<: *cms
+    profiles: ['test']
+    working_dir: /app
+    # Postgres runs the same tests roughly four times slower than SQLite's private
+    # in-memory databases, and each one boots a server: migrations, then a seed.
+    # Several sit at one to two seconds, so bun's 5s default leaves too little
+    # headroom and the heaviest times out when the host is busy rather than when
+    # anything is wrong. The SQLite services keep the default.
+    command: ['bun', 'test', '--timeout', '20000']
+    environment:
+      <<: *test-environment
+      BUNBRACO_DB: postgres
+      BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@db:5432/bunbraco_test
+
+  # The browser suite needs browsers, so it has its own image — and its own
+  # node_modules volume, because that image is Debian and the CMS image is Alpine:
+  # one install cannot serve both.
+  cms-test-browser:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.browser
+    image: bunbraco-browser
+    profiles: ['test']
+    working_dir: /app
+    command: ['bun', 'run', 'test:browser']
+    volumes:
+      - .:/app
+      - browser_node_modules:/app/node_modules
+    environment:
+      <<: *test-environment
+      BUNBRACO_DB: sqlite
+      # Empty means Playwright's bundled Chromium. Google Chrome, which the suite
+      # drives on a developer's machine, has no Linux arm64 build.
+      BUNBRACO_BROWSER_CHANNEL: ''
+
+volumes:
+  db_data:
+  cms_node_modules:
+  browser_node_modules:

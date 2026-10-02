@@ -1,0 +1,132 @@
+{
+  "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
+  "name": "Bunbraco",
+  "id": "Bunbraco.Core",
+  "version": "0.2.0",
+  "allowPublicAccess": false,
+  "extensions": [
+    {
+      "type": "dashboard",
+      "alias": "Bunbraco.Dashboard.Changes",
+      "name": "Bunbraco Changes Dashboard",
+      "element": "/bunbraco-plugin/changes-dashboard.js",
+      "weight": 5,
+      "meta": {
+        "label": "Changes",
+        "pathname": "changes"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
+      "type": "dashboard",
+      "alias": "Bunbraco.Dashboard.Welcome",
+      "name": "Bunbraco Welcome Dashboard",
+      "element": "/bunbraco-plugin/welcome-dashboard.js",
+      "weight": 20,
+      "overwrites": ["Umb.Dashboard.UmbracoNews"],
+      "meta": {
+        "label": "Welcome",
+        "pathname": "welcome"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Content"
+        }
+      ]
+    },
+    {
+      "type": "dashboard",
+      "alias": "Bunbraco.Dashboard.Settings",
+      "name": "Bunbraco Settings Dashboard",
+      "element": "/bunbraco-plugin/settings-dashboard.js",
+      "weight": 500,
+      "overwrites": ["Umb.Dashboard.SettingsWelcome"],
+      "meta": {
+        "label": "Welcome",
+        "pathname": "welcome"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.TsxEditors",
+      "name": "Bunbraco TSX Template and Partial View Editors",
+      "js": "/bunbraco-plugin/tsx-editors.js"
+    },
+    {
+      "type": "headerApp",
+      "alias": "Bunbraco.HeaderApp.ReadOnly",
+      "name": "Bunbraco Read-only Banner",
+      "element": "/bunbraco-plugin/read-only-banner.js",
+      "weight": 1000
+    },
+    {
+      "type": "workspaceFooterApp",
+      "alias": "Bunbraco.WorkspaceFooterApp.ElementTypeHint",
+      "name": "Bunbraco Element Type Library Hint",
+      "element": "/bunbraco-plugin/element-type-hint.js",
+      "weight": 900,
+      "conditions": [
+        {
+          "alias": "Umb.Condition.WorkspaceAlias",
+          "match": "Umb.Workspace.DocumentType"
+        }
+      ]
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.EN",
+      "name": "Bunbraco English Overrides",
+      "weight": 0,
+      "meta": {
+        "culture": "en"
+      },
+      "js": "/bunbraco-plugin/branding/localization-en.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.EN_US",
+      "name": "Bunbraco English (United States) Overrides",
+      "weight": 0,
+      "meta": {
+        "culture": "en-us"
+      },
+      "js": "/bunbraco-plugin/branding/localization-en.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.Branding",
+      "name": "Bunbraco Branding",
+      "js": "/bunbraco-plugin/branding/branding.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.HelpMenu",
+      "name": "Bunbraco Help Menu",
+      "js": "/bunbraco-plugin/branding/help-menu.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.Sysinfo",
+      "name": "Bunbraco System Information Branding",
+      "js": "/bunbraco-plugin/branding/sysinfo.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.ClientCredentials",
+      "name": "Bunbraco Client Credential Prefix",
+      "js": "/bunbraco-plugin/branding/client-credentials.js"
+    }
+  ]
+}

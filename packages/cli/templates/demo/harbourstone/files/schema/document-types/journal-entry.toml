@@ -1,0 +1,43 @@
+[document-type]
+key = "5455e64f-f8e0-4629-a482-498bf9b04a6e"
+alias = "journalEntry"
+name = "Journal Entry"
+description = "One entry in the journal"
+icon = "icon-article"
+templates = ["journalEntry"]
+default-template = "journalEntry"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "a53cf951-6367-440a-8cf8-4f56dcf210d6"
+alias = "title"
+name = "Title"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "f846a990-56d0-4321-9f45-c1d479f0d58f"
+alias = "publishedOn"
+name = "Date"
+type = "datePicker"
+
+[[tab.property]]
+key = "d03f16be-cea9-43ed-8b61-715c19d3d089"
+alias = "summary"
+name = "Summary"
+description = "Shown on the journal index"
+type = "textarea"
+
+[[tab.property]]
+key = "9d64ef2e-1ff6-4e8a-a6a9-937612ed5f5c"
+alias = "heroImage"
+name = "Hero image"
+type = "imageMediaPicker"
+
+[[tab.property]]
+key = "6d255963-162d-473b-b030-e05ea3f15ab3"
+alias = "bodyText"
+name = "Body"
+type = "richtext"

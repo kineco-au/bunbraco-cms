@@ -1,0 +1,26 @@
+# The browser suite: Playwright's own image, with Bun copied in.
+#
+# Playwright's image is the base rather than `oven/bun` plus browser packages,
+# because it pins the whole set of browser system libraries to the Playwright
+# version — the part that breaks silently and obscurely when assembled by hand.
+# Bun is then copied in to run the server under test and the test command.
+#
+# The tag must match the `@playwright/test` version in package.json, or Playwright
+# refuses the browsers it finds. `tests/docker.test.ts` asserts that it does.
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
+
+# Debian-based, like this image, so the binary links against the same libc. The
+# alpine tag used for the CMS image would not run here.
+COPY --from=oven/bun:1 /usr/local/bin/bun /usr/local/bin/bun
+
+WORKDIR /app
+
+COPY cms-entrypoint.sh /usr/local/bin/cms-entrypoint
+RUN chmod +x /usr/local/bin/cms-entrypoint
+
+# The image already ships the browsers under PLAYWRIGHT_BROWSERS_PATH; an install
+# in the container must use those rather than download its own set.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+ENTRYPOINT ["cms-entrypoint"]
+CMD ["bun", "run", "test:browser"]

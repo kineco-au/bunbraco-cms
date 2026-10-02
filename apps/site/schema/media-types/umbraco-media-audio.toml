@@ -1,0 +1,29 @@
+[media-type]
+key = "a5ddeee0-8fd8-4cee-a658-6f1fcdb00de3"
+alias = "umbracoMediaAudio"
+name = "Audio"
+icon = "icon-audio-lines"
+allow-at-root = true
+
+[[group]]
+name = "Audio"
+alias = "audio"
+
+[[group.property]]
+key = "1f48d730-f174-4684-afad-a335e59d84a0"
+alias = "umbracoFile"
+name = "Audio"
+type = "uploadAudio"
+mandatory = true
+
+[[group.property]]
+key = "1bee433f-a21a-4031-8e03-af01bb8d2de9"
+alias = "umbracoExtension"
+name = "File extension"
+type = "label"
+
+[[group.property]]
+key = "3cbf538a-29ab-4317-a9eb-bbcdf1a54260"
+alias = "umbracoBytes"
+name = "File size"
+type = "labelBytes"

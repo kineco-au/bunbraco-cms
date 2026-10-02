@@ -1,0 +1,35 @@
+{
+  "key": "22144db2-e214-4006-a0bb-53b5bd121fd6",
+  "kind": "element",
+  "contentType": {
+    "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+    "alias": "tastingNote"
+  },
+  "parent": null,
+  "sortOrder": 3,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Nose — Driftwood smoke over gorse f…",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "aspect",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Nose"
+    },
+    {
+      "property": "note",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Driftwood smoke over gorse flower, damp rope, a squeeze of lemon."
+    }
+  ]
+}

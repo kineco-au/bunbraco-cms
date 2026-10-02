@@ -1,0 +1,38 @@
+[document-type]
+key = "086fc24d-2c96-4298-8678-145b38dcc14a"
+alias = "contentPage"
+name = "Content Page"
+description = "A page of prose: the distillery, visiting, contact"
+icon = "icon-document"
+allow-children = ["contentPage"]
+templates = ["contentPage"]
+default-template = "contentPage"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "4501d20d-3b78-40a4-97e4-dd25b2d8535a"
+alias = "title"
+name = "Title"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "33199ac7-8128-4dc4-bae1-554b2a622447"
+alias = "summary"
+name = "Summary"
+description = "Shown wherever this page is listed"
+type = "textarea"
+
+[[tab.property]]
+key = "6e9917d3-0a7c-4568-9e43-7468c6181d9c"
+alias = "heroImage"
+name = "Hero image"
+type = "imageMediaPicker"
+
+[[tab.property]]
+key = "f3a8a9f6-f841-486b-be9e-038bd15df843"
+alias = "bodyText"
+name = "Body"
+type = "richtext"

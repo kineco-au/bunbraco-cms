@@ -1,0 +1,164 @@
+{
+  "formatVersion": 1,
+  "id": "af030aee-ba70-4bed-8a27-a3806a79100d",
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "createdBy": "bun run build:template",
+  "integrity": "sha256-477f6e770d91cd3c5b878db8321f781a5fadc55feab868507be1e1a25e057075",
+  "snapshot": "published",
+  "provenance": {
+    "siteName": "Harbourstone Distillery",
+    "schemaVersion": "1.0.0",
+    "schemaRevision": "0",
+    "schemaHash": "495477d29905fb89148690a58c14cd5c89ede3a0f2b98b0893fd245acc7f4d50"
+  },
+  "selector": {
+    "roots": [
+      "2462ad2e-8038-46ab-920c-af66ca5143a9",
+      "a386a383-d4dd-421f-9afa-e1bdc711713b",
+      "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+      "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+      "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
+      "88ec1185-53b5-439a-a2ce-3f56603be4ff",
+      "b4e38bbd-c1a3-431a-b7a9-5868aa32993a",
+      "22144db2-e214-4006-a0bb-53b5bd121fd6",
+      "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
+      "97469df2-107c-4010-8c14-4de88f735529",
+      "b1876d3a-50a7-4358-84bf-a0899932ffa9",
+      "2fe03891-1294-4344-8e24-47e8b212e5b0",
+      "f36dd4a9-927c-4ca3-a790-c9c859ac7302",
+      "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
+      "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+      "6ad8f0f3-9334-47f1-b805-80c4b4b4fa88",
+      "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
+      "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
+      "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
+      "62695966-b12c-4a56-a3fc-310d23f8a6e4",
+      "5f3eb924-146f-4ca3-b477-5abb4af2ea32",
+      "26cd36fc-b9f5-4ebc-9d24-666567ebeb3e",
+      "ead3325b-ac35-4f46-b6c6-cecf0a4f5965",
+      "3d312cc8-2937-40e1-ba14-fd781c9a862d"
+    ],
+    "descendants": true,
+    "asGiven": [
+      "demo/harbourstone"
+    ]
+  },
+  "counts": {
+    "media": 5,
+    "element": 9,
+    "document": 11
+  },
+  "dependencies": {
+    "carried": [
+      "22144db2-e214-4006-a0bb-53b5bd121fd6",
+      "2462ad2e-8038-46ab-920c-af66ca5143a9",
+      "26cd36fc-b9f5-4ebc-9d24-666567ebeb3e",
+      "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+      "2fe03891-1294-4344-8e24-47e8b212e5b0",
+      "3d312cc8-2937-40e1-ba14-fd781c9a862d",
+      "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
+      "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
+      "5f3eb924-146f-4ca3-b477-5abb4af2ea32",
+      "62695966-b12c-4a56-a3fc-310d23f8a6e4",
+      "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "6ad8f0f3-9334-47f1-b805-80c4b4b4fa88",
+      "88ec1185-53b5-439a-a2ce-3f56603be4ff",
+      "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+      "97469df2-107c-4010-8c14-4de88f735529",
+      "a386a383-d4dd-421f-9afa-e1bdc711713b",
+      "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
+      "b1876d3a-50a7-4358-84bf-a0899932ffa9",
+      "b4e38bbd-c1a3-431a-b7a9-5868aa32993a",
+      "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
+      "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
+      "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+      "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
+      "ead3325b-ac35-4f46-b6c6-cecf0a4f5965",
+      "f36dd4a9-927c-4ca3-a790-c9c859ac7302"
+    ],
+    "expected": [],
+    "schema": {
+      "contentTypes": [
+        {
+          "key": "086fc24d-2c96-4298-8678-145b38dcc14a",
+          "alias": "contentPage"
+        },
+        {
+          "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
+          "alias": "expression"
+        },
+        {
+          "key": "e7fa436b-a7bc-4413-8d12-7eb535b61cb2",
+          "alias": "homePage"
+        },
+        {
+          "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+          "alias": "Image"
+        },
+        {
+          "key": "f80b78ff-2f3d-47ba-a8e6-fb079db4571d",
+          "alias": "journal"
+        },
+        {
+          "key": "5455e64f-f8e0-4629-a482-498bf9b04a6e",
+          "alias": "journalEntry"
+        },
+        {
+          "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+          "alias": "tastingNote"
+        },
+        {
+          "key": "57a5b3bd-c465-4509-9833-e20a06f28717",
+          "alias": "whiskyList"
+        }
+      ],
+      "templates": [
+        "contentPage",
+        "expression",
+        "homePage",
+        "journal",
+        "journalEntry",
+        "whiskyList"
+      ],
+      "languages": []
+    }
+  },
+  "blobs": [
+    {
+      "key": "2462ad2e/harbour-at-dawn.jpg",
+      "node": "2462ad2e-8038-46ab-920c-af66ca5143a9",
+      "etag": null,
+      "size": 74382,
+      "included": true
+    },
+    {
+      "key": "6a26db3b/bottle-harbour-cask.jpg",
+      "node": "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "etag": null,
+      "size": 26033,
+      "included": true
+    },
+    {
+      "key": "913c89e8/bottle-peated.jpg",
+      "node": "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+      "etag": null,
+      "size": 25641,
+      "included": true
+    },
+    {
+      "key": "a386a383/warehouse.jpg",
+      "node": "a386a383-d4dd-421f-9afa-e1bdc711713b",
+      "etag": null,
+      "size": 74465,
+      "included": true
+    },
+    {
+      "key": "ce973ab0/bottle-12.jpg",
+      "node": "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+      "etag": null,
+      "size": 26039,
+      "included": true
+    }
+  ]
+}

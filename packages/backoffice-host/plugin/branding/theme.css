@@ -1,0 +1,90 @@
+/*
+ * Bunbraco's colour scheme: white surfaces, baked-bun orange accents.
+ *
+ * Loaded by both shells immediately after the vendored `light.css`, rather than
+ * registered as a `theme` extension, so it reaches the login page too — the
+ * login shell never boots the extension registry.
+ *
+ * The Dark and High contrast themes are unaffected: the theme context appends
+ * their stylesheet to `<head>` *after* this one, and both redefine every token
+ * set below, so picking one still gets a coherent palette rather than a mix.
+ */
+:root {
+  --bunbraco-orange: #e89550;
+  /* Lighter: a hover fill, never text. */
+  --bunbraco-orange-light: #f2a96b;
+  /* Deep enough for a focus ring against white. */
+  --bunbraco-orange-deep: #c9742f;
+  /* The darkest of the three, and the only one that clears AA as body text. */
+  --bunbraco-orange-text: #a85a17;
+  --bunbraco-cocoa: #3b2412;
+  --bunbraco-cream: #fdf6ef;
+
+  /*
+   * `light.css` routes default, selected and interactive-emphasis through the
+   * violet-blue palette, so swapping the palette carries all of them at once.
+   */
+  --uui-palette-violet-blue: var(--bunbraco-orange);
+  --uui-palette-violet-blue-light: var(--bunbraco-orange-light);
+  --uui-palette-violet-blue-dark: var(--bunbraco-orange-text);
+  --uui-palette-violet-blue-dimmed: #c08c63;
+
+  /*
+   * Dark ink rather than orange. This palette is where the client's text and
+   * icon colours come from (`--uui-color-interactive`), so an orange here would
+   * tint the whole interface and fail contrast on white.
+   */
+  --uui-palette-space-cadet: var(--bunbraco-cocoa);
+  --uui-palette-space-cadet-light: #5a3a20;
+  --uui-palette-space-cadet-dark: #2a1a0c;
+  --uui-palette-space-cadet-dimmed: #8a7263;
+
+  /* The "current item" marker, warmed from pink to the same orange family. */
+  --uui-palette-spanish-pink: #fbe3cc;
+  --uui-palette-spanish-pink-light: #fdeee0;
+  --uui-palette-spanish-pink-dark: #f2c79b;
+  --uui-palette-spanish-pink-dimmed: #f6e0cd;
+
+  /* Backs the app background, the alt surface and the disabled fill. */
+  --uui-palette-sand: var(--bunbraco-cream);
+  --uui-palette-sand-light: #fff;
+  --uui-palette-sand-dark: #f0e4d8;
+  --uui-palette-sand-dimmed: #f3eae1;
+
+  --uui-palette-white: #fffefd;
+  --uui-palette-white-light: #fff;
+  --uui-palette-white-dark: #fdf8f3;
+  --uui-palette-white-dimmed: #efe6dc;
+
+  /*
+   * The accent is light, so what sits on it has to be dark. Stock `light.css`
+   * puts white on the accent, which against this orange is about 2.4:1; cocoa
+   * on the same fill is 7.1:1.
+   */
+  --uui-color-default-contrast: var(--bunbraco-cocoa);
+  --uui-color-selected-contrast: var(--bunbraco-cocoa);
+
+  /* An orange header bar, with its own text dark for the same reason. */
+  --uui-color-header-surface: var(--bunbraco-orange);
+  --uui-color-header-contrast: rgb(59 36 18 / 80%);
+  --uui-color-header-contrast-emphasis: var(--bunbraco-cocoa);
+
+  /* Pure white panels on a warm off-white page, so cards still separate. */
+  --uui-color-background: var(--bunbraco-cream);
+  --uui-color-surface: #fff;
+  --uui-color-surface-alt: var(--bunbraco-cream);
+  --uui-color-surface-emphasis: #fdf8f3;
+
+  --uui-color-focus: var(--bunbraco-orange-deep);
+
+  /* Hover text on an unfilled interactive element: the palette's light orange
+     would be 2:1 here, so it takes the text-weight orange instead. */
+  --uui-color-interactive-emphasis: var(--bunbraco-orange-text);
+
+  --uui-color-border: #e7dcd2;
+  --uui-color-border-standalone: #cdbcac;
+  --uui-color-border-emphasis: #ab9684;
+  --uui-color-divider: #f8f2ec;
+  --uui-color-divider-standalone: #efe5db;
+  --uui-color-divider-emphasis: #ddcdbe;
+}

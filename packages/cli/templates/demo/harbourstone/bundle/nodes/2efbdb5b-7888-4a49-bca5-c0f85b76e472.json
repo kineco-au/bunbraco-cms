@@ -1,0 +1,45 @@
+{
+  "key": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+  "kind": "document",
+  "contentType": {
+    "key": "57a5b3bd-c465-4509-9833-e20a06f28717",
+    "alias": "whiskyList"
+  },
+  "parent": "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
+  "sortOrder": 0,
+  "template": "whiskyList",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Our Whisky",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "intro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Everything we bottle is matured here on the coast. Soft oak first, floral always, and the salt air underneath it.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "summary",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Three bottlings: the 12, the peated 10 and this year’s harbour cask."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Our Whisky"
+    }
+  ]
+}

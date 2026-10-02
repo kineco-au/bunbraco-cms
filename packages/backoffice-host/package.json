@@ -1,0 +1,36 @@
+{
+  "name": "@bunbraco/backoffice-host",
+  "version": "0.2.0",
+  "description": "Serves the Umbraco backoffice SPA: shell HTML, import map and package manifests.",
+  "license": "MIT",
+  "author": "Kineco",
+  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "directory": "packages/backoffice-host"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "assets",
+    "plugin",
+    "src",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@bunbraco/core": "workspace:*",
+    "@bunbraco/backoffice-dist": "workspace:*"
+  }
+}

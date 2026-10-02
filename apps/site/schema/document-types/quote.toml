@@ -1,0 +1,25 @@
+# An element type: content with no URL of its own, created in the Library and
+# pointed at from a page. `is-element` makes it one; `allow-in-library` is what
+# puts it in the Library's Create dialog, and Umbraco requires both.
+[document-type]
+key = "3f2a9c17-6d84-4b0e-9a55-1c7e2d40b8f3"
+alias = "quote"
+name = "Quote"
+description = "A pull quote, reusable across pages"
+icon = "icon-quote"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "8c41e0d2-73b5-4f19-a6c8-5b2d9e17f604"
+alias = "body"
+name = "Quote"
+type = "textstring"
+mandatory = true
+
+[[property]]
+key = "d5b7a930-2e64-4c81-bf37-9a0c86e5d214"
+alias = "attribution"
+name = "Attribution"
+description = "Who said it"
+type = "textstring"

@@ -1,0 +1,6 @@
+[data-type]
+key = "b514baf0-118f-43fe-bd6c-ed16501df0ae"
+alias = "startDateDateOnly"
+name = " - start_date - Date Only"
+editor = "Umbraco.DateOnly"
+editor-ui = "Umb.PropertyEditorUi.DateOnlyPicker"

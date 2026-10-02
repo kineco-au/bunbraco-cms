@@ -1,0 +1,13 @@
+[document-type]
+key = "2219af33-aa62-42a7-a4c9-c18913c0be94"
+alias = "bulletList"
+name = "Bullet List"
+icon = "icon-bulleted-list"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "2b1c0d04-de93-40e7-a711-05b288e6dc4f"
+alias = "listTitle"
+name = "List Title"
+type = "textstring"

@@ -1,0 +1,35 @@
+{
+  "key": "f36dd4a9-927c-4ca3-a790-c9c859ac7302",
+  "kind": "element",
+  "contentType": {
+    "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+    "alias": "tastingNote"
+  },
+  "parent": null,
+  "sortOrder": 8,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Finish — Warm, floral, very long; wat…",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "aspect",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Finish"
+    },
+    {
+      "property": "note",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Warm, floral, very long; water opens the sea air right up."
+    }
+  ]
+}

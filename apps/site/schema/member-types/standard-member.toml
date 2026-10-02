@@ -1,0 +1,11 @@
+[member-type]
+key = "3ab44dca-5610-451c-ae0f-574453679bfd"
+alias = "standardMember"
+name = "StandardMember"
+icon = "icon-user"
+
+[[property]]
+key = "bb5d7a06-53ee-44be-88ba-021eba70f07f"
+alias = "startDate"
+name = "startDate"
+type = "startDateDateOnly"

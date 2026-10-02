@@ -1,0 +1,40 @@
+[document-type]
+key = "e7fa436b-a7bc-4413-8d12-7eb535b61cb2"
+alias = "homePage"
+name = "Home Page"
+description = "The site's landing page"
+icon = "icon-home"
+allow-at-root = true
+allow-children = ["contentPage", "whiskyList", "journal"]
+templates = ["homePage"]
+default-template = "homePage"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "be74a0df-3e9d-47f3-b60e-778a89682a80"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "a540c93a-228b-49f6-931a-be1b986bedd1"
+alias = "strapline"
+name = "Strapline"
+description = "One line under the heading"
+type = "textstring"
+
+[[tab.property]]
+key = "ad73357a-4beb-497d-9b55-9fe5222f781e"
+alias = "heroImage"
+name = "Hero image"
+type = "imageMediaPicker"
+
+[[tab.property]]
+key = "0aad18a5-a627-42f5-a95f-311fdaed30ae"
+alias = "intro"
+name = "Introduction"
+type = "richtext"

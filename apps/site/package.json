@@ -1,0 +1,13 @@
+{
+  "name": "@bunbraco/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bunbraco start",
+    "dev": "bun --watch server.ts"
+  },
+  "dependencies": {
+    "bunbraco": "workspace:*"
+  }
+}

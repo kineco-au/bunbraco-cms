@@ -1,0 +1,11 @@
+# Umbraco ships the Element Picker's schema but seeds no data type for it, so a
+# site declares its own. `allowedContentTypes` is a comma-separated list of element
+# type keys; it narrows the picker, and `bunbraco generate` reads it to type the
+# value as `Array<TypedElement<TastingNote>>` rather than `Array<PublishedElement>`.
+[data-type]
+key = "3f99cab4-4712-4514-a4be-dbb45c73ce80"
+alias = "tastingNotePicker"
+name = "Tasting Note Picker"
+editor = "Umbraco.ElementPicker"
+editor-ui = "Umb.PropertyEditorUi.ElementPicker"
+config = { allowedContentTypes = "55138391-faf2-4795-9ed6-43d581d350a4" }

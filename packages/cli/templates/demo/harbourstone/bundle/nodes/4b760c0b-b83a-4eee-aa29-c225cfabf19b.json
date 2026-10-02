@@ -1,0 +1,35 @@
+{
+  "key": "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
+  "kind": "element",
+  "contentType": {
+    "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+    "alias": "tastingNote"
+  },
+  "parent": null,
+  "sortOrder": 4,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Palate — Soft oak under the smoke, wh…",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "aspect",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Palate"
+    },
+    {
+      "property": "note",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Soft oak under the smoke, white pepper, sea spray on warm stone."
+    }
+  ]
+}

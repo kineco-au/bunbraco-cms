@@ -1,0 +1,26 @@
+# An element type: content with no URL of its own, created in the Library and
+# pointed at from a page. `is-element` makes it one; `allow-in-library` is what
+# puts it in the Library's Create dialog, and Umbraco requires both.
+[document-type]
+key = "55138391-faf2-4795-9ed6-43d581d350a4"
+alias = "tastingNote"
+name = "Tasting Note"
+description = "Nose, palate or finish, reusable across bottlings"
+icon = "icon-coffee"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "b182753f-d1a1-4c2c-9bd5-1252d0eb7f60"
+alias = "aspect"
+name = "Aspect"
+description = "Nose, Palate or Finish"
+type = "textstring"
+mandatory = true
+
+[[property]]
+key = "c9b32002-2aa3-4218-a0ae-6185c066161d"
+alias = "note"
+name = "Note"
+type = "textarea"
+mandatory = true

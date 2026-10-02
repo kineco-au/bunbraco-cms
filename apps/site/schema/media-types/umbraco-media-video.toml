@@ -1,0 +1,29 @@
+[media-type]
+key = "f6c515bb-653c-4bdc-821c-987729ebe327"
+alias = "umbracoMediaVideo"
+name = "Video"
+icon = "icon-video"
+allow-at-root = true
+
+[[group]]
+name = "Video"
+alias = "video"
+
+[[group.property]]
+key = "bed8ab97-d85f-44d2-a8b9-aef6893f9610"
+alias = "umbracoFile"
+name = "Video"
+type = "uploadVideo"
+mandatory = true
+
+[[group.property]]
+key = "edd2b3fd-1e57-4e57-935e-096defccdc9b"
+alias = "umbracoExtension"
+name = "File extension"
+type = "label"
+
+[[group.property]]
+key = "180eeecf-1f00-409e-8234-bba967e08b0a"
+alias = "umbracoBytes"
+name = "File size"
+type = "labelBytes"

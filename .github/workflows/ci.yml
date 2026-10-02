@@ -1,0 +1,207 @@
+# Format, lint, typecheck and the test suite on both dialects. Called directly by
+# a push to main or a pull request, and by release.yml before it publishes, so a
+# release runs exactly the build that guards main.
+#
+# The browser suite is the exception to "the same build every time": it is slow and
+# runner-sensitive, so on main it runs only when the commit message says
+# `--browser-tests`, while a release always runs it.
+#
+# The integration suites are the other thing `bun test` does not collect — they
+# spawn the CLI per step — but they are cheap, so the pipeline always runs them.
+# Locally: `bun run test:integration`.
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_call:
+        inputs:
+            browser_tests:
+                description: Run the browser suite regardless of the commit message.
+                type: boolean
+                default: false
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+    BUN_VERSION: "1.4.2"
+    # Bumped by the path inputs below, so a re-vendor invalidates it on its own.
+    DIST_PATH: packages/backoffice-dist/dist
+
+jobs:
+    # Builds the 84 MB client once and caches it. The test jobs need it: about
+    # twenty tests skip themselves without it, and the cache-busting hash test
+    # fails outright, so running them against a missing client proves less than
+    # it appears to.
+    client:
+        name: vendored backoffice
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - uses: actions/cache@v4
+              id: dist
+              with:
+                  path: ${{ env.DIST_PATH }}
+                  key: >-
+                      backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+                      'packages/backoffice-dist/upstream-static/**') }}
+            - if: steps.dist.outputs.cache-hit != 'true'
+              run: bun run vendor:backoffice
+            # Checks every module a browser would link, against the restored or rebuilt client.
+            - run: bun run check:modules
+
+    check:
+        name: format, lint and types
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            # The contract types are generated, and typecheck reads them.
+            - run: bun run generate:types
+            - run: bun run check
+
+    test:
+        name: test (${{ matrix.dialect }})
+        needs: [client, check]
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                dialect: [sqlite, postgres]
+        services:
+            # Started for both legs; the sqlite leg simply never connects to it.
+            db:
+                image: postgres:18-alpine
+                env:
+                    POSTGRES_USER: bunbraco
+                    POSTGRES_PASSWORD: bunbraco
+                    # The suite drops and recreates the `public` schema, so it gets a
+                    # database of its own — the same split docker/initdb makes locally.
+                    POSTGRES_DB: bunbraco_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U bunbraco -d bunbraco_test"
+                    --health-interval 2s
+                    --health-timeout 3s
+                    --health-retries 30
+        env:
+            BUNBRACO_DB: ${{ matrix.dialect }}
+            BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@localhost:5432/bunbraco_test
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - run: bun run generate:types
+            # The `client` job has just populated this key, so a miss is a real fault
+            # rather than something to paper over by skipping the tests that need it.
+            - uses: actions/cache/restore@v4
+              with:
+                  path: ${{ env.DIST_PATH }}
+                  key: >-
+                      backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+                      'packages/backoffice-dist/upstream-static/**') }}
+                  fail-on-cache-miss: true
+            - run: bun run test:ci
+
+    # The integration suites drive the real CLI as a pipeline would: a process per
+    # step and two SQLite databases, for content transfer (a bundle written to disk
+    # and read back) and for the upgrade (three releases of one site, each booted
+    # with `bunbraco start` and asserted over HTTP). That is what covers argument
+    # parsing, exit codes and the output somebody reads — none of which the unit
+    # tests touch.
+    #
+    # They are `*.integration.ts`, so `bun test` does not collect them and a local
+    # run stays fast. Unlike the browser suite they are cheap enough to run every
+    # time, so they are not gated on anything: the pipeline always runs them.
+    integration:
+        name: CLI end to end (integration)
+        needs: [client, check]
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - run: bun run generate:types
+            - uses: actions/cache/restore@v4
+              with:
+                  path: ${{ env.DIST_PATH }}
+                  key: >-
+                      backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+                      'packages/backoffice-dist/upstream-static/**') }}
+                  fail-on-cache-miss: true
+            - run: bun run test:integration
+
+    # The browser suite drives the real backoffice, so it is the slowest thing here
+    # (~7 minutes at one worker) and the most sensitive to a busy runner. It is
+    # therefore opt-in on main — put `--browser-tests` in the commit message — and
+    # unconditional for a release, where `workflow_call` passes `browser_tests`.
+    #
+    # Browsers are installed onto the runner rather than the job running inside
+    # Playwright's image: every piece here is then one the jobs above already prove
+    # works, where `setup-bun` inside a container is not something this repository
+    # has ever exercised. Chromium, not Chrome, so a failure reproduces with
+    # `bun run docker:test:browser` on any machine — including Apple silicon, where
+    # Chrome has no Linux build to install.
+    browser:
+        name: browser suite
+        needs: [client, check]
+        if: >-
+            inputs.browser_tests ||
+            (github.event_name == 'push' &&
+             github.ref == 'refs/heads/main' &&
+             contains(github.event.head_commit.message, '--browser-tests'))
+        runs-on: ubuntu-latest
+        env:
+            # Empty selects Playwright's bundled Chromium over installed Chrome.
+            BUNBRACO_BROWSER_CHANNEL: ""
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - run: bun run generate:types
+            # Keyed on the lockfile, which is what moves when @playwright/test does.
+            - uses: actions/cache@v4
+              id: browsers
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+            - run: bunx playwright install --with-deps chromium
+              if: steps.browsers.outputs.cache-hit != 'true'
+            # A restored cache has the browser but not the system libraries.
+            - run: bunx playwright install-deps chromium
+              if: steps.browsers.outputs.cache-hit == 'true'
+            - uses: actions/cache/restore@v4
+              with:
+                  path: ${{ env.DIST_PATH }}
+                  key: >-
+                      backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+                      'packages/backoffice-dist/upstream-static/**') }}
+                  fail-on-cache-miss: true
+            - run: bun run test:browser
+            # Without the trace a failure here is undebuggable: the run is gone and
+            # the screenshots with it.
+            - if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: browser-report
+                  path: |
+                      output/browser-report
+                      output/browser-results
+                  retention-days: 14

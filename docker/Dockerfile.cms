@@ -1,0 +1,13 @@
+FROM oven/bun:1-alpine
+
+# The repository is bind-mounted at /app instead of copied, so this image only
+# carries the runtime and the entrypoint; editing a file on the host is enough.
+WORKDIR /app
+
+COPY cms-entrypoint.sh /usr/local/bin/cms-entrypoint
+RUN chmod +x /usr/local/bin/cms-entrypoint
+
+EXPOSE 8080
+
+ENTRYPOINT ["cms-entrypoint"]
+CMD ["bun", "--watch", "server.ts"]

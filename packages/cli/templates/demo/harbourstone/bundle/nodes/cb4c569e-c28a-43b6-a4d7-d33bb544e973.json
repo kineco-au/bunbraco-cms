@@ -1,0 +1,64 @@
+{
+  "key": "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
+  "kind": "document",
+  "contentType": {
+    "key": "086fc24d-2c96-4298-8678-145b38dcc14a",
+    "alias": "contentPage"
+  },
+  "parent": "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
+  "sortOrder": 1,
+  "template": "contentPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "The Distillery",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Two stills, run slowly, with long fermentations and a tall lyne arm — which is where the floral character comes from. We fill at 63.5% into soft oak, mostly refill, and roll the casks into dunnage warehouses twenty metres from the high-water mark.</p><h2>The water</h2><p>Soft, peat-filtered, from the burn behind the distillery. Hard water makes a heavier spirit; we are after the opposite.</p><h2>The warehouses</h2><p>Earth floors, three casks high, salt on the walls. Nothing is temperature-controlled: the sea does that, and does it better.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "heroImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "58608da7-a4f6-48f4-866c-2f0584a80740",
+          "mediaKey": "a386a383-d4dd-421f-9afa-e1bdc711713b",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "58608da7-a4f6-48f4-866c-2f0584a80740",
+        "a386a383-d4dd-421f-9afa-e1bdc711713b"
+      ]
+    },
+    {
+      "property": "summary",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Two stills, long fermentations, and warehouses twenty metres from the water."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "The Distillery"
+    }
+  ]
+}

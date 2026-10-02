@@ -1,0 +1,45 @@
+{
+  "formatVersion": 1,
+  "id": "2de473a2-d391-4161-801e-e34b202759b8",
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "createdBy": "bun run build:template",
+  "integrity": "sha256-54953d59c1d0434524196e5b6b09a4af4fc96a76a7da0aa50c3aeab3fceb1d3c",
+  "snapshot": "published",
+  "provenance": {
+    "siteName": "Basic",
+    "schemaVersion": "1.0.0",
+    "schemaRevision": "0",
+    "schemaHash": "7ed3f0aac1bed8529738bf48c675f360cb05b05e26b2387c59a21b60a1608de5"
+  },
+  "selector": {
+    "roots": [
+      "36955f6e-d110-469e-b280-72096eccd148"
+    ],
+    "descendants": true,
+    "asGiven": [
+      "basic"
+    ]
+  },
+  "counts": {
+    "document": 1
+  },
+  "dependencies": {
+    "carried": [
+      "36955f6e-d110-469e-b280-72096eccd148"
+    ],
+    "expected": [],
+    "schema": {
+      "contentTypes": [
+        {
+          "key": "b8188492-dc05-43e6-98bf-04ee758e4c17",
+          "alias": "homePage"
+        }
+      ],
+      "templates": [
+        "homePage"
+      ],
+      "languages": []
+    }
+  },
+  "blobs": []
+}

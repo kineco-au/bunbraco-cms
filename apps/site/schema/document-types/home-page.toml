@@ -1,0 +1,34 @@
+[document-type]
+key = "bf568bcf-9e04-4ef2-ba37-e582717178e3"
+alias = "homePage"
+name = "Home Page"
+description = "The site's landing page"
+icon = "icon-home"
+allow-at-root = true
+allow-children = ["homePage", "contentPage"]
+templates = ["homePage"]
+default-template = "homePage"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "7e5580ae-5b74-435e-9d9b-cda09d879bd5"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "a538fcb5-596a-4a11-b302-68655b49e014"
+alias = "bodyText"
+name = "Body"
+type = "richtext"
+
+[[tab.property]]
+key = "1c9d83fe-47a0-4b62-95e1-7f04d2b6a538"
+alias = "quotes"
+name = "Quotes"
+description = "Pull quotes from the Library"
+type = "quotePicker"

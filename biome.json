@@ -1,0 +1,40 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!packages/contracts/OpenApi.json",
+      "!packages/backoffice-dist/dist",
+      "!packages/backoffice-dist/upstream-static",
+      "!**/*.gen.ts",
+      "!packages/contracts/generated",
+      "!packages/backoffice-host/plugin/localizations",
+      "!apps/site/css",
+      "!apps/site/scripts",
+      "!apps/site/logs",
+      "!packages/cli/templates/**/bundle"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded"
+    }
+  }
+}

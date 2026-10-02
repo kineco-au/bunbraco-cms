@@ -1,0 +1,35 @@
+# `collection` gives the backoffice a list view of the children instead of a
+# tree branch, which is what a range of bottlings wants.
+[document-type]
+key = "57a5b3bd-c465-4509-9833-e20a06f28717"
+alias = "whiskyList"
+name = "Whisky List"
+description = "The range: a parent for the bottlings"
+icon = "icon-bulleted-list"
+allow-children = ["expression"]
+collection = "listViewContent"
+templates = ["whiskyList"]
+default-template = "whiskyList"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "727804c0-7d4a-43d9-a473-71c9e27397c0"
+alias = "title"
+name = "Title"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "9c83bcea-a70e-4a3f-8185-ad04ddec55f1"
+alias = "summary"
+name = "Summary"
+description = "Shown wherever this page is listed"
+type = "textarea"
+
+[[tab.property]]
+key = "35a51b3e-2b55-4e0c-89cd-5b64fe2219fa"
+alias = "intro"
+name = "Introduction"
+type = "richtext"

@@ -1,0 +1,80 @@
+{
+  "key": "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
+  "kind": "document",
+  "contentType": {
+    "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
+    "alias": "expression"
+  },
+  "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+  "sortOrder": 2,
+  "template": "expression",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Harbour Cask 2026",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "abv",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "57.1%"
+    },
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>One cask, drawn at full strength for this year&rsquo;s release. No age statement: it was ready, which is the only argument that matters. 312 bottles.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "bottleImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "5240d91e-c8a2-4f58-8554-e0f6b86e6dcc",
+          "mediaKey": "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "5240d91e-c8a2-4f58-8554-e0f6b86e6dcc",
+        "6a26db3b-1f16-48b1-8283-0277e2fbc186"
+      ]
+    },
+    {
+      "property": "tastingNotes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "b1876d3a-50a7-4358-84bf-a0899932ffa9",
+        "2fe03891-1294-4344-8e24-47e8b212e5b0",
+        "f36dd4a9-927c-4ca3-a790-c9c859ac7302"
+      ],
+      "references": [
+        "2fe03891-1294-4344-8e24-47e8b212e5b0",
+        "b1876d3a-50a7-4358-84bf-a0899932ffa9",
+        "f36dd4a9-927c-4ca3-a790-c9c859ac7302"
+      ]
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Harbour Cask 2026"
+    }
+  ]
+}

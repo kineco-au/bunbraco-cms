@@ -1,0 +1,35 @@
+{
+  "key": "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
+  "kind": "element",
+  "contentType": {
+    "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+    "alias": "tastingNote"
+  },
+  "parent": null,
+  "sortOrder": 0,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Nose — Sea pink and cut hay, with a…",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "aspect",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Nose"
+    },
+    {
+      "property": "note",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Sea pink and cut hay, with a lick of salt off the harbour wall."
+    }
+  ]
+}

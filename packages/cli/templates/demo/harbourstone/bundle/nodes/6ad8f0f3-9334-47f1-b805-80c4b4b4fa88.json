@@ -1,0 +1,87 @@
+{
+  "key": "6ad8f0f3-9334-47f1-b805-80c4b4b4fa88",
+  "kind": "document",
+  "contentType": {
+    "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
+    "alias": "expression"
+  },
+  "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+  "sortOrder": 0,
+  "template": "expression",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Harbourstone 12",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "abv",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "46.3%"
+    },
+    {
+      "property": "age",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Integer",
+      "value": 12
+    },
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Twelve years in refill American oak, in the low warehouse nearest the pier. Bottled at 46.3%, never chill-filtered, no colouring.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "bottleImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "463bb542-ccce-4aaf-9dbf-0c21c030952d",
+          "mediaKey": "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "463bb542-ccce-4aaf-9dbf-0c21c030952d",
+        "ce973ab0-62cd-40d1-930a-78ee4e467e60"
+      ]
+    },
+    {
+      "property": "tastingNotes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
+        "88ec1185-53b5-439a-a2ce-3f56603be4ff",
+        "b4e38bbd-c1a3-431a-b7a9-5868aa32993a"
+      ],
+      "references": [
+        "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
+        "88ec1185-53b5-439a-a2ce-3f56603be4ff",
+        "b4e38bbd-c1a3-431a-b7a9-5868aa32993a"
+      ]
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Harbourstone 12 Year Old"
+    }
+  ]
+}

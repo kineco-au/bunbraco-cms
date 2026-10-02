@@ -1,0 +1,69 @@
+bunbraco
+Copyright (c) 2026 Kineco
+
+This product includes third-party software. bunbraco is an independent project.
+It is not affiliated with, endorsed by, or sponsored by Umbraco A/S, which owns
+the Umbraco trademark.
+
+There are three places third-party material is redistributed, rather than merely
+depended on:
+
+  @bunbraco/backoffice-dist   the built Umbraco backoffice and the browser
+                              packages bundled into it, produced by
+                              `bun run vendor:backoffice`
+  @bunbraco/backoffice-dist   three CSS files copied unmodified from the Umbraco
+                              client source tree
+  @bunbraco/contracts         the Umbraco Management API OpenAPI document,
+                              copied unmodified
+
+No Umbraco trademark is redistributed. The Umbraco wordmark, the "U" roundel
+favicon and the installer illustration are deliberately not carried in this
+repository: MIT grants copyright permission and says nothing about trademarks, so
+bunbraco's own marks are served at those paths instead. See `BRANDED_ASSETS` in
+`@bunbraco/backoffice-host`.
+
+The Umbraco backoffice
+----------------------
+@umbraco-cms/backoffice 18.2.0 — MIT — https://github.com/umbraco/Umbraco-CMS
+@umbraco-ui/uui 2.0.2 — MIT — https://github.com/umbraco/Umbraco.UI
+
+Static files from the Umbraco client source tree
+------------------------------------------------
+css/umb-css.css, css/rte-content.css, css/umbraco-blockgridlayout.css
+  — copied unmodified from Umbraco-CMS release-18.2.0 — MIT
+  — https://github.com/umbraco/Umbraco-CMS
+Shipped in @bunbraco/backoffice-dist under `upstream-static/`.
+
+`rte-content.css` itself carries Tiptap's default editor styles, copied from
+tiptap v2.11.7 (MIT); the file records this in its own header.
+
+The Umbraco Management API contract
+-----------------------------------
+OpenApi.json — copied unmodified from Umbraco-CMS release-18.2.0
+  (src/Umbraco.Cms.Api.Management/OpenApi.json) — MIT
+  — https://github.com/umbraco/Umbraco-CMS
+Shipped in @bunbraco/contracts, which also ships the TypeScript types generated
+from it.
+
+Browser runtime dependencies bundled into the backoffice build
+--------------------------------------------------------------
+@heximal/expressions 0.1.5 — BSD-3-Clause
+@microsoft/signalr 10.0.11 — MIT
+@tiptap/* 3.31.3 — MIT
+diff 9.0.0 — BSD-3-Clause
+dompurify 3.4.16 — Apache-2.0, elected from "MPL-2.0 OR Apache-2.0"
+element-internals-polyfill 3.0.2 — MIT
+lit 3.3.3 — BSD-3-Clause
+luxon 3.7.2 — MIT
+marked 18.0.14 — MIT
+monaco-editor 0.57.0 — MIT
+rxjs 7.8.2 — Apache-2.0
+uuid 14.0.2 — MIT
+
+dompurify is offered under either licence; Apache-2.0 is elected here, so no
+MPL-2.0 obligation attaches to the copy bundled into the backoffice build. Of the
+Apache-2.0 packages above, none ships a NOTICE file of its own, so Apache-2.0
+section 4(d) adds nothing to this file.
+
+Each package's own licence text ships inside its npm distribution and applies
+unchanged to the copies bundled here.

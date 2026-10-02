@@ -1,0 +1,42 @@
+{
+  "name": "@bunbraco/server",
+  "version": "0.2.0",
+  "description": "The bunbraco HTTP server: routing, configuration, media stores and background jobs.",
+  "license": "MIT",
+  "author": "Kineco",
+  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@bunbraco/api-management": "workspace:*",
+    "@bunbraco/assistant": "workspace:*",
+    "@bunbraco/auth": "workspace:*",
+    "@bunbraco/backoffice-host": "workspace:*",
+    "@bunbraco/contracts": "workspace:*",
+    "@bunbraco/core": "workspace:*",
+    "@bunbraco/data": "workspace:*",
+    "@bunbraco/render": "workspace:*",
+    "@bunbraco/schema": "workspace:*",
+    "@logtape/logtape": "^2.3.8"
+  }
+}

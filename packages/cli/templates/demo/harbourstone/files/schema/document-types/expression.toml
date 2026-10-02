@@ -1,0 +1,54 @@
+[document-type]
+key = "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f"
+alias = "expression"
+name = "Expression"
+description = "One bottling in the range"
+icon = "icon-wine-glass"
+templates = ["expression"]
+default-template = "expression"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "52a26147-233c-41f3-84f3-cf8921b696c5"
+alias = "title"
+name = "Title"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "f1053b53-6cbc-4b6b-85b3-9f5c5a73750f"
+alias = "age"
+name = "Age"
+description = "Years in cask; leave empty for a no-age-statement bottling"
+type = "numeric"
+
+[[tab.property]]
+key = "ff73013c-fdb2-4cd6-9afa-e117d8d223a9"
+alias = "abv"
+name = "ABV"
+description = "As it is printed on the label, e.g. 46.3%"
+type = "textstring"
+
+[[tab.property]]
+key = "df466e38-c8c5-4b8f-b56b-fff051d724cc"
+alias = "bottleImage"
+name = "Bottle"
+type = "imageMediaPicker"
+
+[[tab.property]]
+key = "5b509286-46c1-4863-8b6d-d054a1501164"
+alias = "bodyText"
+name = "Body"
+type = "richtext"
+
+[[tab]]
+name = "Tasting"
+
+[[tab.property]]
+key = "ac279149-fa32-4ce0-91a8-d32b7160d36f"
+alias = "tastingNotes"
+name = "Tasting notes"
+description = "Nose, palate and finish, picked from the Library"
+type = "tastingNotePicker"

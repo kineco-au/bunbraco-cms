@@ -1,0 +1,28 @@
+{
+  "name": "@bunbraco/backoffice-dist",
+  "version": "18.2.0",
+  "description": "The Umbraco backoffice, built to run in a browser. Major and minor track the @umbraco-cms/backoffice release vendored here; the patch is ours. Regenerate with `bun run vendor:backoffice`.",
+  "license": "MIT",
+  "author": "Kineco",
+  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "directory": "packages/backoffice-dist"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "upstream-static",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
