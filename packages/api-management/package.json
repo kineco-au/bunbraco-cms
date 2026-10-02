@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/api-management",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Umbraco-compatible Management API handlers for bunbraco.",
   "license": "MIT",
   "author": "Kineco",

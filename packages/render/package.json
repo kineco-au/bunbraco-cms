@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/render",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TSX server rendering and the published-content model for bunbraco.",
   "license": "MIT",
   "author": "Kineco",

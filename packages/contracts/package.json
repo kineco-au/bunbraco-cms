@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/contracts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The Umbraco Management API OpenAPI document and the TypeScript types generated from it.",
   "license": "MIT",
   "author": "Kineco",
