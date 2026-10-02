@@ -747,3 +747,127 @@ Phase 3 and Phase 4 suites exercise the same code path a browser would.
 
 Because the harness boots a server per test, each one must close its database
 (`afterEach`), or Postgres runs out of client slots.
+
+## Running the tests
+
+Every test command comes in two forms: on the host, and the same suite inside a
+container over the mounted source.
+
+| On the host             | In Docker                      | Runs                                                                |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| `bun test`              | `bun run docker:test`          | the default dialect, SQLite                                         |
+| `bun run test:sqlite`   | `bun run docker:test:sqlite`   | SQLite, pinned; starts no database                                  |
+| `bun run test:postgres` | `bun run docker:test:postgres` | Postgres; brings the `db` container up itself                       |
+| `bun run test:all`      | `bun run docker:test:all`      | both dialects in sequence — **the real gate**                       |
+| `bun run test:browser`  | `bun run docker:test:browser`  | the Playwright suite; Chromium in the container, Chrome on the host |
+| `bun run test:integration` | `bun run docker:test:integration` | the CLI end to end — creating a site, content transfer, the server roles and the upgrade; `bun test` does not collect these |
+
+Each container service takes a command override, so a single file is
+`docker compose run --rm cms-test-sqlite bun test tests/redirects.test.ts`.
+
+The host and container runs set identical environments, from one anchor in
+`compose.yaml`, so they test the same thing. The container is slower — the source
+is a bind mount, which costs roughly 50% on macOS — so the host commands are the
+ones to use while working, and the Docker ones when you want to know it passes
+somewhere other than your machine.
+
+`test:ci` is the one command with no twin, on purpose: it exists so the CI workflow
+can supply the dialect through job environment, and in a container the dialect *is*
+the service you pick, so `docker:test:sqlite` and `docker:test:postgres` together
+are that matrix.
+
+The browser suite has its own image (`docker/Dockerfile.browser`): Playwright's
+official image, which pins the browser system libraries to the Playwright version,
+with Bun copied in to run the server under test. Its tag must track the
+`@playwright/test` version, and `tests/docker.test.ts` fails if it drifts. It also
+gets its own `node_modules` volume, because that image is Debian and the CMS image
+is Alpine — one install cannot serve both. **One behaviour differs there**: the host
+run drives installed Google Chrome (`channel: 'chrome'`), and the container cannot,
+because Google publishes no Linux arm64 build of Chrome. The container sets
+`BUNBRACO_BROWSER_CHANNEL=''` and gets Playwright's bundled Chromium instead.
+
+The suite drops and recreates the `public` schema between servers, so it is given
+a database of its own: the stack provisions `bunbraco` for the CMS and
+`bunbraco_test` for the tests. The CMS container can stay up during a test run
+without the two colliding. Don't run a host and a container Postgres suite at the
+same time, though — they share that one database.
+
+The Postgres runs use `--timeout 20000`. They are roughly four times slower than
+SQLite's private in-memory databases and every test boots a server — migrations,
+then a seed — so several sit at one to two seconds. Bun's 5s default leaves too
+little headroom, and the heaviest tests time out when the host is busy rather than
+when anything is wrong. The SQLite runs keep the default.
+
+Both dialects are exercised from day one, and it has paid for itself: it caught
+`SET search_path` not surviving Bun's connection pool, Postgres refusing to infer
+a type for `? IS NULL`, and — the subtle one — Postgres normalising `uuid` values
+to lowercase while SQLite stores them verbatim.
+
+Individual Postgres tests **skip** rather than fail when no server is reachable,
+so a clone without Docker can still run `bun test` and `test:sqlite` and is never
+blocked. A skip is not a pass, though: `test:all` is the gate. To point at a
+Postgres of your own instead, set `BUNBRACO_POSTGRES_URL` and run `bun test`
+directly with `BUNBRACO_DB=postgres`.
+
+## How the test containers work
+
+`compose.yaml` holds Postgres, a single-node CMS, and one service per test shape.
+Anything larger than a single node — an editor and a pool of renderers behind a
+balancer — belongs to the enterprise distribution.
+
+The three test services sit behind the `test` profile, so `docker compose up`
+never starts them; they run only when a `docker:test:*` script asks for one.
+`cms-test-sqlite` is built from an anchor that carries the image and the mount but
+no `depends_on`, so a SQLite run starts no Postgres at all — whereas `cms-test`
+declares the database and `docker compose run` brings it up and waits for its
+health check.
+
+`db:up` deliberately does **not** tear anything down: `test:postgres` calls it,
+and a test run is meant to leave anything else you have running alone. Postgres
+is on `localhost:5433` rather than 5432, which is normally a local install, so the
+stack stays clear of one.
+
+Running a single Postgres test file, override the command **with the timeout**:
+
+```sh
+docker compose run --rm cms-test bun test --timeout 20000 tests/users.test.ts
+```
+
+`docker compose run` replaces the service's `command`, so omitting it silently
+drops back to bun's 5s default — which most Postgres tests in this suite cannot
+meet.
+
+The teardown passes `--remove-orphans`, which also clears the one-off containers
+`docker compose run` leaves behind when it is interrupted: every `docker:test:*`
+script uses `run`, and a plain `down` does **not** remove those. A survivor keeps
+its old environment, so it will happily answer `docker compose exec` and `logs`
+with stale values long after the compose file changed. It names the `test` profile
+for the same reason `down` needs one at all — `docker compose down` acts on the
+**active profile selection only**.
+
+The repository is **bind-mounted** at `/app` rather than copied into the image, so
+an edit on the host is visible in the container, in `packages/**` as much as in
+`apps/site`. The image itself holds only the Bun runtime and the entrypoint, so it
+is rebuilt only when `docker/Dockerfile.cms` or the entrypoint changes.
+
+`node_modules` is the exception: it is a named volume, not part of the mount,
+because the host's install holds macOS binaries that cannot run in the container.
+The first boot populates it with `bun install --frozen-lockfile`.
+
+The browser suite has an image of its own, because it needs browsers and because
+that image is Debian where the CMS image is Alpine — one install cannot serve
+both, hence a second `node_modules` volume. Its Playwright tag must match the
+`@playwright/test` the project installs, which `tests/docker.test.ts` asserts.
+
+One thing worth knowing about `output/`: the test services put their views, media
+and logs there, and `output/` is inside the mounted repository — so anything else
+running under `bun --watch` against the same checkout sees every file a test run
+writes as a source change. When the dev server and a suite shared a checkout this
+way, the SQLite suite went from 140 seconds to **1,834**, and Postgres from five
+minutes to **three and a half hours**, with tests failing on timeouts that had
+nothing wrong with them. Worse, a timeout landing inside `resetPostgresSchema`
+left the database with no `public` schema and every later file failed with `no
+schema has been selected to create in`. The reset is one transaction now, so an
+interrupted one rolls back instead of cascading.
+
+---

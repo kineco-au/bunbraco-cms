@@ -44,6 +44,22 @@ export interface BunbracoConfig {
    */
   signalRSkipNegotiation: boolean
   development: boolean
+  /**
+   * Whether the cache-busted asset path may be cached immutably. Defaults to
+   * `!development`.
+   *
+   * The hash in that path comes from the vendored client's `VERSION` alone, so
+   * re-vendoring the *same* upstream version with different output — editing
+   * `vendor-backoffice.ts`, or changing what `upstream-static/` seeds — leaves the
+   * path unchanged while the bytes behind it move. Development therefore sends
+   * `no-cache`, or a developer would debug a stale module graph.
+   *
+   * A long-lived process that vendors once wants the opposite, and wants it
+   * badly: the client is ~6,500 separate modules, and re-fetching all of them on
+   * every page load is enough to exhaust a browser. The browser suite sets this
+   * true for exactly that reason — see `tests/browser/serve.ts`.
+   */
+  immutableAssets?: boolean
   /** SQLite file, or ':memory:'. Ignored when BUNBRACO_DB=postgres. */
   sqliteFile: string
   adminLogin: string

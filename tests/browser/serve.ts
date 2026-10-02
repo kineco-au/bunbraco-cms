@@ -2,7 +2,15 @@
  * Boots bunbraco for the browser suite on a throwaway copy of apps/site: its
  * schema and views, a fresh SQLite file, a known admin password.
  */
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  appendFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_DATA_TYPES } from '@bunbraco/data'
 import { createServer, loadConfig } from '@bunbraco/server'
@@ -10,6 +18,21 @@ import { BLOCK_ONLY_ELEMENT_TYPE, BROWSER_ADMIN } from './fixtures.ts'
 
 const repo = join(import.meta.dir, '../..')
 mkdirSync(join(repo, 'output'), { recursive: true })
+
+/**
+ * Sweeps the sites earlier runs left behind.
+ *
+ * `stop` below removes this run's copy, but only on SIGTERM and SIGINT — a
+ * SIGKILL, a crash, or Playwright giving up on the web server leaves one. Each is
+ * a few megabytes, mostly SQLite WAL, and they accumulate silently because
+ * `output/` is gitignored: 273 of them, 1.1 GB, had collected before anyone
+ * looked. On a CI runner the same leak is disk pressure during the run.
+ */
+for (const entry of readdirSync(join(repo, 'output'), { withFileTypes: true })) {
+  if (entry.isDirectory() && entry.name.startsWith('browser-site-'))
+    rmSync(join(repo, 'output', entry.name), { recursive: true, force: true })
+}
+
 const root = mkdtempSync(join(repo, 'output', 'browser-site-'))
 cpSync(join(repo, 'apps/site/schema'), join(root, 'schema'), { recursive: true })
 cpSync(join(repo, 'apps/site/Views'), join(root, 'Views'), { recursive: true })
@@ -93,6 +116,14 @@ const server = await createServer(
       adminLogin: BROWSER_ADMIN.login,
       adminPassword: BROWSER_ADMIN.password,
       development: true,
+      // Development would otherwise send `no-cache` for every vendored asset, so
+      // the browser would re-fetch all ~6,500 modules of the client on each of the
+      // forty-odd sign-ins this suite performs. That is enough to exhaust Chromium
+      // on a CI runner: it starts refusing requests with ERR_INSUFFICIENT_RESOURCES,
+      // the module graph fails to link, and every test after it fails for a reason
+      // that has nothing to do with the test. This process vendors once and never
+      // re-vendors, so the hashed path is safe to cache.
+      immutableAssets: true,
       allowPasswordReset: true,
       sendUserLink: async (message) => {
         appendFileSync(

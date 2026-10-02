@@ -502,3 +502,185 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
   run. The CLI therefore never needs the server's boot path, which in
   production refuses exactly this situation.
 
+## What an environment is
+
+```bash
+bunx bunbraco status          # and --json for a deploy step to assert on
+```
+
+```
+  site       Harbourstone Distillery   /app
+  database   postgres db:5432/bunbraco   reachable
+  schema     files 1.1.0  database 1.1.0+4573   up to date
+  framework  no migration pending
+  content    11 document(s), 5 media, 9 element(s); last import 2026-10-01T06:24:14Z
+  findings   0 blocking, 0 need a person, 25 automatic, 0 resolved
+  versions   bunbraco 0.2.0, backoffice 18.2.0, bun 1.4.2
+```
+
+It exits non-zero when something would stop the site working — the database
+unreachable, framework migrations pending, compatibility mode, or findings that
+need a person — so a pipeline can use it as a gate. It opens the database rather
+than bootstrapping it, and on SQLite will not even create the file: asking a
+node what it is must never be the thing that changes it.
+
+## Upgrades
+
+Framework releases and a site's own schema changes go through one process
+(`docs/10-packaging-and-upgrades.md`): a read-only **check** that classifies
+the change and lists what the data needs, a **fix** that applies the additive
+part and every conversion early — under a state no live node reads — and an
+**upgrade** that refuses over anything outstanding, runs the framework's
+migrations, and cuts over. Findings land in the backoffice's **Changes**
+dashboard (Settings), each linked to its page and grouped by where it came from
+— a pending upgrade or an arriving content bundle; a server that has fallen
+behind shows a read-only banner, answers 409 to writes and 503 on `/health`.
+
+```bash
+bunx bunbraco upgrade check                 # read-only: classification and findings, into the dashboard
+bunx bunbraco upgrade check --fix           # backup; apply the additive part and conversions early
+bunx bunbraco upgrade check --set article.summary="tbc"   # one value everywhere it is missing
+bunx bunbraco upgrade                       # re-check, backup, framework steps, cut over, ledger
+bunx bunbraco upgrade --plan                # the DDL pending framework migrations would run
+bunx bunbraco upgrade ledger                # migration_history
+bunx bunbraco schema purge --older-than 90  # delete long-retired properties and their values
+```
+
+Migration 020 renames API users' client IDs from `umbraco-back-office-<name>` to
+`bunbraco-back-office-<name>`. Secrets are untouched, so an integration keeps
+its secret and needs only its client ID updated — but it will get
+`invalid_client` until it is. The backoffice's own `client_id` is unrelated and
+unchanged; see `docs/04-backoffice-hosting.md`.
+
+## Templates
+
+A template is a `.tsx` file in the site's `Views/`, executed by Bun with
+`jsxImportSource: "bunbraco"` (the `init` scaffold sets it). There is no virtual
+DOM: the JSX runtime renders straight to an HTML string. A page names its layout in the file rather than the database — the same
+choice Umbraco makes, which parses `Layout = "…"` back out of the Razor source:
+
+```tsx
+export const layout = 'siteLayout'
+export default function ChildPage({ model, nav }) { … }
+```
+
+A layout receives the rendered page as `children`. Templates get `model` (an
+Umbraco-shaped published-content object with `value()`/`text()`/`html()` and
+ambient culture, `fallback: 'language'` following each language's fallback),
+`nav` (parent/children/ancestors/root in the page's culture, kept out of the
+model as Umbraco does), `culture` and `dictionary(key)` (a dictionary item in
+the page's culture, then its fallback languages).
+
+Partial views live in `Views/Partials/` as components a template imports and
+renders (`<Breadcrumb model={model} nav={nav} />`). The Settings section edits
+them, and stylesheets (`css/`) and scripts (`scripts/`), as files; a new partial
+view starts from a TSX skeleton, and "from snippet" offers TSX versions of
+Umbraco's snippets.
+
+The editor reads TSX rather than Razor, and type-checks it against the site's
+own types: `bunbraco`'s and the schema's generated `content-types.d.ts`, served
+to monaco by `<backoffice>/bunbraco/api/editor-types`. So `model.` completes,
+and a mistake is underlined in the editor rather than found on the next
+`typecheck` — see `docs/04-backoffice-hosting.md`.
+
+## Publishing
+
+Storage follows Umbraco exactly: `content_version.current` marks the draft,
+`document_version.published` marks the published version, and publishing is
+_freeze the draft as published, then fork a new draft_. Saving a draft creates no
+new version; only publishing does. Rollback copies an old version's values into
+the current draft and never rewrites history. A publish beneath an unpublished
+ancestor is refused rather than creating an unreachable route. A page that
+varies by culture publishes culture by culture: each culture points at the
+publish it went live with, so publishing Danish never publishes English's newer
+draft, and every mandatory language must be published.
+
+---
+
+## Releasing to npm
+
+The workspace publishes as **one fixed-version set**: thirteen packages, one
+version, released together. `bunbraco` is the only package a site installs; the
+`@bunbraco/*` packages are its dependencies, pinned to the exact same version.
+`@bunbraco/cli` is the one worth installing alone — on a machine that runs
+commands against a site rather than serving it.
+Independent semver was rejected because none of these packages is independently
+useful — `@bunbraco/data` means nothing without `core`'s entity shapes — so a
+version matrix would buy flexibility nobody wants.
+
+`@bunbraco/backoffice-dist` is the exception. It is 84 MB of built client, it only
+changes when the pinned Umbraco version does, and its **major and minor track the
+`@umbraco-cms/backoffice` release it vendors** while the patch is ours. So
+`18.2.0` says the thing that actually matters about it, and a bunbraco patch
+release does not drag 84 MB along.
+
+Packages ship **TypeScript source**, not compiled JS: `exports` points straight at
+`src/index.ts`. Bun runs it, types come free, and there is no build step, no dual
+ESM/CJS and no sourcemaps. The cost is that bunbraco is Bun-only — `engines.bun`
+says so — and a consumer's `tsc` typechecks our source rather than declarations.
+
+Runtime dependencies are `@logtape/logtape`, and the AWS SDK behind
+`@bunbraco/assistant` — which a site installs only if it depends on that package,
+since the umbrella re-exports `bedrock()` but nothing else reaches for it. The
+thirty browser packages in the root manifest (tiptap, monaco, lit, the Umbraco
+client) are build-time only: `vendor:backoffice` bundles them into
+`backoffice-dist`, so a site never installs them.
+
+### Cutting a release
+
+```sh
+bun run release:version 0.3.0   # manifests, bun.lock and the VERSION constant
+bun run check && bun run test:all
+bun run release:dry-run         # pack and verify, publish nothing
+git commit -am "release 0.3.0" && git tag v0.3.0 && git push --follow-tags
+```
+
+The tag is what publishes. `release.yml` runs the whole of `ci.yml` first, checks
+the tag matches `packages/bunbraco/package.json`, then runs `release:publish`,
+which packs with Bun — that is what substitutes `workspace:*` for a real version —
+and uploads each tarball with npm, which signs provenance from the workflow's
+OIDC identity. It needs an `NPM_TOKEN` secret with publish rights to the
+`@bunbraco` scope.
+
+A version the registry already holds is skipped rather than failing the run, so a
+tag that only moves some packages is safe to push — which is exactly what happens
+when `backoffice-dist` stays put.
+
+Two traps the tooling closes, both of which publish a broken package silently:
+
+- **`bun.lock` records each workspace package's version**, and `bun install` will
+  not refresh it — not even with `--force`. Since `bun pm pack` resolves
+  `workspace:*` from the lockfile, a manifest bump without a lockfile bump
+  publishes packages pinned to a version nobody released.
+  `release:version` updates both, `tests/packaging.test.ts` asserts they agree,
+  and `release:publish` re-reads every packed manifest before uploading it.
+- **Two artefacts are generated and git-ignored** — `packages/contracts/generated/`
+  and `packages/backoffice-dist/dist/`. `release:publish` refuses to start unless
+  both are present.
+
+### Continuous integration
+
+`ci.yml` runs on every push to `main`, on pull requests, and as a called workflow
+from `release.yml`, so a release runs exactly the build that guards `main`:
+
+| Job       | Does                                                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `check`   | Biome + `tsc --noEmit`, after generating the contract types                                                            |
+| `test`    | the full suite twice over, once per dialect, Postgres in a service container                                           |
+| `client`  | builds the 84 MB client (cached), runs `check:modules`; the test jobs restore it, since about twenty tests skip without it |
+| `integration` | the CLI end to end: creating a site, content transfer, the server roles and the upgrade. Not gated — it takes seconds                                 |
+| `browser` | the Playwright suite — opt-in on `main`, always on a tag (see below)                                                   |
+
+The browser suite is the one job that does not run every time. It takes ~7 minutes
+at one worker and is the most sensitive to a busy runner, so on `main` it runs only
+when the commit message contains **`--browser-tests`**, and on a **tag push it always
+runs** — `release.yml` calls `ci.yml` with `browser_tests: true`, so nothing is
+published without it. Pull requests never run it.
+
+It installs Chromium onto the runner rather than running inside Playwright's image,
+because every other piece of that job is one the jobs above already prove works.
+Chromium rather than Chrome means a CI failure reproduces anywhere with
+`bun run docker:test:browser`, Apple silicon included, where Chrome has no Linux
+build to install. The config retries twice on CI only — a flake on a laptop is still
+a flake worth chasing — and the HTML report and traces are uploaded as artefacts on
+failure, without which a CI-only failure cannot be diagnosed.

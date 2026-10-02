@@ -580,3 +580,38 @@ output is a diffable text file that developers review like any other change.
 - **A framework upgrade that changes the vocabulary rewrites the files.** Because
   we own the canonical writer, `bunbraco upgrade schema` can migrate every file
   to the new vocabulary, and the result is a reviewable commit.
+
+## Schema as code
+
+Document, media and member types, data types and languages are files:
+`schema/schema.toml` holds the version, `schema/document-types/*.toml`,
+`schema/media-types/*.toml`, `schema/member-types/*.toml` and
+`schema/data-types/*.toml` the definitions,
+`schema/languages.toml` the cultures. Boot syncs them into the
+database under a distributed lock, version-gated (`docs/09-schema-as-code.md`):
+
+- **development** — files without keys get them written back on first sync; the
+  directory is watched and re-synced on change; saving a document type in the
+  backoffice writes its file; removing a property retires it and its values
+  survive; removing a type with content refuses to boot.
+- **production** — every element must carry a key, a change needs a version
+  bump (or a newer `BUNBRACO_SCHEMA_REVISION`), and the backoffice editor
+  answers 409 pointing at the file. A node whose files are older than the
+  database runs in compatibility mode: reads only, writes refused with 409.
+
+```bash
+bunx bunbraco schema new document-type article --at-root   # the file, with keys, and its view
+bunx bunbraco schema add-property article summary --type textarea --mandatory
+bunx bunbraco schema check --static   # parse and validate, no database
+bunx bunbraco schema check            # …and report what a sync would do
+bunx bunbraco schema sync             # apply (a deploy step, or leave it to boot)
+bunx bunbraco schema export           # database → canonical files (adopting an existing site)
+bunx bunbraco generate                # schema/content-types.d.ts for typed views
+```
+
+`schema new` writes the type file — keys filled in, so it passes the production
+rules — and the `Views/<alias>.tsx` it points at, then applies it. `--element`
+writes a Library element type instead, which has no URL and so no view.
+`add-property` appends one property and applies that; it re-emits the file
+canonically, as `schema rewrite` does, so a comment in it is not kept and the
+command says so. `--dry-run` prints the file instead of writing it.

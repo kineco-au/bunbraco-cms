@@ -1253,3 +1253,45 @@ is built separately. All 10 externals now bundle.
 tools, which is indistinguishable from a missing runtime dependency when scanning
 imports. *Mitigation:* prune them from the served tree during vendoring, so the
 scan only sees runtime code.
+
+## Where this is going
+
+Three decisions taken after Phase 4 reshape the project, and they are designed
+before any more code lands:
+
+- **Schema is code.** Document types, data types and languages live in
+  `schema/*.toml` in the site's repo; the database caches them. The backoffice
+  type editor writes the files. Comments are stripped on write; `description` and
+  `notes` fields survive instead.
+- **A site installs `bunbraco`.** Done in 5a: the composition root lives in
+  `@bunbraco/server`, the built backoffice in `@bunbraco/backoffice-dist`, every
+  package declares its dependencies and an `exports` map, and there are no
+  tsconfig `paths` anywhere. A directory outside this repo with `bun add
+bunbraco`, a config file and a three-line `server.ts` boots the backoffice and
+  renders a page.
+- **Metadata promotes through environments the way code does.** A schema
+  change moves dev → test → production as files; when it needs data moved, a
+  value migration in `schema/migrations/` is written once and runs in every
+  environment against that environment's content. Removing a property never
+  deletes its data — it is retired, and reintroducing the field brings the
+  values back. A framework upgrade is the same process with one more source of
+  change.
+- **Changes are proven and prepared before they run.** Schema migrations are
+  expand/contract with a ledger and a `--plan`. `bunbraco upgrade check` reports
+  what a release needs from the data — auto-fixable, needs a person, or blocking
+  — and `check --fix` applies the additive part on the live site, so a new
+  required field appears in the backoffice to be filled in before the deploy.
+  `bunbraco upgrade` refuses until the check is clean. Values are append-only
+  and tagged with the schema state that wrote them, and only a node at the
+  current state may write — so old nodes keep serving reads through a rolling
+  deploy and there is never a maintenance page. Production never auto-upgrades.
+
+Details in `docs/09` and `docs/10`; the plan is Phase 5 in `docs/07-roadmap.md`.
+
+What is **not** built yet is listed and ranked in
+[`docs/07-roadmap.md`](docs/07-roadmap.md#what-is-still-missing-ordered), measured
+rather than remembered: `bun run coverage:api` reports the contract side
+(`docs/api-coverage.md`), and the same section names the things the contract does
+not cover — e-mail, search over property values, the Delivery API, external
+identity providers — along with the divergences that are deliberate rather than
+missing.

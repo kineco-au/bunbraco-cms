@@ -15,6 +15,7 @@ import {
   toResponseModels,
   VENDORED_ASSETS_PATH,
 } from '@bunbraco/backoffice-host'
+import { loadConfig } from '@bunbraco/server'
 
 const paths = createBackOfficePaths()
 const vendored = existsSync(join(paths.vendorDir, 'umbraco-package.json'))
@@ -233,6 +234,28 @@ describe('static serving', () => {
       immutable: false,
     })
     expect(match?.cacheControl).toBe('no-cache')
+  })
+
+  test('lets a long-lived development process opt back into immutable assets', () => {
+    // `immutableAssets` exists for the browser suite, which runs in development
+    // mode but signs in forty-odd times. Without it the browser re-fetches every
+    // one of the client's ~6,500 modules on each sign-in, and a CI runner answers
+    // with ERR_INSUFFICIENT_RESOURCES — which then looks like a test failure
+    // anywhere but here. The config default and this flag must stay independent.
+    const config = loadConfig({ development: true, immutableAssets: true })
+    expect(config.immutableAssets ?? !config.development).toBe(true)
+    // The default is still off in development, and on in production.
+    expect(loadConfig({ development: true }).immutableAssets ?? false).toBe(false)
+    const production = loadConfig({ development: false })
+    expect(production.immutableAssets ?? !production.development).toBe(true)
+  })
+
+  test('the browser suite asks for them, because that is the whole point', async () => {
+    const serve = await Bun.file('tests/browser/serve.ts').text()
+    expect(serve).toContain('immutableAssets: true')
+    // And cleans up the sites earlier runs abandoned, which is how 1.1 GB of
+    // gitignored SQLite WAL once accumulated unnoticed.
+    expect(serve).toContain("startsWith('browser-site-')")
   })
 
   test('serves App_Plugins when configured', () => {

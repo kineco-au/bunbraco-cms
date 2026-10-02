@@ -132,3 +132,71 @@ An editor on a deployed site can add a field, and:
 None of it is on by default. Without a schema store, schema stays a directory in
 the image and a deployed site refuses to write it — which remains the right
 default for a site whose metadata belongs to its developers.
+
+## Schema in shared storage
+
+By default `schema/` is a directory in the image, which is why `schemaWritable` is
+off in production: a container's disk does not survive a redeploy, so a type
+changed there would be silently reverted. That makes metadata a developer's job.
+
+A **schema store** changes that. Point it at S3 or Azure and the schema lives
+there instead:
+
+```ts
+export default defineConfig({
+  schemaStore: s3SchemaStore({ bucket: 'my-site', region: 'ap-southeast-2' }),
+})
+```
+
+The store is copied into `schemaCacheDir` at boot and everything downstream —
+loading, validation, hashing, sync, the writer — carries on against files exactly
+as before. `loadSchemaDirectory` is synchronous and used by the boot path, the
+sync, the validator and the CLI; making it reach a network would have rippled
+through all of it for no gain. The local copy is a cache, the store is the truth,
+and "the files are the schema" stays literally true.
+
+Configuring a store turns `schemaWritable` on, because that is what it is for: an
+editor changes a document type on a deployed site, the canonical TOML is published
+back, and the next node to boot has it. A store is any `MediaStore`, so the S3 and
+Azure implementations serve both with nothing duplicated.
+
+### Importing at runtime
+
+Files are the source of truth, so a TOML changed by a commit, published by another
+node, or written by the backoffice has to reach the database without a restart:
+
+```
+GET  <backoffice>/bunbraco/api/schema-import    what it would do, changing nothing
+POST <backoffice>/bunbraco/api/schema-import    do it
+```
+
+Both re-materialise the store first. The GET runs the same check that gates an
+upgrade and reports its classification; the POST applies it and refreshes this
+node's state in place, so a node that has just imported its own change does not
+then judge itself behind and drain.
+
+Deliberately never automatic. Importing a half-finished schema underneath an
+editor mid-save is worse than importing a minute later, so it runs when somebody
+asks or when an operation needs it.
+
+### The version moves by what the change costs
+
+`compareStates` reads the schema version first, so it is how other nodes learn
+they are behind, and a production sync refuses a changed hash at an unchanged
+version — the guard that makes silent drift impossible. A change made through the
+backoffice therefore has to move it, and how far is decided by the same check that
+gates an upgrade:
+
+| Classification | Version | Why |
+| --- | --- | --- |
+| `breaking` | **major** | a property's editor changed under live content: getting here converted data |
+| `data-requiring` | minor | a newly mandatory property, or a migration to run |
+| `additive` | minor | a new type or property |
+| `none` | unchanged | nothing to apply |
+
+Classification happens **before** the database is written, comparing the type as
+it is against the type it is about to become. Afterwards there is nothing left to
+compare, which is why the save path classifies first and saves second.
+
+Removing a property is none of these: properties are *retired* rather than
+deleted, and their values come back if the property does.

@@ -484,3 +484,90 @@ rather than leaving it to be discovered at the other end.
   property of a page cannot yet be answered differently from the rest.
 - **Resolving conflicts in the backoffice.** The findings are already in the
   Changes dashboard; acting on them is still a CLI flag.
+
+## Moving content between environments
+
+A deploy promotes files, never content. Moving content is a separate, explicit
+act producing a **bundle**: one JSON file per node plus a manifest, reviewable
+in a diff, committable, and carrying no integer ids — only keys and aliases
+(`docs/13-content-transfer.md`). There is no connection between environments and
+no credentials for one stored in another; the bundle travels as a file does.
+
+```bash
+# where the content is
+bunx bunbraco content export --root "/Campaigns/Autumn 2026" --out bundles/campaign-x
+bunx bunbraco content export --root 9a1f3c2e-… --only --drafts --out bundles/one-page
+bunx bunbraco content export --root "/Campaigns" --with-blobs --out bundles/campaign-x
+                                      # …and the media bytes, so the bundle is self-contained
+
+# where it is going: read-only, and non-zero while anything is outstanding
+bunx bunbraco content check bundles/campaign-x
+bunx bunbraco content check bundles/campaign-x --under "/Campaigns"
+bunx bunbraco content check bundles/campaign-x --resolve-all take-bundle --save
+
+# apply it: re-checks, backs up, then writes in one transaction
+bunx bunbraco content import bundles/campaign-x
+bunx bunbraco content import bundles/campaign-x --publish --label "autumn campaign"
+bunx bunbraco content runs
+
+# going live, separately from landing the content
+bunx bunbraco content publish "/Campaigns/Autumn 2026" --descendants
+bunx bunbraco content publish "/Campaigns/Autumn 2026" --at 2026-10-01T09:00
+bunx bunbraco content unpublish "/Campaigns/Autumn 2026"
+
+```
+
+`--root` and `--under` both take a path by name or a uuid, and the resolved uuid
+is what lands in the manifest, so the artifact is identity-stable either way. A
+published node carries its **published** values — what the site actually serves —
+and an unpublished one carries its draft and says so. Members never travel, nor
+does anything true of exactly one environment: domains, users, tokens, sessions,
+redirects, schedules or access rules.
+
+`check` is the dry run, and it runs before every import too: nothing is written
+until the conflicts have been named and answered. It sorts each one into
+**blocking** (the destination cannot honour the bundle — deploy `schema/`, or
+re-root it), **needs a person** (importable once somebody picks `take-bundle`,
+`keep-local` or `skip`) or **automatic** (what will happen, said out loud).
+`--save` commits the answers to `resolutions.json` beside the bundle, by node
+key, so a decision made once promotes with it rather than being worked out again
+in every environment. Findings land in the **Changes** dashboard under the
+bundle's own scope, so two bundles in flight do not resolve each other's.
+
+`import` re-runs the check inside the content-tree lock, backs up as `upgrade`
+does, and then writes in **one transaction** — so a failure anywhere leaves
+nothing behind. Documents and elements arrive as **drafts** for a person to
+publish; media is live as soon as it lands. `--publish` publishes what the
+bundle says was live at the source, parents first. Values are applied as an
+**overlay**, so a bundle carrying `title` cannot empty `summary`, and importing
+the same bundle twice writes nothing the second time.
+
+Each run is recorded with, per node, the event it was at and the event it was
+serving, so `content revert <run-id>` can put the site back: values restored,
+the published state restored (a page that was live goes live again with the old
+values; one that was a draft stays a draft), and nodes the run created
+unpublished and moved to the recycle bin rather than deleted. It refuses to
+discard an edit somebody made since, or to undo a run a later one built on,
+until told to. The revert is itself a run, so it can be reverted in turn.
+
+```bash
+bunx bunbraco content runs
+bunx bunbraco content revert 5192ca80-…
+bunx bunbraco content revert 5192ca80-… --resolve-all discard   # over later edits
+
+# the dictionary stays in the database, so it moves on its own
+bunx bunbraco dictionary export --out dictionary.udt
+bunx bunbraco dictionary import dictionary.udt
+```
+
+Site-authored value migrations live in `schema/migrations/*.ts`:
+
+```ts
+import { defineValueMigration } from "@bunbraco/schema";
+
+export default defineValueMigration({
+    from: { type: "article", property: "summary" },
+    to: { property: "intro" },
+    convert: (summary) => `Intro: ${String(summary)}`,
+});
+```

@@ -227,3 +227,33 @@ install/upgrade wizards, then the long tail.
 **Delivery API** is independent of the backoffice and small — 9 endpoints. The
 expensive parts are the `expand`/`fields`/`fetch`/`filter`/`sort` query grammar
 and tag-based output caching, not the routes.
+
+## How the contract is enforced
+
+Every route comes from `contracts/OpenApi.json`, so:
+
+- a path not in the contract **cannot be served** — it 404s
+- an operation in the contract with no handler answers **501**, and
+  `bun run coverage:api` counts it
+- `router.handle('GetNonsense', …)` **throws** — you cannot register an operation
+  that is not in the contract, so handler drift fails loudly
+- response bodies are typed as `ResponseOf<'OperationId'>` from the generated
+  types, so drifting from the wire shape fails to compile
+- **authentication is derived from the contract**: the document requires a
+  back-office user globally and exactly 10 operations opt out with
+  `security: []`, so a newly added endpoint is secured by default (plus the
+  three password-reset operations Umbraco's `DenyLocalLoginIfConfigured`
+  policy opens while local login is allowed)
+- **authorization is one table** (`api-management/src/authorization.ts`),
+  consulted on every call before its handler runs: the sections each area's
+  controllers demand in Umbraco, then, for documents and media, the caller's
+  start nodes and the permission verbs each operation needs on the nodes it
+  names — calculated per node as Umbraco does, the nearest explicit setting
+  replacing a group's defaults. A refusal is Umbraco's bare `403`. Rules about
+  people (only admins touch admins; a non-admin hands out only groups and start
+  nodes they hold) live with the users port
+
+Two groups of endpoints the backoffice needs are _not_ in the contract, because
+Umbraco excludes their controllers from the OpenAPI document: the security
+endpoints (`…/security/back-office/token`, `authorize`, `login`, …) and the
+branding graphics. Those are matched by path ahead of the contract router.

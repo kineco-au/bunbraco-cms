@@ -614,7 +614,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
 
     const staticMatch = resolveStaticFile(paths, pathname, {
       appPluginsDir: APP_PLUGINS_DIR,
-      immutable: !config.development,
+      immutable: config.immutableAssets ?? !config.development,
     })
     if (staticMatch) {
       return (

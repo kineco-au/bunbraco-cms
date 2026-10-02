@@ -1,11 +1,11 @@
 name: bunbraco
 
-# Postgres, and the test services that run the suite in a container.
+# Postgres, one CMS node, and a service per test shape.
 #
-# The multi-node topology — the api node, the renderer pool and the nginx proxy in
-# front of it — is not here. It is the enterprise distribution's, and lives in
-# that repo's own compose file. What remains is what the CMS itself needs to be
-# developed and tested: a database, and a container per test shape.
+# `docker compose up` gives you a single node serving the site and the backoffice
+# on one port — `role: all`, which is what every single-box site and all local
+# development runs. Anything larger than that is the enterprise distribution's and
+# lives in its own repo.
 
 # The image and the mounted source, with nothing else. A SQLite run needs no
 # database, so it uses this rather than the anchor below and `up` never starts
@@ -53,6 +53,82 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  # One node serving everything. `BUNBRACO_ROLE` is deliberately unset, which means
+  # `all`: the site, the backoffice and the Management API from one process, owning
+  # the schema sync and the background jobs.
+  #
+  # No profile, so a plain `docker compose up` starts it — and the test services
+  # are behind one, so they never come up alongside it.
+  cms:
+    <<: *cms
+    working_dir: /app/apps/site
+    # The CLI rather than server.ts, so the container logs the sign-in banner on
+    # every boot. BUNBRACO_ADMIN_PASSWORD is fixed below, so the reset it does is a
+    # no-op and a watch reload does not end anyone's session.
+    command: ['bun', '--watch', '../../packages/cli/bin/bunbraco.ts', 'start']
+    environment:
+      BUNBRACO_DB: postgres
+      BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@db:5432/bunbraco
+      BUNBRACO_ADMIN_PASSWORD: ${BUNBRACO_ADMIN_PASSWORD:-bunbraco-dev-password}
+      BUNBRACO_LOG_TO_CONSOLE: 'true'
+      # Loud on purpose, for diagnosis: debug-level logging, a line per request as
+      # it arrives and as its handler returns, and every 30 s the heap, RSS and the
+      # requests still in flight. Set any of these in `.env` to quieten it
+      # (info / false / 0).
+      BUNBRACO_LOG_LEVEL: ${BUNBRACO_LOG_LEVEL:-debug}
+      BUNBRACO_TRACE_REQUESTS: ${BUNBRACO_TRACE_REQUESTS:-true}
+      BUNBRACO_HEAP_INTERVAL_SECONDS: ${BUNBRACO_HEAP_INTERVAL_SECONDS:-30}
+      # The assistant, off unless a model is named. Compose reads these from
+      # `.env`, which is gitignored. AWS_PROFILE works because ~/.aws is mounted
+      # below; the keys remain for a machine that has no profile.
+      BUNBRACO_ASSISTANT_MODEL: ${BUNBRACO_ASSISTANT_MODEL:-}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      # Host and container port are kept identical: the backoffice derives its
+      # application URL from PORT, so a remapped host port would break links.
+      PORT: '${BUNBRACO_PORT:-8080}'
+    ports:
+      - '${BUNBRACO_PORT:-8080}:${BUNBRACO_PORT:-8080}'
+    # Repeated rather than merged from the image anchor: a merge key replaces a
+    # list rather than adding to it, so naming `volumes` here would otherwise drop
+    # the source mount and the node_modules volume with it.
+    volumes:
+      - .:/app
+      - cms_node_modules:/app/node_modules
+      # Uploads and the resized-image cache under `.cache/`. A volume rather than
+      # the bind mount because this is runtime data, not source — `apps/site/media`
+      # is gitignored, and without this every upload would land in the host
+      # checkout. In production this is a bucket instead, via
+      # `BUNBRACO_MEDIA_STORE=s3`, which is a store rather than a mount.
+      - cms_media:/app/apps/site/media
+      # Snapshots of the views tree, so an edited template is picked up without a
+      # restart. A tmpfs because it is pure cache — rebuilt from `Views/` in
+      # milliseconds — and because it must not reach the bind mount, where
+      # `--watch` would see the server's own writes and reload on them.
+      - type: tmpfs
+        target: /app/apps/site/.bunbraco
+      # `output/` is where the test services put their views, media and logs, and
+      # it sits inside the mounted repository. Without a volume of its own here,
+      # every write a test run makes is a change this container's `--watch` sees:
+      # the server restarts every minute or so, the two starve each other for CPU,
+      # and a suite that takes two minutes takes thirty.
+      - cms_output:/app/output
+      # Read-only: what AWS_PROFILE needs to mean anything in here, the SSO token
+      # cache included. Those tokens are short-lived and the mount cannot write
+      # back, so `aws sso login` stays something you do on the host.
+      - ${HOME}/.aws:/root/.aws:ro
+    healthcheck:
+      test: ['CMD-SHELL', "bun -e \"(await fetch('http://localhost:'+process.env.PORT+'/health')).ok || process.exit(1)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # Covers the first boot, which installs into the empty node_modules volume
+      # before the server starts.
+      start_period: 180s
 
   # No test service is started by `up`; the `docker:test:*` scripts run them on
   # demand. Each takes a command override, so
@@ -107,4 +183,6 @@ services:
 volumes:
   db_data:
   cms_node_modules:
+  cms_media:
+  cms_output:
   browser_node_modules:

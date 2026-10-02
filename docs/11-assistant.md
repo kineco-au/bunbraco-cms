@@ -373,3 +373,142 @@ or approve somebody else's proposal.
 
 Under `<backoffice>/bunbraco/api/assistant`, which follows the configured
 backoffice mount — `/bunbraco` by default, not the fixed Management API prefix.
+
+## The assistant
+
+An optional AI helper in the backoffice that can build pages, document types, data
+types and templates — and cannot do anything else, cannot change anything on its
+own, and cannot publish. Absent from the config it does not exist: no route, no
+tools, no model client, no extension in the backoffice.
+
+```ts
+import { bedrock, defineConfig } from 'bunbraco'
+
+export default defineConfig({
+  assistant: {
+    provider: bedrock({ model: 'apac.anthropic.claude-…', region: 'ap-southeast-2' }),
+    mcp: true,
+  },
+})
+```
+
+Three properties of the codebase do the securing, so the feature adds very little
+trust surface of its own:
+
+- **The tool surface is the contract.** Tools come from the vendored
+  `OpenApi.json`, so there is no shell tool, no file tool and no fetch tool —
+  Umbraco's management contract has no such operation. `READABLE_AREAS` is an
+  allowlist, and users, members and security are not in it.
+- **Authorization is untouched.** Every call is re-issued through
+  `ManagementApiRouter.dispatch()` carrying the signed-in user's own cookies, so
+  the same section, start-node and permission checks apply. An editor whose start
+  node is `/Products` cannot get the assistant near `/Settings`.
+- **It has no mutating tool.** Two verbs exist: `query`, and `propose`. A proposal
+  is a prepared Management API request recorded in a changeset; it touches nothing.
+
+Publish, unpublish, delete, move, copy and sort are not proposable either — making
+content live is a person's act, done in the normal UI. Approving a page proposal
+saves a **draft**; you publish it yourself. Approving a template or a type takes
+effect at once, because neither has a draft state, so the review shows a diff
+first and the drawer says which of the two you are about to do. A proposal records
+what the entity looked like when it was made and is refused if it moved since,
+rather than overwriting whoever got there first.
+
+Proposed TSX is scanned before you see it — imports limited to `bunbraco` and
+files beside it, and no `Bun`, `process`, `fetch`, `eval`, `new Function` or
+`node:` — because `render/renderer.ts` imports templates as real ES modules. The
+assistant may deliberately write less than a person can. It is defence in depth
+behind human approval, not a sandbox.
+
+`mcp: true` serves the same tools at
+`<backoffice>/bunbraco/api/assistant/mcp` over JSON-RPC, so Claude Code and Claude
+Desktop drive the CMS through the identical definitions and the identical
+approval model. MCP clients get `query` and `propose` and **not** apply: an agent
+approving its own changeset would defeat the point of having one.
+
+Bedrock is the shipped provider, via the `Converse` API.
+`@aws-sdk/client-bedrock-runtime` is the one place this repository takes a
+third-party runtime dependency, and it is here for credentials rather than for
+signing: a developer's AWS access is an SSO profile, not a pair of long-lived keys,
+and resolving one means the shared config file, `source_profile` chains, the SSO
+token cache and its refresh. Resolving credentials alone costs 13 MB against the
+full client's 14 MB, so the client comes too and the hand-rolled SigV4 goes with
+it. `AssistantProvider` is still the seam, which is how the tests drive the whole
+loop with no network.
+
+### Credentials for local development
+
+`AWS_PROFILE` and the standard chain, as for any other AWS tool. Put it in `.env`,
+which is gitignored and which both Bun and Docker Compose read, so one file serves
+a host run and the container stack:
+
+```sh
+BUNBRACO_ASSISTANT_MODEL=apac.anthropic.claude-…   # naming a model is what enables it
+AWS_PROFILE=my-sso-profile
+AWS_REGION=ap-southeast-2
+```
+
+Then `aws sso login --profile my-sso-profile` on the host, and `bun run db:up`
+or `bun run start:local`. Static `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` are
+still read when there is no profile, and take precedence when both are set.
+
+`apps/site/bunbraco.config.ts` builds the provider only when
+`BUNBRACO_ASSISTANT_MODEL` is set, so AWS credentials you already have for
+something else never quietly turn on an AI feature. It is the *site's* choice, not
+the framework's: `BunbracoConfig.assistant` has no environment variable, because
+enabling it takes a provider and a provider is code.
+
+The container mounts `~/.aws` **read-only**, which is what makes `AWS_PROFILE` mean
+anything inside it, SSO token cache included. Those tokens are short-lived and the
+mount cannot write back, so `aws sso login` stays something you do on the host.
+
+### Is it actually going to work?
+
+Boot answers both halves of that, and says so in the log:
+
+```
+Assistant credentials resolved: apac.anthropic.claude-… in ap-southeast-2,
+  using profile my-sso-profile, model reachable, expiring 2026-09-29T06:11:00Z
+```
+
+or, when they are not:
+
+```
+Assistant cannot reach its model: Token is expired. To refresh this SSO session
+  run 'aws sso login' with the corresponding profile.
+  Run `aws sso login --profile my-sso-profile`, or set AWS_ACCESS_KEY_ID …
+```
+
+The same answer is served at `<backoffice>/bunbraco/api/assistant/status` and shown
+in the drawer when it opens, so an expired session is visible **before** you type a
+request rather than as a failed message after it. A failure never stops the site
+booting; the assistant is optional and the rest of the CMS is untouched.
+
+The check has two halves because credentials resolving says nothing about whether
+this account may invoke this model in this region. The deep half sends the smallest
+real `Converse` there is — one word in, `maxTokens: 1` out — which is the only thing
+that proves access has been granted and the model id is right for the region. It
+runs at boot and on an explicit re-check, not on every read, and the result is
+cached. An `AccessDeniedException` is reported as "grant this account access in the
+Bedrock console", and a `ValidationException` as "most Anthropic models need an
+inference profile id such as `apac.…` rather than a bare id" — which is the mistake
+worth catching early.
+
+To find out what a given account can actually use, list the inference profiles and
+let the boot check judge them — a profile existing is not the same as access to it
+having been granted:
+
+```sh
+aws bedrock list-inference-profiles --region ap-southeast-2 \
+  --query 'inferenceProfileSummaries[].inferenceProfileId' --output text
+```
+
+A `au.…` or `apac.…` id keeps inference in that region; a `global.…` id may route
+anywhere, which is a data-residency decision rather than a performance one.
+
+Resolving credentials is bounded at ten seconds. The chain ends at the instance
+metadata endpoint, which does not answer on a laptop or in a container without a
+route to it, and is in no hurry to say so: an unresolvable profile took two and a
+half minutes to fail in a container before the bound went in.
+
+See [`docs/11-assistant.md`](docs/11-assistant.md).

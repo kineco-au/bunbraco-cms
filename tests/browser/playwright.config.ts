@@ -26,6 +26,14 @@ export default defineConfig({
   // timing-sensitive: containerising it surfaced two latent ordering bugs. Retries
   // on CI only, so a flake locally is still a flake to investigate.
   retries: process.env.CI ? 2 : 0,
+  /**
+   * Stop once it is clear the run is lost. When the backoffice cannot link its
+   * module graph, every remaining test fails for the same reason: one such run
+   * took 30 minutes, retried 12 times, wrote a 104 MB trace artifact and filled
+   * the runner's disk — which then produced a second, misleading set of errors on
+   * top of the first. Five is enough to see the pattern.
+   */
+  maxFailures: process.env.CI ? 5 : 0,
   // A stray `test.only` would otherwise turn a green build into one test.
   forbidOnly: Boolean(process.env.CI),
   outputDir: '../../output/browser-results',

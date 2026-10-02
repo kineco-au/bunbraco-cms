@@ -525,3 +525,110 @@ etag — so replacing an original invalidates its crops with nothing tracking
 that, and one node's work serves every node. Bun's `Image` decodes, resizes
 and encodes; cropping and padding go through raw RGBA pixels via a small PNG
 codec in `@bunbraco/server` `imaging.ts`.
+
+## Views
+
+A view is reached only through a document type's template alias, and it is
+loaded when a request renders it — so a view that does not compile is a 500 that
+waits for a visitor to find it. `views check` is that failure brought forward:
+
+```bash
+bunx bunbraco views check             # compile every view; report a template with no file
+bunx bunbraco views list              # what is in Views/, and which type declares each
+bunx bunbraco views new header --partial     # Views/Partials/header.tsx
+bunx bunbraco assets list             # the stylesheets and scripts beside them
+bunx bunbraco assets new stylesheet print.css
+```
+
+Every `.tsx` is transpiled and then imported, which is what a render does, so an
+import that does not resolve is caught as well as a syntax error. Types need the
+compiler: when the site has `typescript` installed — `bunbraco init` puts it in
+`devDependencies` — it also runs `tsc --noEmit` over the site, and says so when
+it cannot. Only the top level of `Views/` holds templates, so a shared component
+belongs in a subdirectory, where the template scan never looks.
+
+## Hostnames
+
+Schema travels between environments; hostnames cannot, because they mean
+something different in each one. A site may keep them in `domains.toml` beside
+`bunbraco.config.ts`, with `${VAR}` read from the environment when it is
+applied, so one committed file serves them all:
+
+```toml
+[[domain]]
+node = "/"
+host = "${SITE_HOST}"
+
+[[domain]]
+node = "/Home/French"
+host = "fr.harbourstone.example"
+culture = "fr-FR"
+```
+
+```bash
+bunx bunbraco domains                 # what the file declares, and what is bound here
+bunx bunbraco domains set / --host '${SITE_HOST}'      # writes the file, then applies it
+bunx bunbraco domains set /Home/French --host fr.example=fr-FR
+bunx bunbraco domains apply           # what a deploy step runs; what boot does
+bunx bunbraco domains undo            # put back the file the last write replaced
+```
+
+The file is the truth: boot converges the `domain` table onto it, so deleting an
+entry unbinds that hostname. A site with no `domains.toml` is left alone, and
+the backoffice stays the only way — and on a site that has one, a save in the
+backoffice writes the file too, so the next boot does not undo it.
+`docs/05-rendering.md` has the routing rules.
+
+## How a changed view reaches a running site
+
+A view is a module, and `import()` caches modules in the runtime keyed on the
+resolved path. There is no eviction; a cache-busting query works on Node but not
+on Bun; and on every runtime the graph *beneath* a re-imported file stays pinned,
+so re-reading `homePage.tsx` would still render the layout it first imported.
+That is why a saved template cannot simply be read again.
+
+Only a **new path** is read fresh. So the server renders from a content-addressed
+copy of the tree:
+
+```
+<site>/.bunbraco/views/<hash>/homePage.tsx          ← imported
+<site>/.bunbraco/views/<hash>/components/layout.tsx ← resolves inside the snapshot
+```
+
+The hash is of the whole tree, because a template's behaviour is its import
+graph: `homePage.tsx` can be byte-identical while the layout it uses changed.
+Structure is preserved, so a view's own relative imports resolve unchanged, and
+no request can mix a new template with an old layout.
+
+A change is noticed two ways. A template saved in the backoffice is snapshot
+before the save returns. Anything else — a deploy, a file written in the
+container — is caught by a periodic re-hash on the render path, behind a TTL,
+single-flight, with the current snapshot serving while it runs. One render after a
+change may still be the old generation; the next is not.
+
+Because the name is the content, nothing is wasted: an unchanged tree yields the
+same hash, so no copy and no re-import, and reverting a change returns to a
+generation already loaded. It also takes the mount off the request path entirely
+— the bucket is read when the tree changes, never per render.
+
+| Setting | Default | Development |
+| --- | --- | --- |
+| `BUNBRACO_VIEWS_CACHE_DIR` | `<site>/.bunbraco/views` | same |
+| `BUNBRACO_VIEWS_GATE_MS` — how often a node looks | 5,000 | 500 |
+| `BUNBRACO_VIEWS_SWAP_MS` — floor between generations | 10,000 | 0 |
+| `BUNBRACO_VIEWS_GENERATION_LIMIT` | 250 | 250 |
+| `BUNBRACO_VIEWS_KEEP` — generations left on disk | 3 | all, until boot |
+
+Three things to know before changing them:
+
+- **The cache directory must sit inside the site**, for the `jsx-runtime` reason
+  above, and outside `Views/`, or it would snapshot itself. Both are refused at
+  boot, and `bunbraco status` reports the same check so a deploy learns first.
+- **It is cache, and cleared at boot**, so it must not be anything you would mind
+  losing — it is rebuilt from `Views/` in milliseconds. Compose keeps it on a
+  tmpfs so it never reaches the bind mount, where `--watch` would see it.
+- **Each generation stays in the runtime's registry until restart** — about 88 KB
+  for a small tree. That is what the generation limit bounds: at the limit a node
+  **freezes**, keeps serving the views it has, refuses newer ones and says so in
+  its log and on `/health`. It stays `ok` deliberately: a runaway writer should not
+  turn a stale template into an outage. Restarting clears it.

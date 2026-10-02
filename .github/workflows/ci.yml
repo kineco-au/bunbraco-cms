@@ -194,6 +194,17 @@ jobs:
                       backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
                       'packages/backoffice-dist/upstream-static/**') }}
                   fail-on-cache-miss: true
+            # A hosted runner ships ~25 GB of toolchains this build never touches,
+            # and the suite drives a browser that caches aggressively. A run once
+            # hit "no space left on device" partway through and every later failure
+            # was a symptom of that rather than of the code. Reclaiming the space is
+            # cheaper than diagnosing it twice.
+            - name: Reclaim runner disk
+              run: |
+                df -h / | tail -1
+                sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                  /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+                df -h / | tail -1
             - run: bun run test:browser
             # Without the trace a failure here is undebuggable: the run is gone and
             # the screenshots with it.

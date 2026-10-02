@@ -91,13 +91,29 @@ describe('the test containers', () => {
   })
 
   test('keeps the database out of the profile, so db:up can start it alone', () => {
-    const db = compose.slice(compose.indexOf('\n  db:'), compose.indexOf('\n  cms-test-sqlite:'))
+    const db = compose.slice(compose.indexOf('\n  db:'), compose.indexOf('\n  cms:'))
     expect(db).not.toContain('profiles:')
     // `test:postgres` depends on this: it runs `db:up` before the suite.
     expect(scripts['db:up']).toContain('--wait db')
     expect(scripts['test:postgres']).toContain('bun run db:up')
     // 5433 on the host, because 5432 is usually a local install.
     expect(db).toContain("- '5433:5432'")
+  })
+
+  test('starts one node serving everything, on the port a host run uses', () => {
+    const cms = compose.slice(compose.indexOf('\n  cms:'), compose.indexOf('\n  cms-test-sqlite:'))
+    // No profile: `docker compose up` has to bring the application up, or this
+    // repository ships a stack that cannot run what it builds.
+    expect(cms).not.toContain('profiles:')
+    // Unset means `all` — site, backoffice and Management API in one process.
+    expect(cms).not.toContain('BUNBRACO_ROLE')
+    expect(cms).toContain('working_dir: /app/apps/site')
+    expect(cms).toContain('/health')
+    // Host and container port are one value, so the backoffice's own links work.
+    const port = `\${${'BUNBRACO_PORT:-8080'}}`
+    expect(cms).toContain(`PORT: '${port}'`)
+    expect(cms).toContain(`- '${port}:${port}'`)
+    expect(scripts['docker:up']).toContain('--wait cms')
   })
 
   test('carries no multi-node topology, which belongs to the enterprise repo', () => {
