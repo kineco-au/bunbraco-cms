@@ -114,7 +114,15 @@ jobs:
                       backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
                       'packages/backoffice-dist/upstream-static/**') }}
                   fail-on-cache-miss: true
-            - run: bun run test:ci
+            # Postgres gets the same 20 s a local `bun run test:postgres` gives it,
+            # rather than bun's 5 s default. Every Postgres test rebuilds the
+            # `public` schema and replays the migrations, so the dialect is several
+            # times slower by construction, and a runner is several times slower
+            # again: `redirects > a rule naming a document follows it` takes 252 ms
+            # on sqlite, 883 ms on Postgres here, and over 5 s on a runner. It had
+            # been failing CI only, because this step was the one place the suite
+            # ran against Postgres without the longer timeout.
+            - run: bun run test:ci --timeout ${{ matrix.dialect == 'postgres' && 20000 || 5000 }}
 
     # The integration suites drive the real CLI as a pipeline would: a process per
     # step and two SQLite databases, for content transfer (a bundle written to disk
