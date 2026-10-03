@@ -15,6 +15,7 @@ bunbraco/
 │   ├── api-management/           # /umbraco/management/api/v1/** handlers
 │   ├── backoffice-host/          # SPA shell, importmap, static assets, manifests
 │   ├── schema/                   # schema-as-code: model, parser, validator, writer, sync
+│   ├── import-umbraco/           # opt-in: an Umbraco backup → a report, schema files, a bundle, view stubs
 │   ├── backoffice-dist/          # the built backoffice (dist/ generated, upstream-static/ committed)
 │   └── render/                   # TSX renderer, published cache, front-end routing
 ├── apps/site/                    # the reference site: config, server.ts, Views/, schema/
@@ -24,7 +25,7 @@ bunbraco/
 
 Bun workspaces. Every package is `@bunbraco/<name>` with an `exports` map and its
 dependencies declared as `workspace:*`; the umbrella `bunbraco` depends on all of
-them. There are no tsconfig `paths` — resolution is ordinary package resolution,
+them but `import-umbraco`, which a site adds only when it is importing one. There are no tsconfig `paths` — resolution is ordinary package resolution,
 which is what makes the packages consumable outside this repo.
 
 ## Dependency rules
@@ -40,6 +41,11 @@ which is what makes the packages consumable outside this repo.
 - `render` depends on `core` and a content source interface; it never queries drafts
 - `transfer` depends on `core` and `data`, mirroring `schema`: it owns the bundle
   format and reads content through the repositories rather than any SQL of its own
+- `import-umbraco` depends on `schema`, `transfer`, `core` and `data` for the
+  formats it writes, and on `@kineco-au/bacpac-importer` to read a `.bacpac`. It
+  writes no rows and no files: it returns a report and a list of files. Nothing
+  depends on it — the CLI loads it on demand — so a site that never imports
+  anything does not carry it (`16-umbraco-import.md`)
 - `auth` owns identity and tokens; the API packages receive a resolved principal
 - `cli` depends on `server` for the site operations it drives and owns no rules of
   its own; `bunbraco` depends on `cli` only to expose the bin, so a site that

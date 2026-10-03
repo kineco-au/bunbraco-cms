@@ -77,6 +77,12 @@ export interface ScaffoldOptions {
   /** `--postgres`: write a `.env` naming the Postgres variables instead of using the SQLite default. */
   postgres?: boolean
   template?: SiteTemplate
+  /**
+   * A bundle the site already has, for the `start` script to apply: the path,
+   * relative to the site, and any `content import` flags it needs beyond
+   * `--publish`. A template's own bundle is used when this is absent.
+   */
+  bundle?: { path: string; flags?: readonly string[] }
 }
 
 /** One file to write: literal text, or a path to copy (template media and bundles). */
@@ -145,7 +151,8 @@ function packageJson(options: { name: string; start: string }): string {
 /** Every file in a scaffolded site, template files last so they win on a clash. */
 export function scaffoldFiles(options: ScaffoldOptions = {}): ScaffoldFile[] {
   const siteName = options.siteName?.trim() || DEFAULT_SITE_NAME
-  const bundle = options.template?.bundle
+  const bundle = options.bundle?.path ?? options.template?.bundle
+  const bundleFlags = ['--publish', ...(options.bundle?.flags ?? [])].join(' ')
   const files: ScaffoldFile[] = [
     {
       path: 'package.json',
@@ -153,7 +160,7 @@ export function scaffoldFiles(options: ScaffoldOptions = {}): ScaffoldFile[] {
         name: packageNameFor(siteName),
         // The import is a boot step rather than a config setting so that it is
         // visible here, and so that dropping it is editing one line.
-        start: bundle ? `bunbraco start --bundle ${bundle} --publish` : 'bunbraco start',
+        start: bundle ? `bunbraco start --bundle ${bundle} ${bundleFlags}` : 'bunbraco start',
       }),
     },
     {

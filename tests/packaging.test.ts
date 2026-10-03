@@ -20,6 +20,9 @@ import {
 const REPOSITORY = 'git+https://github.com/kineco-au/bunbraco-cms.git'
 const packages = publishablePackages()
 
+/** Published, but installed only by a site that wants it. */
+const OPT_IN = new Set(['@bunbraco/import-umbraco'])
+
 /** Every path an `exports` entry can point at, flattened. */
 function entryPoints(pkg: (typeof packages)[number]): string[] {
   const targets = Object.values(pkg.manifest.exports ?? {}).flatMap((target) =>
@@ -40,6 +43,7 @@ describe('the published package set', () => {
       '@bunbraco/contracts',
       '@bunbraco/core',
       '@bunbraco/data',
+      '@bunbraco/import-umbraco',
       '@bunbraco/render',
       '@bunbraco/schema',
       '@bunbraco/server',
@@ -67,9 +71,23 @@ describe('the published package set', () => {
     const umbrella = packages.find((pkg) => pkg.name === 'bunbraco')
     const dependencies = Object.keys(umbrella?.manifest.dependencies ?? {})
     for (const pkg of packages) {
-      if (pkg.name === 'bunbraco') continue
+      if (pkg.name === 'bunbraco' || OPT_IN.has(pkg.name)) continue
       expect(dependencies).toContain(pkg.name)
     }
+  })
+
+  test('keeps an opt-in package out of every site that did not ask for it', () => {
+    // The Umbraco importer is run once, by someone migrating a site, and brings a
+    // .bacpac reader with it. The CLI loads it on demand and says how to add it,
+    // so nothing a site installs may depend on it.
+    for (const pkg of packages) {
+      if (OPT_IN.has(pkg.name)) continue
+      for (const name of Object.keys(pkg.manifest.dependencies ?? {}))
+        expect(OPT_IN.has(name), `${pkg.name} depends on ${name}`).toBe(false)
+    }
+    const cli = readFileSync(join(ROOT, 'packages/cli/bin/bunbraco.ts'), 'utf8')
+    expect(cli).toContain("await import('@bunbraco/import-umbraco')")
+    expect(cli).not.toMatch(/^import .* from '@bunbraco\/import-umbraco'/m)
   })
 
   test('reports the shared version at runtime', () => {

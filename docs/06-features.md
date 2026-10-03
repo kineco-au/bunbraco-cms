@@ -120,4 +120,5 @@ tail of 1–3 each.
 - ModelsBuilder DLLs, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Forms, Commerce
 - SQL Server
-- Importing an existing Umbraco database
+- Opening an existing Umbraco database in place — a one-way importer does that
+  instead, see [`16-umbraco-import.md`](16-umbraco-import.md)

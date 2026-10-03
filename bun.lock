@@ -55,6 +55,7 @@
         "@bunbraco/contracts": "workspace:*",
         "@bunbraco/core": "workspace:*",
         "@bunbraco/data": "workspace:*",
+        "@bunbraco/import-umbraco": "workspace:*",
         "@bunbraco/render": "workspace:*",
         "@bunbraco/schema": "workspace:*",
         "@bunbraco/server": "workspace:*",
@@ -164,6 +165,17 @@
       "version": "0.3.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
+      },
+    },
+    "packages/import-umbraco": {
+      "name": "@bunbraco/import-umbraco",
+      "version": "0.3.0",
+      "dependencies": {
+        "@bunbraco/core": "workspace:*",
+        "@bunbraco/data": "workspace:*",
+        "@bunbraco/schema": "workspace:*",
+        "@bunbraco/transfer": "workspace:*",
+        "@kineco-au/bacpac-importer": "^0.1.0",
       },
     },
     "packages/render": {
@@ -281,6 +293,8 @@
 
     "@bunbraco/data": ["@bunbraco/data@workspace:packages/data"],
 
+    "@bunbraco/import-umbraco": ["@bunbraco/import-umbraco@workspace:packages/import-umbraco"],
+
     "@bunbraco/render": ["@bunbraco/render@workspace:packages/render"],
 
     "@bunbraco/schema": ["@bunbraco/schema@workspace:packages/schema"],
@@ -308,6 +322,8 @@
     "@hey-api/types": ["@hey-api/types@0.1.4", "", {}, "sha512-thWfawrDIP7wSI9ioT13I5soaaqB5vAPIiZmgD8PbeEVKNrkonc0N/Sjj97ezl7oQgusZmaNphGdMKipPO6IBg=="],
 
     "@jsdevtools/ono": ["@jsdevtools/ono@7.1.3", "", {}, "sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg=="],
+
+    "@kineco-au/bacpac-importer": ["@kineco-au/bacpac-importer@0.1.0", "", { "bin": { "bacpac-importer": "src/cli.ts" } }, "sha512-6VS3Ytz2JKOulyQ+xHq7U91rl0yKMqcD+SWn1GcTrEh9UjrT6uEU2jaPCsfy21GH4q6fPR92sgtYkkfLsANOPw=="],
 
     "@lit-labs/ssr-dom-shim": ["@lit-labs/ssr-dom-shim@1.6.0", "", {}, "sha512-VHb0ALPMTlgKjM6yIxxoQNnpKyUKLD04VzeQdsiXkMqkvYlAHxq9glGLmgbb889/1GsohSOAjvQYoiBppXFqrQ=="],
 

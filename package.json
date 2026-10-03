@@ -61,6 +61,7 @@
     "@bunbraco/contracts": "workspace:*",
     "@bunbraco/core": "workspace:*",
     "@bunbraco/data": "workspace:*",
+    "@bunbraco/import-umbraco": "workspace:*",
     "@bunbraco/render": "workspace:*",
     "@bunbraco/schema": "workspace:*",
     "@bunbraco/server": "workspace:*",

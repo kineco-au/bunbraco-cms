@@ -1,37 +1,112 @@
 # Bunbraco
 
-An Umbraco-based CMS with a Bun + TypeScript backend.
+A content management system for [Bun](https://bun.sh). Pages are **React-style
+components** in `.tsx` files, rendered on the server. The content model lives in
+your repository as files. The site, the editing UI and the API are one Bun process
+on SQLite or Postgres.
 
-The editor experience _is_ Umbraco's: the real `@umbraco-cms/backoffice` SPA,
-unmodified, talking to a Bun server that implements Umbraco 18's Management API
-contract over an Umbraco-shaped relational model. SQLite by default, Postgres as
-an option.
+```tsx
+import type { PageProps } from 'bunbraco'
+import { Layout } from './components/layout.tsx'
 
-**Status: phases 0–5 complete; Phase 6 is planned as work packages
-(`docs/07-roadmap.md`), WP-6.1 to 6.9 done.** The vertical slice works end to end:
-sign in with OAuth 2.0 + PKCE, build a document type with tabs and properties,
-write a template, create a page, publish it, and see it rendered at its URL — then
-roll it back. **974 tests green on both SQLite and Postgres**, 28 browser tests
-driving the real backoffice, and 459 of 513 API operations implemented — the rest
-route and answer honestly rather than 404.
-See [`docs/07-roadmap.md`](docs/07-roadmap.md) for what remains.
+export default function Article({ model, nav }: PageProps) {
+  return (
+    <Layout model={model} nav={nav}>
+      <h1>{model.text('title')}</h1>
+      <div className="prose">{model.html('bodyText')}</div>
+      <ul>
+        {nav.children(model).map((child) => (
+          <li>
+            <a href={child.url}>{child.name}</a>
+          </li>
+        ))}
+      </ul>
+    </Layout>
+  )
+}
+```
+
+That file is a template. An editor creates a page of that type in the backoffice,
+publishes it, and the component renders it at the page's URL.
 
 ---
 
 ## What it is
 
+A full CMS, not a headless content store with a rendering problem left over:
+
+- **For editors**, a complete backoffice: a content tree, drafts and publishing,
+  version history and rollback, media with crops, block editors, languages and
+  variants, members, users and permissions. The editing UI is the open-source
+  Umbraco backoffice, served by Bunbraco
+- **For developers**, a site is a small Bun project: `Views/*.tsx` for templates,
+  `schema/*.toml` for document types, a config file and a three-line `server.ts`.
+  Everything else arrives with `bun add bunbraco`
+
+### Templates are React components, without React
+
+A template is a function from props to JSX, exactly as you would write it for
+React: components, props, `children`, fragments, `.map()` over a list, TypeScript
+throughout. Shared markup is an ordinary component in an ordinary import.
+
+What differs is what happens to the JSX. It compiles against Bunbraco's own JSX
+runtime and comes out as an HTML string — there is **no React dependency, no
+virtual DOM and no hydration**, so nothing is shipped to the browser unless you
+add a script yourself. The practical consequences:
+
+- components are plain functions called once per request, so there are no hooks,
+  state or effects
+- `className` and `htmlFor` work, and so do plain `class` and `for`
+- `model.text()` escapes, `model.html()` emits a rich-text value as markup, and
+  `setInnerHTML` stands in for `dangerouslySetInnerHTML` — it escapes unless you
+  also pass `dangerously: true`
+
+[`docs/05-rendering.md`](docs/05-rendering.md) has the model API, layouts,
+partials and routing.
+
+---
+
+## Why use it
+
+- **Templates in the language your team already writes.** No Razor, Liquid or
+  Twig to learn: a view is TSX, type-checked, and composed from components
+- **Fast pages by default.** Server-rendered HTML from a published cache, with no
+  client bundle and no hydration step
+- **Schema as code.** Document and media types are TOML files in `schema/`,
+  diffable and reviewed in a pull request. The backoffice type editor writes the
+  same files, and `bunbraco generate` turns them into a TypeScript interface per
+  document type
+- **One runtime, one process.** Bun runs the server, the build and the tests. No
+  Node, no .NET, and with SQLite no database server either — `bunx bunbraco init`
+  to a running site is three commands
+- **A mature editing experience from day one.** Editors get a backoffice that has
+  years of real use behind it, rather than a new admin UI
+- **Upgrades that do not need a maintenance page.** A read-only check classifies
+  every change, the additive part is applied early, and a node behind the current
+  schema serves reads and refuses writes rather than corrupting anything
+- **Content promotion as files.** Move content between environments as a
+  reviewable bundle of JSON, with no connection between environments and no
+  credentials for one stored in another
+
+It is a poor fit if you need Umbraco packages or plugins (they do not run here),
+Razor views, SQL Server, or client-side React with hydration out of the box.
+
+Bunbraco is in active development. What is built and what is not is tracked in
+the [roadmap](docs/07-roadmap.md).
+
+### What is in the box
+
 | | |
 | --- | --- |
-| **The editor** | The real `@umbraco-cms/backoffice` SPA, vendored unmodified and served by Bun. Content, media, members, document and media types, templates, data types, dictionary, log viewer, users and permissions |
-| **The API** | Umbraco 18's Management API, contract-first from the vendored `OpenApi.json` — a handler cannot drift from the contract without failing a test |
-| **Templates** | `.tsx` rendered on the server by a JSX runtime, with typed `PageProps` generated from your schema. Editing one is picked up without a restart |
-| **Schema as code** | Document and media types live as TOML in `schema/`, diffable and committable. The backoffice writes the files; `schema sync` applies them |
-| **Upgrades** | A read-only check classifies every change, applies the additive part early, then cuts over. A node behind the current schema serves reads and refuses writes rather than corrupting anything |
-| **Content transfer** | Promote content between environments as a reviewable bundle of JSON — no connection between environments, no credentials for one stored in another |
+| **Templates** | React-style `.tsx` components rendered on the server, with layouts and partials. Editing one is picked up without a restart |
+| **The editor** | The `@umbraco-cms/backoffice` SPA, vendored unmodified and served by Bun: content, media, members, document and media types, templates, data types, dictionary, log viewer, users and permissions |
+| **The API** | The Management API the backoffice speaks, built contract-first from its OpenAPI document — a handler cannot drift from the contract without failing a test |
+| **Schema as code** | Document and media types as TOML in `schema/`. The backoffice writes the files; `schema sync` applies them |
+| **Upgrades** | Check, fix, then cut over, with old nodes serving reads throughout a rolling deploy |
+| **Content transfer** | Export, check and import content between environments as a bundle of files |
 | **Storage** | SQLite by default, Postgres as an option. Media on the file system, S3 or Azure |
+| **Umbraco import** | A compatibility report for an existing Umbraco site, then its content types, content and media converted into a new site |
 | **Also** | Redirects that follow a moved page, members and public access, hostname routing, an optional AI assistant, and git integration from the backoffice |
-
-Built on Bun alone — no Node, no npm scripts, and **no .NET**.
 
 ---
 
@@ -199,6 +274,30 @@ hand-edited, by `bun run build:template` — which builds a throwaway site from 
 template's own schema files, creates the content through the repositories and
 exports it, so the committed bundle is a real export.
 
+### Bring an existing Umbraco site
+
+An Umbraco 15 or later site can be imported from a backup: its database as a
+`.bacpac` (or Umbraco's own SQLite file), and its files if you have them.
+
+```bash
+bun add -d bunbraco @bunbraco/import-umbraco     # the importer is opt-in
+bunx bunbraco import umbraco report site.bacpac --site ./site-files
+bunx bunbraco import umbraco apply  site.bacpac --site ./site-files --out my-site
+cd my-site && bun install && bun start
+```
+
+`report` is read-only, and is the thing to run first: it says what will come
+across and what will not. Content types, data types, content, media and
+languages migrate. Packages, plugins and custom C# do not, and are listed by
+name. Every Razor template becomes a TSX stub that renders the page's name, with
+the original kept beside the report for whoever rewrites it.
+
+`apply` writes a site directory, not a database: schema files, the view stubs,
+the media, and the content as a bundle that `bun start` imports on the first
+boot. Members, users, redirects and protected pages are counted in the report
+and not imported yet. [`docs/16-umbraco-import.md`](docs/16-umbraco-import.md)
+has the detail and what is left.
+
 ### Walk the slice in the editor
 
 Open the backoffice at `http://localhost:8080/bunbraco` and sign in.
@@ -244,13 +343,12 @@ Open the backoffice at `http://localhost:8080/bunbraco` and sign in.
    site still serves the published version, not your draft.
 6. **Info → History** and roll back to restore the earlier values.
 
-`model.text()` escapes. For markup there are two routes: `model.html('bodyText')`,
-which is the short one and what a rich-text value usually wants, and the
-`setInnerHTML` attribute above for markup from somewhere else. It takes React's
-`{ __html }` shape plus a `dangerously` flag, and **without that flag the content is
-escaped** — unlike React's `dangerouslySetInnerHTML`, where the only guard is the
-name. Views are re-read per request in development, so editing a `.tsx` file and
-refreshing is enough.
+The view is a React-style component, with the differences listed under
+[Templates are React components, without React](#templates-are-react-components-without-react):
+`model.text()` escapes, `model.html('bodyText')` is the short route for a rich-text
+value, and `setInnerHTML` above is for markup from somewhere else — **without its
+`dangerously` flag the content is escaped**. Views are re-read per request in
+development, so editing a `.tsx` file and refreshing is enough.
 
 ### Running the tests
 
@@ -279,9 +377,9 @@ Design documents, in reading order:
 | [02-data-model](docs/02-data-model.md) | the relational model, and why a node behind the schema may not write |
 | [03-api-contract](docs/03-api-contract.md) | the vendored contract, and how a handler is held to it |
 | [04-backoffice-hosting](docs/04-backoffice-hosting.md) | vendoring the SPA, the shells, the auth wire contract, de-branding |
-| [05-rendering](docs/05-rendering.md) | the JSX runtime, the published cache, views, hostnames, cultures |
+| [05-rendering](docs/05-rendering.md) | TSX templates and the JSX runtime, the published cache, views, hostnames, cultures |
 | [06-features](docs/06-features.md) | what is implemented, and what is out of scope |
-| [07-roadmap](docs/07-roadmap.md) | the work packages, and where this is going |
+| [07-roadmap](docs/07-roadmap.md) | what is built, what is not, and what is planned |
 | [08-testing](docs/08-testing.md) | the test layers, the containers, the browser suite |
 | [09-schema-as-code](docs/09-schema-as-code.md) | the TOML format, sync, retirement, coherence across nodes |
 | [10-packaging-and-upgrades](docs/10-packaging-and-upgrades.md) | environments, the upgrade process, releasing to npm |
@@ -290,6 +388,7 @@ Design documents, in reading order:
 | [13-content-transfer](docs/13-content-transfer.md) | the bundle format, and moving content between environments |
 | [14-configuration](docs/14-configuration.md) | every environment variable, and every script |
 | [15-operations](docs/15-operations.md) | media storage, redirects, git, security, members |
+| [16-umbraco-import](docs/16-umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 
 ---
 
@@ -299,29 +398,31 @@ Design documents, in reading order:
 bunbraco/
 ├── docs/                          # the detail: design documents, configuration, operations
 ├── packages/
-│   ├── bunbraco/                  # ✅ the package a site installs: `bunbraco()`, the JSX runtime,
+│   ├── bunbraco/                  # the package a site installs: `bunbraco()`, the JSX runtime,
 │   │                              #    and a `bunbraco` bin that delegates to cli/
-│   ├── cli/                       # ✅ the command line, installable on its own;
+│   ├── cli/                       # the command line, installable on its own;
 │   │                              #    templates/ holds the starter sites `init --template` writes
-│   ├── server/                    # ✅ the composition root: config, ports, adapters, createServer;
+│   ├── server/                    # the composition root: config, ports, adapters, createServer;
 │   │                              #    background jobs, oEmbed, the event hubs, member sign-in and public access,
 │   │                              #    the media store seam (file system, S3, Azure) and imaging
-│   ├── core/                      # ✅ domain primitives — problem details, notifications, paging
-│   ├── contracts/                 # ✅ OpenApi.json (vendored from Umbraco release-18.2.0) + generated types
-│   ├── data/                      # ✅ dialect seam, drivers, migrations, repositories
-│   ├── auth/                      # ✅ OAuth2 + PKCE, reference tokens, cookie redaction
-│   ├── api-management/            # ✅ contract-first router, authorization, ports, handlers
-│   ├── assistant/                 # ✅ optional AI helper: tool definitions, guardrails, changesets,
+│   ├── core/                      # domain primitives — problem details, notifications, paging
+│   ├── contracts/                 # OpenApi.json (vendored from Umbraco release-18.2.0) + generated types
+│   ├── data/                      # dialect seam, drivers, migrations, repositories
+│   ├── auth/                      # OAuth2 + PKCE, reference tokens, cookie redaction
+│   ├── api-management/            # contract-first router, authorization, ports, handlers
+│   ├── assistant/                 # optional AI helper: tool definitions, guardrails, changesets,
 │   │                              #    the agent loop, the MCP server and the Bedrock provider
 │   │                              #    (server/ also holds the optional schema store and git integration)
-│   ├── backoffice-host/           # ✅ SPA shells, import map, static serving, graphics; plugin/ = the Changes dashboard, the banner,
+│   ├── backoffice-host/           # SPA shells, import map, static serving, graphics; plugin/ = the Changes dashboard, the banner,
 │   │                              #    the template editor's TSX scaffold and layout, and the assistant drawer
 │   │                              #    plugin/branding/ = theme, logos and the overrides that de-Umbraco the client;
 │   │                              #    plugin/localizations/ is generated by `localizations:build`
-│   ├── schema/                    # ✅ schema-as-code: TOML model, parser, validator, writer, sync, export, generate, check/fix/upgrade
-│   ├── transfer/                  # ✅ content transfer: the bundle format, canonical writer, reader, exporter
-│   ├── backoffice-dist/           # ✅ the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed
-│   └── render/                    # ✅ JSX→HTML runtime, published cache (one view per culture),
+│   ├── schema/                    # schema-as-code: TOML model, parser, validator, writer, sync, export, generate, check/fix/upgrade
+│   ├── transfer/                  # content transfer: the bundle format, canonical writer, reader, exporter
+│   ├── import-umbraco/            # opt-in: an Umbraco backup → a compatibility report, schema files,
+│   │                              #    a content bundle and view stubs; reads a .bacpac without .NET
+│   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed
+│   └── render/                    # the JSX→HTML runtime behind TSX templates, published cache (one view per culture),
 │                                  #    URL and hostname routing, language fallback, the dictionary,
 │                                  #    value converters (pickers, links, blocks, media and crops)
 ├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, Views/, schema/
@@ -340,16 +441,26 @@ exactly that shape and nothing more; `bunbraco init` scaffolds the same.
 
 ---
 
-## Reference implementation
+## Relationship to Umbraco
 
-Umbraco 18 at `release-18.2.0`. Two things make this tractable: the backoffice is
-a standalone Lit SPA published to npm, and its API contract is a committed
-artefact that the client's own HTTP layer is generated from. Neither is
-.NET-specific.
+Bunbraco is its own CMS: its own server, data layer, schema-as-code, upgrade
+process, content transfer and rendering. Two things come from Umbraco, both
+MIT-licensed and neither .NET-specific:
 
-`Umbraco.Web.UI.Client/mocks/` in the Umbraco repo is an MSW mock server covering
-~45 endpoint groups — the best available reference for exact response shapes when
-the OpenAPI schema is ambiguous.
+- **the backoffice**, a standalone Lit SPA published to npm as
+  `@umbraco-cms/backoffice`, vendored unmodified at 18.2.0
+- **the Management API contract** that SPA speaks, a committed OpenAPI document
+  from `release-18.2.0`, which the server here implements
+
+That is the extent of it. Bunbraco does not run Umbraco packages or plugins, does
+not render Razor, and does not open an Umbraco database, so it is not a drop-in
+replacement for an Umbraco install. An existing site comes across with
+[`bunbraco import umbraco`](#bring-an-existing-umbraco-site), which converts what
+can be converted and reports what cannot.
+
+For contributors: `Umbraco.Web.UI.Client/mocks/` in the Umbraco repository is an
+MSW mock server covering ~45 endpoint groups — the best reference for exact
+response shapes when the OpenAPI schema is ambiguous.
 
 ---
 
@@ -368,6 +479,10 @@ merely depended on, and `NOTICE` covers all three:
   unmodified from the Umbraco CMS repository
 - `packages/contracts/OpenApi.json` is the Umbraco Management API document, copied
   unmodified from `release-18.2.0`
+
+One more thing is in the repository without being in any package:
+`tests/fixtures/umbraco/` holds the Umbraco Commerce demo store's database, MIT
+licensed, which the importer's tests run against. Its licence is beside it.
 
 `NOTICE` ships inside every published package, because `bunbraco` is what a site
 installs and what a downstream redistributor reads. `tests/packaging.test.ts`

@@ -29,6 +29,9 @@
  *   bunbraco domains                the hostnames this site answers on
  *   bunbraco domains set            write domains.toml and apply it
  *
+ *   bunbraco import umbraco report  read-only: what importing an Umbraco backup would and would not bring
+ *   bunbraco import umbraco apply   write a bunbraco site from an Umbraco backup
+ *
  *   bunbraco upgrade --plan         print the DDL each pending framework migration would run
  *   bunbraco upgrade                back up, apply pending framework migrations, record them
  *   bunbraco upgrade ledger         print migration_history
@@ -118,6 +121,8 @@ import {
   withoutNode,
   writeDictionaryUdt,
   writeDomains,
+  writeDomainsFile,
+  writeUdtAll,
 } from '@bunbraco/server'
 import {
   type CheckOptions,
@@ -1557,6 +1562,134 @@ async function applyDomains(config: BunbracoConfig): Promise<void> {
 }
 
 /**
+ * `bunbraco import umbraco`: a compatibility report for an Umbraco backup, and
+ * then a bunbraco site written from it.
+ *
+ * Neither subcommand touches a database. `report` reads the backup and prints
+ * what will and will not come across; `apply` writes a site directory — schema
+ * files, view stubs, a content bundle — whose `start` script does the import
+ * through `start --bundle`, the path every other bundle takes.
+ *
+ * The importer is a package of its own, loaded here on demand, so a site that
+ * never imports anything does not carry it or the `.bacpac` reader it needs.
+ */
+async function importSite(): Promise<void> {
+  const VALUE_FLAGS = new Set(['--out', '--site', '--media', '--name', '--staging'])
+  const args: string[] = []
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i] as string
+    if (VALUE_FLAGS.has(arg)) i++
+    else if (!arg.startsWith('--')) args.push(arg)
+  }
+  const [kind, sub, backup] = args
+  if (kind !== 'umbraco' || (sub !== 'report' && sub !== 'apply')) return help()
+  if (!backup) {
+    console.error(`import umbraco ${sub} needs the backup: a .bacpac, or Umbraco's SQLite file.`)
+    process.exit(1)
+  }
+  const out = flagValue('--out')
+  if (sub === 'apply' && !out) {
+    console.error('import umbraco apply needs --out <dir>: the site directory to write.')
+    process.exit(1)
+  }
+
+  let importer: typeof import('@bunbraco/import-umbraco')
+  try {
+    importer = await import('@bunbraco/import-umbraco')
+  } catch {
+    console.error(
+      'The importer is a separate package. Add it, then run this again:\n\n  bun add -d @bunbraco/import-umbraco',
+    )
+    process.exit(1)
+  }
+
+  let plan: Awaited<ReturnType<typeof importer.planImport>>
+  try {
+    plan = await importer.planImport({
+      source: backup,
+      site: flagValue('--site'),
+      media: flagValue('--media'),
+      siteName: flagValue('--name'),
+      drafts: flags.has('--drafts'),
+      staging: flagValue('--staging'),
+    })
+  } catch (error) {
+    console.error(`  ${error instanceof Error ? error.message : error}`)
+    process.exit(1)
+  }
+  const { report } = plan
+
+  if (sub === 'report') {
+    if (flags.has('--json')) console.log(importer.reportJson(report).trimEnd())
+    else for (const line of importer.reportSummary(report)) console.log(`  ${line}`)
+    if (out) {
+      await mkdir(out, { recursive: true })
+      await writeFile(join(out, 'report.md'), importer.reportMarkdown(report))
+      await writeFile(join(out, 'report.json'), importer.reportJson(report))
+      if (!flags.has('--json')) console.log(`\n  wrote    ${relative(cwd, join(out, 'report.md'))}`)
+    }
+    if (!report.ready) process.exit(1)
+    return
+  }
+
+  const target = out as string
+  if (!report.ready) {
+    for (const finding of report.findings.filter((f) => f.class === 'blocking'))
+      console.error(
+        `  blocked  ${finding.title}${finding.detail ? `\n           ${finding.detail}` : ''}`,
+      )
+    console.error('\nNothing was written.')
+    process.exit(1)
+  }
+  if (
+    existsSync(target) &&
+    (await Array.fromAsync(new Bun.Glob('*').scan({ cwd: target, onlyFiles: false, dot: true })))
+      .length > 0 &&
+    !flags.has('--force')
+  ) {
+    console.error(
+      `${target} is not empty. Choose a new directory, or pass --force to write into it.`,
+    )
+    process.exit(1)
+  }
+
+  const files = new Map<string, { text?: string; bytes?: Uint8Array; copyFrom?: string }>()
+  const scaffold = scaffoldFiles({
+    siteName: plan.siteName,
+    postgres: flags.has('--postgres'),
+    bundle: {
+      path: importer.IMPORT_BUNDLE,
+      // A media item whose file was not in the backup is reported, not refused.
+      flags: plan.missingMedia > 0 ? ['--allow-missing-blobs'] : [],
+    },
+  })
+  for (const file of scaffold) files.set(file.path, file)
+  // The importer's files win: the source site's media types replace the defaults.
+  for (const file of plan.files) files.set(file.path, file)
+  if (plan.dictionary.length > 0)
+    files.set(`${importer.IMPORT_DIR}/dictionary.udt`, { text: writeUdtAll(plan.dictionary) })
+  if (plan.domains.length > 0)
+    files.set(`${importer.IMPORT_DIR}/domains.toml`, { text: writeDomainsFile(plan.domains) })
+
+  for (const [path, file] of files) {
+    const destination = join(target, path)
+    await mkdir(join(destination, '..'), { recursive: true })
+    if (file.copyFrom !== undefined) await Bun.write(destination, Bun.file(file.copyFrom))
+    else await Bun.write(destination, file.bytes ?? file.text ?? '')
+  }
+
+  for (const line of importer.reportSummary(report)) console.log(`  ${line}`)
+  console.log(`\n  wrote    ${files.size} files to ${relative(cwd, target) || '.'}`)
+  console.log(`  report   ${relative(cwd, join(target, importer.IMPORT_DIR, 'report.md'))}`)
+  console.log(`\nNext:\n  cd ${relative(cwd, target) || '.'}\n  bun install\n  bun start`)
+  console.log(
+    `\n\`bun start\` imports ${importer.IMPORT_BUNDLE} on the first boot of an empty database.`,
+  )
+  if (plan.dictionary.length > 0)
+    console.log(`Then: bunbraco dictionary import ${importer.IMPORT_DIR}/dictionary.udt`)
+}
+
+/**
  * `bunbraco views`: what is on disk, whether it compiles, and a new one.
  *
  * A view is loaded when a request renders it, so one that does not compile is a
@@ -1877,6 +2010,16 @@ function help(): void {
   domains clear <path|uuid|/> unbind that page, in the file and in the database
   domains apply               apply domains.toml here, as a boot does
   domains undo                put back the file the last write replaced, and apply it
+  import umbraco report <backup> [--site <dir>] [--media <dir>] [--out <dir>] [--json]
+                              read-only: what importing an Umbraco backup would bring,
+                              and what it would not — packages, Razor, custom code.
+                              <backup> is a .bacpac or Umbraco's SQLite file; --site is
+                              the site's files, for its views, media and plugins.
+                              Non-zero when something blocks the import
+  import umbraco apply <backup> --out <dir> [--site <dir>] [--media <dir>]
+                              write a bunbraco site: schema, view stubs, media and a
+                              content bundle that \`bun start\` imports on first boot
+                              [--name <site name>] [--drafts] [--postgres] [--force]
   upgrade check [--set t.p=v] what the deployed schema/ would do to this database's data
   upgrade check --fix         back up; apply the additive part and every conversion early
   upgrade [--force <reason>]  re-check, back up, apply framework steps, cut over, ledger
@@ -1918,6 +2061,9 @@ switch (command) {
     break
   case 'assets':
     await assets()
+    break
+  case 'import':
+    await importSite()
     break
   case 'upgrade':
     await upgrade()

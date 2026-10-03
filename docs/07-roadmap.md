@@ -1197,6 +1197,39 @@ signing in, and unassigning them revokes access to a protected page.
 
 Not before WP-6.8: provisioning needs something to provision.
 
+### WP-6.12 — Import an existing Umbraco site — **built for schema, content and views**
+
+`bunbraco import umbraco`: pointed at a backup of an Umbraco site, it first
+produces a compatibility report listing what cannot be migrated — packages,
+plugins, Razor views, custom code — and then writes a Bunbraco site: schema as
+TOML, content as a bundle, a view stub per template, the media files. It converts
+into the existing interchange formats rather than writing rows, so the import
+itself is `start --bundle`.
+
+It is two stages. A `.bacpac` is the primary input, and restoring one needs
+.NET, so a standalone open-source TypeScript library,
+`@kineco-au/bacpac-importer`, decodes it and writes a faithful copy to SQLite,
+knowing nothing about Umbraco. `@bunbraco/import-umbraco` then reads that copy and
+does everything Umbraco-specific. It is opt-in: the CLI loads it on demand, so no
+site carries it unless it asks.
+
+**Exit, met for Umbraco 17:** the Umbraco Commerce demo store — 33 content types,
+436 nodes, a package installed — imports with no manual step, and every URL it
+served answers 200 on the imported site.
+
+**Not built:** members and users (with their password hashes), redirects,
+protected pages and schedules are counted in the report and not imported.
+Umbraco 15, 16 and 18 are accepted, with their two conversions tested against an
+altered fixture, but no real export of any of them has been run. Versions below
+15 are refused and told to upgrade with Umbraco first.
+
+The design, the version analysis and what is left are in
+[`16-umbraco-import.md`](16-umbraco-import.md).
+
+This reverses "importing an existing Umbraco database" as a non-goal. The
+snake_case decision still stands: the database is converted, never opened in
+place.
+
 ### Decisions taken before WP-6.1 started
 
 - **Folders live in the files.** A `folder = "Pages/Blog"` key on a document

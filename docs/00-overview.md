@@ -1,13 +1,20 @@
 # Bunbraco — Overview
 
-An Umbraco-compatible CMS with a Bun + TypeScript backend.
+A CMS with a Bun + TypeScript backend and React-style TSX templates, edited
+through the Umbraco backoffice.
 
 ## Mission
 
-A working core CMS that is *indistinguishable from Umbraco in the editor* — same
-data structure, same editor experience, same API contracts — but whose backend is
-Bun + TypeScript, with SQLite as the default store and Postgres as an option.
-Plugins and commercial add-ons are out of scope; core features first.
+A working core CMS on Bun + TypeScript, with SQLite as the default store and
+Postgres as an option. Editors work in the Umbraco backoffice, unmodified, so the
+server implements that backoffice's API contract over a relational model shaped
+like Umbraco's. Everything else — rendering, schema as code, upgrades, content
+transfer — is this project's own.
+
+It is not a compatible replacement for Umbraco: plugins, packages and Razor do
+not run here and never will. An existing site comes across through a one-way
+importer ([`16-umbraco-import.md`](16-umbraco-import.md)), not by being opened in
+place.
 
 Reference implementation: `/Users/adam/dev/Umbraco-CMS` at
 `release-18.2.0-99-ge81538b0400` (`version.json`: `18.3.0-rc`).
@@ -56,7 +63,8 @@ operations are implemented and 161 tests pass on both dialects. See
 - .NET-specific machinery: ModelsBuilder DLL generation, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Forms, Commerce and other commercial add-ons
 - SQL Server support
-- Importing an existing Umbraco database (excluded by the snake_case decision)
+- Opening an existing Umbraco database in place (excluded by the snake_case decision).
+  A one-way importer does that instead: [`16-umbraco-import.md`](16-umbraco-import.md)
 
 ## Glossary — Umbraco term → bunbraco module
 

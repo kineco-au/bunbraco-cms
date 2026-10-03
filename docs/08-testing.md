@@ -14,7 +14,7 @@
 | `bun run test:sqlite` / `test:postgres` | pin the dialect explicitly; `test:postgres` starts the `db` container first |
 | `bun run test:all` | both dialects in sequence — the real gate |
 | `bun run docker:test` / `docker:test:sqlite` / `docker:test:postgres` / `docker:test:all` | the same four, inside a container over the mounted source |
-| `bun run test:integration` / `docker:test:integration` | the CLI suites: creating a site, content transfer, a split deployment and the upgrade, spawned per step |
+| `bun run test:integration` / `docker:test:integration` | the CLI suites: creating a site, importing an Umbraco site, content transfer, a split deployment and the upgrade, spawned per step |
 | `bun run docker:test:browser` | the browser suite in its own Playwright image, against Chromium |
 | `bun run coverage:api` | implemented vs. total OpenAPI operations |
 | `bun run conformance` | replay recorded request sequences, validate against schemas |
@@ -125,6 +125,10 @@ calls the functions directly.
 - `content-transfer.integration.ts` — export, check, import, runs, revert,
   `publish`/`unpublish`, and `--with-blobs` carrying the media bytes into a
   second environment's store.
+- `import-umbraco.integration.ts` — `import umbraco report` and `apply` against a
+  real Umbraco 17 export, then `bunbraco start` in the directory it wrote: the
+  bundle imports on the first boot, and every URL the Umbraco site served is
+  fetched from the imported one.
 - `upgrade.integration.ts` — three releases of one site laid out as a deploy
   lays them out, a directory each: `upgrade --plan`, `check`, `check --fix`, the
   cut-over, the ledger, the refusals, and the backup restored. It boots each

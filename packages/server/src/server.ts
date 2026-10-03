@@ -288,8 +288,18 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
                 reason:
                   report.reason ?? report.problems.map((p) => `${p.file}: ${p.message}`).join('; '),
               })
-            else if (report.action === 'applied')
+            else if (report.action === 'applied') {
+              // Move this node on with the database it has just synced. The
+              // repositories hold `schema.nodeState`, and `assertNodeMayWrite`
+              // refuses a write from a node behind the database — so without
+              // this, a schema change made through this server's own API (the
+              // backoffice creating a type, which bumps `schema.toml` and lands
+              // here through the watcher) leaves every later write refused until
+              // the process restarts. `importSchema` already does the same for
+              // the path it owns.
+              if (report.state?.version) schema.nodeState.version = report.state.version
               schemaLog.info('Schema {version} applied', { version: report.state?.version ?? '' })
+            }
           },
         )
       : undefined
