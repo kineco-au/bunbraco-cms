@@ -43,6 +43,14 @@ test('an invited user sets a password from their link; a forgotten one is reset 
   browser,
   diagnostics,
 }) => {
+  // Three cold backoffice boots — the admin's, the invited user's, and the same
+  // user's again after the reset — each in a context of its own, so each links
+  // the whole module graph against an empty cache. That costs ~12s a boot on a
+  // runner, and the run that exposed this reached the last step at 60.8s against
+  // the 60s default: nothing hung, the budget was simply one test's worth for
+  // three tests' work. Raising the default instead would blunt the signal for
+  // the single-boot tests, which sit comfortably inside it.
+  test.slow()
   const email = `${Math.random().toString(36).slice(2, 9)}@example.com`
   await signIn(page)
   const invite = await page.request.post(`${API}/user/invite`, {

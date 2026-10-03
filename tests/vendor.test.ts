@@ -7,6 +7,7 @@ import { BACKOFFICE_BASE_PATH, createImportMap } from '../scripts/vendor-backoff
 
 const ROOT = join(import.meta.dir, '..')
 const VENDOR = join(ROOT, 'packages/backoffice-dist/dist')
+const PLUGIN = join(ROOT, 'packages/backoffice-host/plugin')
 const vendored = existsSync(join(VENDOR, 'umbraco-package.json'))
 
 /** Files the SPA shell references directly; if any is missing, nothing boots. */
@@ -221,8 +222,11 @@ describe.skipIf(!vendored)('vendored backoffice', () => {
     expect(report.unparseable).toEqual([])
     expect(report.missingExports).toEqual([])
     expect(report.unresolved).toEqual([])
-    // Guards against the walk silently collapsing to a handful of modules.
-    expect(report.moduleCount).toBeGreaterThan(6000)
+    // Guards against the walk silently collapsing to a handful of modules. The
+    // count was over 6,000 before the client was bundled; what links now is the
+    // import map's entry points and their shared chunks, not one file per
+    // source module.
+    expect(report.moduleCount).toBeGreaterThan(1000)
   }, 60_000)
 
   test('no module imports JSON, which a browser will not load without an attribute', () => {
@@ -232,6 +236,85 @@ describe.skipIf(!vendored)('vendored backoffice', () => {
       if (/^\s*import\s+[^;]*from\s*['"][^'"]+\.json['"]/m.test(source)) offenders.push(file)
     }
     expect(offenders).toEqual([])
+  }, 60_000)
+
+  test('the client is served as shared chunks, not one file per module', () => {
+    // The npm package is tsc output: 7,557 files, of which a sign-in used to
+    // fetch 4,583 — 12,964 requests once the three navigations of the login flow
+    // each re-linked the graph. Bundling took that to 813. This fails if the
+    // bundling stage stops running, which otherwise only shows up as a slow suite.
+    const entry = readFileSync(join(VENDOR, 'apps/app/app.element.js'), 'utf8')
+    expect(entry).toContain(`/${'chunks'}/`)
+    expect([...new Bun.Glob('*.js').scanSync(join(VENDOR, 'chunks'))].length).toBeGreaterThan(100)
+  })
+
+  test('every import-map specifier is still a file of its own, for extensions to import', () => {
+    // The import map is the public surface: an extension imports
+    // `@umbraco-cms/backoffice/<x>` and the browser resolves it against the map.
+    // Bundling must therefore keep an entry point at each mapped path — and
+    // because those entry points share chunks, the specifier resolves to the same
+    // instance the rest of the client uses rather than to a second copy.
+    const manifest = JSON.parse(readFileSync(join(VENDOR, 'umbraco-package.json'), 'utf8'))
+    const imports: Record<string, string> = manifest.importmap.imports
+    const own = Object.entries(imports).filter(([, path]) => /\/(apps|packages|libs)\//.test(path))
+    expect(own.length).toBeGreaterThan(100)
+    const missing = own
+      .filter(([, path]) => !existsSync(join(VENDOR, path.slice(BACKOFFICE_BASE_PATH.length + 1))))
+      .map(([specifier]) => specifier)
+    expect(missing).toEqual([])
+  })
+
+  test('every vendored module the plugin imports by URL is bundled, not raw', () => {
+    // `tsx-editors.js` patches a class upstream does not export, by resolving the
+    // package entry and walking to the module beside it. That path has to be an
+    // entry point of the bundle: otherwise the URL serves the unbundled module,
+    // the patch executes a second copy of that subtree, and the duplicate
+    // redefines `umb-templating-insert-menu` — which the custom element registry
+    // rejects as soon as the template editor opens.
+    //
+    // Derived from the plugin rather than restated, so adding another patch
+    // without adding its entry point fails here instead of in the browser.
+    const manifest = JSON.parse(readFileSync(join(VENDOR, 'umbraco-package.json'), 'utf8'))
+    const imports: Record<string, string> = manifest.importmap.imports
+    const pattern =
+      /new URL\(\s*'([^']+)',\s*import\.meta\.resolve\('(@umbraco-cms\/backoffice\/[^']+)'\)/g
+
+    const checked: string[] = []
+    for (const file of new Bun.Glob('**/*.js').scanSync(PLUGIN)) {
+      const source = readFileSync(join(PLUGIN, file), 'utf8')
+      for (const [, relative, specifier] of source.matchAll(pattern)) {
+        const target = imports[specifier as string]
+        expect([specifier, target]).toEqual([specifier, expect.any(String)])
+        const resolved = new URL(relative as string, `https://x${target}`).pathname
+        const onDisk = join(VENDOR, resolved.slice(BACKOFFICE_BASE_PATH.length + 1))
+        expect([resolved, existsSync(onDisk)]).toEqual([resolved, true])
+        // A bundled entry links its chunks; the raw tsc output imports siblings.
+        expect([resolved, readFileSync(onDisk, 'utf8').includes(`/${'chunks'}/`)]).toEqual([
+          resolved,
+          true,
+        ])
+        checked.push(resolved)
+      }
+    }
+    // The pattern is the whole point of the test, so finding none is a failure.
+    expect(checked.length).toBeGreaterThan(0)
+  })
+
+  test('bundling the client did not inline a second copy of lit', () => {
+    // The client reaches lit by *relative* path 814 times, so bundling inlines a
+    // copy unless each of those resolutions is rewritten back to the bare
+    // specifier the import map serves. Two copies means two ReactiveElement base
+    // classes and two directive registries: components silently fail to render
+    // instead of raising anything, and lit's own warning for it ("Multiple
+    // versions of Lit loaded") is the string matched here.
+    //
+    // The uui bundle carrying its own copy predates this and is asserted as-is,
+    // so the test fails on a *new* copy rather than on the existing arrangement.
+    const marker = 'reactiveElementVersions'
+    const copies = [...new Bun.Glob('**/*.js').scanSync(VENDOR)]
+      .filter((file) => readFileSync(join(VENDOR, file), 'utf8').includes(marker))
+      .sort()
+    expect(copies).toEqual(['external/lit/index.js', 'external/uui/index.js'])
   }, 60_000)
 
   test('the monaco worker shim points at a file that is served', () => {

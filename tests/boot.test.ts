@@ -174,7 +174,9 @@ describe.skipIf(!vendored)('vendored assets over HTTP', () => {
 
     expect(broken).toEqual([])
     expect([...unmapped]).toEqual([])
-    // Guards against the crawl silently collapsing to a handful of modules.
-    expect(seen.size).toBeGreaterThan(6000)
+    // Guards against the crawl silently collapsing to a handful of modules. It
+    // crawled over 6,000 before the client was bundled; what is served now is
+    // the import map's entry points and their shared chunks, around 1,900.
+    expect(seen.size).toBeGreaterThan(1000)
   }, 60_000)
 })

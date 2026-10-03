@@ -55,6 +55,7 @@ Closes every gap with Bun alone, writing `packages/backoffice-dist/dist/` (commi
 | 4. copy 3 files from `packages/backoffice-dist/upstream-static/` — `css/{umb-css,rte-content,umbraco-blockgridlayout}.css`. Umbraco's three SVG marks are deliberately not seeded; `BRANDED_ASSETS` serves bunbraco's at those paths | the rest |
 | 5. bundle every remaining bare specifier the tree imports (27 of them: all `@tiptap/*`, `diff`, `uuid`) into `deps/<specifier>/`, each from a generated shim entry | third-party code the client imports directly rather than through `external/*` |
 | 6. generate `umbraco-package.json` from the package's `exports`, extended with the `deps/` entries | the import map |
+| 7. `bun build` the client's own modules — every import-map target under `apps/`, `packages/`, `libs/`, plus the shell's `app.element.js` — with `splitting` on | 132 entry points and ~1,870 shared chunks, in place of one file per source module |
 
 `packages/backoffice-dist/dist/` is **not** committed — it is 69 MB and reproducible in under
 a second. What *is* committed is `packages/backoffice-dist/upstream-static/`: the 6 files (60 KB)
@@ -75,6 +76,40 @@ entry ending in `.js`, map `@umbraco-cms/backoffice/<key>` to the path with
 `./dist-cms` replaced by `/umbraco/backoffice`. Upstream's generated manifest is
 just `{ name, version, extensions: [], importmap }`, so there is nothing else to
 reproduce.
+
+### Step 7, and why the client is bundled
+
+npm ships `tsc` output: one file per source module, 7,557 of them. Served verbatim,
+a single sign-in fetched **4,583 distinct modules**, and because the login flow is
+three full-page navigations — `/bunbraco` links the whole graph to discover there
+is no session, then `/authorize`, then `/oauth_complete` — each one re-linked the
+graph, for **12,964 requests**. Only the first pass touches the network; the rest
+are browser cache hits, but every one still costs a request through Chrome's
+network stack and a V8 compile. That is the dominant cost of a sign-in, in the
+browser suite and for a real editor alike. Bundling takes it to **813 requests**.
+
+Two things constrain the bundle's shape:
+
+- **The import map is a public surface.** An extension imports
+  `@umbraco-cms/backoffice/<x>`, so there must still be a file at each mapped
+  path. Every mapped target is therefore an entry point, and `splitting` puts
+  their shared code in common chunks — which is also what makes a specifier
+  resolve to the *same instance* the rest of the client uses.
+- **`external/*` and `deps/*` must stay out of it.** Per the note above, the
+  client reaches lit **relatively** (`../../external/lit/index.js`) 814 times, so
+  a bundler follows those happily and inlines a copy — while the import map goes
+  on advertising the standalone bundle. An extension importing
+  `@umbraco-cms/backoffice/external/lit` would then get a second
+  `ReactiveElement` with its own element registry, which shows up as components
+  that quietly fail to render. The build therefore resolves any relative path that
+  lands in `external/` or `deps/` back to the bare specifier and marks it
+  external; 909 imports are rewritten that way, and `tests/vendor.test.ts` asserts
+  no new copy of lit appears.
+
+The unbundled tree still links, so a failed bundle is reported and exits non-zero
+rather than silently shipping one file per module. The raw modules stay on disk
+but are unreachable from any entry point, which is why `check:modules` walks 1,914
+modules rather than the 6,560 it crawled before.
 
 Two further passes were needed once the module graph was actually crawled:
 
