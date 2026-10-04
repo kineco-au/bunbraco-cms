@@ -104,6 +104,8 @@ export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
   await db.exec('ALTER TABLE user_account RENAME COLUMN is_locked_out TO is_disabled')
   await db.exec('ALTER TABLE document_culture_variation DROP COLUMN published_event_id')
   await db.exec('ALTER TABLE document_culture_variation DROP COLUMN published_name')
+  // 021's column on `server`.
+  await db.exec('ALTER TABLE server DROP COLUMN role')
   for (const table of [
     'content_transfer_change',
     'content_transfer_run',

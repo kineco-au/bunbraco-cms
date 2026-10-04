@@ -143,7 +143,9 @@ than sequence numbers) and hardened:
 - **Expand/contract, enforced.** A migration declares itself `expand` or
   `contract`. An expand adds tables, columns, indexes, and never removes or
   renames. A contract may only remove what an expand introduced in an *earlier
-  major*. The plan is linted at build time, so the rule cannot be broken by
+  release*, and may itself only ship in a **major** (`x.0.0`, never before
+  1.0.0) — so every minor and patch is additive and can be rolled under live
+  nodes. The plan is linted at build time, so the rule cannot be broken by
   accident. Consequence: the previous version always boots against the upgraded
   database, which is what makes rolling back a release possible.
 - **Boot refuses a database newer than the code.** Today that surfaces as
@@ -151,6 +153,42 @@ than sequence numbers) and hardened:
 - **Schema operations on the dialect seam.** `addColumn`, `addIndex`,
   `renameTable`, `dropColumn` — with SQLite's copy-table dance for the ones it
   cannot `ALTER` — so migration authors stop writing raw DDL twice.
+
+### What a release may change, and what it declares
+
+The rule a cluster depends on, stated once. Within a major, every migration is
+an **expand**:
+
+| Within a major — allowed | Deferred to the next major — a contract |
+| --- | --- |
+| a new table, column or index | dropping a table, column or index |
+| a new nullable column, or one with a default | renaming a table or column (an expand adds the new one; the contract drops the old) |
+| widening a type (`varchar(50)` → `varchar(255)`, `integer` → `bigint`) | narrowing a type, or adding `NOT NULL` to a column old code leaves empty |
+| a backfill that only adds data | a purge of retired data (`schema purge`) |
+
+So the previous release always keeps working against a database the next one
+has migrated, and a cluster can be rolled one node at a time. A contract may
+only remove what an earlier release's expand added, and may itself only ship in
+`x.0.0` — never before 1.0.0. `MigrationPlan`'s lint enforces both when the plan
+is built, so a minor carrying a contract fails every test before it can be
+released.
+
+**The release declaration.** Every release states the result in the published
+`bunbraco` package.json:
+
+```json
+"bunbraco": { "migrations": "compatible" }
+```
+
+`compatible` means every migration the release ships is an expand; `breaking`
+means it ships a contract, which only a major can. The value is **derived**
+from the plan by `migrationCompatibility(plan, release)`, never typed:
+`release:version` writes it, `tests/migrations.test.ts` fails if it drifts from
+the plan, and `release:publish` refuses a manifest that disagrees. It lives in
+the manifest so it can be read from the registry for any version
+(`npm view bunbraco@<version> bunbraco`) without installing anything. The
+enterprise distribution's upgrade runner reads it, and refuses to roll a
+release that declares `breaking` or declares nothing.
 
 ### Value migrations: check, fix, then upgrade
 

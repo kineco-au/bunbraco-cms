@@ -8,6 +8,7 @@
  */
 import type { Db } from './database.ts'
 import { DbDate } from './dialect.ts'
+import { parseWritesPaused, WRITES_PAUSED_KEY, type WritesPaused } from './maintenance.ts'
 
 export interface SchemaStateRow {
   id: number
@@ -61,6 +62,20 @@ export class WriteRejectedError extends Error {
   }
 }
 
+/** Editing is paused cluster-wide by an operator; a 409 like any other refused write. */
+export class WritesPausedError extends WriteRejectedError {
+  constructor(
+    node: NodeSchemaState,
+    database: NodeSchemaState,
+    readonly paused: WritesPaused,
+  ) {
+    super(node, database)
+    this.message = paused.reason
+      ? `Editing is paused: ${paused.reason}. Changes are refused until it resumes.`
+      : 'Editing is paused. Changes are refused until it resumes.'
+  }
+}
+
 /** The latest current state. Takes a shared lock where the engine has one, so an upgrade cannot slip between the check and the write. */
 export async function currentSchemaState(db: Db, lock = false): Promise<SchemaStateRow> {
   const suffix = lock ? db.dialect.forShare : ''
@@ -86,6 +101,12 @@ export async function currentSchemaState(db: Db, lock = false): Promise<SchemaSt
 export async function assertNodeMayWrite(db: Db, node: NodeSchemaState): Promise<SchemaStateRow> {
   const current = await currentSchemaState(db, true)
   if (compareStates(node, current) < 0) throw new WriteRejectedError(node, current)
+  const rows = await db.query<{ value: string | null }>(
+    'SELECT value FROM key_value WHERE key = ?',
+    [WRITES_PAUSED_KEY],
+  )
+  const paused = parseWritesPaused(rows[0]?.value)
+  if (paused) throw new WritesPausedError(node, current, paused)
   return current
 }
 

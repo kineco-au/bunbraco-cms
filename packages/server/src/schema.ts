@@ -10,15 +10,19 @@ import {
   type CacheInstructionKind,
   cacheInstructionsAfter,
   compareStates,
+  contractsLedgeredAfter,
   currentSchemaState,
   type Db,
   ensureSystemMediaTypes,
   ensureSystemMemberTypes,
   type Finding,
   latestCacheInstructionId,
+  latestLedgerId,
   type NodeSchemaState,
+  readWritesPaused,
   touchServer,
   updateSchemaStateHash,
+  type WritesPaused,
   writeReport,
 } from '@bunbraco/data'
 import {
@@ -137,14 +141,14 @@ export async function bootSchema(db: Db, config: BunbracoConfig): Promise<Schema
   const nodeId = config.nodeId
   if (!existsSync(config.schemaDir)) {
     const nodeState = { version: '0', revision: config.schemaRevision }
-    await touchServer(db, { nodeId, ...nodeState })
+    await touchServer(db, { nodeId, ...nodeState, role: config.role })
     await ensureSystemMediaTypes(db, { linkFolderChildren: true })
     await ensureSystemMemberTypes(db)
     return { nodeState, nodeId, report: undefined, compatibilityMode: false }
   }
   const loaded = loadSchemaDirectory(config.schemaDir)
   const nodeState = { version: loaded.set.version, revision: config.schemaRevision }
-  await touchServer(db, { nodeId, ...nodeState })
+  await touchServer(db, { nodeId, ...nodeState, role: config.role })
   if (!config.syncSchemaAtBoot)
     return { nodeState, nodeId, report: undefined, compatibilityMode: false }
 
@@ -230,6 +234,8 @@ export interface CachePollerOptions {
   db: Db
   nodeId: string
   nodeState: NodeSchemaState
+  /** Recorded in `server` on each poll, so the cluster can be read back by role. */
+  role?: string
   /** Called for instructions other nodes appended. */
   onInstruction(kind: CacheInstructionKind, payload: Record<string, unknown>): void
 }
@@ -240,10 +246,28 @@ export class CacheInstructionPoller {
   #cursor = 0
   #timer: ReturnType<typeof setInterval> | undefined
   #behind = false
+  #bootLedgerId = 0
+  #readsUnsafe = false
+  #paused: WritesPaused | undefined
 
   /** True once an upgrade has moved the database past this node: reads only. */
   get behind(): boolean {
     return this.#behind
+  }
+
+  /**
+   * True once the node is behind and a contract — a framework contract or a
+   * site purge — has run since it booted. Expand-only changes leave an old
+   * node's reads correct, as-of its own state; a contract removes something it
+   * may still read, so only then must it stop serving.
+   */
+  get readsUnsafe(): boolean {
+    return this.#readsUnsafe
+  }
+
+  /** Set while an operator has paused editing cluster-wide. */
+  get paused(): WritesPaused | undefined {
+    return this.#paused
   }
 
   constructor(options: CachePollerOptions) {
@@ -251,6 +275,8 @@ export class CacheInstructionPoller {
   }
 
   async start(intervalMs: number): Promise<void> {
+    this.#bootLedgerId = await latestLedgerId(this.#options.db)
+    this.#paused = await readWritesPaused(this.#options.db)
     this.#cursor = await latestCacheInstructionId(this.#options.db)
     if (intervalMs > 0) {
       this.#timer = setInterval(() => void this.poll().catch(() => {}), intervalMs)
@@ -269,11 +295,16 @@ export class CacheInstructionPoller {
       onInstruction(instruction.kind, instruction.payload)
       applied += 1
     }
-    await touchServer(db, { nodeId, ...nodeState })
+    await touchServer(db, { nodeId, ...nodeState, role: this.#options.role })
     const current = await currentSchemaState(db)
     const behind = compareStates(nodeState, current) < 0
     if (behind && !this.#behind) onInstruction('schema', { stateId: current.id })
     this.#behind = behind
+    // Sticky: once a contract has passed this node, no later poll makes its
+    // reads trustworthy again — only a replacement node does.
+    if (behind && !this.#readsUnsafe)
+      this.#readsUnsafe = (await contractsLedgeredAfter(db, this.#bootLedgerId)) > 0
+    this.#paused = await readWritesPaused(db)
     return applied
   }
 

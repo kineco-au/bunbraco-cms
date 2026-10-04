@@ -2,7 +2,7 @@
   "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Bunbraco Localizations",
   "id": "Bunbraco.Localizations",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "allowPublicAccess": false,
   "extensions": [
     {

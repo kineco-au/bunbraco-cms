@@ -176,12 +176,31 @@ describe('the logos', () => {
     }
   })
 
-  test('the one on the orange header is the dark mark, the one on white the orange', async () => {
-    const header = await Bun.file(`${BRANDING_DIR}/logo-header.svg`).text()
-    const surface = await Bun.file(`${BRANDING_DIR}/logo-surface.svg`).text()
-    expect(header).not.toContain('#e89550')
-    expect(surface).toContain('#e89550')
-    for (const svg of [header, surface]) expect(svg).toContain('aria-label="bunbraco"')
+  test('are the one dark mark, on the orange header and on white alike', async () => {
+    // The bun reads on the orange header band and on white, so unlike the two
+    // circles it replaced there is no lighter variant to keep in step.
+    for (const file of ['logo-header.svg', 'logo-surface.svg']) {
+      const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
+      expect([file, svg.includes('#e89550')]).toEqual([file, false])
+      expect([file, svg.includes('aria-label="bunbraco"')]).toEqual([file, true])
+    }
+  })
+
+  test('cut the same bun silhouette, the backdrop watermark included', async () => {
+    // Four files draw this mark and nothing generates them, so the only thing
+    // stopping the shape drifting in one of them is this comparison.
+    const silhouettes = await Promise.all(
+      ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg'].map(
+        async (file) => {
+          const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
+          return [file, /<path d="([^"]+)"/.exec(svg)?.[1]] as const
+        },
+      ),
+    )
+    const [, bun] = silhouettes[0]
+    // A flat-bottomed dome, not the circle the mark started as.
+    expect(bun).toMatch(/^M10 243C/)
+    for (const [file, d] of silhouettes) expect([file, d]).toEqual([file, bun])
   })
 })
 

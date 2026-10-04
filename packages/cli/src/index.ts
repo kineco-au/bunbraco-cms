@@ -1,8 +1,7 @@
 /**
- * The command line's own public surface: the starter-template catalogue.
- *
- * The commands themselves are the `bunbraco` binary, not an API; what a caller
- * outside this package needs is the catalogue `init --template` reads, which
- * `scripts/build-template.ts` also uses to regenerate the committed bundles.
+ * The command line's public surface: the starter-template catalogue, and the
+ * commands themselves as functions — the same ones the `bunbraco` binary runs —
+ * for tooling that drives an environment without a terminal.
  */
+export * from './operations/commands.ts'
 export * from './templates.ts'

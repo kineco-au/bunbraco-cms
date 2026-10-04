@@ -239,6 +239,58 @@ worth a decision per site:
   disallow-list allows. The `sandbox` header above is what makes that safe to
   serve; a site wanting them refused outright should narrow the upload settings.
 
+## Running a cluster
+
+A deployed site is run as well as served: backed up, given content, upgraded.
+The commands that do it are the `bunbraco` binary's, and the same functions are
+exported from `@bunbraco/cli` — `backup`, `contentCheck`, `contentImport`,
+`contentExport`, `upgradePlan`, `upgradeCheck`, `upgradeFix`, `upgradeRun`,
+`pauseEditing`, `resumeEditing`, `editingPaused` — taking a resolved config and
+returning results as data, for tooling that drives an environment without a
+terminal. The `bunbraco` umbrella exports `createServer`, for a host process
+that needs the server handle rather than only what `Bun.serve` takes.
+
+### Health while the database moves
+
+`/health` is what a load balancer drains on, so what makes it fail is chosen
+carefully:
+
+| Node | Behind the database (an upgrade or a schema deploy cut over) | A contract has run past it | Editing paused |
+| --- | --- | --- | --- |
+| `web` | **200**, `readOnly: true` — its reads are still correct as-of its own state | 503 | 200 |
+| `api`, `all` | 503 — editors must land on a node that can save | 503 | 200 |
+
+The `web` row is what keeps an upgrade invisible to readers. A new node cannot
+boot until the upgrade has run, and every old node falls behind the moment it
+does; if old renderers drained then, there would be a window with nothing
+healthy to serve. An expand-only change — every minor and patch, since a
+contract may only ship in a major (`10-packaging-and-upgrades.md`) — leaves an
+old node's reads correct, so it keeps serving until it is replaced. A
+contract (a framework contract, or `schema purge`) is ledgered as one, and a
+`web` node that is behind drains as soon as it sees one ran after it booted.
+
+### Pausing editing
+
+```
+bunbraco maintenance pause --reason "restoring Monday's backup"
+bunbraco maintenance status
+bunbraco maintenance resume
+```
+
+A flag in `key_value`, read by the write gate inside every editor's write
+transaction, so it takes effect on every node at once rather than at the next
+poll. A refused save is a 409 like any other, naming the reason. Readers are
+unaffected and no node drains; `/health` reports `paused` so the backoffice can
+say why saves fail. Content imports are not editor writes and are not refused —
+which is what lets a restore proceed while editors wait.
+
+### Reading the cluster back
+
+Every node records itself in `server` — its id, schema state and role — at boot
+and on each poll. `liveNodes(db, { seenWithinMs })`, exported from the
+umbrella, returns the nodes that have polled within a window: which are
+answering the public site, which the editor, and on which schema state.
+
 ## Documents
 
 |                                                                     |                                                                                                                                         |

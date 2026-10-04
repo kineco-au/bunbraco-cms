@@ -36,7 +36,13 @@ import {
   PREVIEW_HUB_PATH,
   SERVER_EVENT_HUB_PATH,
 } from '@bunbraco/core'
-import { appendCacheInstruction, type Db, RedirectRepository, readReport } from '@bunbraco/data'
+import {
+  appendCacheInstruction,
+  type Db,
+  RedirectRepository,
+  readReport,
+  type WritesPaused,
+} from '@bunbraco/data'
 import {
   contentForNode,
   DEVELOPMENT_LIMITS,
@@ -108,10 +114,16 @@ export interface ServerHandle {
   poll(): Promise<number>
   /** Development only: every operation the client asked for that answered 501, in first-seen order. */
   notImplemented: NotImplementedLog
-  /** What /health reports: not ok once the database is ahead of this node. */
+  /**
+   * What /health reports. Not ok once the database is ahead of a node that
+   * serves the editor; a `web` node stays ok while behind until a contract has
+   * run past it, because its reads stay correct until then.
+   */
   health(): {
     ok: boolean
     readOnly: boolean
+    /** Set while an operator has paused editing cluster-wide; drains nothing. */
+    paused: WritesPaused | null
     version: string
     revision: string
     nodeId: string
@@ -264,6 +276,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     db,
     nodeId: schema.nodeId,
     nodeState: schema.nodeState,
+    role: config.role,
     // `schema` and `content` change what renders: schema alters property
     // definitions. `views` changes the code that renders it, which is a new
     // snapshot rather than anything in the published cache.
@@ -374,14 +387,24 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   const apiPrefix = MANAGEMENT_API_PREFIX
 
   const health = () => {
-    const readOnly = schema.compatibilityMode || poller.behind
+    const paused = poller.paused
+    const readOnly = schema.compatibilityMode || poller.behind || paused !== undefined
+    // A `web` node behind the database still answers its readers correctly,
+    // as-of its own state, until a contract removes something it reads. Draining
+    // it any earlier would drain every renderer the moment an upgrade cuts over —
+    // before a single new node can boot — and readers would see the gap. A node
+    // that serves the editor drains as soon as it is behind, so editors land on
+    // a node that can save. A pause drains nothing: it is for editors to see.
+    const serving =
+      !schema.compatibilityMode && (config.role === 'web' ? !poller.readsUnsafe : !poller.behind)
     return {
       // A frozen views snapshot deliberately does not make this false. Draining
       // every node because they are all serving a slightly old template would
       // turn a stale view into an outage; the `views` block below is what says
       // so, and restarting the node clears it.
-      ok: !readOnly,
+      ok: serving,
       readOnly,
+      paused: paused ?? null,
       version: schema.nodeState.version,
       revision: schema.nodeState.revision,
       nodeId: schema.nodeId,

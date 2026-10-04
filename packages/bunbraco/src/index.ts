@@ -22,6 +22,7 @@ export {
   type ConverseInput,
   type ConverseResult,
 } from '@bunbraco/assistant'
+export { type LiveNode, liveNodes } from '@bunbraco/data'
 export type {
   BlockGridArea,
   BlockGridItem,
@@ -46,15 +47,19 @@ export {
   azureMediaStore,
   azureSchemaStore,
   type BunbracoConfig,
+  createServer,
   defineConfig,
   fileSystemMediaStore,
   loadConfig,
   type MediaStore,
+  mediaStoreFor,
   type S3MediaStoreOptions,
   type S3SchemaStoreOptions,
   type SchemaStore,
+  type ServerHandle,
   s3MediaStore,
   s3SchemaStore,
+  VERSION,
 } from '@bunbraco/server'
 
 /** Boots a site and returns what `Bun.serve` needs, the live-update WebSocket included. */

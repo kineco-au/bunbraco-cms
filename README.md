@@ -387,7 +387,7 @@ Design documents, in reading order:
 | [12-schema-at-runtime](docs/12-schema-at-runtime.md) | the shared schema store, and importing at runtime |
 | [13-content-transfer](docs/13-content-transfer.md) | the bundle format, and moving content between environments |
 | [14-configuration](docs/14-configuration.md) | every environment variable, and every script |
-| [15-operations](docs/15-operations.md) | media storage, redirects, git, security, members |
+| [15-operations](docs/15-operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions |
 | [16-umbraco-import](docs/16-umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 
 ---

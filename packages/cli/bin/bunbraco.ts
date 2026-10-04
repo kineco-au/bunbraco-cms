@@ -35,6 +35,9 @@
  *   bunbraco upgrade --plan         print the DDL each pending framework migration would run
  *   bunbraco upgrade                back up, apply pending framework migrations, record them
  *   bunbraco upgrade ledger         print migration_history
+ *
+ *   bunbraco maintenance pause      refuse editors' saves cluster-wide; readers unaffected
+ *   bunbraco maintenance resume     let editors save again
  */
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -42,18 +45,15 @@ import { join, relative } from 'node:path'
 import { AuthStore, resetAdminPassword } from '@bunbraco/auth'
 import { ObjectTypes } from '@bunbraco/core'
 import {
-  bunbracoPlan,
   ContentTypeRepository,
   connect,
   currentSchemaState,
-  type Db,
   DictionaryRepository,
   DocumentRepository,
   DomainRepository,
   describeRefFailure,
+  type Finding,
   NodeRepository,
-  type NodeRow,
-  planUpgrade,
   readLedger,
   recordInLedger,
   resolveNodeRef,
@@ -64,15 +64,12 @@ import {
   addProperty,
   allProperties,
   BUILTIN_DATA_TYPES,
-  type CheckReport,
   exportSchemaSet,
   fileNameFor,
   generateTypes,
   loadSchemaDirectory,
   loadValueMigrations,
   newType,
-  runFix,
-  runUpgrade,
   type SchemaDocumentType,
   type SchemaTypeKind,
   type SyncReport,
@@ -90,7 +87,6 @@ import {
   type BunbracoConfig,
   backupBefore,
   bootstrapDatabase,
-  checkSchemaDirectory,
   checkViews,
   createServer,
   DOMAINS_FILE,
@@ -99,21 +95,18 @@ import {
   dictionaryToUdt,
   domainsFilePath,
   importDictionaryUdt,
-  installDatabase,
   listAssets,
   listViews,
   loadConfig,
   mediaStoreFor,
   partialScaffold,
   placeBlobs,
-  readBlobs,
   readDomainsFile,
   resolveDomainNode,
   resolvePlaceholders,
   type ServerHandle,
   siteStatus,
   syncDomainsFile,
-  syncOptionsFor,
   syncSchemaDirectory,
   templateAliasesIn,
   undoDomainsFile,
@@ -125,15 +118,10 @@ import {
   writeUdtAll,
 } from '@bunbraco/server'
 import {
-  type CheckOptions,
-  type ContentSet,
-  checkBundle,
-  exportBundle,
   importBundle,
   isResolution,
   isRevertResolution,
   loadBundle,
-  loadResolutions,
   RESOLUTIONS,
   RESOLUTIONS_FILE,
   REVERT_RESOLUTIONS,
@@ -143,13 +131,10 @@ import {
   revertResolutionsFor,
   revertRun,
   type TransferCheck,
-  writeBundle,
   writeResolutions,
 } from '@bunbraco/transfer'
+import * as ops from '../src/operations/commands.ts'
 import { findTemplate, listTemplates, scaffoldFiles } from '../src/templates.ts'
-
-/** The trees a content selector or placement may name. */
-const CONTENT_OBJECT_TYPES = [ObjectTypes.Document, ObjectTypes.Media, ObjectTypes.Element]
 
 const cwd = process.cwd()
 const [command = 'help', ...rest] = Bun.argv.slice(2)
@@ -288,9 +273,11 @@ async function importStartupBundles(
       if (backup.path) console.log(`  backup   ${backup.path}`)
     }
 
+    const prepared = await ops.transferOptions(db, config, set, transferInput(dir))
+    for (const problem of prepared.problems) console.error(`  ${problem}`)
     const started = performance.now()
     const result = await importBundle(db, set, {
-      ...(await transferOptions(db, config, dir, set.manifest.id)),
+      ...prepared.options,
       publish: flags.has('--publish'),
       nodeId: config.nodeId,
       label: flagValue('--label'),
@@ -305,7 +292,9 @@ async function importStartupBundles(
       process.exit(1)
     }
     const c = result.check.counts
-    const placed = await placeBundleBlobs(config, loaded.blobs)
+    const placed = describePlaced(
+      loaded.blobs.size > 0 ? await placeBlobs(await mediaStoreFor(config), loaded.blobs) : null,
+    )
     lines.push(
       `  bundle      ${set.manifest.id}: ${c.create} created, ${c.update} updated` +
         `${result.published.length > 0 ? `, ${result.published.length} published` : ''} (run ${result.runId})`,
@@ -933,58 +922,24 @@ async function contentRevert(config: BunbracoConfig): Promise<void> {
  * values already name, so a picked image finds its file wherever media lives
  * here — a disk, a bucket, a container.
  */
-async function placeBundleBlobs(
-  config: BunbracoConfig,
-  blobs: ReadonlyMap<string, string>,
-): Promise<string | undefined> {
-  if (blobs.size === 0) return undefined
-  const store = await mediaStoreFor(config)
-  const placed = await placeBlobs(store, blobs)
+function describePlaced(placed: { placed: number; bytes: number } | null): string | undefined {
+  if (!placed) return undefined
   return `${placed.placed} media file(s) placed, ${describeBytes(placed.bytes)}`
 }
 
 /** The flags `check` and `import` share: resolutions, placement, blobs. */
-async function transferOptions(
-  db: Db,
-  config: BunbracoConfig,
-  dir: string,
-  bundleId: string,
-): Promise<CheckOptions> {
-  const saved = loadResolutions(dir, bundleId)
-  for (const problem of saved.problems) console.error(`  ${problem}`)
-  const resolutions = { ...(saved.file?.byNode ?? {}), ...parseResolutions() }
+function transferInput(dir: string): ops.TransferInput {
   const allFlag = flagValue('--resolve-all')
   if (allFlag !== undefined && !isResolution(allFlag)) {
     console.error(`  "${allFlag}" is not one of ${RESOLUTIONS.join(', ')}`)
     process.exit(1)
   }
-  const resolveAll = (allFlag as Resolution | undefined) ?? saved.file?.all ?? undefined
-
-  const underRef = flagValue('--under') ?? saved.file?.under ?? undefined
-  let under: NodeRow | undefined
-  if (underRef) {
-    const resolved = await resolveNodeRef(db, CONTENT_OBJECT_TYPES, underRef)
-    if (!resolved.ok) {
-      console.error(`  ${describeRefFailure(underRef, resolved)}`)
-      process.exit(1)
-    }
-    under = resolved.node
-    console.log(`  under    ${under.text ?? under.key}`)
-  }
-
-  // Whether this environment has a media file is a question only its store can
-  // answer, and without this the check never asked: `missing-blob` was a
-  // finding the product could not raise.
-  const store = await mediaStoreFor(config)
-
   return {
-    under,
-    resolutions,
-    resolveAll,
-    templateAliases: templateAliasesIn(config.viewsDir),
+    dir,
+    under: flagValue('--under'),
+    resolutions: parseResolutions(),
+    resolveAll: allFlag as Resolution | undefined,
     allowMissingBlobs: flags.has('--allow-missing-blobs'),
-    hasBlob: async (key: string) => Boolean(await store.get(key)),
-    backOfficePath: config.backOfficePath,
   }
 }
 
@@ -1001,17 +956,15 @@ function describeBytes(bytes: number): string {
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
 }
 
-function describeBundle(set: ContentSet): void {
+function describeBundle(bundle: ops.BundleSummary): void {
   console.log(
-    `  bundle   ${set.manifest.id} from ${set.manifest.provenance.siteName || 'elsewhere'} ` +
-      `(schema ${set.manifest.provenance.schemaVersion}+${set.manifest.provenance.schemaRevision}, ` +
-      `${set.manifest.snapshot} snapshot, ${set.nodes.length} node(s))`,
+    `  bundle   ${bundle.id} from ${bundle.from || 'elsewhere'} ` +
+      `(schema ${bundle.schemaVersion}+${bundle.schemaRevision}, ` +
+      `${bundle.snapshot} snapshot, ${bundle.nodes} node(s))`,
   )
-  const carried = set.manifest.blobs.filter((blob) => blob.included)
-  if (carried.length > 0)
+  if (bundle.blobsCarried > 0)
     console.log(
-      `  blobs    ${carried.length} media file(s) carried, ` +
-        `${describeBytes(carried.reduce((total, blob) => total + (blob.size ?? 0), 0))}`,
+      `  blobs    ${bundle.blobsCarried} media file(s) carried, ${describeBytes(bundle.blobBytes)}`,
     )
 }
 
@@ -1021,70 +974,37 @@ async function contentImport(config: BunbracoConfig): Promise<void> {
     console.error('content import needs the bundle directory.')
     process.exit(1)
   }
-  const loaded = loadBundle(dir)
-  for (const problem of loaded.problems) console.error(`  ${problem.file}: ${problem.message}`)
-  // Every problem the reader reports is either a malformed file or a failed
-  // integrity hash, and neither is something to carry on past: a bundle copied
-  // half-way would otherwise be checked, and then imported, as though whole.
-  if (!loaded.set || loaded.problems.length > 0) process.exit(1)
-  const set = loaded.set
-
-  // The coarse layer, under the fine-grained revert: in-place conversion is not
-  // reversible by itself, so the same rule as `upgrade` applies here.
-  const backup = await backupBefore(config, {
-    reason: 'content-import',
+  const result = await ops.contentImport(config, {
+    ...transferInput(dir),
+    publish: flags.has('--publish'),
+    label: flagValue('--label'),
     backupTaken: flags.has('--backup-taken'),
   })
-  if (backup.path) console.log(`  backup   ${backup.path}`)
+  for (const problem of result.problems) console.error(`  ${problem}`)
+  if (result.backup.path) console.log(`  backup   ${result.backup.path}`)
+  describeBundle(result.bundle)
 
-  const { db } = await bootstrapDatabase(config)
-  try {
-    describeBundle(set)
-    const options = await transferOptions(db, config, dir, set.manifest.id)
-    const started = performance.now()
-    const result = await importBundle(db, set, {
-      ...options,
-      publish: flags.has('--publish'),
-      nodeId: config.nodeId,
-      label: flagValue('--label'),
-    })
-    await writeReport(db, result.check.findings, {
-      source: 'transfer',
-      scope: set.manifest.id,
-    })
-
-    if (!result.runId) {
-      printTransferFindings(result.check)
-      console.error(
-        `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
-      )
-      process.exit(1)
-    }
-
-    const c = result.check.counts
-    console.log(`  run      ${result.runId}`)
-    console.log(
-      `  applied  ${c.create} created, ${c.update} updated, ${c.unchanged} unchanged, ${c.skip} skipped`,
+  if (!result.runId) {
+    printTransferFindings(result.check)
+    console.error(
+      `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
     )
-    const placed = await placeBundleBlobs(config, loaded.blobs)
-    if (placed) console.log(`  blobs    ${placed}`)
-    if (result.published.length > 0) console.log(`  published ${result.published.length} node(s)`)
-    for (const failure of result.publishFailures)
-      console.error(`  not published  ${failure.key}: ${failure.reason}`)
-    for (const finding of result.check.findings.filter((f) => f.kind === 'auto'))
-      console.log(`  [auto    ] ${finding.message}`)
-
-    await recordInLedger(db, {
-      name: `content import ${set.manifest.id}`,
-      kind: 'transfer',
-      durationMs: Math.round(performance.now() - started),
-      appliedBy: config.nodeId,
-      note: `run ${result.runId}`,
-    })
-    console.log(`\nDone. \`bunbraco content revert ${result.runId}\` puts it back.`)
-  } finally {
-    await db.close()
+    process.exit(1)
   }
+
+  const c = result.check.counts
+  console.log(`  run      ${result.runId}`)
+  console.log(
+    `  applied  ${c.create} created, ${c.update} updated, ${c.unchanged} unchanged, ${c.skip} skipped`,
+  )
+  const placed = describePlaced(result.blobs)
+  if (placed) console.log(`  blobs    ${placed}`)
+  if (result.published > 0) console.log(`  published ${result.published} node(s)`)
+  for (const failure of result.publishFailures)
+    console.error(`  not published  ${failure.key}: ${failure.reason}`)
+  for (const finding of result.check.findings.filter((f) => f.kind === 'auto'))
+    console.log(`  [auto    ] ${finding.message}`)
+  console.log(`\nDone. \`bunbraco content revert ${result.runId}\` puts it back.`)
 }
 
 /**
@@ -1249,49 +1169,33 @@ async function contentCheck(config: BunbracoConfig): Promise<void> {
     console.error('content check needs the bundle directory.')
     process.exit(1)
   }
-  const loaded = loadBundle(dir)
-  for (const problem of loaded.problems) console.error(`  ${problem.file}: ${problem.message}`)
-  // Every problem the reader reports is either a malformed file or a failed
-  // integrity hash, and neither is something to carry on past: a bundle copied
-  // half-way would otherwise be checked, and then imported, as though whole.
-  if (!loaded.set || loaded.problems.length > 0) process.exit(1)
-  const set = loaded.set
+  const result = await ops.contentCheck(config, transferInput(dir))
+  for (const problem of result.problems) console.error(`  ${problem}`)
+  describeBundle(result.bundle)
+  if (result.under) console.log(`  under    ${result.under}`)
+  printTransferFindings(result.check)
 
-  const { db } = await bootstrapDatabase(config)
-  try {
-    describeBundle(set)
-    // Decisions recorded with the bundle, then whatever this run adds on top.
-    const options = await transferOptions(db, config, dir, set.manifest.id)
-    const check = await checkBundle(db, set, options)
-    printTransferFindings(check)
-    // The findings go to the Changes dashboard under this bundle's own scope, so
-    // two bundles in flight do not resolve each other's.
-    await writeReport(db, check.findings, { source: 'transfer', scope: set.manifest.id })
-
-    if (flags.has('--save')) {
-      const target = join(dir, RESOLUTIONS_FILE)
-      await writeFile(
-        target,
-        writeResolutions({
-          bundleId: set.manifest.id,
-          under: flagValue('--under') ?? null,
-          all: options.resolveAll ?? null,
-          byNode: options.resolutions ?? {},
-        }),
-      )
-      console.log(`  wrote    ${relative(cwd, target)}`)
-    }
-
-    if (check.outstanding.length > 0) {
-      console.log(
-        `\n${check.outstanding.length} finding(s) would stop an import. Resolve them, or pass --resolve.`,
-      )
-      process.exit(1)
-    }
-    console.log('\nNothing outstanding: this bundle would import cleanly.')
-  } finally {
-    await db.close()
+  if (flags.has('--save')) {
+    const target = join(dir, RESOLUTIONS_FILE)
+    await writeFile(
+      target,
+      writeResolutions({
+        bundleId: result.bundle.id,
+        under: flagValue('--under') ?? null,
+        all: result.decisions.all,
+        byNode: result.decisions.byNode,
+      }),
+    )
+    console.log(`  wrote    ${relative(cwd, target)}`)
   }
+
+  if (!result.clean) {
+    console.log(
+      `\n${result.check.outstanding.length} finding(s) would stop an import. Resolve them, or pass --resolve.`,
+    )
+    process.exit(1)
+  }
+  console.log('\nNothing outstanding: this bundle would import cleanly.')
 }
 
 async function contentExport(config: BunbracoConfig): Promise<void> {
@@ -1301,72 +1205,40 @@ async function contentExport(config: BunbracoConfig): Promise<void> {
     console.error('content export needs --root <path|uuid> (repeatable) and --out <dir>.')
     process.exit(1)
   }
-  const { db } = await bootstrapDatabase(config)
-  try {
-    // A path is resolved against the tree it is exported from, and the key is
-    // what lands in the bundle, so the artifact is identity-stable either way.
-    const roots = []
-    for (const ref of refs) {
-      const resolved = await resolveNodeRef(db, CONTENT_OBJECT_TYPES, ref)
-      if (!resolved.ok) {
-        console.error(`  ${describeRefFailure(ref, resolved)}`)
-        process.exit(1)
-      }
-      roots.push(resolved.node)
-    }
-
-    const { set, blobKeys } = await exportBundle(db, {
-      roots,
-      asGiven: refs,
-      descendants: !flags.has('--only'),
-      snapshot: flags.has('--drafts') ? 'drafts' : 'published',
-      blueprints: flags.has('--with-blueprints'),
-      withBlobs: flags.has('--with-blobs'),
-      siteName: config.siteName,
-      nodeId: config.nodeId,
-    })
-
-    // The bytes are read here rather than in the exporter: where media lives is
-    // the store's business, and `@bunbraco/transfer` knows nothing about it.
-    let carried = new Map<string, Uint8Array>()
-    if (flags.has('--with-blobs') && blobKeys.length > 0) {
-      const store = await mediaStoreFor(config)
-      const read = await readBlobs(store, blobKeys)
-      carried = read.bytes
-      for (const key of read.missing)
-        console.error(`  missing  ${key} is not in this environment's media store`)
-    }
-
-    for (const file of writeBundle(set, carried)) {
-      const target = join(out, file.path)
-      await mkdir(join(target, '..'), { recursive: true })
-      await writeFile(target, file.bytes ?? (file.text as string))
-    }
-    const counts = Object.entries(set.manifest.counts)
-    console.log(`  wrote    ${relative(cwd, out) || '.'}`)
-    console.log(
-      `  bundle   ${set.manifest.id} (${set.manifest.snapshot}): ${
-        counts.length > 0
-          ? counts.map(([kind, n]) => `${n} ${kind}`).join(', ')
-          : 'nothing selected'
-      }`,
-    )
-    const expected = set.manifest.dependencies.expected
-    if (expected.length > 0) {
-      console.log(`  expects  ${expected.length} node(s) to exist at the destination:`)
-      for (const e of expected) console.log(`    ${e.key}  ${e.name}  (${e.why})`)
-    }
-    if (carried.size > 0) {
-      const bytes = [...carried.values()].reduce((total, file) => total + file.length, 0)
-      console.log(`  blobs    ${carried.size} media file(s), ${describeBytes(bytes)}`)
-    } else if (blobKeys.length > 0)
-      console.log(
-        `  blobs    ${blobKeys.length} media file(s) are not carried — pass --with-blobs to include them`,
-      )
-    if (set.nodes.length === 0) process.exit(1)
-  } finally {
-    await db.close()
+  const result = await ops.contentExport(config, {
+    roots: refs,
+    only: flags.has('--only'),
+    drafts: flags.has('--drafts'),
+    withBlobs: flags.has('--with-blobs'),
+    withBlueprints: flags.has('--with-blueprints'),
+  })
+  for (const key of result.blobs.missing)
+    console.error(`  missing  ${key} is not in this environment's media store`)
+  for (const file of result.files) {
+    const target = join(out, file.path)
+    await mkdir(join(target, '..'), { recursive: true })
+    await writeFile(target, file.bytes ?? (file.text as string))
   }
+  const counts = Object.entries(result.counts)
+  console.log(`  wrote    ${relative(cwd, out) || '.'}`)
+  console.log(
+    `  bundle   ${result.bundleId} (${result.snapshot}): ${
+      counts.length > 0 ? counts.map(([kind, n]) => `${n} ${kind}`).join(', ') : 'nothing selected'
+    }`,
+  )
+  if (result.expected.length > 0) {
+    console.log(`  expects  ${result.expected.length} node(s) to exist at the destination:`)
+    for (const e of result.expected) console.log(`    ${e.key}  ${e.name}  (${e.why})`)
+  }
+  if (result.blobs.carried > 0)
+    console.log(
+      `  blobs    ${result.blobs.carried} media file(s), ${describeBytes(result.blobs.bytes)}`,
+    )
+  else if (result.blobs.notCarried > 0)
+    console.log(
+      `  blobs    ${result.blobs.notCarried} media file(s) are not carried — pass --with-blobs to include them`,
+    )
+  if (counts.length === 0) process.exit(1)
 }
 
 /**
@@ -1816,7 +1688,7 @@ function parseSet(): Record<string, unknown> {
   return out
 }
 
-function printFindings(report: CheckReport): void {
+function printFindings(report: { classification: string; findings: Finding[] }): void {
   const byKind = { blocking: 0, person: 0, auto: 0 }
   for (const f of report.findings) byKind[f.kind] += 1
   console.log(
@@ -1830,116 +1702,126 @@ function printFindings(report: CheckReport): void {
 
 async function upgrade(): Promise<void> {
   const config = await siteConfig()
-  const db = await connect({ file: config.sqliteFile })
-  const node = { nodeId: config.nodeId, revision: config.schemaRevision }
-  const loaded = () => loadSchemaDirectory(config.schemaDir)
-  const syncNode = () => ({ ...node, version: loaded().set.version })
-  const checkOptions = async () => ({
-    ...syncOptionsFor(config),
-    set: parseSet(),
-    migrations: await loadValueMigrations(config.schemaDir),
-    backOfficePath: config.backOfficePath,
-  })
-  try {
-    switch (positional[0]) {
-      case 'ledger': {
+  switch (positional[0]) {
+    case 'ledger': {
+      const db = await connect({ file: config.sqliteFile })
+      try {
         for (const row of await readLedger(db))
           console.log(
             `  ${row.appliedAt}  ${row.kind.padEnd(8)} ${row.name}  ${row.durationMs}ms${row.appliedBy ? `  by ${row.appliedBy}` : ''}${row.note ? `  (${row.note})` : ''}`,
           )
-        return
+      } finally {
+        await db.close()
       }
-      case 'check': {
-        if (!flags.has('--fix')) {
-          const report = await checkSchemaDirectory(db, config, node, { set: parseSet() })
-          if (report.siteChecked) await writeReport(db, report.findings, { source: 'upgrade' })
-          printFindings(report)
-          if (!report.siteChecked)
-            console.log(
-              'The site schema is checked once the framework migrations have run (`bunbraco upgrade`).',
-            )
-          if (report.outstanding.some((f) => f.kind === 'blocking')) process.exit(1)
-          return
-        }
-        const backup = await backupBefore(config, {
-          reason: 'fix',
-          backupTaken: flags.has('--backup-taken'),
-        })
-        if (backup.path) console.log(`  backup   ${backup.path}`)
-        await installDatabase(db, config)
-        const fix = await runFix(db, loaded(), syncNode(), {
-          ...(await checkOptions()),
-          by: config.nodeId,
-        })
-        console.log(
-          `  sync     ${fix.sync.action}${fix.sync.deferred.length > 0 ? ` (deferred to the cut-over: ${fix.sync.deferred.join(', ')})` : ''}`,
-        )
-        for (const name of fix.applied) console.log(`  applied  ${name}`)
-        if (fix.skipped > 0)
-          console.log(`  skipped  ${fix.skipped} value(s) a converter refused; see the findings`)
-        printFindings(fix.check)
-        return
-      }
-      case 'schema': {
-        positional[0] = 'rewrite'
-        return schema()
-      }
-      case undefined: {
-        if (flags.has('--plan')) {
-          const steps = await planUpgrade(db, bunbracoPlan)
-          if (steps.length === 0) console.log('No framework migration is pending.')
-          for (const step of steps) {
-            console.log(
-              `\n== ${step.name} (${step.kind}${step.release ? `, release ${step.release}` : ''})`,
-            )
-            if (step.unplannable) console.log(`  unplannable: ${step.unplannable}`)
-            for (const sql of step.statements ?? [])
-              console.log(`  ${sql.replace(/\s+/g, ' ').trim()};`)
-          }
-          const check = await checkSchemaDirectory(db, config, node)
-          console.log(
-            check.siteChecked
-              ? `\nsite schema: ${check.sync.action} (${check.classification})`
-              : '\nsite schema: checked once the framework migrations have run',
-          )
-          return
-        }
-        const forceIndex = rest.indexOf('--force')
-        const force = forceIndex >= 0 ? rest[forceIndex + 1] : undefined
-        const backup = await backupBefore(config, {
-          reason: 'upgrade',
-          backupTaken: flags.has('--backup-taken'),
-        })
-        if (backup.path) console.log(`  backup   ${backup.path}`)
-        await installDatabase(db, config)
-        const result = await runUpgrade(db, loaded(), syncNode(), {
-          ...(await checkOptions()),
-          by: config.nodeId,
-          policy: config.upgradePolicy,
-          force,
-        })
-        if (result.action === 'refused') {
-          console.error(`upgrade refused: ${result.reasons.length} outstanding finding(s)`)
-          for (const f of result.reasons)
-            console.error(`  [${f.kind.padEnd(8)}] ${f.message}${f.link ? `  ${f.link}` : ''}`)
-          console.error(
-            'Run `bunbraco upgrade check --fix`, resolve what needs a person, and try again.',
-          )
-          process.exit(1)
-        }
-        if (result.action === 'nothing')
-          return console.log('Nothing to upgrade: the database is at this version.')
-        for (const name of result.frameworkApplied) console.log(`  applied  ${name}`)
-        console.log(
-          `  schema   ${result.sync?.action} ${result.sync?.state?.version ?? ''}+${result.sync?.state?.revision ?? ''}`,
-        )
-        return
-      }
-      default:
-        return help()
+      return
     }
-  } finally {
-    await db.close()
+    case 'check': {
+      if (!flags.has('--fix')) {
+        const report = await ops.upgradeCheck(config, { set: parseSet() })
+        printFindings(report)
+        if (!report.siteChecked)
+          console.log(
+            'The site schema is checked once the framework migrations have run (`bunbraco upgrade`).',
+          )
+        if (report.blocking) process.exit(1)
+        return
+      }
+      const fix = await ops.upgradeFix(config, {
+        set: parseSet(),
+        backupTaken: flags.has('--backup-taken'),
+      })
+      if (fix.backup.path) console.log(`  backup   ${fix.backup.path}`)
+      console.log(
+        `  sync     ${fix.sync.action}${fix.sync.deferred.length > 0 ? ` (deferred to the cut-over: ${fix.sync.deferred.join(', ')})` : ''}`,
+      )
+      for (const name of fix.applied) console.log(`  applied  ${name}`)
+      if (fix.skipped > 0)
+        console.log(`  skipped  ${fix.skipped} value(s) a converter refused; see the findings`)
+      printFindings(fix)
+      return
+    }
+    case 'schema': {
+      positional[0] = 'rewrite'
+      return schema()
+    }
+    case undefined: {
+      if (flags.has('--plan')) {
+        const plan = await ops.upgradePlan(config)
+        if (plan.steps.length === 0) console.log('No framework migration is pending.')
+        for (const step of plan.steps) {
+          console.log(
+            `\n== ${step.name} (${step.kind}${step.release ? `, release ${step.release}` : ''})`,
+          )
+          if (step.unplannable) console.log(`  unplannable: ${step.unplannable}`)
+          for (const sql of step.statements) console.log(`  ${sql};`)
+        }
+        console.log(
+          plan.site.checked
+            ? `\nsite schema: ${plan.site.action} (${plan.site.classification})`
+            : '\nsite schema: checked once the framework migrations have run',
+        )
+        return
+      }
+      const forceIndex = rest.indexOf('--force')
+      const result = await ops.upgradeRun(config, {
+        force: forceIndex >= 0 ? rest[forceIndex + 1] : undefined,
+        set: parseSet(),
+        backupTaken: flags.has('--backup-taken'),
+      })
+      if (result.backup.path) console.log(`  backup   ${result.backup.path}`)
+      if (result.action === 'refused') {
+        console.error(`upgrade refused: ${result.reasons.length} outstanding finding(s)`)
+        for (const f of result.reasons)
+          console.error(`  [${f.kind.padEnd(8)}] ${f.message}${f.link ? `  ${f.link}` : ''}`)
+        console.error(
+          'Run `bunbraco upgrade check --fix`, resolve what needs a person, and try again.',
+        )
+        process.exit(1)
+      }
+      if (result.action === 'nothing')
+        return console.log('Nothing to upgrade: the database is at this version.')
+      for (const name of result.frameworkApplied) console.log(`  applied  ${name}`)
+      console.log(
+        `  schema   ${result.schema?.action} ${result.schema?.version ?? ''}+${result.schema?.revision ?? ''}`,
+      )
+      return
+    }
+    default:
+      return help()
+  }
+}
+
+/**
+ * `maintenance`: the cluster-wide pause on editing that a restore or a swap
+ * needs. It is a database flag, so it reaches every node on its next write.
+ */
+async function maintenance(): Promise<void> {
+  const config = await siteConfig()
+  switch (positional[0]) {
+    case 'pause': {
+      const paused = await ops.pauseEditing(config, { reason: flagValue('--reason') })
+      console.log(`Editing paused${paused.reason ? `: ${paused.reason}` : ''}.`)
+      return
+    }
+    case 'resume':
+      await ops.resumeEditing(config)
+      console.log('Editing resumed.')
+      return
+    case 'status': {
+      const paused = await ops.editingPaused(config)
+      if (flags.has('--json')) {
+        console.log(JSON.stringify({ paused: paused ?? null }, null, 2))
+        return
+      }
+      console.log(
+        paused
+          ? `Editing paused since ${paused.at}${paused.by ? ` by ${paused.by}` : ''}${paused.reason ? `: ${paused.reason}` : ''}.`
+          : 'Editing is not paused.',
+      )
+      return
+    }
+    default:
+      return help()
   }
 }
 
@@ -2025,49 +1907,68 @@ function help(): void {
   upgrade [--force <reason>]  re-check, back up, apply framework steps, cut over, ledger
   upgrade --plan              the DDL pending framework migrations would run
   upgrade ledger              print migration_history
+  maintenance pause [--reason <text>]
+                              refuse every editor's save, on every node, until resumed;
+                              readers are unaffected and no node drains
+  maintenance resume          let editors save again
+  maintenance status [--json] whether editing is paused, by whom and why
   (Postgres: --backup-taken or BUNBRACO_PG_DUMP before anything that writes)`)
 }
 
-switch (command) {
-  case 'start':
-    await start()
-    break
-  case 'init':
-    await init()
-    break
-  case 'status':
-    await status()
-    break
-  case 'admin':
-    await admin()
-    break
-  case 'schema':
-    await schema()
-    break
-  case 'generate':
-    await generate()
-    break
-  case 'content':
-    await content()
-    break
-  case 'dictionary':
-    await dictionary()
-    break
-  case 'domains':
-    await domains()
-    break
-  case 'views':
-    await views()
-    break
-  case 'assets':
-    await assets()
-    break
-  case 'import':
-    await importSite()
-    break
-  case 'upgrade':
-    await upgrade()
-    break
-  default:
-    help()
+try {
+  await dispatch()
+} catch (error) {
+  if (!(error instanceof ops.CommandError)) throw error
+  for (const problem of error.problems) console.error(`  ${problem}`)
+  console.error(error.message)
+  process.exit(1)
+}
+
+async function dispatch(): Promise<void> {
+  switch (command) {
+    case 'start':
+      await start()
+      break
+    case 'init':
+      await init()
+      break
+    case 'status':
+      await status()
+      break
+    case 'admin':
+      await admin()
+      break
+    case 'schema':
+      await schema()
+      break
+    case 'generate':
+      await generate()
+      break
+    case 'content':
+      await content()
+      break
+    case 'dictionary':
+      await dictionary()
+      break
+    case 'domains':
+      await domains()
+      break
+    case 'views':
+      await views()
+      break
+    case 'assets':
+      await assets()
+      break
+    case 'import':
+      await importSite()
+      break
+    case 'upgrade':
+      await upgrade()
+      break
+    case 'maintenance':
+      await maintenance()
+      break
+    default:
+      help()
+  }
 }

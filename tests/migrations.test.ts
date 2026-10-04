@@ -10,9 +10,11 @@ import {
   bunbracoPlan,
   type Db,
   INITIAL_STATE,
+  isMajorRelease,
   type Migration,
   MigrationPlan,
   migrate,
+  migrationCompatibility,
   pendingMigrations,
   planUpgrade,
   readLedger,
@@ -30,6 +32,12 @@ import {
   UpgradePendingError,
   VERSION,
 } from '@bunbraco/server'
+import {
+  declaredCompatibility,
+  expectedCompatibility,
+  UMBRELLA_MANIFEST,
+  writeDeclaration,
+} from '../scripts/release-compatibility.ts'
 import {
   canConnect,
   dialectUnderTest,
@@ -92,6 +100,72 @@ describe('migration plan lint', () => {
     expect(() => new MigrationPlan([expand({ release: undefined }), contract])).toThrow(
       /declare a release/,
     )
+  })
+
+  test('a contract only ships in a major release', () => {
+    const contract: Migration = {
+      from: S1,
+      to: S2,
+      name: 'DropWidgets',
+      kind: 'contract',
+      release: '2.0.0',
+      contracts: 'AddWidgets',
+      up: async (d) => schemaOps(d).dropTable('widget'),
+    }
+    for (const release of ['2.1.0', '2.0.1', '1.1.0'])
+      expect(() => new MigrationPlan([expand(), { ...contract, release }])).toThrow(
+        /only ship in a major release/,
+      )
+    // Before 1.0 nothing is a major, so nothing may contract.
+    expect(
+      () => new MigrationPlan([expand({ release: '0.3.0' }), { ...contract, release: '0.4.0' }]),
+    ).toThrow(/only ship in a major release/)
+    expect(isMajorRelease('1.0.0')).toBe(true)
+    expect(isMajorRelease('0.0.0')).toBe(false)
+    expect(isMajorRelease('3.0.0-beta.1')).toBe(true)
+    expect(isMajorRelease('3.1.0-beta.1')).toBe(false)
+  })
+
+  test('a release is breaking exactly when it ships a contract', () => {
+    const plan = new MigrationPlan([
+      expand(),
+      {
+        from: S1,
+        to: S2,
+        name: 'DropWidgets',
+        kind: 'contract',
+        release: '2.0.0',
+        contracts: 'AddWidgets',
+        up: async (d) => schemaOps(d).dropTable('widget'),
+      },
+    ])
+    expect(migrationCompatibility(plan, '2.0.0')).toBe('breaking')
+    expect(migrationCompatibility(plan, '1.0.0')).toBe('compatible')
+    expect(migrationCompatibility(plan, '1.4.0')).toBe('compatible')
+  })
+
+  test('the umbrella declares what its migration plan makes it, so a platform can read it', async () => {
+    // The declaration is published in the umbrella's package.json and read from
+    // the registry before anything is installed: it must never drift from the plan.
+    const manifest = await Bun.file(UMBRELLA_MANIFEST).json()
+    expect(manifest.version).toBe(VERSION)
+    expect(declaredCompatibility(manifest)).toBe(migrationCompatibility(bunbracoPlan, VERSION))
+    expect(expectedCompatibility(VERSION)).toBe(migrationCompatibility(bunbracoPlan, VERSION))
+  })
+
+  test('the declaration is written into a manifest without disturbing it', () => {
+    const bare = '{\n  "name": "bunbraco",\n  "version": "1.0.0",\n  "license": "MIT"\n}\n'
+    const written = writeDeclaration(bare, 'compatible')
+    expect(JSON.parse(written)).toEqual({
+      name: 'bunbraco',
+      version: '1.0.0',
+      bunbraco: { migrations: 'compatible' },
+      license: 'MIT',
+    })
+    expect(JSON.parse(writeDeclaration(written, 'breaking')).bunbraco).toEqual({
+      migrations: 'breaking',
+    })
+    expect(declaredCompatibility({ name: 'x' })).toBeUndefined()
   })
 
   test('the shipped plan is all expand, each with a release', () => {

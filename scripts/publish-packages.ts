@@ -19,6 +19,7 @@ import {
   ROOT,
   type WorkspacePackage,
 } from './packages.ts'
+import { declaredCompatibility, expectedCompatibility } from './release-compatibility.ts'
 
 const REGISTRY = 'https://registry.npmjs.org'
 const OUT = join(ROOT, 'output/packages')
@@ -81,9 +82,27 @@ function assertGenerated(packages: WorkspacePackage[]) {
     )
 }
 
+/**
+ * A platform rolls a release under live nodes only when the umbrella declares it
+ * `compatible`, so a declaration that disagrees with the migration plan is the
+ * one mistake here that would break someone's site rather than this build.
+ */
+function assertCompatibilityDeclared(packages: WorkspacePackage[]) {
+  const umbrella = packages.find((pkg) => pkg.name === 'bunbraco')
+  if (!umbrella) return
+  const declared = declaredCompatibility(umbrella.manifest)
+  const expected = expectedCompatibility(umbrella.manifest.version)
+  if (declared !== expected)
+    throw new Error(
+      `bunbraco@${umbrella.manifest.version} declares its migrations ${declared ?? 'nothing'}, ` +
+        `but its migration plan makes it ${expected}. Run "bun run release:version ${umbrella.manifest.version}".`,
+    )
+}
+
 const packages = publishOrder(publishablePackages())
 const versions = new Map(packages.map((pkg) => [pkg.name, pkg.manifest.version]))
 assertGenerated(packages)
+assertCompatibilityDeclared(packages)
 
 rmSync(OUT, { recursive: true, force: true })
 mkdirSync(OUT, { recursive: true })

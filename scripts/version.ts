@@ -15,6 +15,11 @@ import {
   type WorkspacePackage,
   workspacePackages,
 } from './packages.ts'
+import {
+  expectedCompatibility,
+  UMBRELLA_MANIFEST,
+  writeDeclaration,
+} from './release-compatibility.ts'
 
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
 const PLUGIN_DIR = join(ROOT, 'packages/backoffice-host/plugin')
@@ -101,6 +106,12 @@ writeFileSync(LOCK, lock)
 console.log(`bun.lock -> ${changes.length} workspace ${changes.length === 1 ? 'entry' : 'entries'}`)
 
 if (version) {
+  // Derived from the migration plan, so it can only say what the release does.
+  const umbrella = readFileSync(UMBRELLA_MANIFEST, 'utf8')
+  const compatibility = expectedCompatibility(version)
+  writeFileSync(UMBRELLA_MANIFEST, writeDeclaration(umbrella, compatibility))
+  console.log(`migrations in packages/bunbraco/package.json -> ${compatibility}`)
+
   const config = readFileSync(CONFIG, 'utf8')
   if (!VERSION_LINE.test(config)) throw new Error(`No VERSION constant in ${CONFIG}`)
   writeFileSync(CONFIG, config.replace(VERSION_LINE, `export const VERSION = '${version}'`))

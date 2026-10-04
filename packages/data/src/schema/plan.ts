@@ -6,10 +6,10 @@
  * none of these shipped in any earlier version, whatever the numbers said while
  * they were being written.
  *
- * `release` is only compared between a contract and the expand it removes — a
- * contract may only take away what an *earlier* release added. A plan of nothing
- * but expands at one release is therefore well-formed, and the first contract
- * will simply have to name 0.4.0 or later.
+ * `release` is compared between a contract and the expand it removes — a
+ * contract may only take away what an *earlier* release added — and a contract
+ * may only ship in a major (`x.0.0`), because every minor and patch is rolled
+ * under live nodes. The first contract will therefore name 1.0.0 at the earliest.
  */
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
@@ -27,6 +27,7 @@ import { publicAccessMigration } from './public-access.ts'
 import { recycleBinMigration } from './recycle-bin.ts'
 import { redirectsMigration } from './redirects.ts'
 import { richTextUiMigration } from './rich-text-ui.ts'
+import { serverRoleMigration } from './server-role.ts'
 import { sinceVersionMigration } from './since-version.ts'
 import { transferRunsMigration } from './transfer-runs.ts'
 import { upgradeReportMigration } from './upgrade-report.ts'
@@ -54,4 +55,5 @@ export const bunbracoPlan = new MigrationPlan([
   changeReportMigration,
   transferRunsMigration,
   clientIdPrefixMigration,
+  serverRoleMigration,
 ])

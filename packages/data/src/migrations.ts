@@ -43,6 +43,32 @@ function compareRelease(a: string, b: string): number {
   return 0
 }
 
+/**
+ * What a release promises a running cluster. `compatible`: every migration it
+ * ships is an expand, so the previous release keeps working against the
+ * migrated database and nodes can be rolled one at a time. `breaking`: it ships
+ * a contract, which removes something an older node may still read.
+ */
+export type MigrationCompatibility = 'compatible' | 'breaking'
+
+/** Derived, not asserted: `breaking` exactly when the release ships a contract. */
+export function migrationCompatibility(
+  plan: MigrationPlan,
+  release: string,
+): MigrationCompatibility {
+  const contracts = plan.migrations.some(
+    (m) =>
+      m.kind === 'contract' && m.release !== undefined && compareRelease(m.release, release) === 0,
+  )
+  return contracts ? 'breaking' : 'compatible'
+}
+
+/** `x.0.0` with x ≥ 1. Pre-1.0 no release is major, so nothing may contract before 1.0.0. */
+export function isMajorRelease(release: string): boolean {
+  const [major = 0, minor = 0, patch = 0] = release.split(/[.+-]/).map(Number)
+  return major >= 1 && minor === 0 && patch === 0
+}
+
 export class MigrationPlan {
   readonly migrations: readonly Migration[]
 
@@ -73,6 +99,10 @@ export class MigrationPlan {
         if (compareRelease(expand.release, migration.release) >= 0)
           throw new Error(
             `Contract migration '${migration.name}' (${migration.release}) may only remove what an earlier release added; '${expand.name}' is ${expand.release}.`,
+          )
+        if (!isMajorRelease(migration.release))
+          throw new Error(
+            `Contract migration '${migration.name}' ships in ${migration.release}, but a contract may only ship in a major release (x.0.0): minors and patches are rolled under live nodes and must only add.`,
           )
       }
       seen.set(migration.name, migration)
@@ -209,6 +239,22 @@ export async function recordInLedger(db: Db, entry: LedgerEntry): Promise<void> 
       entry.note ?? null,
     ],
   )
+}
+
+/** The newest ledger row's id, so a node can later ask what was ledgered after it booted. */
+export async function latestLedgerId(db: Db): Promise<number> {
+  await ensureTables(db)
+  const rows = await db.query<{ n: number | null }>('SELECT MAX(id) AS n FROM migration_history')
+  return Number(rows[0]?.n ?? 0)
+}
+
+/** How many contract steps — framework contracts and site purges — were ledgered after a row id. */
+export async function contractsLedgeredAfter(db: Db, afterId: number): Promise<number> {
+  const rows = await db.query<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM migration_history WHERE id > ? AND kind = 'contract'",
+    [afterId],
+  )
+  return Number(rows[0]?.n ?? 0)
 }
 
 export interface LedgerRow extends LedgerEntry {
