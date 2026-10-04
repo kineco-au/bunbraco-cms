@@ -190,14 +190,12 @@ describe('the logos', () => {
     // Four files draw this mark and nothing generates them, so the only thing
     // stopping the shape drifting in one of them is this comparison.
     const silhouettes = await Promise.all(
-      ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg'].map(
-        async (file) => {
-          const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-          return [file, /<path d="([^"]+)"/.exec(svg)?.[1]] as const
-        },
-      ),
+      ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg'].map(async (file) => {
+        const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
+        return [file, /<path d="([^"]+)"/.exec(svg)?.[1]] as const
+      }),
     )
-    const [, bun] = silhouettes[0]
+    const bun = silhouettes[0]?.[1]
     // A flat-bottomed dome, not the circle the mark started as.
     expect(bun).toMatch(/^M10 243C/)
     for (const [file, d] of silhouettes) expect([file, d]).toEqual([file, bun])

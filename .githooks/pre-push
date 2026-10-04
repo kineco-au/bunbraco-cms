@@ -1,0 +1,38 @@
+#!/bin/sh
+# Runs the gate CI runs on a pull request, minus the containers: format, lint,
+# types and the SQLite suite. Push with `--no-verify` to skip it.
+#
+# Postgres and the browser suite are deliberately left out — both need Docker and
+# are slow enough to make pushing a chore. CI still runs them, so a green hook is
+# not a promise of a green pipeline.
+
+set -e
+
+# A push that only deletes refs has nothing to test.
+deleted_only=yes
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    case $local_sha in
+        *[!0]*) deleted_only=no ;;
+    esac
+done
+if [ "$deleted_only" = yes ]; then
+    exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+
+if [ ! -d packages/backoffice-dist/dist ]; then
+    echo "pre-push: packages/backoffice-dist/dist is missing — run 'bun run vendor:backoffice' first." >&2
+    echo "pre-push: the suite needs the vendored client; without it tests skip or fail for the wrong reason." >&2
+    exit 1
+fi
+
+# typecheck reads the generated contract types, and they are not committed.
+echo "pre-push: contract types"
+bun run generate:types
+
+echo "pre-push: format, lint and types"
+bun run check
+
+echo "pre-push: tests (sqlite)"
+bun run test:sqlite

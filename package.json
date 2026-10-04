@@ -31,6 +31,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "generate:types": "openapi-typescript packages/contracts/OpenApi.json -o packages/contracts/generated/management-api.d.ts",
+    "hooks:install": "git config core.hooksPath .githooks",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "localizations:build": "bun run scripts/build-localizations.ts",

@@ -134,6 +134,7 @@ bun install
 bun run vendor:backoffice     # builds packages/backoffice-dist/dist (~90 MB, ~2s)
 bun run generate:types        # contract types -> packages/contracts/generated/
 bun run check                 # format + lint + typecheck
+bun run hooks:install         # pre-push hook: the same gate, before you push
 ```
 
 These run on the host even when you go on to run the stack in Docker: the
@@ -358,6 +359,11 @@ bun run docker:test:sqlite    # the suite in a container
 bun run docker:test:all       # both dialects, the real gate
 ```
 
+`bun run hooks:install` points git at `.githooks`, whose `pre-push` runs the host
+gate — contract types, `check`, then the SQLite suite — so a push that would fail
+CI's first two jobs fails locally instead. It skips Postgres and the browser suite
+because both need Docker; `git push --no-verify` skips the hook entirely.
+
 The host twins (`bun run test`, `test:all`) run the same suites outside Docker.
 Postgres tests skip themselves when no server is reachable, so a clone without
 Docker is never blocked — but a skip is not a pass.
@@ -428,6 +434,7 @@ bunbraco/
 ├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, Views/, schema/
 ├── scripts/                       # vendoring, module-graph check, coverage, versioning and publishing
 ├── .github/workflows/             # ci.yml on every push to main; release.yml on a v* tag
+├── .githooks/                     # pre-push: the host gate, wired by `bun run hooks:install`
 ├── docker/                        # Dockerfile.cms and .browser, the entrypoint, the Postgres init script
 ├── compose.yaml                   # Postgres, one CMS node, and three test services behind a profile
 ├── LICENSE, NOTICE                # MIT, and the attribution for everything redistributed with it
