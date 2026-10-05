@@ -76,8 +76,9 @@ a `Map`, which is the check that the seam is real.
 
 ## Redirects
 
-A URL that has worked keeps working. Two things feed one table, `redirect_url`,
-and one matching pass.
+A URL that has worked keeps working. Three things feed one table, `redirect_url`,
+and one matching pass: the URL tracker, the site's own code, and — with the
+redirects bundle installed — an administrator.
 
 **The URL tracker.** Renaming or moving a published page records a 301 from the
 URL it answered on, for the page and every published descendant, per culture —
@@ -119,6 +120,30 @@ A target may be a path, an absolute URL, or `{ document }` — a document key,
 resolved when the request arrives, so the redirect follows the page when someone
 later renames or moves it, and stops matching if the page is unpublished rather
 than sending visitors to a dead URL.
+
+**Redirects in the backoffice.** `@bunbraco/bundle-redirects` adds a Redirects
+screen under Settings → Advanced, which is what the third-party Umbraco redirect
+packages add over Umbraco's own dashboard: creating and editing a rule, not only
+listing and deleting the ones a rename recorded. It offers everything the matcher
+supports, and the rules it writes sit between the two above in precedence —
+configured rules first, then these, then tracked ones.
+
+It is opt-in twice over. `bun add @bunbraco/bundle-redirects` puts the screen in
+the backoffice, and the endpoints behind it answer only once the site imports the
+bundle's server half:
+
+```ts
+import { redirects } from '@bunbraco/bundle-redirects'
+
+export default defineConfig({
+  bundles: [redirects()],
+})
+```
+
+Only a rule added there can be changed there. A configured rule belongs to the
+file — the next boot would put a deletion back — and a tracked one belongs to the
+page that was renamed, so both are listed and both refuse to be edited.
+[`17-bundles.md`](17-bundles.md) covers why that split exists.
 
 Three consequences of how these are wired:
 

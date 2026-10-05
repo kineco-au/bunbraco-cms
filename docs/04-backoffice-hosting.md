@@ -207,7 +207,7 @@ verifies the invitation and sets the first password
 | `/umbraco/backoffice/<hash>/*` | `packages/backoffice-dist/dist/*` — the `<hash>` segment is stripped |
 | `/umbraco/backoffice/*` | `packages/backoffice-dist/dist/*` |
 | `/umbraco/login/*` | `vendor/login/*` |
-| `/packages/<name>/*` | the installed npm extension's own directory, resolved from the site's `node_modules` ([`17-packages.md`](17-packages.md)) |
+| `/packages/<name>/*` | the installed npm extension's own directory, resolved from the site's `node_modules` ([`17-bundles.md`](17-bundles.md)) |
 
 `<hash>` is a cache-buster Umbraco derives from the version
 (`UmbracoBackOfficePathGenerator.BackOfficeCacheBustHash`, SHA1 of version +
@@ -263,7 +263,7 @@ Merged from every discovered `umbraco-package.json`:
    generated from the client's `package.json` `exports`
    (`@umbraco-cms/backoffice/auth` → `/umbraco/backoffice/packages/core/auth/index.js`)
 2. each installed npm extension's `bunbraco` field, from the site's own
-   dependencies ([`17-packages.md`](17-packages.md)); asset paths are rewritten
+   dependencies ([`17-bundles.md`](17-bundles.md)); asset paths are rewritten
    to `/packages/<name>/…`
 
 Then `/umbraco/backoffice` is textually replaced with

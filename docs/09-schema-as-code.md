@@ -32,6 +32,7 @@ and where it sits here:
 | Templates | Both: `cmsTemplate` row and `~/Views/{alias}.cshtml`; the file wins | **Files** `Views/*.tsx`; the row is derived | done |
 | Partial views, scripts, stylesheets, static files | Files under `~/Views` and `wwwroot` | Files | the backoffice editors write them |
 | Document blueprints | DB: content nodes of the blueprint object type | DB | they carry content values and are created from pages |
+| Form definitions | DB only, irreversibly since v9 | **Files** `schema/forms/` | the largest divergence from Umbraco Forms; entries stay in the database ([`18-forms.md`](18-forms.md)) |
 
 ### Localisation
 

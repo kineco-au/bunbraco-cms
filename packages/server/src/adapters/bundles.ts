@@ -1,12 +1,12 @@
 /**
- * Created packages: the definitions, and the zip a download builds from one.
- * `docs/17-packages.md`.
+ * Bundles: the definitions, and the zip a download builds from one.
+ * `docs/17-bundles.md`.
  *
  * Nothing new is serialized here. Schema travels as the canonical TOML
  * `@bunbraco/schema` already writes, content and media as the bundle
  * `@bunbraco/transfer` already exports, files as themselves, and dictionary
  * items as the `.udt` the dictionary already exports. The build is composition,
- * which is why a package can carry everything the builder UI offers.
+ * which is why a bundle can carry everything the builder UI offers.
  */
 import { join } from 'node:path'
 import {
@@ -20,8 +20,8 @@ import {
 } from '@bunbraco/api-management'
 import { ObjectTypes, type Page } from '@bunbraco/core'
 import {
-  type CreatedPackage,
-  CreatedPackageRepository,
+  type Bundle,
+  BundleRepository,
   currentSchemaState,
   type Db,
   DictionaryRepository,
@@ -57,7 +57,7 @@ import { readBlobs } from '../media-files.ts'
 import type { MediaStore } from '../media-store.ts'
 import { writeZip, type ZipEntry } from '../zip.ts'
 
-/** The content kinds a package's picks can name. */
+/** The content kinds a bundle's picks can name. */
 const CONTENT_OBJECT_TYPES = [ObjectTypes.Document, ObjectTypes.Media, ObjectTypes.Element]
 
 export interface PackagePortOptions {
@@ -72,7 +72,7 @@ export interface PackagePortOptions {
   scripts?: FileSystemPort
 }
 
-const definition = (row: CreatedPackage): PackageDefinition => ({
+const definition = (row: Bundle): PackageDefinition => ({
   id: row.id,
   name: row.name,
   contentNodeId: row.contentNodeId,
@@ -108,7 +108,7 @@ function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
   const documentTypes = set.documentTypes.filter(picks(from.documentTypes))
   const mediaTypes = (set.mediaTypes ?? []).filter(picks(from.mediaTypes))
   // Member types have no picker in the builder, and the contract's definition
-  // has no field for them, so a package never carries one.
+  // has no field for them, so a bundle never carries one.
   const dataTypes = set.dataTypes.filter(picks(from.dataTypes))
   const languages = set.languages.filter((language) =>
     from.languages.some((pick) => pick.toLowerCase() === language.iso.toLowerCase()),
@@ -194,7 +194,7 @@ function mergeContentSets(sets: readonly ContentSet[]): ContentSet | undefined {
 }
 
 export function createPackagePort(db: Db, options: PackagePortOptions): PackagePort {
-  const packages = new CreatedPackageRepository(db)
+  const bundles = new BundleRepository(db)
 
   const validate = (input: PackageDefinitionInput): PackageWriteResult | undefined =>
     input.name.length === 0 ? { ok: false, status: 'InvalidName' } : undefined
@@ -310,36 +310,36 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
     marketplaceUrl: () => options.marketplaceUrl,
 
     async list(paging): Promise<Page<PackageDefinition>> {
-      const result = await packages.list(paging)
+      const result = await bundles.list(paging)
       return { total: result.total, items: result.items.map(definition) }
     },
 
     async byId(id) {
-      const row = await packages.byId(id)
+      const row = await bundles.byId(id)
       return row ? definition(row) : undefined
     },
 
     async create(input, id) {
       const invalid = validate(input)
       if (invalid) return invalid
-      if (await packages.byName(input.name)) return { ok: false, status: 'DuplicateName' }
-      const row = await packages.create(input, id)
+      if (await bundles.byName(input.name)) return { ok: false, status: 'DuplicateName' }
+      const row = await bundles.create(input, id)
       return { ok: true, id: row.id }
     },
 
     async update(id, input) {
       const invalid = validate(input)
       if (invalid) return invalid
-      if (!(await packages.byId(id))) return { ok: false, status: 'NotFound' }
-      const clash = await packages.byName(input.name)
+      if (!(await bundles.byId(id))) return { ok: false, status: 'NotFound' }
+      const clash = await bundles.byName(input.name)
       if (clash && clash.id !== id) return { ok: false, status: 'DuplicateName' }
-      await packages.update(id, input)
+      await bundles.update(id, input)
       return { ok: true, id }
     },
 
     async remove(id) {
-      if (!(await packages.byId(id))) return 'notFound'
-      await packages.delete(id)
+      if (!(await bundles.byId(id))) return 'notFound'
+      await bundles.delete(id)
       return 'deleted'
     },
 
@@ -352,7 +352,7 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
      * record of what it was or whether it arrived whole.
      */
     async build(id): Promise<BuiltPackage | undefined> {
-      const row = await packages.byId(id)
+      const row = await bundles.byId(id)
       if (!row) return undefined
       const from = definition(row)
 

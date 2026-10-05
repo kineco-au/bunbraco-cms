@@ -6,6 +6,7 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { EXTENSION_KEYWORD } from '@bunbraco/backoffice-host'
 import { VERSION } from '@bunbraco/server'
 import {
   BACKOFFICE_DIST,
@@ -21,7 +22,10 @@ const REPOSITORY = 'git+https://github.com/kineco-au/bunbraco-cms.git'
 const packages = publishablePackages()
 
 /** Published, but installed only by a site that wants it. */
-const OPT_IN = new Set(['@bunbraco/import-umbraco'])
+const OPT_IN = new Set(['@bunbraco/import-umbraco', '@bunbraco/bundle-redirects'])
+
+/** Published bundles, which npm has to be able to find by keyword. */
+const BUNDLES = new Set(['@bunbraco/bundle-redirects'])
 
 /** Every path an `exports` entry can point at, flattened. */
 function entryPoints(pkg: (typeof packages)[number]): string[] {
@@ -39,6 +43,7 @@ describe('the published package set', () => {
       '@bunbraco/auth',
       '@bunbraco/backoffice-dist',
       '@bunbraco/backoffice-host',
+      '@bunbraco/bundle-redirects',
       '@bunbraco/cli',
       '@bunbraco/contracts',
       '@bunbraco/core',
@@ -73,6 +78,35 @@ describe('the published package set', () => {
     for (const pkg of packages) {
       if (pkg.name === 'bunbraco' || OPT_IN.has(pkg.name)) continue
       expect(dependencies).toContain(pkg.name)
+    }
+  })
+
+  test('publishes every bundle under the keyword the marketplace searches', () => {
+    // The `bunbraco` field is what declares the extensions, but npm will not
+    // index a custom field — only keywords — so a bundle without this one is
+    // invisible in the Bundles section however correct the rest of it is
+    // (`docs/17-bundles.md`).
+    for (const name of BUNDLES) {
+      const bundle = packages.find((pkg) => pkg.name === name)
+      expect(bundle?.manifest.keywords ?? [], name).toContain(EXTENSION_KEYWORD)
+    }
+  })
+
+  test('declares each bundle’s extensions where discovery reads them', () => {
+    for (const name of BUNDLES) {
+      const bundle = packages.find((pkg) => pkg.name === name)
+      // Discovery reads `bunbraco.extensions` from the dependency's own
+      // manifest, and `files` has to carry whatever those point at.
+      const field = bundle?.manifest.bunbraco
+      expect(field?.extensions ?? [], name).not.toBeEmpty()
+      for (const extension of field?.extensions ?? []) {
+        const asset =
+          (extension as { element?: string; js?: string }).element ??
+          (extension as { js?: string }).js
+        if (!asset) continue
+        expect(existsSync(join(bundle?.dir ?? '', asset)), `${name} ${asset}`).toBe(true)
+        expect(bundle?.manifest.files ?? [], name).toContain(asset.split('/')[0] as string)
+      }
     }
   })
 

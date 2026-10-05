@@ -73,7 +73,7 @@ describe('where the views live', () => {
   })
 
   /**
-   * App_Plugins is gone (`docs/17-packages.md`): backoffice extensions are the
+   * App_Plugins is gone (`docs/17-bundles.md`): backoffice extensions are the
    * site's npm dependencies, so there is no plugin directory to point anywhere.
    */
   test('there is no plugin directory setting any more', () => {

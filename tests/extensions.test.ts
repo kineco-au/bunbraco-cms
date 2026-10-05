@@ -1,6 +1,6 @@
 /**
  * Backoffice extensions as npm dependencies, which replaced `App_Plugins`.
- * docs/17-packages.md.
+ * docs/17-bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -320,7 +320,7 @@ describe('manifests', () => {
   })
 
   test('the keyword packages publish is the one the docs name', () => {
-    expect(EXTENSION_KEYWORD).toBe('bunbraco-package')
+    expect(EXTENSION_KEYWORD).toBe('bunbraco-bundle')
   })
 })
 

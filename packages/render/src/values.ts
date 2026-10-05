@@ -4,7 +4,7 @@
  * links with their URLs resolved, and block editors yield element models with
  * the same `value()` API as a page.
  */
-import { keyFromReference } from '@bunbraco/core'
+import { keyFromReference, type SchemaForm } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
 import { ImageCropperValue, MediaWithCrops, PublishedMedia } from './media.ts'
 import type { PublishedProperty } from './model.ts'
@@ -12,6 +12,11 @@ import type { PublishedProperty } from './model.ts'
 /** What conversion needs from the published cache. */
 export interface ValueContext<Content = unknown, Media = unknown> {
   content(key: string): Content | undefined
+  /**
+   * A form definition by key. Absent until the renderer is given one, which is
+   * what makes a `formPicker` resolve to the form rather than to its key.
+   */
+  form?(key: string): SchemaForm | undefined
   /** Absent until the cache knows media. */
   media?(key: string): Media | undefined
   /** A published library element by key; absent until the cache knows them. */
@@ -235,6 +240,14 @@ export function convertValue(
       return typeof value === 'object' || typeof value === 'string'
         ? new ImageCropperValue(typeof value === 'string' ? { src: value } : (value as object))
         : value
+    // A form definition is a file, so there is nothing in the content cache to
+    // resolve against: the lookup reads `schema/forms/`. Without one the raw key
+    // comes back, which is what a unit test sees.
+    case 'Bunbraco.FormPicker': {
+      const key = typeof value === 'string' ? value.trim() : ''
+      if (!key) return null
+      return context?.form?.(key) ?? null
+    }
     case 'Umbraco.ContentPicker': {
       const key = keyFromReference(value)
       return (key && context?.content(key)) ?? null

@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { SchemaForm } from './forms.ts'
 import type {
   SchemaDataType,
   SchemaDocumentType,
@@ -23,6 +24,7 @@ import {
   parseMemberType,
   parseSchemaVersion,
 } from './parse.ts'
+import { parseForm } from './parse-forms.ts'
 import {
   writeDataType,
   writeDocumentType,
@@ -30,6 +32,7 @@ import {
   writeMediaType,
   writeMemberType,
 } from './write.ts'
+import { writeForm } from './write-forms.ts'
 
 export interface LoadedSchema {
   set: SchemaSet
@@ -97,6 +100,15 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
       files.set(`data-type:${parsed.value.alias}`, file)
     }
   }
+  const forms: SchemaForm[] = []
+  for (const file of tomlFiles(join(schemaDir, 'forms'))) {
+    const parsed = parseForm(rel(file), readFileSync(file, 'utf8'))
+    problems.push(...parsed.problems)
+    if (parsed.value) {
+      forms.push(parsed.value)
+      files.set(`form:${parsed.value.alias}`, file)
+    }
+  }
   const languagesFile = join(schemaDir, 'languages.toml')
   if (existsSync(languagesFile)) {
     const parsed = parseLanguages(rel(languagesFile), readFileSync(languagesFile, 'utf8'))
@@ -104,7 +116,7 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
     if (parsed.value) languages = parsed.value
   }
   return {
-    set: { version, documentTypes, mediaTypes, memberTypes, dataTypes, languages },
+    set: { version, documentTypes, mediaTypes, memberTypes, dataTypes, languages, forms },
     problems,
     files,
   }
@@ -119,6 +131,7 @@ export function hashSchemaSet(set: SchemaSet): string {
     ...(set.memberTypes ?? []).map((t) => writeMemberType(t)).sort(),
     ...set.dataTypes.map((d) => writeDataType(d)).sort(),
     writeLanguages([...set.languages].sort((a, b) => a.iso.localeCompare(b.iso))),
+    ...(set.forms ?? []).map((f) => writeForm(f)).sort(),
   ]
   return createHash('sha256').update(parts.join('\n---\n')).digest('hex')
 }

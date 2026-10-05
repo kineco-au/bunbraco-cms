@@ -38,6 +38,7 @@
 - Pushing a `v*` tag publishes to npm (`.github/workflows/release.yml`), so treat
   a tag push as a release, not a bookmark
 
-## Boundaries
+## Rules
 
 - You must not bring in any dotnet dependencies
+- Don't leak implementation details or tech jargon into the user interface - keep the UI user focused.

@@ -2,7 +2,7 @@
  * Created packages: the definitions' CRUD, the two migration operations that
  * answer honestly, and the download — asserted by reading the zip back and
  * loading the bundle inside it through the importer that already exists, rather
- * than by inspecting bytes. docs/17-packages.md.
+ * than by inspecting bytes. docs/17-bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -156,7 +156,7 @@ describe('the Packages section loads', () => {
   test('configuration names where the marketplace is', async () => {
     const { h } = await site()
     const config = await h.json<{ marketplaceUrl: string }>(`${PACKAGES}/configuration`)
-    expect(config.marketplaceUrl).toContain('bunbraco-package')
+    expect(config.marketplaceUrl).toContain('bunbraco-bundle')
   })
 
   test('migration status is an empty page, not a 501', async () => {

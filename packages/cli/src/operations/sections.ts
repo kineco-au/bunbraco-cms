@@ -1,6 +1,6 @@
 /**
  * The sections a bundle carries beyond its content: schema, views, partials,
- * styles, scripts and dictionary items. `docs/17-packages.md`.
+ * styles, scripts and dictionary items. `docs/17-bundles.md`.
  *
  * A bundle names what a file *is*, never where it goes — the destination site
  * decides that from its own configuration, so a bundle written against one

@@ -1,6 +1,6 @@
 /**
  * The Packages section's marketplace over npm, and the runtime install.
- * docs/17-packages.md.
+ * docs/17-bundles.md.
  *
  * Nothing here reaches the network: the registry is a recorded response and the
  * installer is a stub, because what is being checked is the filtering rule, the
@@ -139,8 +139,8 @@ function marketplace(options: {
     extensions,
     market: createMarketplace({
       registry: REGISTRY,
-      keyword: 'bunbraco-package',
-      marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-package',
+      keyword: 'bunbraco-bundle',
+      marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-bundle',
       extensions,
       siteDir: root,
       fetch: registry({
@@ -163,14 +163,14 @@ describe('searching the registry', () => {
       onSearch: (text) => seen.push(text),
     })
     await market.search(undefined)
-    expect(seen).toEqual(['keywords:bunbraco-package'])
+    expect(seen).toEqual(['keywords:bunbraco-bundle'])
   })
 
   test('adds the typed query alongside the keyword', async () => {
     const seen: string[] = []
     const { market } = marketplace({ hits: [], onSearch: (text) => seen.push(text) })
     await market.search('  seo  ')
-    expect(seen).toEqual(['keywords:bunbraco-package seo'])
+    expect(seen).toEqual(['keywords:bunbraco-bundle seo'])
   })
 
   /** The keyword is a claim; the `bunbraco` field is the thing itself. */
@@ -205,7 +205,7 @@ describe('searching the registry', () => {
 
   test('names where to browse', () => {
     const { market } = marketplace({})
-    expect(market.url()).toContain('keywords%3Abunbraco-package')
+    expect(market.url()).toContain('keywords%3Abunbraco-bundle')
   })
 })
 
@@ -377,7 +377,7 @@ describe('the name and version rules', () => {
 })
 
 describe('the endpoints', () => {
-  const PACKAGES = `${BACKOFFICE}/bunbraco/api/packages`
+  const PACKAGES = `${BACKOFFICE}/bunbraco/api/bundles`
 
   test('need a session', async () => {
     const h = await signedInServer()
@@ -409,8 +409,8 @@ describe('the endpoints', () => {
     const body = await h.json<{ keyword: string; url: string; items: unknown[] }>(
       `${PACKAGES}/marketplace`,
     )
-    expect(body.keyword).toBe('bunbraco-package')
-    expect(body.url).toContain('bunbraco-package')
+    expect(body.keyword).toBe('bunbraco-bundle')
+    expect(body.url).toContain('bunbraco-bundle')
     expect(Array.isArray(body.items)).toBe(true)
   })
 

@@ -50,8 +50,8 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_MEMBER_SESSION_MINUTES`           | `20160` (14 days)                              | how long a member's sign-in is good for                                                                |
 | `BUNBRACO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
 | `BUNBRACO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
-| `BUNBRACO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Packages section sends someone browsing for extensions                                       |
-| `BUNBRACO_PACKAGE_KEYWORD`                  | `bunbraco-package`                             | the npm keyword a backoffice extension publishes to be discoverable                                    |
+| `BUNBRACO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Bundles section sends someone browsing for bundles                                       |
+| `BUNBRACO_PACKAGE_KEYWORD`                  | `bunbraco-bundle`                             | the npm keyword a bundle publishes to be discoverable                                    |
 | `BUNBRACO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
 | `BUNBRACO_EMAIL_PROVIDER`                   | `none`                                         | how e-mail is sent: `resend`, `postmark`, `ses`, `custom` or `none` (see [E-mail](#e-mail))            |
 | `BUNBRACO_EMAIL_FROM`                       | —                                              | the sender address; required by every provider, and the provider verifies its domain                   |
@@ -64,6 +64,34 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_EMAIL_SES_SECRET_ACCESS_KEY`      | `AWS_SECRET_ACCESS_KEY`                        | `ses` only: overrides the standard AWS variable                                                        |
 | `BUNBRACO_EMAIL_SES_CONFIGURATION_SET`      | —                                              | `ses` only: the configuration set that governs sending                                                 |
 | `BUNBRACO_EMAIL_SES_ENDPOINT`               | the regional SES host                          | `ses` only: a VPC endpoint, or a fake in a test                                                        |
+
+## Settings with no environment variable
+
+Three things a site declares only in `bunbraco.config.ts`, because each of them
+is code rather than a value:
+
+| Setting | What it is |
+| --- | --- |
+| `assistant` | the AI helper; enabling it takes a provider ([`11-assistant.md`](11-assistant.md)) |
+| `redirects` | rules built with `redirect()`, synced into the database at boot ([`05-rendering.md`](05-rendering.md)) |
+| `bundles` | the server halves of the bundles this site runs ([`17-bundles.md`](17-bundles.md)) |
+
+`bundles` has no environment variable deliberately, and the absence is tested. A
+variable naming a package would be a way to start third-party code in the server
+process without a code change, and the point of the list is that it is a
+reviewable, deployed decision:
+
+```ts
+import { redirects } from '@bunbraco/bundle-redirects'
+import { defineConfig } from 'bunbraco'
+
+export default defineConfig({
+  bundles: [redirects()],
+})
+```
+
+Installing a bundle from the Bundles section gives you its backoffice screen.
+This line is what lets it answer a request.
 
 ## E-mail
 

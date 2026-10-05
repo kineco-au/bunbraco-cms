@@ -12,6 +12,7 @@
  * navigation resolve within the culture of the page that asks.
  */
 
+import type { SchemaForm } from '@bunbraco/core'
 import { PublishedMedia } from './media.ts'
 import { type Navigation, PublishedContent, type PublishedProperty } from './model.ts'
 import { matchRedirect, type RedirectRule } from './redirects.ts'
@@ -191,13 +192,27 @@ export function fallbackChain(
   return chain
 }
 
+/** What the cache needs besides content, for values that resolve outside it. */
+export interface PublishedCacheOptions {
+  /**
+   * A form definition by key, for a `formPicker` property.
+   *
+   * A function rather than a map: form definitions are files, so they can change
+   * without a publish invalidating this cache, and the lookup has to be able to
+   * see that.
+   */
+  form?: (key: string) => SchemaForm | undefined
+}
+
 export class PublishedCache {
   #source: PublishedContentSource
   #snapshot: CacheSnapshot = EMPTY
   #loaded = false
+  #options: PublishedCacheOptions
 
-  constructor(source: PublishedContentSource) {
+  constructor(source: PublishedContentSource, options: PublishedCacheOptions = {}) {
     this.#source = source
+    this.#options = options
   }
 
   /** Dropped on publish or unpublish; the next read rebuilds it. */
@@ -357,6 +372,7 @@ export class PublishedCache {
     return {
       content: (key) => view?.byKey.get(key.toLowerCase()),
       media: (key) => snapshot.media.get(key.toLowerCase()),
+      form: this.#options.form,
       urlOf: (content) => content.url,
       mediaUrlOf: (item) => (item as PublishedMedia).url,
     }
@@ -617,6 +633,7 @@ export class PublishedCache {
         // Read lazily: the map is filled just below, with this very context, so an
         // element picking another element resolves too.
         element: (key) => view.elements.get(key.toLowerCase()),
+        form: this.#options.form,
         urlOf: (content) => content.url,
         mediaUrlOf: (item) => item.url,
       }

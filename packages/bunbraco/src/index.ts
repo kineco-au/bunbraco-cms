@@ -22,11 +22,29 @@ export {
   type ConverseInput,
   type ConverseResult,
 } from '@bunbraco/assistant'
+// A view reads a form definition and a submission's state; both are domain
+// types, so they come from core rather than from the renderer.
+export type {
+  FormCondition,
+  FormFieldError,
+  FormFieldType,
+  FormSubmissionState,
+  SchemaForm,
+  SchemaFormField,
+  SchemaFormGroup,
+  SchemaFormPage,
+  SubmittedValues,
+} from '@bunbraco/core'
+export { allFormFields, formFieldType, storingFormFields } from '@bunbraco/core'
 export { type LiveNode, liveNodes } from '@bunbraco/data'
 export type {
   BlockGridArea,
   BlockGridItem,
   BlockItem,
+  FormFieldComponents,
+  FormFieldRenderer,
+  FormFieldRenderProps,
+  FormProps,
   InnerHTML,
   Link,
   Navigation,
@@ -39,7 +57,7 @@ export type {
   RequestMember,
   TypedElement,
 } from '@bunbraco/render'
-export { redirect } from '@bunbraco/render'
+export { Form, formAction, redirect } from '@bunbraco/render'
 export type { Child } from '@bunbraco/render/jsx-runtime'
 export {
   type AzureMediaStoreOptions,
@@ -47,6 +65,16 @@ export {
   azureMediaStore,
   azureSchemaStore,
   type BunbracoConfig,
+  // What a bundle's server half is written against; see `docs/17-bundles.md`.
+  type BundleCapability,
+  type BundleDocuments,
+  type BundleHost,
+  type BundleLog,
+  type BundleMethod,
+  type BundleRedirectInput,
+  type BundleRedirectRule,
+  type BundleRedirects,
+  type BundleRequest,
   type CustomEmailOptions,
   createServer,
   customEmail,
@@ -68,6 +96,8 @@ export {
   type S3MediaStoreOptions,
   type S3SchemaStoreOptions,
   type SchemaStore,
+  type ServerBundle,
+  type ServerBundleRoute,
   type ServerHandle,
   type SesOptions,
   s3MediaStore,

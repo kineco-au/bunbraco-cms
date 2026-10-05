@@ -2,7 +2,7 @@
  * Migration 022 — the created-package definitions the Packages section builds.
  *
  * A definition, never an artifact: the zip is built when it is downloaded
- * (`docs/17-packages.md`), so there are no bytes here to go stale when a
+ * (`docs/17-bundles.md`), so there are no bytes here to go stale when a
  * document type the package carries is edited afterwards.
  *
  * The selection lists are JSON text rather than a row each. They are read and

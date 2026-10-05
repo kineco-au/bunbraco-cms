@@ -32,6 +32,8 @@ import {
 } from '@bunbraco/backoffice-host'
 import {
   DEFAULT_UPLOAD_SETTINGS,
+  FormPermissions,
+  hasAccessToSensitiveData,
   localReturnUrl,
   MANAGEMENT_API_PREFIX,
   PREVIEW_HUB_PATH,
@@ -40,6 +42,8 @@ import {
 import {
   appendCacheInstruction,
   type Db,
+  FormEntryRepository,
+  FormWorkflowRepository,
   RedirectRepository,
   readReport,
   type WritesPaused,
@@ -47,9 +51,13 @@ import {
 import {
   contentForNode,
   DEVELOPMENT_LIMITS,
+  FORM_SCRIPT,
+  FORM_SCRIPT_PATH,
+  FORM_SUBMIT_PATH,
   PublishedCache,
   Renderer,
   type SnapshotStatus,
+  setFormTokenSigner,
   ViewSnapshots,
 } from '@bunbraco/render'
 import type { SyncReport } from '@bunbraco/schema'
@@ -57,6 +65,7 @@ import type { Server } from 'bun'
 import { createNodeLookup, loadAccess } from './access.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
+import { createBundleRedirects, createServerBundles } from './bundles.ts'
 import { type BunbracoConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
@@ -65,6 +74,26 @@ import { editorTypeLibs } from './editor-types.ts'
 import { emailAvailability, resolveEmailPort } from './email.ts'
 import { noticeAboutEmail } from './email-notice.ts'
 import { warnAboutAppPlugins } from './extensions-notice.ts'
+import { coerceForm, deleteForm, saveForm } from './form-files.ts'
+import {
+  createFormRegistry,
+  FORM_FLASH_COOKIE,
+  formSigningSecret,
+  readFlash,
+  signFormToken,
+  submitForm,
+  wantsJson,
+  writeFlash,
+} from './form-submit.ts'
+import { createWorkflowRunner } from './form-workflows.ts'
+import {
+  entriesCsv,
+  formDetail,
+  formSummary,
+  formsByKey,
+  parseEntryState,
+  redactSensitive,
+} from './forms.ts'
 import { ImageProcessor, parseImagingQuery } from './imaging.ts'
 import { type BackgroundJobs, createBackgroundJobs } from './jobs.ts'
 import { configureLogging, logger } from './logging.ts'
@@ -83,7 +112,7 @@ import {
   type SchemaBoot,
   watchSchema,
 } from './schema.ts'
-import { materialiseSchema } from './schema-store.ts'
+import { materialiseSchema, publishSchema, type SchemaStore } from './schema-store.ts'
 import {
   combineHubs,
   createServerEventHub,
@@ -156,8 +185,19 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   const schemaLog = logger('schema')
   const renderLog = logger('render')
   const redirectLog = logger('redirects')
+  const bundleLog = (id: string) => {
+    const named = logger('bundle', id)
+    return {
+      info: (message: string, properties?: Record<string, unknown>) =>
+        named.info(message, properties),
+      warn: (message: string, properties?: Record<string, unknown>) =>
+        named.warn(message, properties),
+      error: (message: string, properties?: Record<string, unknown>) =>
+        named.error(message, properties),
+    }
+  }
   const domainLog = logger('domains')
-  // Extensions are the site's own npm dependencies (`docs/17-packages.md`).
+  // Extensions are the site's own npm dependencies (`docs/17-bundles.md`).
   // Uncached in development so an author editing one sees a reload pick it up.
   const extensions = createExtensionRegistry(config.siteDir, { cache: !config.development })
   const marketplace = createMarketplace({
@@ -230,8 +270,16 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
   }
 
+  // Form definitions are files, so they are re-read rather than cached with the
+  // content: nothing about a publish tells this node that a form changed.
+  const forms = createFormRegistry(config.schemaDir)
+  // Every form this node renders carries a token signed with the site's key, so
+  // the timing guard cannot be bypassed by posting a made-up render time.
+  const formSecret = await formSigningSecret(db)
+  setFormTokenSigner((formKey, renderedAt) => signFormToken(formSecret, formKey, renderedAt))
   const cache = new PublishedCache(
     createPublishedContentSource(db, { nodeState: schema.nodeState, nodeId: schema.nodeId }),
+    { form: (key) => forms.byKey(key) },
   )
   // A snapshot of the views, so a template edited anywhere — the backoffice, a
   // deploy, a bucket synced underneath — is picked up without restarting this
@@ -286,6 +334,38 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         removed: domains.removed,
       })
   }
+  /**
+   * The server halves of the site's bundles, mounted only where the backoffice
+   * is: these are backoffice endpoints, and a `web` node serves none of them.
+   *
+   * Capabilities are built here, from what this node already holds, so a bundle
+   * is handed a narrow interface rather than the database. A bad bundle fails the
+   * boot — see `createServerBundles`.
+   */
+  const bundles = servesBackOffice
+    ? createServerBundles({
+        bundles: config.bundles,
+        pluginApiPath: `${paths.pluginPath}/api`,
+        host: {
+          redirects: createBundleRedirects({ db, cache }),
+          documents: {
+            url: async (key, culture) => {
+              const content = await cache.byKey(key, culture ?? null)
+              return content && content.url !== '#' ? content.url : undefined
+            },
+          },
+          log: bundleLog('bundle'),
+        },
+        log: (id) => bundleLog(id),
+      })
+    : undefined
+  for (const bundle of bundles?.mounted ?? [])
+    log.info('Bundle {name} answering below {prefix} for the {section} section', {
+      name: bundle.name,
+      prefix: bundle.prefix,
+      section: bundle.section,
+    })
+
   const poller = new CacheInstructionPoller({
     db,
     nodeId: schema.nodeId,
@@ -445,6 +525,17 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     nodeId: schema.nodeId,
     versionCleanup: config.versionCleanup,
     mediaFiles,
+    // The workflow queue drains here rather than in the request: a submission is
+    // stored first, and an e-mail that cannot be sent yet must not cost it.
+    formWorkflows: createWorkflowRunner({
+      db,
+      forms,
+      email,
+      mediaFiles,
+      nodeState: schema.nodeState,
+      nodeId: schema.nodeId,
+      onContentChanged: () => cache.invalidate(),
+    }),
     onDocumentChanged: (key) =>
       events.broadcast('notify', [
         { eventSource: 'Umbraco:CMS:Document', eventType: 'Updated', key },
@@ -459,7 +550,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     nodeId: schema.nodeId,
     role: config.role,
   })
-  // App_Plugins is gone (`docs/17-packages.md`). Saying so beats a site whose
+  // App_Plugins is gone (`docs/17-bundles.md`). Saying so beats a site whose
   // extensions silently stopped loading after an upgrade; remove at 1.0.
   warnAboutAppPlugins(config.siteDir, log)
   noticeAboutEmail(emailStatus, logger('email'), { development: config.development })
@@ -548,6 +639,23 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       const response = await members.handle(request, pathname)
       if (response) return response
     }
+
+    // The progressive-enhancement script. A site adds it to a layout; a form
+    // works without it, so nothing emits it automatically.
+    if (pathname === FORM_SCRIPT_PATH)
+      return new Response(FORM_SCRIPT, {
+        headers: {
+          'content-type': 'text/javascript; charset=utf-8',
+          'cache-control': config.development ? 'no-cache' : 'public, max-age=3600',
+        },
+      })
+
+    // A visitor posting a form. Before the renderer, which would otherwise try
+    // to resolve `/bunbraco/forms/...` as a page.
+    if (pathname.startsWith(`${FORM_SUBMIT_PATH}/`))
+      return request.method === 'POST'
+        ? submitFormRoute(request, pathname)
+        : new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST' } })
 
     if (pathname.startsWith('/media/')) return serveMedia(pathname, url.searchParams)
     if (pathname.startsWith('/css/')) return serveSiteFile(config.stylesheetsDir, pathname, '.css')
@@ -646,16 +754,31 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
 
     /**
+     * A bundle's own endpoints, below `api/bundle/<id>/`.
+     *
+     * Authentication happens here and authorisation happens in the registry
+     * against the section the bundle declared, so a bundle never sees an
+     * anonymous request and cannot widen its own access. `undefined` means no
+     * bundle claims the path, which falls through to the 404 below.
+     */
+    if (bundles && pathname.startsWith(bundles.basePath)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      const answered = await bundles.handle(request, url, principal)
+      if (answered) return answered
+    }
+
+    /**
      * Non-contract: the Packages section's marketplace, installed list and
      * install. There is no operation in the contract for any of it — Umbraco's
      * marketplace is an iframe — so this is ours, and it answers to the
      * Packages section exactly as the operations beside it would.
      */
-    if (pathname.startsWith(`${paths.pluginPath}/api/packages/`)) {
+    if (pathname.startsWith(`${paths.pluginPath}/api/bundles/`)) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
       if (!hasSection(principal, 'packages')) return new Response('Forbidden', { status: 403 })
-      const action = pathname.slice(`${paths.pluginPath}/api/packages/`.length)
+      const action = pathname.slice(`${paths.pluginPath}/api/bundles/`.length)
 
       if (action === 'marketplace' && request.method === 'GET') {
         return Response.json({
@@ -710,6 +833,206 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         affects: emailStatus.affects,
         canSendUserLinks,
       })
+    }
+
+    /**
+     * Non-contract: forms and their entries. There is no form operation in the
+     * vendored contract — Umbraco Forms ships its own API and its own client,
+     * and neither is here — so this is ours (`docs/18-forms.md`).
+     *
+     * Definitions are read from `schema/` per request rather than cached: the
+     * files are the truth, the backoffice may have just rewritten one, and a
+     * picker that disagreed with what a render uses would be worse than slow.
+     */
+    if (pathname.startsWith(`${paths.pluginPath}/api/forms`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      const action = pathname.slice(`${paths.pluginPath}/api/forms`.length).replace(/^\//, '')
+      // Through the registry the renderer uses, so the designer and a render
+      // cannot disagree; a save invalidates it rather than waiting out the memo.
+      const definitions = forms.all()
+
+      // A definition is structure, like a document type: anyone who may open the
+      // section may read it, and the picker needs it in the Content section too.
+      if (action === '' && request.method === 'GET')
+        return Response.json({ items: definitions.map(formSummary) })
+
+      const entries = new FormEntryRepository(db)
+      const byKey = formsByKey(definitions)
+      // Submissions are personal data, so reading them asks for more than a
+      // session. Four verbs, because designing a form and reading what people
+      // sent it are different jobs (`docs/18-forms.md`).
+      const may = (verb: string) => principal.isAdmin || principal.permissions.includes(verb)
+      const formFiles = {
+        schemaDir: config.schemaDir,
+        writable: config.schemaWritable,
+        onChanged: config.schemaStore
+          ? async () => {
+              await publishSchema(config.schemaStore as SchemaStore, config.schemaDir)
+            }
+          : undefined,
+      }
+      const maySeeEntries = may(FormPermissions.EntriesView)
+      const mayManageEntries = may(FormPermissions.EntriesManage)
+      // The group alias still counts: `sensitiveData` is how Umbraco carries
+      // this and how members already work, so both routes to it are honoured.
+      const maySeeSensitive =
+        may(FormPermissions.EntriesSensitive) || hasAccessToSensitiveData(principal.groups)
+
+      const entryMatch = /^entries\/([^/]+)(?:\/(state))?$/.exec(action)
+      if (entryMatch) {
+        if (!maySeeEntries) return new Response('Forbidden', { status: 403 })
+        const id = decodeURIComponent(entryMatch[1] as string)
+        if (entryMatch[2] === 'state' && request.method === 'POST') {
+          if (!mayManageEntries) return new Response('Forbidden', { status: 403 })
+          const body = (await request.json().catch(() => ({}))) as { state?: unknown }
+          const next = parseEntryState(typeof body.state === 'string' ? body.state : null)
+          if (!next) return new Response('Bad Request', { status: 400 })
+          const updated = await entries.setState(id, next)
+          if (!updated) return new Response('Not Found', { status: 404 })
+          // Approval is the other trigger: a workflow declared `on = "approve"`
+          // runs now, from the values the entry holds.
+          if (next === 'approved') {
+            const form = byKey.get(updated.formKey)
+            const onApprove = form?.workflows.filter((workflow) => workflow.on === 'approve') ?? []
+            if (onApprove.length > 0)
+              await new FormWorkflowRepository(db).enqueue(
+                onApprove.map((workflow) => ({
+                  formKey: updated.formKey,
+                  formAlias: updated.formAlias,
+                  workflowName: workflow.name,
+                  workflowType: workflow.type,
+                  runOn: workflow.on,
+                  entryId: updated.id,
+                  payload: updated.values.map((value) => ({
+                    fieldAlias: value.fieldAlias,
+                    values: value.values,
+                  })),
+                })),
+              )
+          }
+          log.info('{user} set form entry {id} to {state}', {
+            user: principal.email,
+            id,
+            state: next,
+          })
+          return Response.json({ id: updated.id, state: updated.state })
+        }
+        if (request.method === 'DELETE') {
+          if (!mayManageEntries) return new Response('Forbidden', { status: 403 })
+          if (!(await entries.remove(id))) return new Response('Not Found', { status: 404 })
+          log.info('{user} deleted form entry {id}', { user: principal.email, id })
+          return new Response(null, { status: 200 })
+        }
+        if (request.method === 'GET') {
+          const entry = await entries.byId(id)
+          if (!entry) return new Response('Not Found', { status: 404 })
+          return Response.json({
+            ...entry,
+            values: redactSensitive(entry, byKey.get(entry.formKey), maySeeSensitive),
+          })
+        }
+        return new Response('Method Not Allowed', { status: 405 })
+      }
+
+      const csvMatch = /^([^/]+)\/entries\.csv$/.exec(action)
+      if (csvMatch && request.method === 'GET') {
+        if (!maySeeEntries) return new Response('Forbidden', { status: 403 })
+        const key = decodeURIComponent(csvMatch[1] as string)
+        const form = byKey.get(key)
+        if (!form) return new Response('Not Found', { status: 404 })
+        const page = await entries.list({ formKey: key, take: 10_000 })
+        const result = entriesCsv(form, page.items, { includeSensitive: maySeeSensitive })
+        if (!result.ok)
+          return new Response(result.reason, {
+            status: 403,
+            headers: { 'content-type': 'text/plain; charset=utf-8' },
+          })
+        return new Response(result.csv, {
+          headers: {
+            'content-type': 'text/csv; charset=utf-8',
+            'content-disposition': `attachment; filename="${result.fileName}"`,
+          },
+        })
+      }
+
+      const listMatch = /^([^/]+)\/entries$/.exec(action)
+      if (listMatch && request.method === 'GET') {
+        if (!maySeeEntries) return new Response('Forbidden', { status: 403 })
+        const key = decodeURIComponent(listMatch[1] as string)
+        const since = url.searchParams.get('from')
+        const until = url.searchParams.get('to')
+        const page = await entries.list({
+          formKey: key,
+          state: parseEntryState(url.searchParams.get('state')),
+          from: since ? new Date(since) : undefined,
+          to: until ? new Date(until) : undefined,
+          search: url.searchParams.get('search') ?? undefined,
+          includeSpam: url.searchParams.get('includeSpam') === 'true',
+          skip: Number(url.searchParams.get('skip') ?? 0) || 0,
+          take: Number(url.searchParams.get('take') ?? 100) || 100,
+        })
+        const form = byKey.get(key)
+        return Response.json({
+          total: page.total,
+          items: page.items.map((entry) => ({
+            ...entry,
+            values: redactSensitive(entry, form, maySeeSensitive),
+          })),
+        })
+      }
+
+      if (action && request.method === 'GET') {
+        const form = byKey.get(decodeURIComponent(action))
+        if (!form) return new Response('Not Found', { status: 404 })
+        // The whole definition, which is what the designer edits.
+        return Response.json({ ...formDetail(form), definition: form })
+      }
+
+      // Designing a form is a developer's job, so it is its own verb rather
+      // than something an entry reader can do.
+      if (request.method === 'POST' || request.method === 'PUT') {
+        if (!may(FormPermissions.Manage)) return new Response('Forbidden', { status: 403 })
+        const body = await request.json().catch(() => ({}))
+        const written = await saveForm(coerceForm(body), formFiles)
+        if (!written.ok) {
+          log.warning('{user} could not save a form: {detail}', {
+            user: principal.email,
+            detail: written.problems.map((problem) => problem.message).join('; '),
+          })
+          return Response.json(
+            { status: written.status, problems: written.problems },
+            { status: written.status === 'readOnly' ? 409 : 400 },
+          )
+        }
+        // The memo would otherwise hold the old definition for a second, which
+        // is exactly long enough for the designer to reload and see it.
+        forms.invalidate()
+        log.info('{user} saved the form {form}', {
+          user: principal.email,
+          form: coerceForm(body).alias,
+        })
+        return Response.json({ ok: true })
+      }
+
+      if (action && request.method === 'DELETE') {
+        if (!may(FormPermissions.Manage)) return new Response('Forbidden', { status: 403 })
+        const form = byKey.get(decodeURIComponent(action))
+        if (!form) return new Response('Not Found', { status: 404 })
+        const removed = await deleteForm(form.alias, formFiles)
+        if (!removed.ok)
+          return Response.json(
+            { status: removed.status, problems: removed.problems },
+            { status: removed.status === 'readOnly' ? 409 : 404 },
+          )
+        forms.invalidate()
+        log.info('{user} deleted the form {form}; its entries are kept', {
+          user: principal.email,
+          form: form.alias,
+        })
+        return Response.json({ ok: true })
+      }
+      return new Response('Not Found', { status: 404 })
     }
 
     // Non-contract: what the Changes dashboard and the read-only banner read.
@@ -931,6 +1254,92 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
    * keeps the URL they asked for. Preview is exempt — only a signed-in editor
    * reaches it.
    */
+  /**
+   * A form submission from a visitor. Not the Management API: the caller is the
+   * public, and there is no operation in the vendored contract for it.
+   *
+   * Answers JSON to a `fetch` caller and a 303 to a browser, so a form works
+   * with no JavaScript — `form-submit.ts` says why the state goes in a cookie
+   * rather than a body.
+   */
+  async function submitFormRoute(request: Request, pathname: string): Promise<Response> {
+    const key = decodeURIComponent(pathname.slice(`${FORM_SUBMIT_PATH}/`.length))
+    // Where to send a browser back to. The form was rendered on a page, and the
+    // referer is the only thing that names it without the view passing it down.
+    const back = (() => {
+      const referer = request.headers.get('referer')
+      if (!referer) return '/'
+      try {
+        const url = new URL(referer)
+        return `${url.pathname}${url.search}`
+      } catch {
+        return '/'
+      }
+    })()
+
+    const outcome = await submitForm(
+      {
+        db,
+        forms,
+        mediaFiles,
+        uploads: DEFAULT_UPLOAD_SETTINGS,
+        urlOf: async (contentKey) => (await cache.byKey(contentKey))?.url,
+      },
+      request,
+      key,
+      { ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() },
+    )
+
+    const json = wantsJson(request)
+    const flash = (state: Parameters<typeof writeFlash>[1]) =>
+      serializeCookie({
+        name: FORM_FLASH_COOKIE,
+        value: writeFlash(formSecret, state),
+        secure: config.secureCookies,
+        maxAgeSeconds: 60,
+      })
+    const plain = (body: string, status: number) =>
+      new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+
+    switch (outcome.status) {
+      case 'notFound':
+        return json
+          ? Response.json({ ok: false, error: 'No such form.' }, { status: 404 })
+          : plain('Not Found', 404)
+      case 'badToken': {
+        // Stale or forged. Somebody who left the page open overnight lands here,
+        // so it says what to do rather than only refusing.
+        const message = 'This form has expired. Reload the page and try again.'
+        return json
+          ? Response.json({ ok: false, error: message }, { status: 400 })
+          : plain(message, 400)
+      }
+      case 'full': {
+        const message = 'This form is no longer accepting entries.'
+        return json
+          ? Response.json({ ok: false, error: message }, { status: 409 })
+          : plain(message, 409)
+      }
+      case 'invalid':
+        return json
+          ? Response.json({ ok: false, errors: outcome.state.errors }, { status: 422 })
+          : new Response(null, {
+              status: 303,
+              headers: { location: back, 'set-cookie': flash(outcome.state) },
+            })
+      case 'ok':
+        return json
+          ? Response.json({ ok: true, message: outcome.state.message, entryId: outcome.entryId })
+          : new Response(null, {
+              status: 303,
+              headers: {
+                location: outcome.redirectTo ?? back,
+                'set-cookie': flash(outcome.state),
+              },
+            })
+    }
+  }
+
   async function renderSite(request: Request, pathname: string, host: string): Promise<Response> {
     const preview = await renderPreview(request, pathname, host)
     // An `api` node renders for preview and nothing else. The backoffice opens a
@@ -943,16 +1352,24 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         headers: { 'content-type': 'text/plain; charset=utf-8' },
       })
     const member = preview ? undefined : await members.resolve(request)
+    // What a submission redirected back with, if anything. Read once and
+    // cleared, so a reload shows the page rather than the thank-you again.
+    const cookie = readCookie(request, FORM_FLASH_COOKIE)
+    const submission = cookie ? readFlash(formSecret, cookie) : undefined
     const result =
       preview ??
       (await renderer.render(pathname, host, {
         member,
+        submission,
         access: (content) => members.decide(content, member),
       }))
+    const cleared: Record<string, string> = cookie
+      ? { 'set-cookie': expireCookie(FORM_FLASH_COOKIE, config.secureCookies) }
+      : {}
     switch (result.status) {
       case 'ok':
         return new Response(result.html, {
-          headers: { 'content-type': 'text/html; charset=utf-8' },
+          headers: { 'content-type': 'text/html; charset=utf-8', ...cleared },
         })
       case 'noTemplate':
         // Content exists but renders nothing, which Umbraco also treats as a 404.

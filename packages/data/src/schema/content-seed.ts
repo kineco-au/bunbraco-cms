@@ -104,7 +104,11 @@ function listViewConfig(collectionViewType: 'Document' | 'Media'): Record<string
   }
 }
 
-/** Every data type Umbraco's installer creates, with its keys, names and configuration. */
+/**
+ * Every data type Umbraco's installer creates, with its keys, names and
+ * configuration. Their editor UIs all come from the vendored client, which
+ * `tests/vendor.test.ts` holds this list to; ours live in `BUNBRACO_DATA_TYPES`.
+ */
 export const DEFAULT_DATA_TYPES: readonly SeedDataType[] = [
   {
     key: 'f0bc4bfb-b499-40d6-ba86-058885a5178c',
@@ -494,9 +498,33 @@ export async function seedContent(db: Db): Promise<boolean> {
   )
 
   let sortOrder = 0
-  for (const dataType of DEFAULT_DATA_TYPES) await insertDataType(db, dataType, sortOrder++)
+  for (const dataType of ALL_SEEDED_DATA_TYPES) await insertDataType(db, dataType, sortOrder++)
   return true
 }
+
+/**
+ * Data types this CMS adds, whose editor UIs come from our own plugin rather
+ * than from the vendored client. Seeded and ensured exactly as Umbraco's are.
+ */
+export const BUNBRACO_DATA_TYPES: readonly SeedDataType[] = [
+  {
+    key: '9c4a7d1e-0100-4b2a-9f31-6d8e2c5a7b40',
+    alias: 'formPicker',
+    name: 'Form Picker',
+    editorAlias: 'Bunbraco.FormPicker',
+    editorUiAlias: 'Bunbraco.PropertyEditorUi.FormPicker',
+    // The form's UUID, from `schema/forms/*.toml`. A string rather than a
+    // reference: the definition is a file, so there is no row to point at.
+    dbType: ValueStorageType.Nvarchar,
+    config: {},
+  },
+]
+
+/** Every data type that needs no file, Umbraco's and ours. */
+export const ALL_SEEDED_DATA_TYPES: readonly SeedDataType[] = [
+  ...DEFAULT_DATA_TYPES,
+  ...BUNBRACO_DATA_TYPES,
+]
 
 /** One built-in data type, as the seed and the boot-time ensure both write it. */
 async function insertDataType(db: Db, dataType: SeedDataType, sortOrder: number): Promise<void> {
@@ -548,7 +576,7 @@ export async function ensureBuiltInDataTypes(db: Db): Promise<string[]> {
     [ObjectTypes.DataType],
   )
   let sortOrder = Number(count[0]?.n ?? 0)
-  for (const dataType of DEFAULT_DATA_TYPES) {
+  for (const dataType of ALL_SEEDED_DATA_TYPES) {
     const found = await db.query('SELECT id FROM node WHERE unique_id = ?', [dataType.key])
     if (found.length > 0) continue
     await insertDataType(db, dataType, sortOrder++)

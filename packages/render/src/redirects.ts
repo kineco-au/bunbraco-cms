@@ -34,7 +34,8 @@ export interface RedirectRule {
   statusCode: number
   /** Configured rules are matched in this order, before any tracked rule. */
   sortOrder: number
-  source: 'tracked' | 'config'
+  /** Configured in code, written by an administrator, or recorded by a rename. */
+  source: 'tracked' | 'config' | 'manual'
 }
 
 /** Where a configured redirect sends the visitor. */

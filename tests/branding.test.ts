@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import {
   createBackOfficePaths,
   DEFAULT_SHELL_SETTINGS,
+  EXTENSION_KEYWORD,
   PLUGIN_PATH_PLACEHOLDER,
   renderBackOfficeShell,
   renderLoginShell,
@@ -186,6 +187,17 @@ describe('the logos', () => {
     }
   })
 
+  test('the favicon sits on a full-bleed square of the header fill', async () => {
+    // The exception to the rule above: a tab strip gives the mark no ground of
+    // its own, so this one carries the header bar's colour behind it.
+    const svg = await Bun.file(`${BRANDING_DIR}/favicon.svg`).text()
+    expect(svg).toContain('viewBox="0 0 345 345"')
+    expect(svg).toContain('<rect width="345" height="345" fill="#e89550"/>')
+    const theme = await Bun.file(`${BRANDING_DIR}/theme.css`).text()
+    expect(theme).toContain('--uui-color-header-surface: var(--bunbraco-orange)')
+    expect(theme).toContain('--bunbraco-orange: #e89550')
+  })
+
   test('cut the same bun silhouette, the backdrop watermark included', async () => {
     // Four files draw this mark and nothing generates them, so the only thing
     // stopping the shape drifting in one of them is this comparison.
@@ -199,6 +211,48 @@ describe('the logos', () => {
     // A flat-bottomed dome, not the circle the mark started as.
     expect(bun).toMatch(/^M10 243C/)
     for (const [file, d] of silhouettes) expect([file, d]).toEqual([file, bun])
+  })
+})
+
+describe('the section Umbraco calls Packages', () => {
+  const dictionary = english as Record<string, Record<string, string>>
+
+  test('is named Bundles, because that is the artifact it builds', async () => {
+    // The nav filters section manifests by `allowedSections.includes(alias)`
+    // (`backoffice.context.js`), so a replacement manifest under a bunbraco
+    // alias would vanish from the nav rather than rename anything. The label is
+    // a dictionary key, so overriding the key is the whole rename.
+    expect(dictionary.sections?.packages).toBe('Bundles')
+    const manifests = await Bun.file(
+      'packages/backoffice-dist/dist/packages/packages/package-section/manifests.js',
+    ).text()
+    expect(manifests).toContain("label: '#sections_packages'")
+  })
+
+  test('says bundle in the flow that builds one', async () => {
+    expect(dictionary.packager?.createPackage).toBe('Create bundle')
+    expect(dictionary.packager?.noPackagesCreated).toBe('No bundles have been created yet')
+  })
+
+  test('names its three views for what each one holds, not for the section', async () => {
+    // Umbraco labels its Marketplace view "Packages", which under a section of
+    // the same name said nothing twice.
+    const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
+    const label = (alias: string) =>
+      plugin.extensions.find((e: { alias: string }) => e.alias === alias)?.meta?.label
+    expect(label('Bunbraco.SectionView.Bundles.Marketplace')).toBe('Marketplace')
+    expect(label('Bunbraco.SectionView.Bundles.Installed')).toBe('Installed')
+    expect(dictionary.packager?.created).toBeUndefined()
+  })
+
+  test('a bundle is found on npm by the keyword that names it', async () => {
+    // The client shows the keyword in its empty state, so the two must agree or
+    // the screen tells you to publish under a keyword nothing searches for.
+    expect(EXTENSION_KEYWORD).toBe('bunbraco-bundle')
+    const marketplace = await Bun.file(
+      'packages/backoffice-host/plugin/bundles-marketplace.js',
+    ).text()
+    expect(marketplace).toContain(`this._keyword = '${EXTENSION_KEYWORD}'`)
   })
 })
 

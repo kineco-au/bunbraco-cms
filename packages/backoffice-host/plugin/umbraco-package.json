@@ -7,13 +7,13 @@
   "extensions": [
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Packages.Marketplace",
+      "alias": "Bunbraco.SectionView.Bundles.Marketplace",
       "name": "Bunbraco Packages Marketplace",
-      "element": "/bunbraco-plugin/packages-marketplace.js",
+      "element": "/bunbraco-plugin/bundles-marketplace.js",
       "weight": 300,
       "overwrites": ["Umb.SectionView.Packages.Marketplace"],
       "meta": {
-        "label": "Packages",
+        "label": "Marketplace",
         "pathname": "packages",
         "icon": "icon-cloud"
       },
@@ -26,9 +26,28 @@
     },
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Packages.Installed",
+      "alias": "Bunbraco.SectionView.Bundles.Created",
+      "name": "Bunbraco Created Bundles",
+      "element": "/bunbraco-plugin/bundles-created.js",
+      "weight": 100,
+      "overwrites": ["Umb.SectionView.Packages.Builder"],
+      "meta": {
+        "label": "Created",
+        "pathname": "created",
+        "icon": "icon-files"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Packages"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "Bunbraco.SectionView.Bundles.Installed",
       "name": "Bunbraco Installed Packages",
-      "element": "/bunbraco-plugin/packages-installed.js",
+      "element": "/bunbraco-plugin/bundles-installed.js",
       "weight": 200,
       "overwrites": ["Umb.SectionView.Packages.Installed"],
       "meta": {
@@ -161,10 +180,82 @@
       "js": "/bunbraco-plugin/branding/sysinfo.js"
     },
     {
+      "type": "section",
+      "alias": "Bunbraco.Section.Forms",
+      "name": "Bunbraco Forms Section",
+      "weight": 50,
+      "meta": {
+        "label": "Forms",
+        "pathname": "forms"
+      }
+    },
+    {
+      "type": "sectionView",
+      "alias": "Bunbraco.SectionView.Forms.Overview",
+      "name": "Bunbraco Forms Overview",
+      "element": "/bunbraco-plugin/forms-overview.js",
+      "weight": 200,
+      "meta": {
+        "label": "Forms",
+        "pathname": "forms",
+        "icon": "icon-notepad"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Bunbraco.Section.Forms"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "Bunbraco.SectionView.Forms.Entries",
+      "name": "Bunbraco Forms Entries",
+      "element": "/bunbraco-plugin/forms-entries.js",
+      "weight": 100,
+      "meta": {
+        "label": "Entries",
+        "pathname": "entries",
+        "icon": "icon-inbox"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Bunbraco.Section.Forms"
+        }
+      ]
+    },
+    {
+      "type": "propertyEditorSchema",
+      "name": "Form Picker",
+      "alias": "Bunbraco.FormPicker",
+      "meta": {
+        "defaultPropertyEditorUiAlias": "Bunbraco.PropertyEditorUi.FormPicker"
+      }
+    },
+    {
+      "type": "propertyEditorUi",
+      "alias": "Bunbraco.PropertyEditorUi.FormPicker",
+      "name": "Form Picker",
+      "element": "/bunbraco-plugin/form-picker.js",
+      "meta": {
+        "label": "Form Picker",
+        "icon": "icon-notepad",
+        "group": "pickers",
+        "propertyEditorSchemaAlias": "Bunbraco.FormPicker"
+      }
+    },
+    {
       "type": "backofficeEntryPoint",
       "alias": "Bunbraco.EntryPoint.ClientCredentials",
       "name": "Bunbraco Client Credential Prefix",
       "js": "/bunbraco-plugin/branding/client-credentials.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.BundleBuilderLabels",
+      "name": "Bunbraco Bundle Builder Labels",
+      "js": "/bunbraco-plugin/branding/bundle-builder-labels.js"
     }
   ]
 }

@@ -15,7 +15,7 @@ my-site/
 ├── server.ts             import { bunbraco } from 'bunbraco'; Bun.serve(await bunbraco(config))
 ├── schema/               document types, data types, languages — see 09-schema-as-code.md
 ├── Views/                templates (.tsx)
-├── package.json          dependencies, backoffice extensions among them — see 17-packages.md
+├── package.json          dependencies, backoffice extensions among them — see 17-bundles.md
 └── bunbraco.sqlite       content, users, versions — never schema
 ```
 

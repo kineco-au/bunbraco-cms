@@ -4,7 +4,7 @@
  * Its manifest declares `overwrites: ['Umb.SectionView.Packages.Installed']`.
  * Umbraco's view is built around package migrations — it lists installed
  * packages so that pending C# migrations can be run. Nothing carries those here
- * (`docs/17-packages.md`), so the view would be a list of nothing with a button
+ * (`docs/17-bundles.md`), so the view would be a list of nothing with a button
  * that cannot apply.
  *
  * What it lists instead is the site's declared `bunbraco` dependencies, which is
@@ -12,9 +12,9 @@
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
-import { listInstalled, uninstallPackage } from './packages-client.js'
+import { listInstalled, uninstallBundle } from './bundles-client.js'
 
-export default class BunbracoPackagesInstalledElement extends UmbLitElement {
+export default class BunbracoBundlesInstalledElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _loading: { state: true },
@@ -49,7 +49,7 @@ export default class BunbracoPackagesInstalledElement extends UmbLitElement {
   async #uninstall(item) {
     this._busy = item.packageName
     try {
-      const outcome = await uninstallPackage(item.packageName)
+      const outcome = await uninstallBundle(item.packageName)
       this._notice = outcome.message ?? ''
       if (outcome.ok) await this.#load()
     } catch (error) {
@@ -67,20 +67,20 @@ export default class BunbracoPackagesInstalledElement extends UmbLitElement {
       ${
         this._items.length === 0
           ? html`
-            <uui-box headline="No extensions installed">
+            <uui-box headline="No bundles installed">
               <p>
-                Backoffice extensions are this site's npm dependencies. Install one from the
-                Packages tab, or with <code>bun add</code> in the site directory — a dependency
+                A bundle is one of this site's npm dependencies. Install one from the
+                Marketplace tab, or with <code>bun add</code> in the site directory — a dependency
                 that declares a <code>bunbraco</code> field appears here.
               </p>
             </uui-box>
           `
           : html`
-            <uui-box headline="Installed extensions">
+            <uui-box headline="Installed bundles">
               <uui-table>
                 <uui-table-head>
                   <uui-table-head-cell>Name</uui-table-head-cell>
-                  <uui-table-head-cell>Package</uui-table-head-cell>
+                  <uui-table-head-cell>npm package</uui-table-head-cell>
                   <uui-table-head-cell>Version</uui-table-head-cell>
                   <uui-table-head-cell>Extensions</uui-table-head-cell>
                   <uui-table-head-cell></uui-table-head-cell>
@@ -144,4 +144,4 @@ export default class BunbracoPackagesInstalledElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-packages-installed', BunbracoPackagesInstalledElement)
+customElements.define('bunbraco-bundles-installed', BunbracoBundlesInstalledElement)

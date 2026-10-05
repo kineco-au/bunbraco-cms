@@ -5,6 +5,10 @@
  * `Umb.<Entity>.<Action>`, stored one per row. Granular rows additionally carry a
  * node key and a context discriminator, so one table serves both per-document
  * ACLs and per-property field-level security.
+ *
+ * A verb bunbraco invented carries `Bunbraco.` instead, so the prefix says who
+ * defined it. `Umb.` here means the verb is Umbraco's and means there what it
+ * means here; `Bunbraco.` means there is nothing upstream to agree with.
  */
 export const DocumentPermissions = {
   Read: 'Umb.Document.Read',
@@ -28,6 +32,27 @@ export const DocumentPermissions = {
 } as const
 
 export type DocumentVerb = (typeof DocumentPermissions)[keyof typeof DocumentPermissions]
+
+/**
+ * Forms, which are four separate concerns on purpose.
+ *
+ * Designing a form is a developer's job and editing its entries is not, so
+ * `Manage` and `EntriesView` are different grants. `EntriesSensitive` is
+ * separate again because a field marked sensitive in the definition is withheld
+ * from anyone without it, in the API rather than in the UI.
+ *
+ * `Bunbraco.`-prefixed because Umbraco has no forms in core: these name nothing
+ * upstream, and wearing `Umb.` would have claimed they did.
+ */
+export const FormPermissions = {
+  View: 'Bunbraco.Form.Read',
+  Manage: 'Bunbraco.Form.Manage',
+  EntriesView: 'Bunbraco.FormEntry.Read',
+  EntriesManage: 'Bunbraco.FormEntry.Manage',
+  EntriesSensitive: 'Bunbraco.FormEntry.Sensitive',
+} as const
+
+export type FormVerb = (typeof FormPermissions)[keyof typeof FormPermissions]
 
 /** The discriminator on a granular permission row. */
 export type PermissionContext = 'Document' | 'Element' | 'DocumentTypeProperty'

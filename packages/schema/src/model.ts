@@ -1,3 +1,5 @@
+import type { SchemaForm } from '@bunbraco/core'
+
 /**
  * The schema-as-code model: what a site's `schema/*.toml` files describe.
  * The shapes mirror the TOML vocabulary in docs/09-schema-as-code.md, with
@@ -106,6 +108,8 @@ export interface SchemaSet {
   memberTypes?: SchemaDocumentType[]
   dataTypes: SchemaDataType[]
   languages: SchemaLanguage[]
+  /** `schema/forms/*.toml` — form definitions; see `docs/18-forms.md`. */
+  forms?: SchemaForm[]
 }
 
 /** A problem found while parsing or validating, always locatable. */

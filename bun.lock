@@ -51,6 +51,7 @@
         "@bunbraco/auth": "workspace:*",
         "@bunbraco/backoffice-dist": "workspace:*",
         "@bunbraco/backoffice-host": "workspace:*",
+        "@bunbraco/bundle-redirects": "workspace:*",
         "@bunbraco/cli": "workspace:*",
         "@bunbraco/contracts": "workspace:*",
         "@bunbraco/core": "workspace:*",
@@ -71,6 +72,7 @@
       "name": "@bunbraco/site",
       "version": "0.0.0",
       "dependencies": {
+        "@bunbraco/bundle-redirects": "workspace:*",
         "bunbraco": "workspace:*",
       },
     },
@@ -135,6 +137,13 @@
         "@bunbraco/schema": "workspace:*",
         "@bunbraco/server": "workspace:*",
         "@bunbraco/transfer": "workspace:*",
+      },
+    },
+    "packages/bundle-redirects": {
+      "name": "@bunbraco/bundle-redirects",
+      "version": "0.5.0",
+      "dependencies": {
+        "@bunbraco/server": "workspace:*",
       },
     },
     "packages/cli": {
@@ -284,6 +293,8 @@
     "@bunbraco/backoffice-dist": ["@bunbraco/backoffice-dist@workspace:packages/backoffice-dist"],
 
     "@bunbraco/backoffice-host": ["@bunbraco/backoffice-host@workspace:packages/backoffice-host"],
+
+    "@bunbraco/bundle-redirects": ["@bunbraco/bundle-redirects@workspace:packages/bundle-redirects"],
 
     "@bunbraco/cli": ["@bunbraco/cli@workspace:packages/cli"],
 

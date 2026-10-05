@@ -6,6 +6,7 @@
  * the published cache cheap. `value()` carries the ergonomics: culture is
  * ambient, so `model.value('title')` returns the current request's culture.
  */
+import type { FormSubmissionState } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
 import { MediaWithCrops } from './media.ts'
 import { convertValue, type ValueContext } from './values.ts'
@@ -215,6 +216,12 @@ export interface PageProps {
   dictionary: (key: string) => string
   /** The signed-in member, or undefined for an anonymous visitor. */
   member: RequestMember | undefined
+  /**
+   * What just happened to a form submission on this page, when one did. Passed
+   * to `<Form submission={…} />` so a refused submission comes back inside the
+   * page's own layout rather than on a bare error page.
+   */
+  submission: FormSubmissionState | undefined
 }
 
 export interface Navigation {

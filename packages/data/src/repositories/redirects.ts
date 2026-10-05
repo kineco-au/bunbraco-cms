@@ -4,7 +4,9 @@
  * Tracking writes a rule per route a publish or a move retired; the site's own
  * `redirects` config is synced into the same table so the backoffice can list
  * everything in force, and those rows are marked `config` and refuse to be
- * deleted through the API — the file owns them.
+ * deleted through the API — the file owns them. A rule an administrator wrote in
+ * the backoffice is `manual`, and is the only kind this repository will let a
+ * bundle touch (`server/src/bundles.ts`).
  *
  * A rule is identified by what it matches (kind, pattern, hostname root and
  * culture), so re-registering a route replaces where it points instead of
@@ -17,7 +19,14 @@ import { DbDate } from '../dialect.ts'
 
 export type RedirectMatchKind = 'exact' | 'prefix' | 'regex'
 export type RedirectTargetKind = 'document' | 'path' | 'url'
-export type RedirectSource = 'tracked' | 'config'
+/**
+ * Where a rule came from, and — because `ORDER` sorts on this column — its
+ * precedence: `config` before `manual` before `tracked`, which is alphabetical
+ * and so needs no CASE expression. That order is the intent, not a coincidence:
+ * a rule in the site's code outranks one an administrator typed, which outranks
+ * one a rename recorded by itself.
+ */
+export type RedirectSource = 'tracked' | 'config' | 'manual'
 
 export interface RedirectRow {
   key: string
@@ -54,7 +63,7 @@ const SELECT = `SELECT key, source, match_kind, pattern, root_key, culture,
                        target_kind, target, status_code, sort_order, create_date
                   FROM redirect_url`
 
-/** Configured rules are matched first ('config' sorts before 'tracked'), then the newest tracked. */
+/** By source — see `RedirectSource` — then by the rule's own order, newest first. */
 const ORDER = 'ORDER BY source, sort_order, create_date DESC, id DESC'
 
 const hydrate = (row: Row): RedirectRow => ({

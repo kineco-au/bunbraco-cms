@@ -79,8 +79,9 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(ours).toBeDefined()
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
     expect(aliases).toEqual([
-      'sectionView:Bunbraco.SectionView.Packages.Marketplace',
-      'sectionView:Bunbraco.SectionView.Packages.Installed',
+      'sectionView:Bunbraco.SectionView.Bundles.Marketplace',
+      'sectionView:Bunbraco.SectionView.Bundles.Created',
+      'sectionView:Bunbraco.SectionView.Bundles.Installed',
       'dashboard:Bunbraco.Dashboard.Changes',
       'dashboard:Bunbraco.Dashboard.Welcome',
       'dashboard:Bunbraco.Dashboard.Settings',
@@ -92,27 +93,46 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Bunbraco.EntryPoint.Branding',
       'backofficeEntryPoint:Bunbraco.EntryPoint.HelpMenu',
       'backofficeEntryPoint:Bunbraco.EntryPoint.Sysinfo',
+      'section:Bunbraco.Section.Forms',
+      'sectionView:Bunbraco.SectionView.Forms.Overview',
+      'sectionView:Bunbraco.SectionView.Forms.Entries',
+      'propertyEditorSchema:Bunbraco.FormPicker',
+      'propertyEditorUi:Bunbraco.PropertyEditorUi.FormPicker',
       'backofficeEntryPoint:Bunbraco.EntryPoint.ClientCredentials',
+      'backofficeEntryPoint:Bunbraco.EntryPoint.BundleBuilderLabels',
     ])
     // The welcome dashboard takes the place of Umbraco's news dashboard through
     // the registry's own `overwrites`, rather than mutating it while rendering.
     const welcome = ours?.extensions.find((e) => e.alias === 'Bunbraco.Dashboard.Welcome')
     expect(welcome?.overwrites).toEqual(['Umb.Dashboard.UmbracoNews'])
-    // The two Packages views replace Umbraco's the same way: its Marketplace is
-    // an iframe of a site that refuses to be framed, and its Installed view is
-    // built around package migrations, which cannot exist here
-    // (`docs/17-packages.md`).
+    // All three Bundles views replace Umbraco's: its Marketplace is an iframe of
+    // a site that refuses to be framed, its Installed view is built around
+    // package migrations, which cannot exist here, and its Created view is a
+    // router whose overview says package (`docs/17-bundles.md`).
     const marketplace = ours?.extensions.find(
-      (e) => e.alias === 'Bunbraco.SectionView.Packages.Marketplace',
+      (e) => e.alias === 'Bunbraco.SectionView.Bundles.Marketplace',
     )
     expect(marketplace?.overwrites).toEqual(['Umb.SectionView.Packages.Marketplace'])
     const installed = ours?.extensions.find(
-      (e) => e.alias === 'Bunbraco.SectionView.Packages.Installed',
+      (e) => e.alias === 'Bunbraco.SectionView.Bundles.Installed',
     )
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
+    const created = ours?.extensions.find((e) => e.alias === 'Bunbraco.SectionView.Bundles.Created')
+    expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
+    // Two kinds of extension have no module of their own: a `section`, which is
+    // a route and a label, and a `propertyEditorSchema`, which declares a
+    // server-side editor alias and its default UI. Everything else loads one.
+    const moduleless = ours?.extensions.filter((e) => !e.element && !e.js) ?? []
+    expect(moduleless.map((e) => e.alias)).toEqual([
+      'Bunbraco.Section.Forms',
+      'Bunbraco.FormPicker',
+    ])
+    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema'])
+
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {
-      const path = (extension.element ?? extension.js) as string
+      const path = (extension.element ?? extension.js) as string | undefined
+      if (!path) continue
       expect(path.startsWith(`${BACKOFFICE}/bunbraco/`)).toBe(true)
       const response = await h.call(path)
       expect(response.status).toBe(200)

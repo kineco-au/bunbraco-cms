@@ -36,6 +36,11 @@ rather than failing a save silently.
 
 ## The file format
 
+**Built** — `schema/forms/*.toml`, parsed by `parse-forms.ts`, written by
+`write-forms.ts` and validated by `validate-forms.ts`, all in
+`@bunbraco/schema`. `parseForm(writeForm(x))` equals `x`, which is what lets the
+backoffice write a file somebody will read in a diff.
+
 Same vocabulary as the other schema files: kebab-case keys, a `key` UUID for
 identity so a rename is not a delete, and arrays of tables for the tree.
 
@@ -103,12 +108,12 @@ without a second concept.
 
 ## Field types
 
-A closed set in the first release. Field types are an internal registry, not a
+**Built.** A closed set in the first release. Field types are an internal registry, not a
 public extension point: the TOML vocabulary, the server validator, the TSX
 renderer and the entry value shape all have to agree, and freezing that contract
 before anything has stressed it would be a promise made too early. Opening it up
 later is additive — the npm extension mechanism in
-[`17-packages.md`](17-packages.md) is where it goes when it does.
+[`17-bundles.md`](17-bundles.md) is where it goes when it does.
 
 | Type | Stores | Notes |
 | --- | --- | --- |
@@ -132,7 +137,8 @@ should not exist, and Umbraco only has it for legacy reasons.
 
 ## Validation
 
-**The server is the only authority.** The client gets the same rules and uses them
+**Built**, in `@bunbraco/core` — not in the server, because it is a rule about
+what a form means rather than about HTTP. **The server is the only authority.** The client gets the same rules and uses them
 for immediate feedback, but every submission is re-validated from the definition
 before anything is stored, and so is every condition — a hidden field's value is
 discarded rather than trusted, because "hidden" is a client-side claim.
@@ -143,7 +149,7 @@ Here conditions are evaluated twice and the server's answer wins.
 
 ## Entries
 
-Migration **023**, two tables, keyed by the form's UUID rather than a foreign key
+**Built.** Migration **023**, two tables, keyed by the form's UUID rather than a foreign key
 to a definition row — the definition is a file, so there is nothing to point at.
 
 ```
@@ -170,13 +176,59 @@ exporting blanks.
 `ip_hash` is a salted hash, not an address: enough to rate-limit and spot abuse,
 not enough to be a personal-data liability by accident.
 
+## What validation refuses
+
+Beyond the per-file strictness every schema file gets, a form is checked against
+itself and against the rest of the set. The rules worth knowing:
+
+- **A condition may only look backwards.** A rule naming a field that comes
+  later has no value to compare, so the answer would depend on which way the
+  form is read. Refused, with the field named.
+- **A presentational field is not a subject.** `titleAndDescription` and
+  `richText` collect nothing, so they cannot be mandatory, sensitive, or
+  compared in a condition — and a form made only of them collects nothing at
+  all, which is a mistake rather than a form.
+- **Settings belong to their type.** `rows` on a `shortAnswer`, `accept` on a
+  `dropdown`: each is refused by name rather than ignored, because a setting
+  that does nothing looks like one that works.
+- **Choices and defaults agree.** A choice field needs values, a plain field
+  cannot have them, and a default must be one of them or the form opens invalid.
+- **A form must have an effect.** `store-entries = false` with no workflow means
+  a submission does nothing; approval without stored entries has nothing to
+  approve.
+- **Workflow settings are per type**, required ones checked and unknown ones
+  named. `saveAsContent` is held to a document type that exists and to the
+  form's own field aliases, and a `pattern` has to compile.
+
+A broken form file fails the boot, like any other broken schema file: the files
+are the schema, so a site does not start half-configured. The message names the
+file and the key.
+
 ## Workflows
 
-Three in the first release, each a function over the entry:
+**Built.** Three, each a function over the submission:
 
-- **`sendEmail`** — through the new email port, body from a TSX template
-- **`saveAsContent`** — creates a document from mapped fields, optionally published
-- **`sendToUrl`** — POSTs JSON to an endpoint, with configurable headers
+- **`sendEmail`** — through the email port. `to`, `subject`, `cc`, `bcc`,
+  `reply-to`, `from`, `body`, `attach-uploads`. With no `body` it sends a plain
+  list of captions and answers, which is what most forms want.
+- **`saveAsContent`** — creates a document from `map` (field alias → property
+  alias), named from `name-field`, under `parent`, published when `publish` is
+  true.
+- **`sendToUrl`** — POSTs JSON: `{form, formName, entryId, submittedAt, fields}`.
+  `method`, `headers` and `include-standard-fields` are configurable.
+
+No `template` setting on `sendEmail` yet. A TSX email template is not built, and
+the validator **refuses the setting by name** rather than accepting one that
+would silently do nothing.
+
+### Substitution
+
+`{fieldAlias}` in a workflow setting becomes what was submitted — and that is
+all that is left of Umbraco Forms' magic strings. There, seven placeholder
+syntaxes exist because Razor cannot reach into the record; a view here is TSX
+and reads the model directly, so the only place substitution is needed is a
+workflow's own settings. An unknown alias is left as written, so a stray brace
+in a subject line reads as itself rather than vanishing.
 
 Dropped from Umbraco's nine: **Post as XML**, **Save as an XML File** and **Send
 XSLT Transformed Email** are 2010s integration shapes, and `sendToUrl` with JSON
@@ -184,11 +236,40 @@ covers what they were for. **Slack** is `sendToUrl` with a webhook URL, so it is
 documented recipe rather than a type. **Change Record State** becomes the
 spam-handling and approval rules on the form, not a workflow a person wires up.
 
-Workflows run through `jobs.ts`, which already claims each scheduled run
-atomically across Postgres nodes, so a workflow runs once on a multi-node site and
-a failed one can be retried without duplicating an email. A submission is stored
-first and its workflows run after: a mail server being down must never lose an
-entry.
+### The queue
+
+Migration **024** (`form_workflow_run`): a row per workflow per submission, with
+the submitted values on the row rather than read back from the entry — a form
+may store no entries and still have workflows, which the validator insists on,
+since a form that does neither has no effect.
+
+The ordering is the point. **The submission is stored, then the workflows are
+queued, then a job drains the queue** — so a mail server that is down for ten
+minutes delays an email rather than costing an entry, and the request returns
+before anything leaves the building.
+
+Claimed with `UPDATE … WHERE state = 'pending' … RETURNING`, which is atomic on
+both dialects: every node polls, exactly one wins each row. Without that, two
+nodes would send the same email. Retried on a backoff — 1, 5, 15, 60 minutes —
+and after five attempts left `failed` for a person to look at.
+
+A failure is classified rather than retried blindly:
+
+| Failure | Retried? |
+| --- | --- |
+| A provider refused, a 5xx, a dead network | yes — weather |
+| A 4xx from `sendToUrl` | no — it will not fix itself |
+| No email provider configured | no, and the error names what to set |
+| A node behind the schema cannot write | yes — the deploy will finish |
+| The form or the workflow is gone from the file | no, and the row says which |
+
+**Spam queues nothing.** A workflow is an outbound effect, and firing one for a
+submission already judged to be a bot is how a form becomes a relay. The entry
+is still stored and flagged.
+
+`on = "approve"` workflows are queued when an entry is approved, from the values
+the entry holds — so the approval is what triggers them, and rejecting runs
+nothing.
 
 ## The email port
 
@@ -220,30 +301,93 @@ with a reason* rather than failing when someone presses the button.
 
 ## Rendering
 
-A form renders as TSX, with the theme fallback chain Umbraco gets right:
+**Built.** `<Form>` comes from `bunbraco`, and a view is three lines:
 
+```tsx
+import { Form } from 'bunbraco'
+
+export default function Page({ model, submission }) {
+  return <Form form={model.value('contactForm')} submission={submission} />
+}
 ```
-Views/Forms/<theme>/<fieldType>.tsx   site's override for one field type
-Views/Forms/<theme>/Form.tsx          site's override for the shell
-<built-in default>                    everything not overridden
-```
 
-Resolution walks that list and stops at the first hit, so a site that wants a
-different text input overrides one file. The views snapshot machinery in
-`packages/render/src/snapshots.ts` already content-addresses and hot-reloads this
-set, so form views cost nothing new.
+`model.value('contactForm')` is a `formPicker` property, and the value converter
+resolves the stored key to the definition — so a view gets the form, not a UUID.
 
-A form reaches a page through a `formPicker` data type, rendered by a `<Form>`
+### Theming is composition, not directories
+
+This is a **deliberate change from the plan above**, which described Umbraco's
+theme folders — `Views/Forms/<theme>/<fieldType>.tsx` with a fallback chain.
+Two things made that the wrong shape here:
+
+- A component renders synchronously, and a view cannot await. Loading theme
+  modules would mean the renderer preloading every theme directory for the
+  current generation and handing them down through a context — machinery whose
+  only purpose is to do what a prop already does.
+- Umbraco needs theme folders because Razor has no other way to substitute a
+  partial. TSX does: pass a different function.
+
+So `components` overrides the renderer for a field type, and a site that wants
+different markup altogether writes it from the definition — `allFormFields(form)`
+and whatever JSX it likes. `form.theme` becomes a class on the `<form>` element
+(`bunbraco-form bunbraco-form--compact`), which is what a stylesheet actually
+needs. Directory-based themes can be added later if composition turns out not to
+be enough; nothing here forecloses it.
+
+### What the markup is
+
+A real `<form method="post">` that works with **no JavaScript at all**. Every
+field is in the markup, including the ones the current answers hide: a hidden
+field carries `hidden` plus its condition as `data-condition`, so a script can
+reveal it without a round trip, and a visitor without one gets the server's
+answer on submit. `multipart/form-data` only when the form has a file to carry.
+
+Multi-page definitions render every page into one form, so a submission arrives
+in one go. Stepping through pages with a round trip each is a refinement on top
+of this rather than a different shape — `validateSubmission` already takes the
+page to check.
+
+A form reaches a page through a `formPicker` data type — **built**, seeded with
+the other built-ins so a property can use it with no file, and with its editor
+UI in our own plugin rather than the vendored client — rendered by a `<Form>`
 component from `bunbraco`. Progressive enhancement is the baseline: the form is a
 real `<form method="post">` that works without JavaScript, and the client script
 adds conditional logic, inline validation and optional fetch submission on top.
 
-Submissions POST to `/bunbraco/forms/<formKey>` with a signed, per-session token
-in a hidden field. Rate limiting is per IP hash and per form.
+### Submitting
+
+**Built.** `POST /bunbraco/forms/<formKey>`, outside the Management API because
+the caller is the public.
+
+Two answers, by what the client asked for:
+
+| Client | Accepted | Refused |
+| --- | --- | --- |
+| `fetch` (`Accept: application/json`) | `200 {ok, message, entryId}` | `422 {ok: false, errors}` |
+| A browser | `303` to the page, or to `redirect-to` | `303` back to the page |
+
+The browser path is what makes this work without JavaScript: the endpoint
+redirects back and the form reappears **inside its own layout**, with either its
+errors and what was typed, or its thank-you. A redirect cannot carry a body, so
+that state travels in a short-lived signed cookie, read once and cleared — a
+reload shows the form again rather than the thank-you for ever.
+
+**The token is not a CSRF token**, and does not pretend to be one: a public form
+has no session to tie one to. It is an HMAC over `formKey|renderedAt`, and its
+job is to make the timing guard mean something — without it a bot posts whatever
+render time it likes and "too fast" is unenforceable. Signed with
+`Bun.CryptoHasher` rather than `crypto.subtle`, because a template signs while
+it renders and a view cannot await.
+
+Uploads take the same two steps a media upload takes — `saveTemporary` then
+`place` — so the safe naming, the content-type sniffing and the extension rules
+are the ones the media library already has. `isUploadAllowed` enforces both
+lists: the deny list is what keeps an `.aspx` out, and `allowedExtensions` is
+empty by default, so checking only that would refuse everything.
 
 ## Spam
 
-Honeypot and timing in core: a field real users never fill, and a minimum elapsed
+**Built.** Honeypot and timing in core: a field real users never fill, and a minimum elapsed
 time between render and submit. Both are free, invisible, and need no third party.
 `marked-as-spam` entries are stored and flagged rather than dropped, because a
 false positive that silently discards an enquiry is worse than one to review.
@@ -254,7 +398,7 @@ sending every visitor to Google is a decision a site should take knowingly.
 
 ## Backoffice
 
-None of this exists upstream to borrow. The vendored backoffice ships 44 packages
+**Built.** None of this exists upstream to borrow. The vendored backoffice ships 44 packages
 and Forms is not among them; `OpenApi.json` mentions "forms" twice, both about the
 installer. Umbraco Forms' UI is a separate npm package, `@umbraco-forms/backoffice`.
 
@@ -268,25 +412,93 @@ Here there is no contract to match, so the API is designed for this CMS.
 - Operations under `${paths.pluginPath}/api/forms/*`, following the marketplace
   precedent from the packages work — outside the contract-first router, because an
   operation not in `OpenApi.json` has no place in it
-- The designer is ours: pages, groups, columns and fields with drag-and-drop, and
-  a save that writes TOML through the schema writer
-- An entries view per form with date filtering, search, state actions and CSV
-  export
+- A **Forms section** (`Bunbraco.Section.Forms`) with two views, Forms and Entries.
+  The alias resolves now: Umbraco seeds the stored `forms` alias and then has no
+  section for it, so `toSectionAliases` used to drop it
+- The **designer** is a table, not a canvas. A form is a file, and what somebody
+  edits here is written straight back to TOML, so the shape that matters is the
+  one a diff shows. Saving sends the whole definition; the server writes it to
+  TOML and **reads it back with the strict parser** before keeping it, so a
+  refusal in the designer is the same refusal a hand-written file would get, and
+  a rejected save never touches the file on disk. Reordering, multi-page layout
+  and the richer per-type settings are refinements on top
+- An **entries view** per form with state filtering, search, a spam toggle,
+  approve/reject/delete, and CSV export
+
+A read-only schema directory **refuses the save** rather than appearing to take
+it — the same rule the type editors follow, since the write would not survive a
+redeploy.
+
+### Exporting
+
+CSV, one row per entry, a column per storing field in definition order. Two
+details worth stating:
+
+- A value starting `=`, `+`, `-` or `@` is prefixed with a quote. Without that a
+  spreadsheet treats an exported answer as a **formula and runs it**.
+- A form with a sensitive field **refuses the whole export** without
+  sensitive-data access, rather than exporting blanks. A file that looks
+  complete and quietly is not is worse than an error, because somebody will act
+  on it.
 
 ## Permissions
 
-Four verbs, joining the existing group-permission machinery rather than inventing
-a parallel one: `forms.view`, `forms.manage` (create and edit definitions),
-`entries.view`, `entries.sensitive`. Granted to the built-in groups by the seed,
-and to databases seeded earlier by the migration, the way migration 007 did.
+**Built.** Five verbs, joining the existing group-permission machinery rather
+than inventing a parallel one:
 
-## What is not in the first release
+| Verb | Allows |
+| --- | --- |
+| `Bunbraco.Form.Read` | reading a definition |
+| `Bunbraco.Form.Manage` | creating, editing and deleting one |
+| `Bunbraco.FormEntry.Read` | reading submissions |
+| `Bunbraco.FormEntry.Manage` | approving, rejecting, deleting them |
+| `Bunbraco.FormEntry.Sensitive` | seeing what a definition marks sensitive |
 
-Named so the edges are a decision rather than an omission: prevalue sources
-(manual `values` only for now), entry retention and GDPR auto-delete, the headless
-definition and submission API, custom field and workflow types from npm, export
-formats beyond CSV, data source types, and multi-column layouts beyond a simple
-column count.
+`Bunbraco.`-prefixed, not `Umb.`: Umbraco has no forms in core, so these name
+nothing upstream and the prefix says who defined them. Migration 026 rewrites
+the `Umb.`-spelled rows that migration 025 wrote.
+
+They are separate because the jobs are. **Designing a form is a developer's
+job and reading what people sent it is not**, so an editor gets the entry verbs
+and not `Manage`; an administrator gets all five. The `sensitiveData` group now
+carries the sensitive verb, and its group alias still counts too, because that is
+how Umbraco carries it and how members already work.
+
+A *definition* is readable by any signed-in backoffice user, like a document
+type — the form picker in the Content section needs it.
+
+Granted by the seed, and to databases seeded earlier by **migration 025**, the
+way migration 007 did.
+
+## Conditions in the browser
+
+**Built.** `/bunbraco/forms.js`, served by the server and added to a layout by
+the site — nothing emits it automatically, because a form works without it and
+two forms on a page would otherwise run it twice.
+
+It mirrors `isShown`/`evaluateRule` from core, and the two are **held against
+each other** by `tests/forms-conditions.test.ts`: every operator, over a dozen
+value shapes, through both implementations with the answers compared. If they
+drifted, a visitor would watch a field appear and then be told it should not
+have been there.
+
+One subtlety worth recording: a conditionally-hidden field is **never rendered
+`required`**. A browser with no JavaScript would otherwise refuse to submit over
+a field nobody can see. The markup carries `data-required` instead, and the
+script puts the attribute back when it reveals the field.
+
+## What is built, and what is not
+
+Built: definitions as files, the closed field-type set, whole-set validation,
+entries with states and sensitive-data redaction, `<Form>` and the submission
+endpoint, server-side validation and conditions, the honeypot and timing
+guards, uploads, and the three workflows on a retrying queue.
+
+Not yet: prevalue sources (manual `values` only), a TSX email template (the
+setting is refused by name rather than ignored), entry retention and GDPR
+auto-delete, true page-at-a-time stepping with a round trip per page, drag-and-
+drop reordering in the designer, multi-page and multi-column editing in the
+designer, and custom field or workflow types published from npm.
 
 ## Scope change
 

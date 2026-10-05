@@ -1,0 +1,70 @@
+{
+  "name": "@bunbraco/bundle-redirects",
+  "version": "0.5.0",
+  "description": "Manage redirects in the Bunbraco backoffice: a Settings screen over the redirect engine in core.",
+  "license": "MIT",
+  "author": "Kineco",
+  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "directory": "packages/bundle-redirects"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+  },
+  "keywords": [
+    "bunbraco",
+    "bunbraco-bundle",
+    "redirects",
+    "url-rewriting",
+    "cms"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "plugin",
+    "src",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bunbraco": {
+    "id": "Bunbraco.Bundle.Redirects",
+    "name": "Redirects",
+    "extensions": [
+      {
+        "type": "menuItem",
+        "alias": "Bunbraco.MenuItem.Redirects",
+        "name": "Redirects Menu Item",
+        "weight": 250,
+        "meta": {
+          "label": "Redirects",
+          "icon": "icon-arrow-right",
+          "entityType": "bunbraco-redirects",
+          "menus": [
+            "Umb.Menu.AdvancedSettings"
+          ]
+        }
+      },
+      {
+        "type": "workspace",
+        "alias": "Bunbraco.Workspace.Redirects",
+        "name": "Redirects Workspace",
+        "element": "plugin/redirects-workspace.js",
+        "meta": {
+          "entityType": "bunbraco-redirects"
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "@bunbraco/server": "workspace:*"
+  }
+}

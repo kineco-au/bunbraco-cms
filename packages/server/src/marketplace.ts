@@ -1,8 +1,8 @@
 /**
- * The Packages section's marketplace, over npm. `docs/17-packages.md`.
+ * The Bundles section's marketplace, over npm. `docs/17-bundles.md`.
  *
  * Discovery and declaration are two different things, because npm indexes only
- * one of them: a package is *found* by the `bunbraco-package` keyword, which is
+ * one of them: a bundle is *found* by the `bunbraco-bundle` keyword, which is
  * the only thing registry search will match, and it *declares* itself with a
  * `bunbraco` field in its `package.json`. Search for the keyword, then read each
  * hit's packument — custom fields survive there — and offer only the packages

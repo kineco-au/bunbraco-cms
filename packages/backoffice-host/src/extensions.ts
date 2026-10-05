@@ -1,5 +1,5 @@
 /**
- * Backoffice extensions as npm dependencies. `docs/17-packages.md`.
+ * Backoffice extensions as npm dependencies. `docs/17-bundles.md`.
  *
  * A site's extensions are its dependencies: discovery reads the site's own
  * `package.json`, resolves each dependency through `node_modules`, and takes the
@@ -14,11 +14,11 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, normalize, sep } from 'node:path'
 import type { PackageManifest, PackageManifestImportmap } from './manifests.ts'
 
-/** Where an installed package's assets are served from. */
-export const EXTENSION_PATH = '/packages'
+/** Where an installed bundle's assets are served from. */
+export const EXTENSION_PATH = '/bundles'
 
-/** The npm keyword a package publishes so the marketplace can find it. */
-export const EXTENSION_KEYWORD = 'bunbraco-package'
+/** The npm keyword a bundle publishes so the marketplace can find it. */
+export const EXTENSION_KEYWORD = 'bunbraco-bundle'
 
 /**
  * What a dependency declares to become a backoffice extension. The shape is
@@ -81,7 +81,7 @@ export function resolvePackageDir(from: string, name: string): string | undefine
   }
 }
 
-/** `dist/seo.js` inside `@acme/seo` becomes `/packages/@acme/seo/dist/seo.js`. */
+/** `dist/seo.js` inside `@acme/seo` becomes `/bundles/@acme/seo/dist/seo.js`. */
 const assetPath = (packageName: string, target: string): string =>
   target.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(target)
     ? target

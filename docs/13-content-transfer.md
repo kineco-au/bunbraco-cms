@@ -64,8 +64,8 @@ structure it needs — which is the normal case, because a deploy has already pu
 the same `schema/*.toml` in both environments.
 
 A bundle may also carry that structure, and then it installs into a site that
-has none of it. That is what the Packages section builds
-([`17-packages.md`](17-packages.md)): the same format, with optional sections.
+has none of it. That is what the Bundles section builds
+([`17-bundles.md`](17-bundles.md)): the same format, with optional sections.
 
 ```
 ├── schema/*.toml        types and languages
@@ -79,7 +79,7 @@ wherever this site keeps that kind of file, so a bundle is not tied to the
 layout it was built from. A file the site already has is not replaced without
 `--replace-files`, and what is replaced is copied aside so a revert can put it
 back — these files are editable in the backoffice, and a site need not be a git
-checkout ([`17-packages.md`](17-packages.md)). The manifest's `carries` declares every one, the
+checkout ([`17-bundles.md`](17-bundles.md)). The manifest's `carries` declares every one, the
 integrity hash covers them, and `bundle install` applies them before the content
 that needs them. A content-only bundle carries no `carries` key and still says
 `formatVersion: 1`, so nothing about an existing bundle changed.

@@ -15,6 +15,10 @@ export const SECTION_ALIASES = {
   translation: 'Umb.Section.Translation',
   library: 'Umb.Section.Library',
   packages: 'Umb.Section.Packages',
+  // Umbraco seeds this alias and then has no section for it: Forms is a
+  // commercial add-on there. Form building is in core here, so the section is
+  // real and the alias resolves (`docs/18-forms.md`).
+  forms: 'Bunbraco.Section.Forms',
 } as const
 
 export type AppAlias = keyof typeof SECTION_ALIASES
@@ -25,8 +29,7 @@ export const CORE_SECTION_ALIASES: readonly SectionAlias[] = Object.values(SECTI
 
 /**
  * Translates stored application aliases into section manifest aliases, dropping
- * any with no core section — `forms` is seeded by Umbraco but is a commercial
- * add-on, so it has no section in the open-source backoffice.
+ * any with no section to render.
  */
 export function toSectionAliases(appAliases: readonly string[]): SectionAlias[] {
   const seen = new Set<SectionAlias>()
@@ -37,7 +40,7 @@ export function toSectionAliases(appAliases: readonly string[]): SectionAlias[] 
   return [...seen]
 }
 
-const STORED_ALIASES: Record<string, string> = { ...SECTION_ALIASES, forms: 'Umb.Section.Forms' }
+const STORED_ALIASES: Record<string, string> = { ...SECTION_ALIASES }
 
 /** Umbraco's `SectionMapper.GetName`: a stored alias as its section alias, or unchanged when unknown. */
 export function sectionName(appAlias: string): string {

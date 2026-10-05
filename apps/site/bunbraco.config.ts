@@ -1,3 +1,4 @@
+import { redirects } from '@bunbraco/bundle-redirects'
 import { bedrock, defineConfig } from 'bunbraco'
 
 /** The reference site. Everything unset here comes from the environment or a default. */
@@ -14,6 +15,13 @@ const model = Bun.env.BUNBRACO_ASSISTANT_MODEL
 
 export default defineConfig({
   siteName: 'Bunbraco',
+  /**
+   * The redirects bundle's server half. Installing the package puts its screen in
+   * the backoffice; this line is what lets it answer a request, and it is here
+   * rather than discovered precisely so that a bundle cannot start serving
+   * without someone committing it (`docs/17-bundles.md`).
+   */
+  bundles: [redirects()],
   assistant: model
     ? {
         provider: bedrock({ model }),

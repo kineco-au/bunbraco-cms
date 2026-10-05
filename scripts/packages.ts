@@ -22,12 +22,15 @@ export interface Manifest {
   private?: boolean
   description?: string
   license?: string
+  keywords?: string[]
   files?: string[]
   engines?: Record<string, string>
   repository?: { type?: string; url?: string; directory?: string }
   exports?: Record<string, string | Record<string, string>>
   bin?: Record<string, string>
   dependencies?: Record<string, string>
+  /** What a bundle declares for the backoffice; see `backoffice-host/src/extensions.ts`. */
+  bunbraco?: { id?: string; name?: string; extensions?: unknown[] }
 }
 
 export interface WorkspacePackage {

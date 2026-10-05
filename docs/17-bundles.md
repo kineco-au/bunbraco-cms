@@ -1,7 +1,8 @@
-# Packages
+# Bundles
 
-The backoffice's Packages section covers two things that have nothing to do with
-each other, and this document keeps them apart:
+The backoffice's Bundles section — Umbraco's `Umb.Section.Packages`, renamed
+below — covers two things that have nothing to do with each other, and this
+document keeps them apart:
 
 - **Created packages** — exporting a slice of this site as a file, which is the
   nine `package` operations in the Management API contract. All nine are
@@ -9,6 +10,78 @@ each other, and this document keeps them apart:
 - **Extensions** — code someone else wrote, added to a site. This used to be the
   `App_Plugins` directory convention inherited from Umbraco; it is now npm
   dependencies, and `App_Plugins` has been removed.
+
+## What the backoffice calls them
+
+The section reads **Bundles**. One word for one thing: the artifact the builder
+produces is a bundle ([`13-content-transfer.md`](13-content-transfer.md)), and
+an installable extension is published to npm under the `bunbraco-bundle`
+keyword, so both halves of the section hold the same kind of thing by name.
+
+Its three views are named for what each one holds rather than for the section:
+**Marketplace**, **Installed**, **Created**. Umbraco labels its marketplace view
+"Packages", which under a section of the same name said nothing twice.
+
+Three of those labels are dictionary keys, so the rename is an override in
+`plugin/branding/localization-en.js` rather than a manifest:
+
+| What reads it | Key or manifest |
+| --- | --- |
+| The section, in the nav | `sections_packages` |
+| The button that starts a bundle, and the empty state beside it | `packager_createPackage`, `packager_noPackagesCreated` |
+| The Marketplace, Created and Installed views | bunbraco's own `sectionView` manifests |
+
+**A replacement `section` manifest would not have worked.** The nav lists
+section manifests whose *alias* appears in the signed-in user's
+`allowedSections` (`apps/backoffice/backoffice.context.js`), and the server
+sends Umbraco's `Umb.Section.Packages`. A manifest under a bunbraco alias —
+even one declaring `overwrites` — matches nothing, so the section would have
+disappeared rather than been renamed.
+
+### The Created view is a router, not a screen
+
+Umbraco's Created view mounts its own overview at `overview` **and every
+`package-builder` workspace** at `package-builder/create` and
+`package-builder/edit/:unique`. Those two routes are the only way to reach the
+builder from anywhere in the backoffice, so `plugin/bundles-created.js`
+reproduces them exactly and replaces only the overview. A replacement that
+rendered a list would have renamed the view and lost the builder;
+`tests/bundles-backoffice.test.ts` asserts each of upstream's routes is still
+declared here.
+
+### The builder's two labels are corrected, not overridden
+
+The builder workspace writes `Name of the package` and `Package Content` as
+English in its template rather than as dictionary keys, so there is no key to
+override and no manifest seam — it is one 431-line vendored element wired to
+picker contexts. `plugin/branding/bundle-builder-labels.js` corrects both after
+each render, the same way the client credential dialog's prefix is corrected,
+and does nothing at all if upstream rewords either. That silence is the point:
+the cost of a vendor bump is a stale label, never an error. The test asserts
+both strings are still there to correct, so the bump is still noticed.
+
+**What still says package.** Two toasts — `Package saved` and `Package
+updated`. They are passed to the notification context from inside the builder's
+private methods, which have no interception point, so removing them means
+reimplementing the workspace. They are transient and they are the last of it.
+
+The npm *identifier* keeps the name npm gives it — the Installed table's column
+reads `npm package`, and an install still writes `package.json`. Renaming that
+would make the screen disagree with every command it tells you to run.
+
+### What stayed `Umb.`
+
+Six identifiers in this repo wore `Umb.` and were invented here: the Forms
+section alias and the five form permission verbs. They are `Bunbraco.` now, and
+migration 026 rewrites the verbs already stored. Everything else spelled `Umb.`
+is Umbraco's and names something upstream defines — including three that the
+vendored *client* never mentions and that are Umbraco's all the same:
+
+| Identifier | Why it stays |
+| --- | --- |
+| `Umb.DocumentRecycleBin.Restore` | Umbraco's verb for the recycle bin entity, alongside its other document verbs |
+| `Umb.PropertyEditorUi.RichText` | the alias migration 009 migrates *away* from; renaming it would match no row |
+| `Umb.PropertyEditorUi.TinyMCE` | what an imported Umbraco site's data says; renaming it would break the importer |
 
 ## What the section used to do
 
@@ -115,13 +188,18 @@ wrongly fails in the user's unzip tool rather than in our suite.
 
 ## Where definitions live
 
-A `created_package` table, matching Umbraco's own `umbracoCreatedPackageSchema`
-rather than a file in the site directory: the definitions are shared state, they
-page, and a file would be per-node in a system that keeps everything else
-coherent across nodes.
+A `bundle` table rather than a file in the site directory: the definitions are
+shared state, they page, and a file would be per-node in a system that keeps
+everything else coherent across nodes. The columns match Umbraco's
+`umbracoCreatedPackageSchema` one for one, which is why the table was first
+called `created_package` too.
 
-It costs a migration — `data/src/schema/created-packages.ts`, registered in
-`schema/plan.ts` after `serverRoleMigration`, shipping in 0.5.0.
+It costs two migrations, both shipping in 0.5.0:
+`data/src/schema/created-packages.ts` creates it after `serverRoleMigration`,
+and `data/src/schema/bundles-rename.ts` renames it to `bundle` and rebuilds the
+unique index on `name`. A rename rather than an edit to the first: 022 has
+already run everywhere, and rewriting it would leave those databases holding a
+table the code no longer looks for, with no migration to say so.
 
 Columns follow the contract's model: `id`, `name`, `content_node_id`,
 `content_load_child_nodes`, `media_ids`, `media_load_child_nodes`,
@@ -145,7 +223,7 @@ in the response is a derived filename rather than a real path.
 
 | Operation | Answer |
 | --- | --- |
-| `GetPackageCreated` | paged from `created_package`, honouring skip/take validation |
+| `GetPackageCreated` | paged from `bundle`, honouring skip/take validation |
 | `PostPackageCreated` | insert; 400 on a name collision |
 | `GetPackageCreatedById` | the definition, 404 otherwise |
 | `PutPackageCreatedById` | update |
@@ -264,7 +342,7 @@ field cannot be queried.
 But a packument *does* preserve custom top-level fields (confirmed: `oclif` on
 `oclif@6.0.2`, `packageManager` on `netlify-cli`). So:
 
-- **Discovery** is a published keyword convention: `"keywords": ["bunbraco-package"]`.
+- **Discovery** is a published keyword convention: `"keywords": ["bunbraco-bundle"]`.
   It is the only thing npm will index, so it is a publishing requirement, and
   `docs` and the package template say so.
 - **Declaration** is the `bunbraco` field, which the server reads after install.
@@ -324,15 +402,17 @@ what there is to commit.
 - **It needs a writable site directory and network egress.** Both fail cleanly:
   a read-only filesystem and an unreachable registry each get a specific error,
   not a subprocess stack trace.
-- **Client-side extensions only.** A package whose code must run in the server
-  process is a dependency plus a deploy, because loading third-party JS into a
-  running node has no isolation story and `role: web` nodes would never see it.
-  A package that installs but declares nothing is reported as exactly that
-  rather than as a success.
+- **A runtime install is client-side only.** A package whose code must run in
+  the server process is a dependency plus a deploy — see
+  [Part 3](#part-3--server-side-bundles), which is what that turned into.
+  Loading third-party JS into a running node has no isolation story and a
+  `role: web` node would never see it, so an install writes `package.json` and
+  stops there. A package that installs but declares nothing is reported as
+  exactly that rather than as a success.
 - **Uninstall** is `bun remove`, the same path in reverse.
 
 Supply chain: the install runs third-party JS in the backoffice origin with the
-user's session. It is gated on the same permission as the Packages section, the
+user's session. It is gated on the same permission as the Bundles section, the
 resolved version is recorded, and nothing is fetched outside the registry.
 
 ---
@@ -433,9 +513,11 @@ repeat install is not a silent no-op the way re-importing unchanged content is.
 | The installer | `cli/src/operations/sections.ts`, wired into `contentCheck`/`contentImport` |
 | File safety and revert | `replacementsNeedingPermission`, `stageBackups`/`promoteBackups`/`restoreSectionFiles`, same file |
 | Discovery and serving | `backoffice-host/src/extensions.ts`, wired through `static.ts` and `manifests.ts` |
-| The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/bunbraco/api/packages/*` |
-| The two native views | `backoffice-host/plugin/packages-marketplace.js`, `packages-installed.js` |
+| The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/bunbraco/api/bundles/*` |
+| The two native views | `backoffice-host/plugin/bundles-marketplace.js`, `bundles-installed.js` |
 | The App_Plugins notice | `server/src/extensions-notice.ts` |
+| Server-side bundles | `server/src/bundles.ts`, wired in `server.ts`, `bundles` in `config.ts` |
+| The redirects bundle | `packages/bundle-redirects` — `src/index.ts` and `plugin/` |
 
 Adding the migration needed `bun run release:version 0.5.0` first: `v0.4.0` was
 tagged and `tests/migrations.test.ts` asserts `release <= VERSION`, so a
@@ -444,7 +526,7 @@ someone's `migration_history` as a release that was never cut (`AGENTS.md`).
 
 ## Testing
 
-`tests/packages.test.ts` covers the contract operations and the build. The
+`tests/bundles.test.ts` covers the contract operations and the build. The
 content assertion is a round trip: build a zip from a definition, unzip it,
 write the bundle out and load it through `loadBundle` — so the package is proved
 to carry a real bundle rather than a file of the right name.
@@ -483,13 +565,200 @@ installer: the keyword search, the packument filter that drops keyword
 squatters, the unreachable-registry case, name and version validation, and what
 the user is told after an install. Nothing in the suite reaches npm.
 
+`tests/server-bundles.test.ts` covers the mechanism on its own, with a stub host
+and no database, because the things that must hold are properties of
+`bundles.ts` rather than of any one bundle: an id or route path that could leave
+the namespace is refused, a bad set fails the boot naming every problem at once,
+`api/bundles/` is not claimed by `api/bundle/`, the section is checked before the
+handler runs, a handler sees only the capabilities it declared in a frozen
+object, and a throwing handler is a 500 that leaves the other bundles answering.
+
+`tests/bundle-redirects.test.ts` covers the redirects bundle end to end against a
+real site, because the only assertion that proves the client, the routes, the
+capability and core's matcher agree is that a rule typed through the API makes a
+visitor get a 301. It also holds the confinement: a configured rule and a tracked
+one are listed but refuse to be edited or deleted, `source` cannot be forged,
+a manual rule survives both `syncConfigured` and a reverted rename, and the
+precedence between the three sources is checked by what actually answers the
+request.
+
 Those fixture sites live under `output/` rather than the system temp directory —
 a site's views cache has to resolve `bunbraco/jsx-runtime` by walking up to a
 `node_modules` that carries it, which nothing outside the repository can do.
+
+---
+
+# Part 3 — Server-side bundles
+
+Part 2 said a bundle that needs to run in the server process is "a dependency
+plus a deploy" and left it there. This is that, made into something a bundle can
+be written against: `bundles.ts` in `packages/server`, and
+`@bunbraco/bundle-redirects` as the first one.
+
+## The objection, and what actually answers it
+
+The original objection was specific, and it was right: loading third-party JS
+into a running node has no isolation story, and a `role: web` node would never
+see a runtime install. Neither is solved by a sandbox — Bun has no mechanism that
+would make a hostile dependency safe inside this process.
+
+What answers it is that **nothing here is discovered**. There is no
+`BUNBRACO_BUNDLES` and no scan of `node_modules`; a bundle's server half runs
+only because a site wrote this:
+
+```ts
+import { redirects } from '@bunbraco/bundle-redirects'
+
+export default defineConfig({
+  bundles: [redirects()],
+})
+```
+
+So the two halves of a bundle arrive by different routes on purpose:
+
+| Half | How it arrives | What it takes |
+| --- | --- | --- |
+| The backoffice screen | discovered from the `bunbraco` field once the package is a dependency | `bun add`, no restart |
+| The server endpoints | imported by name into `bunbraco.config.ts` | an edit, a review, a deploy |
+
+That asymmetry is the whole security story. The dangerous path — someone clicks
+*Install* in the Bundles section and third-party code is in the request path — is
+not guarded, it does not exist. The safe path is a committed diff that reaches
+every node, which is also what makes `role: web` coherent: the import is in the
+site's code, so every node has it or none does.
+
+A test holds this down rather than leaving it to the prose:
+`tests/server-bundles.test.ts` asserts the default is `[]` whatever the
+environment says, that no environment variable names a bundle, that discovery
+parses JSON and never imports a dependency's module, and that the install path
+runs the package manager and nothing of the package.
+
+## What a wired bundle gets
+
+A narrow interface, not the server:
+
+```ts
+export interface ServerBundle {
+  id: string              // URL segment and log name
+  name: string
+  section: AppAlias       // what a caller must have access to
+  capabilities: readonly BundleCapability[]
+  routes: readonly ServerBundleRoute[]
+}
+```
+
+- **Its own namespace.** Routes mount at
+  `<backoffice>/bunbraco/api/bundle/<id>/`. The id is lowercase letters, digits
+  and hyphens, so it cannot climb out of its segment however it is spelled, and
+  each route path is validated as a plain path of segments with at most one
+  `:name` each. Two bundles cannot claim one id.
+- **No anonymous traffic and no self-granted access.** The server authenticates
+  before dispatch and the registry checks the declared section before calling
+  anything. There is no per-route override and no public route, so a bundle has
+  no way to widen its own authorisation — the test asserts the handler is never
+  reached by a caller without the section.
+- **Only the capabilities it declared**, as a frozen object. No `Db`, no config,
+  no filesystem. A capability is an interface `bundles.ts` owns and implements,
+  so the reachable surface is what core decided to expose rather than what the
+  bundle can find.
+- **Its own failures.** A handler that throws becomes a 500 and a log line naming
+  the bundle; the request path stays up and the other bundles keep answering.
+- **Nothing on a `web` node.** These are backoffice endpoints, so they mount only
+  where `servesBackOffice`.
+
+### Deliberately not offered
+
+Migrations, raw SQL, and writing the site's files. A bundle that needs a table of
+its own needs a release of this CMS: a migration arriving with a dependency is a
+schema change no `migration_history` can account for, and the version checks in
+`AGENTS.md` exist precisely so that cannot happen quietly.
+
+A capability is therefore the unit of negotiation. Adding one is a deliberate act
+in core — which is the point, because it is also the moment somebody decides what
+a third party may touch.
+
+## The first bundle: redirects
+
+`@bunbraco/bundle-redirects` adds what the Umbraco redirect packages add over
+Umbraco's own Redirect URL Management dashboard: an administrator **creating and
+editing** a rule, rather than only listing and deleting the ones a rename
+recorded.
+
+The engine is not in the bundle. Matching, the URL tracker and the `redirect_url`
+table are core ([`05-rendering.md`](05-rendering.md)), and they work without it.
+What the bundle adds is the third `source`:
+
+| Source | Who owns it | Precedence |
+| --- | --- | --- |
+| `config` | `bunbraco.config.ts`, synced at boot | first |
+| `manual` | an administrator, through this bundle | second |
+| `tracked` | the URL tracker, on a rename or move | last |
+
+That order falls out of `ORDER BY source` — `config` < `manual` < `tracked` is
+alphabetical — which is why the repository says so out loud rather than leaving a
+future reader to think it a coincidence. It is also the right order: a rule in
+the site's code outranks one somebody typed, which outranks one the CMS wrote by
+itself.
+
+**Writing is confined to `manual`.** The capability sets the source itself and
+refuses a key belonging to any other, so the bundle cannot forge a configured
+rule, delete one the file owns, or interfere with the tracker. Posting
+`source: 'config'` stores a `manual` rule, which is tested. Deleting a configured
+rule answers 409 and says the file owns it — the honest answer, because the next
+boot would put it back.
+
+Two existing behaviours had to be checked rather than assumed, and both already
+held: `syncConfigured` deletes only `source = 'config'` rows, so a deploy does not
+remove a typed rule, and `removeSelfReferencing` touches only tracked rows, so a
+rename reverted does not remove a manual rule for the same route.
+
+### The screen
+
+A `menuItem` in Settings' Advanced menu plus the `workspace` it points at — the
+pattern Umbraco's own log viewer uses, so no vendored element is replaced to put
+a screen in Settings, and the lesson from Part 1 about `overwrites` does not
+apply.
+
+It lists **every** rule in force, not only the ones it can change: a screen that
+hid the configured and tracked rules would be lying about what the site does when
+a URL is requested. Each row carries its source, and edit and delete appear only
+where the server would allow them.
+
+The editor offers everything the matcher supports — exact, starts-with and
+regular-expression matching, a page, a path or an external URL as the target, the
+four redirect status codes, and an optional culture. A screen quietly weaker than
+the config file is the failure mode worth guarding against, because it is
+invisible until somebody needs the option that is missing; a test asserts each
+kind is offered.
+
+One validation is load-bearing rather than cosmetic: a regular expression is
+compiled when it is saved. The matcher runs it against the path of every request
+that resolved to nothing, so a pattern that throws there would 500 the public
+site rather than the screen that stored it.
+
+### How it is published
+
+It ships in the same release as everything else, at the same version, through
+`release:publish` — `publishablePackages()` is the whole of `packages/` bar
+anything private, so the bundle joined the set by existing.
+
+Two things it needs that an ordinary package does not:
+
+- **The `bunbraco-bundle` keyword.** npm indexes keywords and not custom fields
+  (Part 2), so a bundle without it is invisible in the Bundles section however
+  correct the rest of it is. `tests/packaging.test.ts` asserts it, and that every
+  asset the `bunbraco` field points at exists and is inside `files`.
+- **A place in `OPT_IN`.** The packaging suite otherwise requires every published
+  package to be a dependency of `bunbraco`, and a bundle is by definition
+  something a site chooses.
 
 ## Out of scope
 
 - Reading an Umbraco-authored package, `.zip` or `.udt`. Importing *types*
   already works (`GetImportAnalyze` and the content-type importers).
-- Server-side extensions, per above.
-- Package migrations, which this document argues should never exist here.
+- Package migrations, which this document argues should never exist here — and
+  which Part 3 declines to let a bundle bring either.
+- Isolating a bundle's server code. There is no sandbox and none is implied: a
+  bundle you import is code you run, exactly like any other dependency in the
+  file. What the design buys is that importing it is a decision somebody makes
+  and commits.

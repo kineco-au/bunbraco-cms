@@ -1,6 +1,6 @@
 /**
  * A minimal zip writer, because a created package is a zip and nothing else
- * here needs one (`docs/17-packages.md`).
+ * here needs one (`docs/17-bundles.md`).
  *
  * No dependency: `node:zlib` provides `deflateRawSync` and `crc32`, which is
  * everything the format needs. Entries are written in the order given, each

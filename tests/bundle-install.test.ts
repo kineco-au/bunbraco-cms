@@ -1,6 +1,6 @@
 /**
  * Installing a bundle that carries its own structure — what a created package
- * is. docs/17-packages.md.
+ * is. docs/17-bundles.md.
  *
  * The cases that matter are where getting it wrong is quiet: a section landing
  * in the wrong directory, a file overwritten without warning, and the schema
@@ -324,7 +324,7 @@ describe('applying', () => {
 /**
  * Undoing an install, without assuming the site is a git checkout: the content
  * comes back through the ledger, and the files come back from the copies the
- * install kept. `docs/17-packages.md`.
+ * install kept. `docs/17-bundles.md`.
  */
 /**
  * The rule that stops an install destroying an editor's work. Its own function

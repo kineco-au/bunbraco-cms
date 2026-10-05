@@ -86,10 +86,10 @@ tail of 1–3 each.
 - Dictionary items (tree + CRUD); backoffice UI localisation files served to the client
 
 ### Cross-cutting
-- Relations and relation types; tags; redirect management (URL tracker)
+- Relations and relation types; tags; redirect management — the URL tracker, rules declared in code, and a Settings screen for the ones an administrator writes ([`17-bundles.md`](17-bundles.md))
 - Backoffice search: `searcher`, `indexer`, `filter` over FTS5/`tsvector`
-- Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`17-packages.md`](17-packages.md))
-- Created packages: exporting a slice of the site — schema, files, content, media — as a zip, and backoffice extensions installed as npm dependencies ([`17-packages.md`](17-packages.md))
+- Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`17-bundles.md`](17-bundles.md))
+- Bundles: exporting a slice of the site — schema, files, content, media — as a zip, and installable bundles added as npm dependencies. A bundle may carry server endpoints too, which the site opts into by importing them ([`17-bundles.md`](17-bundles.md))
 - Background jobs: version cleanup, scheduled publishing, temp-file cleanup, log scrubbing
 - Notification/event bus decoupling publishing, caching, indexing and webhooks
 
@@ -118,9 +118,13 @@ tail of 1–3 each.
 
 - Compatibility with Umbraco's own package ecosystem; Razor and AngularJS-era
   compatibility. Backoffice extensions of our own are npm dependencies
-  ([`17-packages.md`](17-packages.md)); an Umbraco package does not install here
+  ([`17-bundles.md`](17-bundles.md)); an Umbraco package does not install here
 - ModelsBuilder DLLs, Examine/Lucene, ImageSharp
-- Umbraco Cloud/Deploy, Forms, Commerce
+- Umbraco Cloud/Deploy, Commerce
+- Umbraco Forms as an add-on: form building is in core instead, with definitions
+  as files. Rendering, submission, validation and entries are built; the
+  backoffice designer and the workflows are not yet
+  ([`18-forms.md`](18-forms.md))
 - SQL Server
 - Opening an existing Umbraco database in place — a one-way importer does that
   instead, see [`16-umbraco-import.md`](16-umbraco-import.md)

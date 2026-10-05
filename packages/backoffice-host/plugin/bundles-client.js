@@ -1,10 +1,10 @@
 /**
- * Reads and drives the Packages endpoints the server keeps at
- * <backoffice>/bunbraco/api/packages/*. The session cookie carries the auth.
+ * Reads and drives the Bundles endpoints the server keeps at
+ * <backoffice>/bunbraco/api/bundles/*. The session cookie carries the auth.
  */
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/packages`
+  return `${href.replace(/\/$/, '')}/bunbraco/api/bundles`
 }
 
 const json = async (path, init) => {
@@ -18,7 +18,7 @@ const json = async (path, init) => {
   })
   const body = await response.json().catch(() => ({}))
   if (!response.ok && response.status !== 400)
-    throw new Error(`packages responded ${response.status}`)
+    throw new Error(`bundles responded ${response.status}`)
   return body
 }
 
@@ -27,8 +27,8 @@ export const searchMarketplace = (query) =>
 
 export const listInstalled = () => json('/installed')
 
-export const installPackage = (name, version) =>
+export const installBundle = (name, version) =>
   json('/install', { method: 'POST', body: JSON.stringify({ name, version }) })
 
-export const uninstallPackage = (name) =>
+export const uninstallBundle = (name) =>
   json('/uninstall', { method: 'POST', body: JSON.stringify({ name }) })

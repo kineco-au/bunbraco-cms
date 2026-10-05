@@ -7,14 +7,14 @@
  * an Umbraco package does not install into this CMS anyway.
  *
  * What it shows instead is the npm registry, searched for the keyword a bunbraco
- * package publishes, and filtered to the packages that really declare backoffice
+ * bundle publishes, and filtered to the ones that really declare backoffice
  * extensions. Installing runs `bun add` on the server.
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
-import { installPackage, searchMarketplace } from './packages-client.js'
+import { installBundle, searchMarketplace } from './bundles-client.js'
 
-export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
+export default class BunbracoBundlesMarketplaceElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _loading: { state: true },
@@ -32,7 +32,7 @@ export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
     this._error = ''
     this._busy = ''
     this._notice = ''
-    this._keyword = 'bunbraco-package'
+    this._keyword = 'bunbraco-bundle'
     this._url = ''
     this._query = ''
   }
@@ -66,7 +66,7 @@ export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
     this._busy = item.name
     this._notice = ''
     try {
-      const outcome = await installPackage(item.name, item.version)
+      const outcome = await installBundle(item.name, item.version)
       // The dependency line is what there is to commit, so it is shown rather
       // than described: the install lives in this node's node_modules until it
       // is in the site's repository.
@@ -83,16 +83,8 @@ export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
 
   #empty() {
     return html`
-      <uui-box headline="No packages published yet">
-        <p>
-          Nothing on npm carries the <code>${this._keyword}</code> keyword yet. A backoffice
-          extension becomes visible here by publishing with that keyword and declaring its
-          extensions in a <code>bunbraco</code> field in its own <code>package.json</code>.
-        </p>
-        <p>
-          You can still install one by name with <code>bun add</code> in the site directory — this
-          list is a convenience, not the mechanism.
-        </p>
+      <uui-box headline="No bundles published yet">
+        <p>Nothing on npm carries the <code>${this._keyword}</code> keyword yet.</p>
       </uui-box>
     `
   }
@@ -105,8 +97,8 @@ export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
       <div id="head">
         <uui-input
           type="search"
-          label="Search packages"
-          placeholder="Search npm for backoffice extensions"
+          label="Search bundles"
+          placeholder="Search npm for bundles"
           @change=${this.#search}></uui-input>
         ${
           this._url
@@ -204,4 +196,4 @@ export default class BunbracoPackagesMarketplaceElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-packages-marketplace', BunbracoPackagesMarketplaceElement)
+customElements.define('bunbraco-bundles-marketplace', BunbracoBundlesMarketplaceElement)

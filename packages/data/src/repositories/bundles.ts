@@ -1,6 +1,6 @@
 /**
- * The created-package definitions: what a package would contain, not a built
- * package. `docs/17-packages.md`.
+ * The bundle definitions: what a bundle would contain, not a built bundle.
+ * `docs/17-bundles.md`.
  *
  * The selection lists travel as JSON text in single columns. A malformed list
  * reads back as empty rather than throwing: a definition whose row was edited
@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 
-export interface CreatedPackage {
+export interface Bundle {
   id: string
   name: string
   contentNodeId: string | null
@@ -32,7 +32,7 @@ export interface CreatedPackage {
 }
 
 /** A definition to store; `id` is assigned when it is new, the dates always. */
-export type CreatedPackageInput = Omit<CreatedPackage, 'id' | 'createDate' | 'updateDate'>
+export type BundleInput = Omit<Bundle, 'id' | 'createDate' | 'updateDate'>
 
 interface Row {
   id: string
@@ -59,7 +59,7 @@ const SELECT = `SELECT id, name, content_node_id, content_load_child_nodes,
                        media_load_child_nodes, media_ids, element_ids, document_types,
                        media_types, data_types, templates, partial_views, stylesheets,
                        scripts, languages, dictionary_items, create_date, update_date
-                  FROM created_package`
+                  FROM bundle`
 
 const list = (value: string | null): string[] => {
   if (!value) return []
@@ -73,7 +73,7 @@ const list = (value: string | null): string[] => {
   }
 }
 
-const hydrate = (row: Row): CreatedPackage => ({
+const hydrate = (row: Row): Bundle => ({
   id: row.id,
   name: row.name,
   contentNodeId: row.content_node_id,
@@ -94,7 +94,7 @@ const hydrate = (row: Row): CreatedPackage => ({
   updateDate: DbDate.fromDb(row.update_date) ?? new Date(0),
 })
 
-export class CreatedPackageRepository {
+export class BundleRepository {
   #db: Db
   constructor(db: Db) {
     this.#db = db
@@ -103,10 +103,8 @@ export class CreatedPackageRepository {
   /** By name, which is the order the section lists them in. */
   async list(
     options: { skip?: number; take?: number } = {},
-  ): Promise<{ total: number; items: CreatedPackage[] }> {
-    const counted = await this.#db.query<{ total: number }>(
-      'SELECT COUNT(*) AS total FROM created_package',
-    )
+  ): Promise<{ total: number; items: Bundle[] }> {
+    const counted = await this.#db.query<{ total: number }>('SELECT COUNT(*) AS total FROM bundle')
     const rows = await this.#db.query<Row>(`${SELECT} ORDER BY name LIMIT ? OFFSET ?`, [
       options.take ?? 100,
       options.skip ?? 0,
@@ -114,13 +112,13 @@ export class CreatedPackageRepository {
     return { total: Number(counted[0]?.total ?? 0), items: rows.map(hydrate) }
   }
 
-  async byId(id: string): Promise<CreatedPackage | undefined> {
+  async byId(id: string): Promise<Bundle | undefined> {
     const rows = await this.#db.query<Row>(`${SELECT} WHERE id = ?`, [id])
     const row = rows[0]
     return row ? hydrate(row) : undefined
   }
 
-  async byName(name: string): Promise<CreatedPackage | undefined> {
+  async byName(name: string): Promise<Bundle | undefined> {
     const rows = await this.#db.query<Row>(`${SELECT} WHERE LOWER(name) = ?`, [
       name.trim().toLowerCase(),
     ])
@@ -128,10 +126,10 @@ export class CreatedPackageRepository {
     return row ? hydrate(row) : undefined
   }
 
-  async create(input: CreatedPackageInput, id: string = randomUUID()): Promise<CreatedPackage> {
+  async create(input: BundleInput, id: string = randomUUID()): Promise<Bundle> {
     const now = new Date()
     await this.#db.exec(
-      `INSERT INTO created_package
+      `INSERT INTO bundle
          (id, name, content_node_id, content_load_child_nodes, media_load_child_nodes,
           media_ids, element_ids, document_types, media_types, data_types, templates,
           partial_views, stylesheets, scripts, languages, dictionary_items,
@@ -161,9 +159,9 @@ export class CreatedPackageRepository {
     return { ...input, id, createDate: now, updateDate: now }
   }
 
-  async update(id: string, input: CreatedPackageInput): Promise<void> {
+  async update(id: string, input: BundleInput): Promise<void> {
     await this.#db.exec(
-      `UPDATE created_package
+      `UPDATE bundle
           SET name = ?, content_node_id = ?, content_load_child_nodes = ?,
               media_load_child_nodes = ?, media_ids = ?, element_ids = ?,
               document_types = ?, media_types = ?, data_types = ?, templates = ?,
@@ -193,6 +191,6 @@ export class CreatedPackageRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.#db.exec('DELETE FROM created_package WHERE id = ?', [id])
+    await this.#db.exec('DELETE FROM bundle WHERE id = ?', [id])
   }
 }

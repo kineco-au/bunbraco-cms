@@ -8,6 +8,7 @@
 import type { NodeSchemaState } from '@bunbraco/data'
 import { type Db, DocumentRepository, PublishBlockedError } from '@bunbraco/data'
 import type { PublishedCache } from '@bunbraco/render'
+import type { WorkflowRunner, WorkflowRunReport } from './form-workflows.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
 
@@ -26,6 +27,12 @@ export interface JobsOptions {
   }
   /** Temporary uploads past their lifetime are dropped hourly. */
   mediaFiles?: MediaFileStore
+  /**
+   * Drains the form workflow queue. Absent on a node that should not run them,
+   * which is the same rule the other jobs follow.
+   */
+  formWorkflows?: WorkflowRunner
+  formWorkflowsMs?: number
 }
 
 export interface ScheduledRun {
@@ -36,6 +43,8 @@ export interface ScheduledRun {
 
 export interface BackgroundJobs {
   runScheduledPublishing(now?: Date): Promise<ScheduledRun>
+  /** Runs the form workflows that are due; a no-op when none are configured. */
+  runFormWorkflows(now?: Date): Promise<WorkflowRunReport>
   /** Runs whether or not the hourly job is enabled; the policy decides what goes. */
   runVersionCleanup(now?: Date): Promise<{ nodes: number; versionsDeleted: number }>
   start(): void
@@ -79,6 +88,17 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     return documents.cleanupVersions(now, options.versionCleanup)
   }
 
+  async function runFormWorkflows(now = new Date()): Promise<WorkflowRunReport> {
+    return (
+      (await options.formWorkflows?.runDue(now)) ?? {
+        claimed: 0,
+        done: 0,
+        retrying: 0,
+        failed: 0,
+      }
+    )
+  }
+
   const guarded = (job: () => Promise<unknown>) => async () => {
     if (running) return
     running = true
@@ -100,8 +120,12 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
   return {
     runScheduledPublishing,
     runVersionCleanup,
+    runFormWorkflows,
     start() {
       every(options.scheduledPublishingMs ?? 60_000, runScheduledPublishing)
+      // More often than the other jobs: somebody waiting on a form notification
+      // notices a minute, and a queue row is cheap to look for.
+      if (options.formWorkflows) every(options.formWorkflowsMs ?? 15_000, runFormWorkflows)
       if (options.versionCleanup.enabled) every(60 * 60_000, runVersionCleanup)
       const files = options.mediaFiles
       if (files) every(60 * 60_000, () => files.cleanupExpired())

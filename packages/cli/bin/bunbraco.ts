@@ -2027,7 +2027,7 @@ async function dispatch(): Promise<void> {
       break
     /**
      * The artifact's own name. A bundle that carries its own structure is what
-     * the Packages section builds (`docs/17-packages.md`), and `install` reads
+     * the Packages section builds (`docs/17-bundles.md`), and `install` reads
      * better than `import` for one — but it is the same operation on the same
      * artifact, so this is the same code path, not a second one.
      */

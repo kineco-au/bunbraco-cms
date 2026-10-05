@@ -297,7 +297,7 @@ describe('the media a bundle carries', () => {
 
 /**
  * A bundle carrying its own structure, which is what a created package is
- * (`docs/17-packages.md`). The sections travel under logical names — the
+ * (`docs/17-bundles.md`). The sections travel under logical names — the
  * destination decides which of its directories each one lands in — and they are
  * declared in the manifest so a reader knows to look for them and the integrity
  * hash covers them.

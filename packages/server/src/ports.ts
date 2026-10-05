@@ -36,6 +36,7 @@ import {
 import type { PublishedCache } from '@bunbraco/render'
 import { createNodeLookup } from './access.ts'
 import { createBlueprintPort } from './adapters/blueprints.ts'
+import { createPackagePort } from './adapters/bundles.ts'
 import {
   createContentTypePort,
   createDataTypePort,
@@ -48,7 +49,6 @@ import { createFileSystemPort } from './adapters/file-system.ts'
 import { createMediaPort } from './adapters/media.ts'
 import { createMemberGroupPort } from './adapters/member-groups.ts'
 import { createMemberPort } from './adapters/members.ts'
-import { createPackagePort } from './adapters/packages.ts'
 import { createPublicAccessPort } from './adapters/public-access.ts'
 import { createRedirectPort } from './adapters/redirects.ts'
 import { createReferencePort } from './adapters/references.ts'

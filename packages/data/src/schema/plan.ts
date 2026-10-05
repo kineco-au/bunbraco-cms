@@ -13,12 +13,17 @@
  */
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
+import { bundlesRenameMigration } from './bundles-rename.ts'
 import { changeReportMigration } from './change-report.ts'
 import { clientIdPrefixMigration } from './client-id-prefix.ts'
 import { contentMigration } from './content.ts'
 import { contentEditingMigration } from './content-editing.ts'
 import { createdPackagesMigration } from './created-packages.ts'
 import { elementsMigration } from './elements.ts'
+import { formPermissionPrefixMigration } from './form-permission-prefix.ts'
+import { formPermissionsMigration } from './form-permissions.ts'
+import { formWorkflowsMigration } from './form-workflows.ts'
+import { formsMigration } from './forms.ts'
 import { groupPermissionsMigration } from './group-permissions.ts'
 import { identityMigration } from './identity.ts'
 import { logViewerMigration } from './log-viewer.ts'
@@ -58,4 +63,9 @@ export const bunbracoPlan = new MigrationPlan([
   clientIdPrefixMigration,
   serverRoleMigration,
   createdPackagesMigration,
+  formsMigration,
+  formWorkflowsMigration,
+  formPermissionsMigration,
+  formPermissionPrefixMigration,
+  bundlesRenameMigration,
 ])

@@ -3,22 +3,24 @@
  * alias overrides the built-in. Mirrors the seeded set in @bunbraco/data.
  */
 import {
+  ALL_SEEDED_DATA_TYPES,
   BUILT_IN_MEDIA_TYPES,
   type BuiltInMediaType,
-  DEFAULT_DATA_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@bunbraco/data'
 import type { SchemaDataType, SchemaDocumentType } from './model.ts'
 import { fileNameFor, writeMediaType } from './write.ts'
 
 /** Every seeded data type, in the file vocabulary; the seed is the one definition. */
-export const BUILTIN_DATA_TYPES: readonly SchemaDataType[] = DEFAULT_DATA_TYPES.map((seeded) => ({
-  alias: seeded.alias,
-  name: seeded.name,
-  editor: seeded.editorAlias,
-  editorUi: seeded.editorUiAlias,
-  config: { ...(seeded.config ?? {}) },
-}))
+export const BUILTIN_DATA_TYPES: readonly SchemaDataType[] = ALL_SEEDED_DATA_TYPES.map(
+  (seeded) => ({
+    alias: seeded.alias,
+    name: seeded.name,
+    editor: seeded.editorAlias,
+    editorUi: seeded.editorUiAlias,
+    config: { ...(seeded.config ?? {}) },
+  }),
+)
 
 /** The `property_value` column family an editor stores into; Umbraco's ValueStorageType. */
 /** Folder, Image and File: always present, never deleted, alias fixed. */
@@ -81,6 +83,8 @@ export function storageTypeFor(
     case 'Umbraco.ContentPicker':
     case 'Umbraco.UploadField':
     case 'Umbraco.EmailAddress':
+    // One form key, which is a UUID and never long.
+    case 'Bunbraco.FormPicker':
       return 'Nvarchar'
     case 'Umbraco.Integer':
     case 'Umbraco.TrueFalse':

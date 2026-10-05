@@ -9,6 +9,7 @@
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { FormSubmissionState } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
 import type { PageProps, PublishedContent, RequestMember } from './model.ts'
@@ -60,6 +61,14 @@ export type AccessDecision = { status: 'allowed' } | { status: 'substitute'; con
 export interface RenderRequest {
   member?: RequestMember
   access?: (content: PublishedContent) => Promise<AccessDecision>
+  /**
+   * A form submission the server has just handled, for this request's page.
+   *
+   * The endpoint redirects back here rather than answering with markup of its
+   * own, so the form reappears with its errors — or its thank-you — inside the
+   * layout it was rendered in.
+   */
+  submission?: FormSubmissionState
 }
 
 export class Renderer {
@@ -212,6 +221,7 @@ export class Renderer {
       culture,
       dictionary,
       member: request.member,
+      submission: request.submission,
     }
 
     let currentAlias: string | undefined = alias

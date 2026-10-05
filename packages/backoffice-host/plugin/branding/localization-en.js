@@ -14,6 +14,13 @@
  * `appsettings.json`, IIS permissions, Examine or the .NET installer are left
  * alone: they name real things that are not ours to rename, and the features they
  * belong to are not built.
+ *
+ * `sections` and `packager` are the other kind of rename: not the product's name
+ * but a feature's. Umbraco's Packages section builds a `.umb` file; the artifact
+ * here is a bundle (`docs/17-bundles.md`), so the section and the flow that
+ * builds one say so. `build-localizations.ts` reads this file for its key set and
+ * rewrites only values that name the product, so these pass through untouched and
+ * every other language keeps its own word.
  */
 export default {
   login: {
@@ -69,6 +76,13 @@ export default {
   },
   dashboard: {
     nothinghappens: "If Bunbraco isn't opening, you might need to allow popups from this site",
+  },
+  sections: {
+    packages: 'Bundles',
+  },
+  packager: {
+    createPackage: 'Create bundle',
+    noPackagesCreated: 'No bundles have been created yet',
   },
   defaultdialogs: {
     linkYourConfirm:

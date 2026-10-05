@@ -11,8 +11,9 @@ import {
   type SchemaSet,
   TYPE_KIND_FILES,
 } from './model.ts'
+import { type ValidateFormsOptions, validateForms } from './validate-forms.ts'
 
-export interface ValidateOptions {
+export interface ValidateOptions extends ValidateFormsOptions {
   /** Template aliases that exist as view files; omit to skip template checks. */
   templateAliases?: ReadonlySet<string>
 }
@@ -186,6 +187,15 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
         `unknown language "${l.fallback}"`,
       )
   }
+  // Forms are validated against the types they reach into, so this happens
+  // after the type aliases are known.
+  problems.push(
+    ...validateForms(set.forms ?? [], {
+      ...options,
+      documentTypeAliases:
+        options.documentTypeAliases ?? new Set(set.documentTypes.map((t) => t.alias)),
+    }),
+  )
   return problems
 }
 

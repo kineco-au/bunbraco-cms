@@ -86,8 +86,8 @@ export async function freshDb(): Promise<Db> {
 
 /**
  * Undoes what migrations 010 onward did — their tables, dependants first, 011's
- * column rename and 018's table rename — so a test can rewind the recorded
- * state to before them and migrate forward again.
+ * column rename and the table renames in 018 and 027 — so a test can rewind the
+ * recorded state to before them and migrate forward again.
  *
  * Every migration that creates or renames something needs its undo here, or the
  * replay runs its `CREATE TABLE` against a table that is already there.
@@ -106,9 +106,16 @@ export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
   await db.exec('ALTER TABLE document_culture_variation DROP COLUMN published_name')
   // 021's column on `server`.
   await db.exec('ALTER TABLE server DROP COLUMN role')
+  // 027 renamed 022's table, so the replay would rename an absent one.
+  await db.exec('DROP INDEX IF EXISTS ux_bundle_name')
+  await db.exec('ALTER TABLE bundle RENAME TO created_package')
+  await db.exec('CREATE UNIQUE INDEX ux_created_package_name ON created_package (name)')
   for (const table of [
     // 022
     'created_package',
+    'form_workflow_run',
+    'form_entry_value',
+    'form_entry',
     'content_transfer_change',
     'content_transfer_run',
     'assistant_change',

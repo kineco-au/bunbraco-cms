@@ -1,6 +1,6 @@
 /**
  * Created packages: the definitions the Packages section builds, and the zip a
- * download turns one into. `docs/17-packages.md`.
+ * download turns one into. `docs/17-bundles.md`.
  *
  * The port hands back built bytes rather than a path, because the artifact is
  * never stored — it is serialized when it is asked for, so it cannot be stale.

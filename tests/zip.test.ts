@@ -1,5 +1,5 @@
 /**
- * The zip writer behind created-package downloads (`docs/17-packages.md`).
+ * The zip writer behind created-package downloads (`docs/17-bundles.md`).
  *
  * The reader here walks the archive the way an unzip tool does — end record,
  * then the central directory, then each local header at the offset the

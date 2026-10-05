@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
 import type { RedirectRule, SnapshotLimits } from '@bunbraco/render'
 import type { AssistantConfig } from './assistant.ts'
+import type { ServerBundle } from './bundles.ts'
 import type { EmailPort } from './email.ts'
 import type { GitConfig } from './git-routes.ts'
 import type { MediaStore } from './media-store.ts'
@@ -229,6 +230,14 @@ export interface BunbracoConfig {
    */
   trackRedirects: boolean
   /**
+   * Bundles whose server half this site runs, each the result of calling the
+   * factory its package exports. Imported and listed here by hand on purpose:
+   * installing a bundle never makes its server code run, so the only way code
+   * reaches the request path is a committed, deployed edit to this file
+   * (`bundles.ts`, `docs/17-bundles.md`).
+   */
+  bundles: ServerBundle[]
+  /**
    * Where the Packages section's Marketplace sends someone browsing for
    * extensions. Never framed — npm refuses to be framed — so the native view
    * uses it as the link out while listing the registry itself.
@@ -284,8 +293,8 @@ export const DEFAULTS = {
   stylesheetsDir: 'css',
   logsDir: 'logs',
   scriptsDir: 'scripts',
-  marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-package',
-  packageKeyword: 'bunbraco-package',
+  marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-bundle',
+  packageKeyword: 'bunbraco-bundle',
   npmRegistry: 'https://registry.npmjs.org',
   keepAllVersionsNewerThanDays: 7,
   keepLatestVersionPerDayForDays: 90,
@@ -414,6 +423,8 @@ export function loadConfig(
     ),
     redirects: [],
     trackRedirects: Bun.env.BUNBRACO_TRACK_REDIRECTS !== 'false',
+    // No environment variable: a bundle is an import, which is code.
+    bundles: [],
     marketplaceUrl: Bun.env.BUNBRACO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
     packageKeyword: Bun.env.BUNBRACO_PACKAGE_KEYWORD ?? DEFAULTS.packageKeyword,
     npmRegistry: Bun.env.BUNBRACO_NPM_REGISTRY ?? DEFAULTS.npmRegistry,
