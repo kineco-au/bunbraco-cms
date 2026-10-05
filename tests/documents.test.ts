@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DocumentRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, DocumentRepository } from '@bunbraco/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -53,8 +53,8 @@ name = "Home Page"
 icon = "icon-home"
 allow-at-root = true
 allow-children = ["homePage"]
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[property]]
 alias = "title"
@@ -75,33 +75,34 @@ async function scaffold(options: { view?: string; toml?: string } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(
     join(root, 'schema', 'document-types', 'home-page.toml'),
     options.toml ?? HOME_PAGE_TOML,
   )
-  writeFileSync(join(root, 'Views', 'homePage.tsx'), options.view ?? VIEW)
+  writeFileSync(join(root, 'components', 'homePage.tsx'), options.view ?? VIEW)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('homePage'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('homePage'))?.key as string
-  return { h, typeKey, templateKey }
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('homePage'))
+    ?.key as string
+  return { h, typeKey, componentKey }
 }
 
 async function createPage(
   h: Harness,
   typeKey: string,
-  templateKey: string,
+  componentKey: string,
   name: string,
   values: Array<{ alias: string; value: unknown }> = [],
   parentKey: string | null = null,
 ) {
   const response = await h.post(`${V1}/document`, {
     documentType: { id: typeKey },
-    template: { id: templateKey },
+    template: { id: componentKey },
     parent: parentKey ? { id: parentKey } : null,
     values: values.map((value) => ({ culture: null, segment: null, ...value })),
     variants: [{ culture: null, segment: null, name }],
@@ -113,8 +114,8 @@ async function createPage(
 
 describe('documents', () => {
   test('creates one and reads its values back', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Welcome' },
       { alias: 'bodyText', value: 'Hello world' },
     ])
@@ -131,7 +132,7 @@ describe('documents', () => {
     expect(document.id).toBe(key)
     expect(document.isTrashed).toBe(false)
     expect(document.documentType.id).toBe(typeKey)
-    expect(document.template?.id).toBe(templateKey)
+    expect(document.template?.id).toBe(componentKey)
 
     const values = Object.fromEntries(document.values.map((v) => [v.alias, v.value]))
     expect(values.title).toBe('Welcome')
@@ -146,8 +147,8 @@ describe('documents', () => {
   })
 
   test('saving a draft records a version, and only for what changed', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'First' },
     ])
 
@@ -157,7 +158,7 @@ describe('documents', () => {
     expect(before.total).toBe(1)
 
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ culture: null, segment: null, alias: 'title', value: 'Second' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -176,8 +177,8 @@ describe('documents', () => {
   })
 
   test('publishing freezes the draft and forks a new one', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Live' },
     ])
 
@@ -201,14 +202,14 @@ describe('documents', () => {
   })
 
   test('editing after publishing marks pending changes', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Live' },
     ])
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
 
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ culture: null, segment: null, alias: 'title', value: 'Edited' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -218,9 +219,9 @@ describe('documents', () => {
   })
 
   test('refuses to publish below an unpublished ancestor', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const parent = await createPage(h, typeKey, templateKey, 'Parent')
-    const child = await createPage(h, typeKey, templateKey, 'Child', [], parent)
+    const { h, typeKey, componentKey } = await scaffold()
+    const parent = await createPage(h, typeKey, componentKey, 'Parent')
+    const child = await createPage(h, typeKey, componentKey, 'Child', [], parent)
 
     const response = await h.put(`${V1}/document/${child}/publish`, { publishSchedules: [] })
     // Publishing under an unpublished parent would create an unreachable route.
@@ -231,9 +232,9 @@ describe('documents', () => {
   })
 
   test('appears in the tree with its parent', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const parent = await createPage(h, typeKey, templateKey, 'Parent')
-    await createPage(h, typeKey, templateKey, 'Child', [], parent)
+    const { h, typeKey, componentKey } = await scaffold()
+    const parent = await createPage(h, typeKey, componentKey, 'Parent')
+    await createPage(h, typeKey, componentKey, 'Child', [], parent)
 
     const roots = await h.json<{
       total: number
@@ -250,8 +251,8 @@ describe('documents', () => {
   })
 
   test('moves to the recycle bin and unpublishes on the way', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
 
     expect(
@@ -268,8 +269,8 @@ describe('documents', () => {
   })
 
   test('deletes one outright', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     expect((await h.del(`${V1}/document/${key}`)).status).toBe(200)
     expect((await h.call(`${V1}/document/${key}`)).status).toBe(404)
   })
@@ -283,15 +284,15 @@ describe('what would stop a publish', () => {
     }).publishBlockers(key, null, selection)
 
   test('nothing, for a page that can go live', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     expect(await blockersFor(h, key)).toEqual([])
   })
 
   test('an unpublished ancestor, unless the same run is publishing it', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const root = await createPage(h, typeKey, templateKey, 'Home')
-    const child = await createPage(h, typeKey, templateKey, 'About', [], root)
+    const { h, typeKey, componentKey } = await scaffold()
+    const root = await createPage(h, typeKey, componentKey, 'Home')
+    const child = await createPage(h, typeKey, componentKey, 'About', [], root)
     expect(await blockersFor(h, child)).toEqual(['an ancestor is not published'])
 
     // A caller publishing the branch parents-first is not blocked by its own
@@ -310,8 +311,8 @@ describe('what would stop a publish', () => {
   })
 
   test('an empty mandatory property, named', async () => {
-    const { h, typeKey, templateKey } = await scaffold({ toml: STRICT_TOML })
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold({ toml: STRICT_TOML })
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     const blockers = await blockersFor(h, key)
     expect(blockers).toHaveLength(1)
     // The message `publish` itself would have thrown, so the reason somebody
@@ -327,14 +328,14 @@ describe('what would stop a publish', () => {
 
 describe('versioning and rollback', () => {
   test('restores an old version into the draft without rewriting history', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Original' },
     ])
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
 
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ culture: null, segment: null, alias: 'title', value: 'Changed' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -368,8 +369,8 @@ describe('versioning and rollback', () => {
   })
 
   test('pins a version against cleanup', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
 
     const versions = await h.json<{ items: Array<{ id: string; preventCleanup: boolean }> }>(
@@ -393,8 +394,8 @@ describe('versioning and rollback', () => {
 
 describe('rendering', () => {
   test('renders a published page at its URL', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Welcome home' },
       { alias: 'bodyText', value: 'Body copy' },
     ])
@@ -414,8 +415,8 @@ describe('rendering', () => {
   })
 
   test('escapes property values', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: '<script>alert(1)</script>' },
     ])
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
@@ -426,7 +427,7 @@ describe('rendering', () => {
   })
 
   test('setInnerHTML emits markup verbatim only when told to, and escapes otherwise', async () => {
-    const { h, typeKey, templateKey } = await scaffold({
+    const { h, typeKey, componentKey } = await scaffold({
       view: `export default function HomePage({ model }) {
   return (
     <main>
@@ -438,7 +439,7 @@ describe('rendering', () => {
 }
 `,
     })
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Home' },
       { alias: 'bodyText', value: '<em>hi</em><script>alert(1)</script>' },
     ])
@@ -460,7 +461,7 @@ describe('rendering', () => {
   })
 
   test('rich text round-trips as the object the editor sends, and renders as its markup', async () => {
-    const { h, typeKey, templateKey } = await scaffold({
+    const { h, typeKey, componentKey } = await scaffold({
       toml: HOME_PAGE_TOML.replace('type = "textarea"', 'type = "richtext"'),
       view: `export default function HomePage({ model }) {
   return <main>{model.html('bodyText')}</main>
@@ -471,7 +472,7 @@ describe('rendering', () => {
       markup: '<p><strong>Rich</strong> body</p>',
       blocks: { layout: {}, contentData: [], settingsData: [], expose: [] },
     }
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'bodyText', value: rte },
     ])
     const read = async () =>
@@ -482,7 +483,7 @@ describe('rendering', () => {
 
     // Saving what was read back leaves it intact
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ culture: null, segment: null, alias: 'bodyText', value: await read() }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -495,14 +496,14 @@ describe('rendering', () => {
   })
 
   test('serves the published version, not the draft', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
       { alias: 'title', value: 'Published' },
     ])
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
 
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ culture: null, segment: null, alias: 'title', value: 'Draft only' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -513,7 +514,7 @@ describe('rendering', () => {
   })
 
   test('routes a child below its parent, and applies the layout', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
+    const { h, typeKey, componentKey } = await scaffold()
     const layout = await h.post(`${V1}/template`, {
       name: 'Site Layout',
       alias: 'siteLayout',
@@ -528,7 +529,7 @@ describe('rendering', () => {
     })
     const childTemplateKey = child.headers.get('umb-generated-resource') as string
 
-    const parentKey = await createPage(h, typeKey, templateKey, 'Parent', [
+    const parentKey = await createPage(h, typeKey, componentKey, 'Parent', [
       { alias: 'title', value: 'Parent title' },
     ])
     await h.put(`${V1}/document/${parentKey}/publish`, { publishSchedules: [] })
@@ -555,8 +556,8 @@ describe('rendering', () => {
   })
 
   test('unpublishing removes the route', async () => {
-    const { h, typeKey, templateKey } = await scaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
     await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
     expect((await h.call('/')).status).toBe(200)
 
@@ -565,13 +566,15 @@ describe('rendering', () => {
   })
 
   test("URLs follow Umbraco's default: the first root is /, and no root's segment appears below it", async () => {
-    const { h, typeKey, templateKey } = await scaffold()
+    const { h, typeKey, componentKey } = await scaffold()
     const publish = (key: string) =>
       h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
-    const about = await createPage(h, typeKey, templateKey, 'About Us', [], home)
-    const other = await createPage(h, typeKey, templateKey, 'Other Site')
-    const clash = await createPage(h, typeKey, templateKey, 'About Us', [], other)
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
+    const about = await createPage(h, typeKey, componentKey, 'About Us', [], home)
+    const other = await createPage(h, typeKey, componentKey, 'Other Site')
+    const clash = await createPage(h, typeKey, componentKey, 'About Us', [], other)
     for (const key of [home, about, other, clash]) await publish(key)
 
     const urlOf = async (key: string) =>
@@ -616,8 +619,8 @@ name = "Home Page"
 icon = "icon-home"
 allow-at-root = true
 allow-children = ["homePage"]
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[property]]
 alias = "title"
@@ -643,29 +646,30 @@ async function strictScaffold() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'home-page.toml'), STRICT_TOML)
-  writeFileSync(join(root, 'Views', 'homePage.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'homePage.tsx'), VIEW)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('homePage'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('homePage'))?.key as string
-  return { h, typeKey, templateKey }
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('homePage'))
+    ?.key as string
+  return { h, typeKey, componentKey }
 }
 
 function body(
   typeKey: string,
-  templateKey: string | null,
+  componentKey: string | null,
   name: string,
   values: Record<string, unknown>,
   parentKey: string | null = null,
 ) {
   return {
     documentType: { id: typeKey },
-    template: templateKey ? { id: templateKey } : null,
+    template: componentKey ? { id: componentKey } : null,
     parent: parentKey ? { id: parentKey } : null,
     values: Object.entries(values).map(([alias, value]) => ({
       alias,
@@ -689,11 +693,11 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test('validate names the exact field, by index when sent and by filter when not', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
+    const { h, typeKey, componentKey } = await strictScaffold()
     // Sent but empty, and a pattern miss
     const sent = await h.post(
       `${V1}/document/validate`,
-      body(typeKey, templateKey, 'Home', { title: '', slug: 'Not Valid' }),
+      body(typeKey, componentKey, 'Home', { title: '', slug: 'Not Valid' }),
     )
     expect(sent.status).toBe(400)
     const problem = await sent.json()
@@ -705,7 +709,7 @@ describe('WP-6.1 document workspace', () => {
     // Not sent at all
     const missing = await h.post(
       `${V1}/document/validate`,
-      body(typeKey, templateKey, 'Home', { bodyText: 'x' }),
+      body(typeKey, componentKey, 'Home', { bodyText: 'x' }),
     )
     expect((await missing.json()).errors).toEqual({
       "$.values[?(@.alias == 'title' && @.culture == null && @.segment == null)].value": [
@@ -717,15 +721,17 @@ describe('WP-6.1 document workspace', () => {
       (
         await h.post(
           `${V1}/document/validate`,
-          body(typeKey, templateKey, 'Home', { title: 'Hi', slug: 'hi' }),
+          body(typeKey, componentKey, 'Home', { title: 'Hi', slug: 'hi' }),
         )
       ).status,
     ).toBe(200)
 
     // The update form validates an existing document
-    const key = await createPage(h, typeKey, templateKey, 'Draft', [{ alias: 'title', value: 'T' }])
+    const key = await createPage(h, typeKey, componentKey, 'Draft', [
+      { alias: 'title', value: 'T' },
+    ])
     const update = await h.put(`${V1}.1/document/${key}/validate`, {
-      ...body(typeKey, templateKey, 'Draft', { title: '' }),
+      ...body(typeKey, componentKey, 'Draft', { title: '' }),
       cultures: null,
     })
     expect(update.status).toBe(400)
@@ -733,16 +739,16 @@ describe('WP-6.1 document workspace', () => {
       (
         await h.put(
           `${V1}/document/${crypto.randomUUID()}/validate`,
-          body(typeKey, templateKey, 'x', {}),
+          body(typeKey, componentKey, 'x', {}),
         )
       ).status,
     ).toBe(404)
   })
 
   test('create-and-publish refuses with the same errors and creates nothing; then creates, publishes and renders', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
+    const { h, typeKey, componentKey } = await strictScaffold()
     const refused = await h.post(`${V1}/document/create-and-publish`, {
-      ...body(typeKey, templateKey, 'Home', { title: '' }),
+      ...body(typeKey, componentKey, 'Home', { title: '' }),
       culturesToPublish: [],
     })
     expect(refused.status).toBe(400)
@@ -752,7 +758,7 @@ describe('WP-6.1 document workspace', () => {
     )
 
     const ok = await h.post(`${V1}/document/create-and-publish`, {
-      ...body(typeKey, templateKey, 'Home', { title: 'Welcome', slug: 'home' }),
+      ...body(typeKey, componentKey, 'Home', { title: 'Welcome', slug: 'home' }),
       culturesToPublish: [],
     })
     expect(ok.status).toBe(201)
@@ -765,18 +771,20 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test('update-and-publish, and the published read shows the published values, not the draft', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
-    const key = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'v1' }])
+    const { h, typeKey, componentKey } = await strictScaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'v1' },
+    ])
     expect((await h.call(`${V1}/document/${key}/published`)).status).toBe(404)
     const published = await h.put(`${V1}/document/${key}/update-and-publish`, {
-      ...body(typeKey, templateKey, 'Home', { title: 'v1', slug: 'home' }),
+      ...body(typeKey, componentKey, 'Home', { title: 'v1', slug: 'home' }),
       culturesToPublish: [],
     })
     expect(published.status).toBe(200)
     // A draft edit on top
     await h.put(
       `${V1}/document/${key}`,
-      body(typeKey, templateKey, 'Home', { title: 'v2 draft', slug: 'home' }),
+      body(typeKey, componentKey, 'Home', { title: 'v2 draft', slug: 'home' }),
     )
     const draft = await h.json<{ values: Array<{ alias: string; value: unknown }> }>(
       `${V1}/document/${key}`,
@@ -788,7 +796,7 @@ describe('WP-6.1 document workspace', () => {
     expect(live.values.find((v) => v.alias === 'title')?.value).toBe('v1')
     // …and update-and-publish refuses a bad pattern without publishing the draft
     const bad = await h.put(`${V1}/document/${key}/update-and-publish`, {
-      ...body(typeKey, templateKey, 'Home', { title: 'v3', slug: 'NOPE' }),
+      ...body(typeKey, componentKey, 'Home', { title: 'v3', slug: 'NOPE' }),
       culturesToPublish: [],
     })
     expect(bad.status).toBe(400)
@@ -802,7 +810,7 @@ describe('WP-6.1 document workspace', () => {
     expect(
       (
         await h.put(`${V1}/document/${crypto.randomUUID()}/update-and-publish`, {
-          ...body(typeKey, templateKey, 'x', { title: 't' }),
+          ...body(typeKey, componentKey, 'x', { title: 't' }),
           culturesToPublish: [],
         })
       ).status,
@@ -810,17 +818,19 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test('the tree: rich items, ancestors, siblings, search', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
+    const { h, typeKey, componentKey } = await strictScaffold()
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
     const children: string[] = []
     for (const name of ['Alpha', 'Beta', 'Gamma', 'Delta'])
       children.push(
-        await createPage(h, typeKey, templateKey, name, [{ alias: 'title', value: name }], home),
+        await createPage(h, typeKey, componentKey, name, [{ alias: 'title', value: name }], home),
       )
     const grand = await createPage(
       h,
       typeKey,
-      templateKey,
+      componentKey,
       'Grandchild',
       [{ alias: 'title', value: 'g' }],
       children[1] as string,
@@ -867,9 +877,11 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test("the Info tab: the audit log from the page's versions, and empty references and redirects", async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
+    const { h, typeKey, componentKey } = await strictScaffold()
     const me = (await h.json<{ id: string }>(`${V1}/user/current`)).id
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
     await h.put(`${V1}/document/${home}/publish`, { publishSchedules: [] })
 
     type Log = {
@@ -919,7 +931,7 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test("the create dialog under a page reads its type's allowed children, not the root set", async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
+    const { h, typeKey, componentKey } = await strictScaffold()
     // A second type allowed under the first but not at the root — the shape a site
     // has: one landing type at the root, content types only beneath it.
     const child = await h.post(`${V1}/document-type`, {
@@ -960,7 +972,9 @@ describe('WP-6.1 document workspace', () => {
       ).status,
     ).toBe(200)
 
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
 
     // The chain the dialog walks: the item gives the parent's type, and that type's
     // allowed children are what it offers. The root list is deliberately different —
@@ -982,8 +996,10 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test('document items carry their type and state, which the create dialog needs for allowed children', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
+    const { h, typeKey, componentKey } = await strictScaffold()
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
     type Item = {
       id: string
       parent: { id: string } | null
@@ -1005,12 +1021,14 @@ describe('WP-6.1 document workspace', () => {
   })
 
   test('the recycle bin lists what was trashed, with its branch below and its original parent', async () => {
-    const { h, typeKey, templateKey } = await strictScaffold()
-    const home = await createPage(h, typeKey, templateKey, 'Home', [{ alias: 'title', value: 'H' }])
+    const { h, typeKey, componentKey } = await strictScaffold()
+    const home = await createPage(h, typeKey, componentKey, 'Home', [
+      { alias: 'title', value: 'H' },
+    ])
     const child = await createPage(
       h,
       typeKey,
-      templateKey,
+      componentKey,
       'Child',
       [{ alias: 'title', value: 'c' }],
       home,
@@ -1018,7 +1036,7 @@ describe('WP-6.1 document workspace', () => {
     const grand = await createPage(
       h,
       typeKey,
-      templateKey,
+      componentKey,
       'Grand',
       [{ alias: 'title', value: 'g' }],
       child,
@@ -1040,7 +1058,7 @@ describe('WP-6.1 document workspace', () => {
     )
     expect(below.items.map((i) => i.id)).toEqual([grand])
     // Siblings within the bin: the other trashed top-level document
-    const sibling = await createPage(h, typeKey, templateKey, 'Loner', [
+    const sibling = await createPage(h, typeKey, componentKey, 'Loner', [
       { alias: 'title', value: 'l' },
     ])
     await h.put(`${V1}/document/${sibling}/move-to-recycle-bin`, {})

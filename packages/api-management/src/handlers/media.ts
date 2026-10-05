@@ -105,7 +105,7 @@ function toSaveMedia(key: string, body: Record<string, unknown>) {
   return {
     ...toSaveDocument(key, body),
     contentTypeKey: refId(body.mediaType) ?? '',
-    templateKey: null,
+    componentKey: null,
   }
 }
 

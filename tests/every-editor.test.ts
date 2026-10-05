@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DEFAULT_DATA_TYPES, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, DEFAULT_DATA_TYPES } from '@bunbraco/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -27,8 +27,8 @@ const TYPE = `[document-type]
 alias = "everyEditor"
 name = "Every editor"
 allow-at-root = true
-templates = ["everyEditor"]
-default-template = "everyEditor"
+components = ["everyEditor"]
+default-component = "everyEditor"
 ${EDITORS.map((d) => `\n[[property]]\nalias = "${d.alias}"\nname = "${d.name}"\ntype = "${d.alias}"\n`).join('')}`
 
 const VIEW = `export default function EveryEditor({ model }) {
@@ -42,21 +42,21 @@ describe('every built-in editor', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'every-editor-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(root, 'schema', 'document-types', 'every-editor.toml'), TYPE)
-    writeFileSync(join(root, 'Views', 'everyEditor.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'everyEditor.tsx'), VIEW)
     const h = await signedInServer({
       config: {
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         mediaDir: join(root, 'media'),
       },
     })
     open.push(h)
     const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('everyEditor'))
       ?.key as string
-    const templateKey = (await new TemplateRepository(h.server.db).byAlias('everyEditor'))
+    const componentKey = (await new ComponentRepository(h.server.db).byAlias('everyEditor'))
       ?.key as string
     const upload = async (name: string, body: BlobPart) => {
       const id = crypto.randomUUID()
@@ -145,7 +145,7 @@ describe('every built-in editor', () => {
 
     const created = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: null,
       values: Object.entries({ ...sent, ...uploads }).map(([alias, value]) => ({
         alias,
@@ -178,7 +178,7 @@ describe('every built-in editor', () => {
 
     // Saving again what was read changes nothing
     const again = await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: read.values.map((v) => ({
         alias: v.alias,
         culture: null,

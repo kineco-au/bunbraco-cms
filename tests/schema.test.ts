@@ -36,8 +36,8 @@ icon = "icon-home"
 allow-at-root = true
 compositions = ["seoFields"]
 allow-children = ["textPage", "newsPage"]
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [document-type.cleanup]
 keep-all-newer-than-days = 7
@@ -95,7 +95,7 @@ function type(alias: string, extra: Partial<SchemaDocumentType> = {}): SchemaDoc
     variesBySegment: false,
     compositions: [],
     allowChildren: [],
-    templates: [],
+    components: [],
     cleanup: { prevent: false },
     properties: [],
     tabs: [],
@@ -279,15 +279,15 @@ describe('validation', () => {
             allowAtRoot: true,
             compositions: ['seo'],
             allowChildren: ['text'],
-            templates: ['home'],
-            defaultTemplate: 'home',
+            components: ['home'],
+            defaultComponent: 'home',
             tabs: [{ name: 'Content', properties: [prop('title')], groups: [] }],
           }),
           type('text'),
         ],
         languages: [{ iso: 'en-US', name: 'English', default: true, mandatory: true }],
       }),
-      { templateAliases: new Set(['home']) },
+      { componentAliases: new Set(['home']) },
     )
     expect(problems).toEqual([])
   })
@@ -299,8 +299,8 @@ describe('validation', () => {
           type('a', {
             compositions: ['b'],
             allowChildren: ['nope'],
-            templates: ['t'],
-            defaultTemplate: 'other',
+            components: ['t'],
+            defaultComponent: 'other',
             properties: [prop('x', 'unknownType'), prop('x')],
           }),
           type('b', { compositions: ['a'] }),
@@ -312,15 +312,15 @@ describe('validation', () => {
           { iso: 'da-DK', name: 'D', default: true, mandatory: false, fallback: 'sv-SE' },
         ],
       }),
-      { templateAliases: new Set() },
+      { componentAliases: new Set() },
     )
     const messages = problems.map((p) => p.message)
     expect(messages.some((m) => m.includes('duplicate type alias "c"'))).toBe(true)
     expect(messages.some((m) => m.includes('unknown data type "unknownType"'))).toBe(true)
     expect(messages.some((m) => m === 'duplicate property alias')).toBe(true)
     expect(messages.some((m) => m.includes('unknown type "nope"'))).toBe(true)
-    expect(messages.some((m) => m.includes('"other" is not in templates'))).toBe(true)
-    expect(messages.some((m) => m.includes('no view Views/t.tsx'))).toBe(true)
+    expect(messages.some((m) => m.includes('"other" is not in components'))).toBe(true)
+    expect(messages.some((m) => m.includes('no components/t.tsx'))).toBe(true)
     expect(messages.some((m) => m.includes('composition cycle: a -> b -> a'))).toBe(true)
     expect(messages.some((m) => m.includes('exactly one language must be default; found 2'))).toBe(
       true,

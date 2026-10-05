@@ -94,8 +94,8 @@ const ARTICLE = `[document-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
-templates = ["article"]
-default-template = "article"
+components = ["article"]
+default-component = "article"
 `
 
 const VIEW = `export default function Article({ model }) {
@@ -106,15 +106,15 @@ const VIEW = `export default function Article({ model }) {
 /** A site whose media lives in the store given. */
 async function site(store: MediaStore) {
   const root = tempDir('media-store-site-')
-  for (const dir of ['schema/document-types', 'schema/media-types', 'Views'])
+  for (const dir of ['schema/document-types', 'schema/media-types', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE)
-  writeFileSync(join(root, 'Views', 'article.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
       mediaStore: store,
     },

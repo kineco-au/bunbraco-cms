@@ -27,14 +27,18 @@ export const CONTENT_ONLY_FORMAT_VERSION = 1
  * one occupies.
  *
  * Logical names, not the destination's directory names: a site may hold its
- * templates anywhere (`viewsDir`), so the artifact names what a file *is* and
- * the importer decides where it goes. A bundle written against one site's
+ * components anywhere (`componentsDir`), so the artifact names what a file *is*
+ * and the importer decides where it goes. A bundle written against one site's
  * layout therefore installs into another's.
+ *
+ * There is one section for components, not two. Umbraco's split of templates
+ * and partial views was a Razor concern (`docs/05-rendering.md`), and a bundle
+ * that carried it would push the distinction back into every site that
+ * installed one.
  */
 export const BUNDLE_SECTIONS = {
   schema: 'schema',
-  views: 'views',
-  partials: 'partials',
+  components: 'components',
   styles: 'styles',
   scripts: 'scripts',
   dictionary: 'dictionary',
@@ -80,7 +84,7 @@ export interface BundleNode {
   /** The parent's key, or null for a node at the tree root. */
   parent: string | null
   sortOrder: number
-  /** A template alias — a template is `Views/<alias>.tsx`, so aliases travel, not keys. */
+  /** A component alias — the path under `components/`, so aliases travel, not keys. */
   template: string | null
   variants: BundleVariant[]
   values: BundleValue[]
@@ -114,7 +118,7 @@ export interface BundleDependencies {
   /** What the destination's schema and views must provide. */
   schema: {
     contentTypes: Array<{ key: string; alias: string }>
-    templates: string[]
+    components: string[]
     languages: string[]
   }
 }

@@ -1,0 +1,35 @@
+{
+  "key": "a2eb439f-71d9-4ea6-89d7-c5bc72618281",
+  "kind": "element",
+  "contentType": {
+    "key": "55138391-faf2-4795-9ed6-43d581d350a4",
+    "alias": "tastingNote"
+  },
+  "parent": null,
+  "sortOrder": 19,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Finish — Powerful and warming. Water …",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "aspect",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Finish"
+    },
+    {
+      "property": "note",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Powerful and warming. Water opens a bright citrus edge."
+    }
+  ]
+}

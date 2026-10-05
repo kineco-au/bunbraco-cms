@@ -29,14 +29,14 @@ async function site(files: Record<string, string> = {}) {
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
   mkdirSync(join(root, 'schema', 'data-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   for (const [name, content] of Object.entries(files)) writeFileSync(join(root, name), content)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
-  return { h, root, schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') }
+  return { h, root, schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') }
 }
 
 function property(alias: string, name: string, dataTypeId: string, sortOrder = 0) {
@@ -308,7 +308,7 @@ describe('WP-6.2 document types', () => {
   })
 
   test('copy, and "create template" writes the view and attaches it', async () => {
-    const { h, viewsDir, schemaDir } = await site()
+    const { h, componentsDir, schemaDir } = await site()
     const key = await createType(
       h,
       documentType('article', { properties: [property('title', 'Title', TEXTSTRING)] }),
@@ -331,18 +331,18 @@ describe('WP-6.2 document types', () => {
       isDefault: true,
     })
     expect(template.status).toBe(201)
-    const templateKey = template.headers.get('umb-generated-resource') as string
-    expect(readFileSync(join(viewsDir, 'article.tsx'), 'utf8')).toContain(
+    const componentKey = template.headers.get('umb-generated-resource') as string
+    expect(readFileSync(join(componentsDir, 'article.tsx'), 'utf8')).toContain(
       'export default function Article',
     )
     const type = await h.json<{
       allowedTemplates: Array<{ id: string }>
       defaultTemplate: { id: string } | null
     }>(`${V1}/document-type/${key}`)
-    expect(type.allowedTemplates).toEqual([{ id: templateKey }])
-    expect(type.defaultTemplate).toEqual({ id: templateKey })
+    expect(type.allowedTemplates).toEqual([{ id: componentKey }])
+    expect(type.defaultTemplate).toEqual({ id: componentKey })
     expect(readFileSync(join(schemaDir, 'document-types', 'article.toml'), 'utf8')).toContain(
-      'templates = ["article"]',
+      'components = ["article"]',
     )
   })
 })

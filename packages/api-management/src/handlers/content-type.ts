@@ -100,8 +100,8 @@ export function toDocumentTypeResponse(aggregate: ContentTypeAggregate): Documen
       documentType: { id: allowed.contentTypeKey },
       sortOrder: allowed.sortOrder,
     })),
-    allowedTemplates: aggregate.allowedTemplateKeys.map((id) => ({ id })),
-    defaultTemplate: aggregate.defaultTemplateKey ? { id: aggregate.defaultTemplateKey } : null,
+    allowedTemplates: aggregate.allowedComponentKeys.map((id) => ({ id })),
+    defaultTemplate: aggregate.defaultComponentKey ? { id: aggregate.defaultComponentKey } : null,
   } as DocumentTypeResponse
 }
 
@@ -267,10 +267,10 @@ export function fromDocumentTypeRequest(
         sortOrder: Number(allowed.sortOrder ?? 0),
       }
     }),
-    allowedTemplateKeys: (isElement ? [] : list(body.allowedTemplates))
+    allowedComponentKeys: (isElement ? [] : list(body.allowedTemplates))
       .map((raw) => ref(raw))
       .filter((id): id is string => id !== null),
-    defaultTemplateKey: isElement ? null : ref(body.defaultTemplate),
+    defaultComponentKey: isElement ? null : ref(body.defaultTemplate),
     parentKey: ref(body.parent),
   }
 }

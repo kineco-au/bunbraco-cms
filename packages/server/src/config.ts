@@ -76,9 +76,9 @@ export interface BunbracoConfig {
   /** The site's own directory: where `bunbraco.config.ts` and `domains.toml` are. */
   siteDir: string
   /** Where template views live on disk. */
-  viewsDir: string
+  componentsDir: string
   /**
-   * Where content-addressed copies of `viewsDir` are written, so an edited view
+   * Where content-addressed copies of `componentsDir` are written, so an edited view
    * is picked up without restarting the node.
    *
    * Inside the site by necessity, not by preference: JSX compiles to an import
@@ -86,7 +86,7 @@ export interface BunbracoConfig {
    * snapshot outside the site tree cannot load at all. Ephemeral — cleared at
    * boot — and never shared between nodes.
    */
-  viewsCacheDir: string
+  componentsCacheDir: string
   /**
    * Tuning for the views snapshot: how often a node looks for a change, how
    * long it looks eagerly after one is announced, how many generations it will
@@ -94,7 +94,7 @@ export interface BunbracoConfig {
    *
    * Anything unset takes `SNAPSHOT_LIMITS`, or its development override.
    */
-  viewsSnapshot: Partial<SnapshotLimits>
+  componentsSnapshot: Partial<SnapshotLimits>
   /** Where `schema/*.toml` lives; sync is skipped when the directory is absent. */
   schemaDir: string
   /** Supplied at deploy time (BUNBRACO_SCHEMA_REVISION); orders deploys within one schema version. */
@@ -285,8 +285,8 @@ export const DEFAULTS = {
   adminLogin: 'admin@bunbraco.local',
   secureCookies: true,
   siteName: 'Bunbraco',
-  viewsDir: 'Views',
-  viewsCacheDir: join('.bunbraco', 'views'),
+  componentsDir: 'components',
+  componentsCacheDir: join('.bunbraco', 'components'),
   schemaDir: 'schema',
   schemaRevision: '0',
   mediaDir: 'media',
@@ -349,18 +349,20 @@ export function loadConfig(
     secureCookies: Bun.env.BUNBRACO_INSECURE_COOKIES !== 'true',
     siteName: Bun.env.BUNBRACO_SITE_NAME ?? DEFAULTS.siteName,
     siteDir: cwd,
-    viewsDir: Bun.env.BUNBRACO_VIEWS_DIR ?? DEFAULTS.viewsDir,
-    viewsCacheDir: Bun.env.BUNBRACO_VIEWS_CACHE_DIR ?? DEFAULTS.viewsCacheDir,
-    viewsSnapshot: {
-      ...(Bun.env.BUNBRACO_VIEWS_GATE_MS
-        ? { gateTtlMs: Number(Bun.env.BUNBRACO_VIEWS_GATE_MS) }
+    componentsDir: Bun.env.BUNBRACO_COMPONENTS_DIR ?? DEFAULTS.componentsDir,
+    componentsCacheDir: Bun.env.BUNBRACO_COMPONENTS_CACHE_DIR ?? DEFAULTS.componentsCacheDir,
+    componentsSnapshot: {
+      ...(Bun.env.BUNBRACO_COMPONENTS_GATE_MS
+        ? { gateTtlMs: Number(Bun.env.BUNBRACO_COMPONENTS_GATE_MS) }
         : {}),
-      ...(Bun.env.BUNBRACO_VIEWS_GENERATION_LIMIT
-        ? { maxGenerations: Number(Bun.env.BUNBRACO_VIEWS_GENERATION_LIMIT) }
+      ...(Bun.env.BUNBRACO_COMPONENTS_GENERATION_LIMIT
+        ? { maxGenerations: Number(Bun.env.BUNBRACO_COMPONENTS_GENERATION_LIMIT) }
         : {}),
-      ...(Bun.env.BUNBRACO_VIEWS_KEEP ? { keep: Number(Bun.env.BUNBRACO_VIEWS_KEEP) } : {}),
-      ...(Bun.env.BUNBRACO_VIEWS_SWAP_MS
-        ? { minSwapIntervalMs: Number(Bun.env.BUNBRACO_VIEWS_SWAP_MS) }
+      ...(Bun.env.BUNBRACO_COMPONENTS_KEEP
+        ? { keep: Number(Bun.env.BUNBRACO_COMPONENTS_KEEP) }
+        : {}),
+      ...(Bun.env.BUNBRACO_COMPONENTS_SWAP_MS
+        ? { minSwapIntervalMs: Number(Bun.env.BUNBRACO_COMPONENTS_SWAP_MS) }
         : {}),
     },
     schemaDir: Bun.env.BUNBRACO_SCHEMA_DIR ?? DEFAULTS.schemaDir,
@@ -445,8 +447,8 @@ export function loadConfig(
   merged.siteDir = resolve(cwd, merged.siteDir)
   // Against the site rather than the working directory: it has to sit where the
   // JSX runtime resolves from, which is the site's own tree.
-  merged.viewsCacheDir = resolve(merged.siteDir, merged.viewsCacheDir)
-  merged.viewsDir = resolve(cwd, merged.viewsDir)
+  merged.componentsCacheDir = resolve(merged.siteDir, merged.componentsCacheDir)
+  merged.componentsDir = resolve(cwd, merged.componentsDir)
   merged.schemaDir = resolve(cwd, merged.schemaDir)
   merged.mediaDir = resolve(cwd, merged.mediaDir)
   merged.logsDir = resolve(cwd, merged.logsDir)
@@ -494,4 +496,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.5.1'
+export const VERSION = '0.6.0'

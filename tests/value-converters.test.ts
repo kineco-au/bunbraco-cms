@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { keyFromReference } from '@bunbraco/core'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { convertValue, PublishedElement } from '@bunbraco/render'
 import { generateTypes, loadSchemaDirectory } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -79,8 +79,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "pick"
@@ -107,7 +107,7 @@ alias = "grid"
 name = "Grid"
 type = "featureGrid"
 `,
-  'Views/page.tsx': `export default function Page({ model }) {
+  'components/page.tsx': `export default function Page({ model }) {
   const pick = model.value('pick')
   return (
     <main>
@@ -134,11 +134,11 @@ async function site() {
     writeFileSync(join(root, path), content)
   }
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
   const create = async (
     name: string,
     values: Record<string, unknown> = {},
@@ -146,7 +146,7 @@ async function site() {
   ) => {
     const response = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: parent ? { id: parent } : null,
       values: Object.entries(values).map(([alias, value]) => ({
         alias,

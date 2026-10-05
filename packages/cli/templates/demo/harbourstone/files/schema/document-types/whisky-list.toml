@@ -8,11 +8,17 @@ description = "The range: a parent for the bottlings"
 icon = "icon-bulleted-list"
 allow-children = ["expression"]
 collection = "listViewContent"
-templates = ["whiskyList"]
-default-template = "whiskyList"
+components = ["pages/whiskyList"]
+default-component = "pages/whiskyList"
 
 [[tab]]
 name = "Content"
+
+[[tab.property]]
+key = "13785a42-6d0a-4152-89ec-c765db766547"
+alias = "eyebrow"
+name = "Eyebrow"
+type = "textstring"
 
 [[tab.property]]
 key = "727804c0-7d4a-43d9-a473-71c9e27397c0"
@@ -23,13 +29,7 @@ mandatory = true
 
 [[tab.property]]
 key = "9c83bcea-a70e-4a3f-8185-ad04ddec55f1"
-alias = "summary"
-name = "Summary"
-description = "Shown wherever this page is listed"
+alias = "standfirst"
+name = "Standfirst"
+description = "A paragraph under the title"
 type = "textarea"
-
-[[tab.property]]
-key = "35a51b3e-2b55-4e0c-89cd-5b64fe2219fa"
-alias = "intro"
-name = "Introduction"
-type = "richtext"

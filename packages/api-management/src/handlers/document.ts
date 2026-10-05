@@ -57,7 +57,7 @@ export function toDocumentResponse(aggregate: DocumentAggregate) {
         ? { id: aggregate.contentTypeCollectionKey }
         : null,
     },
-    template: aggregate.templateKey ? { id: aggregate.templateKey } : null,
+    template: aggregate.componentKey ? { id: aggregate.componentKey } : null,
     flags: [],
     values: aggregate.values.map((value) => ({
       editorAlias: value.editorAlias ?? '',
@@ -139,7 +139,7 @@ export function toSaveDocument(key: string, body: Record<string, unknown>): Save
   return {
     key,
     contentTypeKey: ref(body.documentType) ?? '',
-    templateKey: ref(body.template),
+    componentKey: ref(body.template),
     parentKey: ref(body.parent),
     values: readValues(body),
     variants: readVariants(body),

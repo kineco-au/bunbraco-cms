@@ -325,7 +325,7 @@ than registering one, in three parts:
 - **The model is named for what it is.** TypeScript decides whether a file may
   contain JSX from its *file name*, and the model monaco creates for itself is
   `inmemory://model/1` — under which every tag in a view is a syntax error. The
-  model is replaced by one at `file:///Views/view-<n>.tsx`, mirroring `Views/` on
+  model is replaced by one at `file:///components/view-<n>.tsx`, mirroring `components/` on
   disk so that a view's `../schema/content-types.d.ts` resolves in the editor the
   way it resolves for `tsc`.
 - **The types are served, not guessed.** `GET

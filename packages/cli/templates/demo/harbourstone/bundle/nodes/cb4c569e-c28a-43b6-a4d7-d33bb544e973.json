@@ -6,13 +6,13 @@
     "alias": "contentPage"
   },
   "parent": "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
-  "sortOrder": 1,
-  "template": "contentPage",
+  "sortOrder": 0,
+  "template": "pages/contentPage",
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "The Distillery",
+      "name": "About",
       "published": true
     }
   ],
@@ -23,9 +23,16 @@
       "segment": null,
       "editor": "Umbraco.RichText",
       "value": {
-        "markup": "<p>Two stills, run slowly, with long fermentations and a tall lyne arm — which is where the floral character comes from. We fill at 63.5% into soft oak, mostly refill, and roll the casks into dunnage warehouses twenty metres from the high-water mark.</p><h2>The water</h2><p>Soft, peat-filtered, from the burn behind the distillery. Hard water makes a heavier spirit; we are after the opposite.</p><h2>The warehouses</h2><p>Earth floors, three casks high, salt on the walls. Nothing is temperature-controlled: the sea does that, and does it better.</p>",
+        "markup": "<p>Barley is malted to order, a portion of it dried over coastal peat cut behind Dunnet. Fermentation runs long — usually eighty hours — so the wash arrives at the stills bright and estery. The spirit still is narrow-necked, and the cut is kept tight.</p><p>Warehouses 1 and 2 stand on the old boat green. Casks are racked three high so the sea air can move between them.</p>",
         "blocks": null
       }
+    },
+    {
+      "property": "eyebrow",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "The distillery"
     },
     {
       "property": "heroImage",
@@ -34,31 +41,96 @@
       "editor": "Umbraco.MediaPicker3",
       "value": [
         {
-          "key": "42b24cfd-79b1-46cb-815d-759e98d0ab52",
-          "mediaKey": "a386a383-d4dd-421f-9afa-e1bdc711713b",
+          "key": "26f2bd69-b17f-4e3c-8f8a-a9438e60bbcd",
+          "mediaKey": "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
           "mediaTypeAlias": "Image",
           "crops": [],
           "focalPoint": null
         }
       ],
       "references": [
-        "42b24cfd-79b1-46cb-815d-759e98d0ab52",
-        "a386a383-d4dd-421f-9afa-e1bdc711713b"
+        "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
+        "26f2bd69-b17f-4e3c-8f8a-a9438e60bbcd"
       ]
     },
     {
-      "property": "summary",
+      "property": "highlights",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "62f479ff-0875-453e-99ae-3bf1bec5e3c8",
+        "38b009f7-03c0-4fda-b5c7-843ad6044e9c",
+        "069cc3c5-c9f5-4792-90c9-e2bfcc4855b6",
+        "13788fe7-1a45-4b48-8ae4-f4227e154e1e"
+      ],
+      "references": [
+        "069cc3c5-c9f5-4792-90c9-e2bfcc4855b6",
+        "13788fe7-1a45-4b48-8ae4-f4227e154e1e",
+        "38b009f7-03c0-4fda-b5c7-843ad6044e9c",
+        "62f479ff-0875-453e-99ae-3bf1bec5e3c8"
+      ]
+    },
+    {
+      "property": "highlightsEyebrow",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "How it is made"
+    },
+    {
+      "property": "highlightsHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Four decisions that set the style."
+    },
+    {
+      "property": "highlightsImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "6e701e22-a22e-4306-8cb1-c3fa4ceefa76",
+          "mediaKey": "fd337567-df67-41ca-ae94-9d84d8d6042f",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "6e701e22-a22e-4306-8cb1-c3fa4ceefa76",
+        "fd337567-df67-41ca-ae94-9d84d8d6042f"
+      ]
+    },
+    {
+      "property": "sectionEyebrow",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Place"
+    },
+    {
+      "property": "sectionHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "A working shore, not a postcard."
+    },
+    {
+      "property": "standfirst",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Two stills, long fermentations, and warehouses twenty metres from the water."
+      "value": "Harbourstone was raised in 1894 by the MacLeod shipping family, who wanted a malt that tasted of the coast their herring boats worked. The stillhouse has never moved from the shelf of rock above Stenwick cove."
     },
     {
       "property": "title",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "The Distillery"
+      "value": "Built for weather, not for show."
     }
   ]
 }

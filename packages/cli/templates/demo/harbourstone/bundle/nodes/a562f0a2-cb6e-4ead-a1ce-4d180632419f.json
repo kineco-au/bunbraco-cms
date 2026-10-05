@@ -7,12 +7,12 @@
   },
   "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
   "sortOrder": 1,
-  "template": "expression",
+  "template": "pages/expression",
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Harbourstone Peated",
+      "name": "Brine and Kiln",
       "published": true
     }
   ],
@@ -22,14 +22,14 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "48.0%"
+      "value": "46%"
     },
     {
       "property": "age",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.Integer",
-      "value": 10
+      "value": 14
     },
     {
       "property": "bodyText",
@@ -37,7 +37,7 @@
       "segment": null,
       "editor": "Umbraco.RichText",
       "value": {
-        "markup": "<p>Ten years, lightly peated to 18ppm with local turf, and the same coastal warehousing. The smoke sits on top; the floral spirit is still underneath it.</p>",
+        "markup": "<p>A portion of the malt dried over peat cut behind Dunnet, which is wet, salty ground and gives a smoke quite unlike an inland one. Fourteen years, and the smoke has had time to settle under the fruit rather than sit on top of it.</p>",
         "blocks": null
       }
     },
@@ -48,17 +48,31 @@
       "editor": "Umbraco.MediaPicker3",
       "value": [
         {
-          "key": "92137be9-dc76-4456-84c4-3b2b248acf38",
-          "mediaKey": "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+          "key": "6ea514f2-4076-4611-8727-eae0e9067d01",
+          "mediaKey": "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
           "mediaTypeAlias": "Image",
           "crops": [],
           "focalPoint": null
         }
       ],
       "references": [
-        "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
-        "92137be9-dc76-4456-84c4-3b2b248acf38"
+        "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
+        "6ea514f2-4076-4611-8727-eae0e9067d01"
       ]
+    },
+    {
+      "property": "kind",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Lightly peated"
+    },
+    {
+      "property": "summary",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Coastal peat at 18 ppm. Smoke that tastes of weather, not a bonfire."
     },
     {
       "property": "tastingNotes",
@@ -81,7 +95,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "Harbourstone Peated"
+      "value": "Brine & Kiln"
     }
   ]
 }

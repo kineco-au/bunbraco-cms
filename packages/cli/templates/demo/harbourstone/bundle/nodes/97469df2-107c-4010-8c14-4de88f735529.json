@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 5,
+  "sortOrder": 13,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Finish — Ash and heather honey, dryin…",
+      "name": "Finish — Iodine and ember. Long, but …",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Ash and heather honey, drying slowly to salt."
+      "value": "Iodine and ember. Long, but never heavy."
     }
   ]
 }

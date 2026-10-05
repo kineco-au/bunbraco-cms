@@ -44,7 +44,7 @@ function site(installed: Record<string, { declares: boolean }> = {}): string {
   mkdirSync(parent, { recursive: true })
   const root = mkdtempSync(join(parent, 'marketplace-site-'))
   dirs.push(root)
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(
     join(root, 'package.json'),
     JSON.stringify({

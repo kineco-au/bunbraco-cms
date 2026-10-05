@@ -1,0 +1,27 @@
+# A second element type, and the point of it is reuse: the home page picks four
+# of these as the figures beside the house style, and the About page picks four
+# more as the decisions that set it. Same type, two document types, no second
+# shape to maintain.
+[document-type]
+key = "2e4e319f-2627-43da-8200-27d6197aced7"
+alias = "highlight"
+name = "Highlight"
+description = "A short heading and a line under it, reusable across pages"
+icon = "icon-list"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "f441928a-273d-4a6a-94d9-f363d448107e"
+alias = "heading"
+name = "Heading"
+description = "A year, a number, or a single word"
+type = "textstring"
+mandatory = true
+
+[[property]]
+key = "b5e05c31-681a-473a-9597-777eb27517c5"
+alias = "detail"
+name = "Detail"
+type = "textarea"
+mandatory = true

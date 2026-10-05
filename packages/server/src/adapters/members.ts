@@ -143,7 +143,7 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
   const contentOf = (input: SaveMember, contentTypeKey: string) => ({
     key: input.key,
     contentTypeKey,
-    templateKey: null,
+    componentKey: null,
     parentKey: null,
     values: input.values,
     variants:

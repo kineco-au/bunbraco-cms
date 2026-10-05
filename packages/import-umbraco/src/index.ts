@@ -27,7 +27,7 @@ import { convertSchema } from './schema.ts'
 import { readSiteFiles, type SiteFiles } from './site-files.ts'
 import { openSource } from './source.ts'
 import { detectVersion, MINIMUM_MAJOR, NEWEST_MAJOR } from './version.ts'
-import { viewStub } from './views.ts'
+import { componentPathFor, componentStub, viewStub } from './views.ts'
 
 export { CLASS_ORDER, CLASS_TITLES, type Finding, type FindingClass } from './findings.ts'
 export { type DictionaryItem, type DomainEntry, sourceUrls } from './inventory.ts'
@@ -47,7 +47,7 @@ export {
   UPGRADE_STATES,
   versionForState,
 } from './version.ts'
-export { componentName, viewStub } from './views.ts'
+export { componentName, componentPathFor, componentStub, viewStub } from './views.ts'
 
 /** Where the bundle goes in the new site, and what the start script names. */
 export const IMPORT_BUNDLE = 'bundles/umbraco-import'
@@ -209,7 +209,7 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
     for (const template of templates) {
       const original = razorByAlias.get(template.alias.toLowerCase())
       out.push({
-        path: `Views/${template.alias}.tsx`,
+        path: `components/${template.alias}.tsx`,
         text: viewStub(template, {
           isLayout: layouts.has(template.alias),
           original: original ? `${IMPORT_DIR}/razor/${original.path}` : undefined,
@@ -223,7 +223,7 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
       code: 'razor-templates',
       title: 'Razor templates to rewrite as TSX',
       detail:
-        'Each has a stub in Views/ that renders the page’s name inside the same layout chain, so the site boots and every page answers. The markup itself has to be rewritten.',
+        'Each has a stub in components/ that renders the page’s name inside the same layout chain, so the site boots and every page answers. The markup itself has to be rewritten.',
       count: templates.length,
       items: templates.map((template) => {
         const original = razorByAlias.get(template.alias.toLowerCase())
@@ -232,16 +232,25 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
         return `${template.alias} (${original.lines} lines${uses})`
       }),
     })
-    const partials = (files?.razor ?? []).filter(
-      (file) => !/^Views\/[^/]+\.cshtml$/i.test(file.path),
-    )
+    // Every other Razor view — partials, shared layouts, anything nested — is a
+    // component too. There is one root and one kind of file, so each gets a
+    // stub where it sat, rather than being left as reference material with
+    // nothing on disk for a template to import.
+    const others = (files?.razor ?? []).filter((file) => !/^Views\/[^/]+\.cshtml$/i.test(file.path))
+    for (const file of others)
+      out.push({
+        path: componentPathFor(file.path),
+        text: componentStub(file.path, `${IMPORT_DIR}/razor/${file.path}`),
+      })
     findings.some({
       class: 'needs-a-person',
       code: 'razor-partials',
-      title: 'Razor partials and other views',
-      detail: `Kept in ${IMPORT_DIR}/razor/ for reference. Each becomes a component or a partial under Views/Partials/.`,
-      count: partials.length,
-      items: partials.map((file) => `${file.path} (${file.lines} lines)`),
+      title: 'Razor views to rewrite as components',
+      detail:
+        `Each has a stub under components/, in the folder it sat in, so an import of it ` +
+        `resolves. The original is in ${IMPORT_DIR}/razor/ and the markup has to be rewritten.`,
+      count: others.length,
+      items: others.map((file) => `${file.path} (${file.lines} lines)`),
     })
 
     // Media files go straight into the site's media directory, under the keys

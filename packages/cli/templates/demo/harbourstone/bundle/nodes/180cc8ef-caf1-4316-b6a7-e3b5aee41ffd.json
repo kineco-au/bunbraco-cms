@@ -1,0 +1,60 @@
+{
+  "key": "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
+  "kind": "media",
+  "contentType": {
+    "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+    "alias": "Image"
+  },
+  "parent": null,
+  "sortOrder": 0,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Harbourstone above Stenwick cove",
+      "published": false
+    }
+  ],
+  "values": [
+    {
+      "property": "umbracoBytes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "249675"
+    },
+    {
+      "property": "umbracoExtension",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "jpg"
+    },
+    {
+      "property": "umbracoFile",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ImageCropper",
+      "value": {
+        "src": "/media/180cc8ef/distillery-from-the-cliff-path.jpg",
+        "crops": [],
+        "focalPoint": null
+      }
+    },
+    {
+      "property": "umbracoHeight",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 900
+    },
+    {
+      "property": "umbracoWidth",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 1600
+    }
+  ]
+}

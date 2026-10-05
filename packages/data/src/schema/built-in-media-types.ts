@@ -272,8 +272,8 @@ export function builtInMediaTypeAggregate(
       contentTypeKey,
       sortOrder,
     })),
-    allowedTemplateKeys: [],
-    defaultTemplateKey: null,
+    allowedComponentKeys: [],
+    defaultComponentKey: null,
     parentKey: null,
   }
 }

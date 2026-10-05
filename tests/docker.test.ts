@@ -167,7 +167,7 @@ describe('the test containers', () => {
     for (const key of [
       'BUNBRACO_SQLITE_FILE',
       'BUNBRACO_ADMIN_PASSWORD',
-      'BUNBRACO_VIEWS_DIR',
+      'BUNBRACO_COMPONENTS_DIR',
       'BUNBRACO_MEDIA_DIR',
       'BUNBRACO_LOGS_DIR',
       'BUNBRACO_LOG_TO_CONSOLE',

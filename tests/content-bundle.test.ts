@@ -68,7 +68,7 @@ function set(nodes: BundleNode[]): ContentSet {
         expected: [],
         schema: {
           contentTypes: [{ key: '0b1c8e3a-4444-4a5b-9c1d-000000000001', alias: 'campaignPage' }],
-          templates: ['campaignPage'],
+          components: ['campaignPage'],
           languages: [],
         },
       },
@@ -304,7 +304,7 @@ describe('the media a bundle carries', () => {
  */
 describe('the sections a bundle can carry', () => {
   const SCHEMA = 'schema/document-types/campaign-page.toml'
-  const VIEW = 'views/campaignPage.tsx'
+  const VIEW = 'components/campaignPage.tsx'
   const sections = (): BundleFile[] => [
     { path: SCHEMA, text: '[document-type]\nalias = "campaignPage"\n' },
     { path: VIEW, text: 'export default () => <h1>Campaign</h1>\n' },
@@ -326,15 +326,15 @@ describe('the sections a bundle can carry', () => {
       carries: Record<string, string[]>
     }
     expect(manifest.formatVersion).toBe(BUNDLE_FORMAT_VERSION)
-    expect(manifest.carries).toEqual({ schema: [SCHEMA], views: [VIEW] })
+    expect(manifest.carries).toEqual({ schema: [SCHEMA], components: [VIEW] })
     expect(files.map((f) => f.path)).toContain(SCHEMA)
   })
 
   test('reads the sections back, as paths on disk', () => {
     const loaded = loadBundle(onDisk(set([node()]), undefined, sections()))
     expect(loaded.problems).toEqual([])
-    expect([...loaded.files.keys()].sort()).toEqual([SCHEMA, VIEW])
-    expect(loaded.set?.manifest.carries).toEqual({ schema: [SCHEMA], views: [VIEW] })
+    expect([...loaded.files.keys()].sort()).toEqual([VIEW, SCHEMA])
+    expect(loaded.set?.manifest.carries).toEqual({ schema: [SCHEMA], components: [VIEW] })
   })
 
   test('the integrity hash covers them, so an edited view is refused', () => {
@@ -386,6 +386,6 @@ describe('the sections a bundle can carry', () => {
     const paths = Object.values(BUNDLE_SECTIONS)
     expect(new Set(paths).size).toBe(paths.length)
     expect(paths).toContain('schema')
-    expect(paths).toContain('views')
+    expect(paths).toContain('components')
   })
 })

@@ -26,8 +26,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "title"
@@ -48,11 +48,11 @@ const VIEW = `export default function Page({ model }) {
 function pageSite() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-check-'))
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
-  return { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), root }
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
+  return { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), root }
 }
 
 const codes = (findings: Array<{ code: string }>) => findings.map((f) => f.code)
@@ -91,7 +91,9 @@ describe(`checking a bundle (${dialectUnderTest})`, () => {
     if (!(await canConnect())) throw new Error(`no ${dialectUnderTest} to test against`)
     const site = pageSite()
     dir = site.root
-    h = await signedInServer({ config: { schemaDir: site.schemaDir, viewsDir: site.viewsDir } })
+    h = await signedInServer({
+      config: { schemaDir: site.schemaDir, componentsDir: site.componentsDir },
+    })
     typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
     const root = await make('Campaigns', null, [
       { alias: 'title', culture: null, segment: null, value: 'Campaigns' },
@@ -317,13 +319,13 @@ describe(`checking a bundle (${dialectUnderTest})`, () => {
       template: 'absent',
     }))
     const check = await checkBundle(h.server.db, templated, {
-      templateAliases: new Set(['page']),
+      componentAliases: new Set(['page']),
     })
     const missing = check.findings.find((f) => f.code === 'missing-template')
     expect(missing?.kind).toBe('auto')
-    expect(missing?.message).toContain('Views/absent.tsx')
+    expect(missing?.message).toContain('components/absent.tsx')
     // With the view present, nothing is reported.
-    const fine = await checkBundle(h.server.db, own, { templateAliases: new Set(['page']) })
+    const fine = await checkBundle(h.server.db, own, { componentAliases: new Set(['page']) })
     expect(codes(fine.findings)).not.toContain('missing-template')
   })
 

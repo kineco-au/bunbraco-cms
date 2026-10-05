@@ -661,7 +661,7 @@ describe('the form picker data type', () => {
           variesBySegment: false,
           compositions: [],
           allowChildren: [],
-          templates: [],
+          components: [],
           cleanup: { prevent: false },
           properties: [
             {

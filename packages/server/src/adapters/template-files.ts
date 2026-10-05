@@ -1,12 +1,12 @@
 /**
  * Template views on disk.
  *
- * Umbraco keeps templates at ~/Views/{alias}.cshtml and treats the file as the
+ * Umbraco keeps templates at ~/components/{alias}.cshtml and treats the file as the
  * source of truth for its content; we do the same with .tsx.
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { TemplateFileStore } from '@bunbraco/data'
+import type { ComponentFileStore } from '@bunbraco/data'
 
 /** Aliases become filenames, so they must not be able to escape the directory. */
 function safeAlias(alias: string): string | undefined {
@@ -23,7 +23,7 @@ function safeAlias(alias: string): string | undefined {
 export function createTemplateFileStore(
   dir: string,
   onChange?: (alias: string) => void | Promise<void>,
-): TemplateFileStore {
+): ComponentFileStore {
   const fileFor = (alias: string): string | undefined => {
     const safe = safeAlias(alias)
     return safe ? join(dir, `${safe}.tsx`) : undefined

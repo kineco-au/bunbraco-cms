@@ -112,19 +112,23 @@ package.zip
 ├── nodes/<uuid>.json      picked content, media and element nodes   ┐
 ├── blobs/<key>            the media bytes                          │
 ├── schema/*.toml          types and languages, canonical TOML       │ each
-├── views/<alias>.tsx      templates                                 │ optional
-├── partials/…             partial views                             │
+├── components/…           components, at whatever depth             │ optional
 ├── styles/…               stylesheets                               │
 ├── scripts/…              scripts                                   │
 └── dictionary.udt         dictionary items                          ┘
 ```
 
 **The section names are logical, not the destination's directory names.** A site
-holds its templates wherever `viewsDir` points, so the artifact says what a file
-*is* and the importer decides where it goes — `partials/` lands in
-`<viewsDir>/Partials`, `styles/` in `stylesheetsDir`. A bundle built against one
-site's layout therefore installs into another's, which a hard-coded `Views/`
-would have broken.
+holds its components wherever `componentsDir` points, so the artifact says what a
+file *is* and the importer decides where it goes — `components/` lands in
+`componentsDir`, `styles/` in `stylesheetsDir`. A bundle built against one site's
+layout therefore installs into another's, which a hard-coded path would have
+broken.
+
+There is **one** section for components, not two. Umbraco's split of templates
+and partial views was a Razor concern ([`05-rendering.md`](05-rendering.md)), and
+a bundle that carried it would push the distinction back into every site that
+installed one.
 
 ### What the manifest adds
 
@@ -147,7 +151,7 @@ format of its own:
 | --- | --- |
 | Content, media, elements, blueprints, media bytes | `exportBundle` (`transfer/src/export.ts:165`) then `writeBundle` (`write.ts:149`), which returns exactly the `BundleFile[]` a zip wants |
 | Document, media and member types, data types, languages | `exportSchemaSet` (`schema/src/export.ts:188`) and the writers behind `writeSchemaFiles` (`:331`) — canonical TOML, the same files `schema/` holds |
-| Templates, partial views, stylesheets, scripts | read through `FileSystemPort` (`api-management/src/ports-files.ts`) |
+| Components, stylesheets, scripts | read through `FileSystemPort` (`api-management/src/ports-files.ts`) |
 | Dictionary items | `dictionaryToUdt` (`server/src/dictionary-transfer.ts:31`) |
 
 `exportSchemaSet` exports the whole schema, so it needs a variant — or a filter
@@ -204,8 +208,7 @@ table the code no longer looks for, with no migration to say so.
 Columns follow the contract's model: `id`, `name`, `content_node_id`,
 `content_load_child_nodes`, `media_ids`, `media_load_child_nodes`,
 `element_ids`, and the alias/path lists — document types, media types, data
-types, templates, partial views, stylesheets, scripts, languages, dictionary
-items. The lists are JSON text; they are read and written whole and never
+types, components, stylesheets, scripts, languages, dictionary items. The lists are JSON text; they are read and written whole and never
 queried into, so a column each would be columns for nothing.
 
 ## The zip is built on download, never stored
@@ -446,7 +449,7 @@ touched until it is known the schema can apply. An install whose schema would
 need data work is refused with nothing written.
 
 Then: schema files → `schema/`, then the sync a deploy already runs → views,
-partials, styles and scripts into the site's configured directories → dictionary
+components, styles and scripts into the site's configured directories → dictionary
 items → content, through the importer that already existed.
 
 Schema is applied by **writing the files and syncing**, never by writing the
@@ -489,9 +492,9 @@ Two details that make that work:
   it is left alone, because it holds the only copy of what was replaced, and the
   CLI prints where it is.
 
-`.bunbraco/transfer/` is a sibling of `.bunbraco/views`, never inside it: the
-views cache is rebuilt from `Views/` and cleared at boot, and these have to
-outlive a restart to be worth taking.
+`.bunbraco/transfer/` is a sibling of `.bunbraco/components`, never inside it:
+the components cache is rebuilt from `components/` and cleared at boot, and these
+have to outlive a restart to be worth taking.
 
 ### Known rough edge
 

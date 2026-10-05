@@ -2,7 +2,7 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Bunbraco",
   "id": "Bunbraco.Core",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "allowPublicAccess": false,
   "extensions": [
     {
@@ -256,6 +256,19 @@
       "alias": "Bunbraco.EntryPoint.BundleBuilderLabels",
       "name": "Bunbraco Bundle Builder Labels",
       "js": "/bunbraco-plugin/branding/bundle-builder-labels.js"
+    },
+    {
+      "type": "menuItem",
+      "kind": "tree",
+      "alias": "Bunbraco.MenuItem.Components",
+      "name": "Bunbraco Components Menu Item",
+      "weight": 40,
+      "overwrites": ["Umb.MenuItem.PartialView", "Umb.MenuItem.Templates"],
+      "meta": {
+        "label": "Components",
+        "treeAlias": "Umb.Tree.PartialView",
+        "menus": ["Umb.Menu.Templating"]
+      }
     }
   ]
 }

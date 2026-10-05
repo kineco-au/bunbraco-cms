@@ -225,7 +225,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
       key: crypto.randomUUID(),
       contentTypeKey: typeKey,
       parentKey: null,
-      templateKey: null,
+      componentKey: null,
       variants: [{ culture: null, segment: null, name: 'One' }],
       values: [
         { alias: 'title', culture: null, segment: null, value: 'T' },
@@ -278,7 +278,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
       key: crypto.randomUUID(),
       contentTypeKey: typeKey,
       parentKey: null,
-      templateKey: null,
+      componentKey: null,
       variants: [{ culture: null, segment: null, name: 'One' }],
       values: [{ alias: 'title', culture: null, segment: null, value: 'T' }],
       userId: 1,
@@ -422,7 +422,7 @@ describe(`schema contract steps (${dialectUnderTest})`, () => {
       key: crypto.randomUUID(),
       contentTypeKey: typeKey,
       parentKey: null,
-      templateKey: null,
+      componentKey: null,
       variants: [{ culture: null, segment: null, name: 'One' }],
       values: [
         { alias: 'title', culture: null, segment: null, value: 'T' },

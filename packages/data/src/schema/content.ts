@@ -67,7 +67,7 @@ export const contentMigration: Migration = {
     )
 
     /**
-     * The view file lives on disk at Views/{alias}.tsx; the layout chain is
+     * The view file lives on disk at components/{alias}.tsx; the layout chain is
      * declared in the file itself, exactly as Umbraco parses it out of Razor.
      */
     await db.exec(

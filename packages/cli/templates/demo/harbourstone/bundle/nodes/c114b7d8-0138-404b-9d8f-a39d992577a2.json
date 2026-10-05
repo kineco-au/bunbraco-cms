@@ -1,0 +1,60 @@
+{
+  "key": "c114b7d8-0138-404b-9d8f-a39d992577a2",
+  "kind": "media",
+  "contentType": {
+    "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+    "alias": "Image"
+  },
+  "parent": null,
+  "sortOrder": 6,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Neap Tide",
+      "published": false
+    }
+  ],
+  "values": [
+    {
+      "property": "umbracoBytes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "94004"
+    },
+    {
+      "property": "umbracoExtension",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "jpg"
+    },
+    {
+      "property": "umbracoFile",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ImageCropper",
+      "value": {
+        "src": "/media/c114b7d8/bottle-neap-tide.jpg",
+        "crops": [],
+        "focalPoint": null
+      }
+    },
+    {
+      "property": "umbracoHeight",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 1140
+    },
+    {
+      "property": "umbracoWidth",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 760
+    }
+  ]
+}

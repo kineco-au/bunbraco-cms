@@ -31,6 +31,7 @@
 import type { DocumentValue } from '@bunbraco/core'
 import {
   appendCacheInstruction,
+  ComponentRepository,
   type ContentKind,
   ContentTypeRepository,
   currentSchemaState,
@@ -38,7 +39,6 @@ import {
   DocumentRepository,
   Locks,
   PublishBlockedError,
-  TemplateRepository,
   type TransferAction,
   TransferRunRepository,
 } from '@bunbraco/data'
@@ -135,7 +135,7 @@ export async function importBundle(
       const mediaTypes = new ContentTypeRepository(tx, { kind: 'media' })
       const typesFor = (kind: BundleKind): ContentTypeRepository =>
         CONTENT_KIND[kind] === 'media' ? mediaTypes : types
-      const templates = new TemplateRepository(tx)
+      const templates = new ComponentRepository(tx)
 
       const repos = new Map<ContentKind, DocumentRepository>()
       const repoFor = (kind: BundleKind): DocumentRepository => {
@@ -206,7 +206,7 @@ export async function importBundle(
         await repo.create({
           key: node.key,
           contentTypeKey: type.key,
-          templateKey: node.template
+          componentKey: node.template
             ? ((await templates.byAlias(node.template))?.key ?? null)
             : null,
           parentKey,
@@ -263,9 +263,9 @@ export async function importBundle(
         await repo.update({
           key: node.key,
           contentTypeKey: current.contentTypeKey,
-          templateKey: node.template
-            ? ((await templates.byAlias(node.template))?.key ?? current.templateKey)
-            : current.templateKey,
+          componentKey: node.template
+            ? ((await templates.byAlias(node.template))?.key ?? current.componentKey)
+            : current.componentKey,
           parentKey: current.parentKey,
           values: overlay(current.values, node),
           variants: node.variants.map((v) => ({

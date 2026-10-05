@@ -661,13 +661,13 @@ describe('templates', () => {
   test('can be attached to a document type as its default', async () => {
     const h = await harness()
     const template = await h.post(`${V1}/template`, { name: 'Home Page', alias: 'homePage' })
-    const templateKey = template.headers.get('umb-generated-resource') as string
+    const componentKey = template.headers.get('umb-generated-resource') as string
 
     const created = await h.post(
       `${V1}/document-type`,
       documentType({
-        allowedTemplates: [{ id: templateKey }],
-        defaultTemplate: { id: templateKey },
+        allowedTemplates: [{ id: componentKey }],
+        defaultTemplate: { id: componentKey },
       }),
     )
     const key = created.headers.get('umb-generated-resource') as string
@@ -676,8 +676,8 @@ describe('templates', () => {
       allowedTemplates: Array<{ id: string }>
       defaultTemplate: { id: string } | null
     }>(`${V1}/document-type/${key}`)
-    expect(loaded.allowedTemplates.map((t) => t.id)).toEqual([templateKey])
-    expect(loaded.defaultTemplate?.id).toBe(templateKey)
+    expect(loaded.allowedTemplates.map((t) => t.id)).toEqual([componentKey])
+    expect(loaded.defaultTemplate?.id).toBe(componentKey)
   })
 
   test('appears in the template tree', async () => {

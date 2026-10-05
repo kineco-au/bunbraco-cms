@@ -72,7 +72,7 @@ export function createElementPort(
     throw error
   }
   /** An element has no template, whatever a save sends. */
-  const saved = <T extends object>(input: T) => ({ ...input, templateKey: null })
+  const saved = <T extends object>(input: T) => ({ ...input, componentKey: null })
 
   return {
     folders: createFolderPort(folders, tree, changed),

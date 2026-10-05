@@ -1,0 +1,35 @@
+{
+  "key": "3dc30fc1-973a-4217-b26f-24902210be17",
+  "kind": "element",
+  "contentType": {
+    "key": "2e4e319f-2627-43da-8200-27d6197aced7",
+    "alias": "highlight"
+  },
+  "parent": null,
+  "sortOrder": 0,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "1894",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "First season on this rock"
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "1894"
+    }
+  ]
+}

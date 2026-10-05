@@ -45,7 +45,7 @@ describe('hostnames, end to end through the CLI', () => {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
       'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_VIEWS_DIR',
+      'BUNBRACO_COMPONENTS_DIR',
       'BUNBRACO_SCHEMA_DIR',
       'BUNBRACO_MEDIA_DIR',
       'BUNBRACO_CSS_DIR',

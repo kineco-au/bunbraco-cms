@@ -49,7 +49,7 @@ export function builtInMediaTypeSchema(
     variesBySegment: false,
     compositions: [],
     allowChildren: def.allowChildren.filter((a) => present.has(a)),
-    templates: [],
+    components: [],
     cleanup: { prevent: false },
     properties: [],
     tabs: [],

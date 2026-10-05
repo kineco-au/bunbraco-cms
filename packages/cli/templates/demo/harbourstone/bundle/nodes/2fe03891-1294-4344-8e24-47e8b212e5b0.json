@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 7,
+  "sortOrder": 15,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Palate — Thick soft oak, apricot, cra…",
+      "name": "Palate — Dark honey, cocoa nib, salte…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Thick soft oak, apricot, cracked black pepper and a wash of salt."
+      "value": "Dark honey, cocoa nib, salted caramel, polished oak."
     }
   ]
 }

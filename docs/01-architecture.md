@@ -18,7 +18,7 @@ bunbraco/
 │   ├── import-umbraco/           # opt-in: an Umbraco backup → a report, schema files, a bundle, view stubs
 │   ├── backoffice-dist/          # the built backoffice (dist/ generated, upstream-static/ committed)
 │   └── render/                   # TSX renderer, published cache, front-end routing
-├── apps/site/                    # the reference site: config, server.ts, Views/, schema/
+├── apps/site/                    # the reference site: config, server.ts, components/, schema/
 ├── scripts/
 └── tests/
 ```

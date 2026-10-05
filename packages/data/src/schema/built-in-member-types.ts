@@ -43,8 +43,8 @@ export function systemMemberTypeAggregate(): ContentTypeAggregate {
     properties: [],
     compositions: [],
     allowedContentTypes: [],
-    allowedTemplateKeys: [],
-    defaultTemplateKey: null,
+    allowedComponentKeys: [],
+    defaultComponentKey: null,
     parentKey: null,
   }
 }

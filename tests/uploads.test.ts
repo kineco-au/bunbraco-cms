@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { MediaFileStore, safeFileName } from '@bunbraco/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -109,8 +109,8 @@ const TYPE_TOML = `[document-type]
 alias = "download"
 name = "Download"
 allow-at-root = true
-templates = ["download"]
-default-template = "download"
+components = ["download"]
+default-component = "download"
 
 [[property]]
 alias = "attachment"
@@ -131,21 +131,22 @@ const VIEW = `export default function Download({ model }) {
 async function site() {
   const root = tempDir('uploads-site-')
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'download.toml'), TYPE_TOML)
-  writeFileSync(join(root, 'Views', 'download.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'download.tsx'), VIEW)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
     },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('download'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('download'))?.key as string
-  return { h, typeKey, templateKey }
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('download'))
+    ?.key as string
+  return { h, typeKey, componentKey }
 }
 
 const upload = (h: Harness, id: string, file: File) => {
@@ -175,7 +176,7 @@ describe('temporary files and upload values', () => {
   })
 
   test('saving a value that names an upload places the file, stores its path and serves it', async () => {
-    const { h, typeKey, templateKey } = await site()
+    const { h, typeKey, componentKey } = await site()
     const fileId = crypto.randomUUID()
     const imageId = crypto.randomUUID()
     await upload(h, fileId, new File(['%PDF-1.7'], 'Brochure.pdf'))
@@ -183,7 +184,7 @@ describe('temporary files and upload values', () => {
 
     const created = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: null,
       values: [
         { alias: 'attachment', culture: null, segment: null, value: { temporaryFileId: fileId } },
@@ -226,7 +227,7 @@ describe('temporary files and upload values', () => {
 
     // Saving again without a new upload keeps the path
     await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [
         { alias: 'attachment', culture: null, segment: null, value: values.attachment },
         { alias: 'picture', culture: null, segment: null, value: values.picture },
@@ -241,7 +242,7 @@ describe('temporary files and upload values', () => {
 
     // An upload that has gone is refused, not silently dropped
     const missing = await h.put(`${V1}/document/${key}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [
         {
           alias: 'attachment',

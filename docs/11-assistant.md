@@ -162,7 +162,7 @@ capability; it is a suggestion that still has to get past the same door.
 Two honest caveats, stated here because the UI must state them too:
 
 - **A template apply is live immediately.** Files have no draft state — the
-  renderer imports `Views/<name>.tsx` on the next request. The approval *is* the
+  renderer imports `components/<name>.tsx` on the next request. The approval *is* the
   gate, which is why the diff is shown before approval and never after.
 - **A type apply changes the schema immediately**, exactly as clicking Save in
   the document-type workspace does — and, where the schema directory is writable,

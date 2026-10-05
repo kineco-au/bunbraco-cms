@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, RedirectRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@bunbraco/data'
 import { redirect } from '@bunbraco/render'
 import type { BunbracoConfig } from '@bunbraco/server'
 import { REDIRECTS_BUNDLE_ID, redirects as redirectsBundle } from '@bunbraco/simple-redirects'
@@ -40,8 +40,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 `
 
 const VIEW = `export default function Page({ model }) {
@@ -66,14 +66,14 @@ async function site(config: Partial<BunbracoConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'simple-redirects-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE_TOML)
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       bundles: [redirectsBundle()],
       ...config,
     },
@@ -81,13 +81,13 @@ async function site(config: Partial<BunbracoConfig> = {}) {
   open.push(h)
 
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
 
   const page = async (name: string, parent: string | null = null) => {
     const created = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
       parent: parent ? { id: parent } : null,
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [],
       variants: [{ culture: null, segment: null, name }],
     })
@@ -103,7 +103,7 @@ async function site(config: Partial<BunbracoConfig> = {}) {
 
   const rename = async (key: string, name: string) => {
     const response = await h.put(`${V1}/document/${key}/update-and-publish`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [],
       variants: [{ culture: null, segment: null, name }],
       culturesToPublish: [null],

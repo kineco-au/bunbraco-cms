@@ -11,7 +11,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FORM_HONEYPOT_FIELD, FORM_RENDERED_FIELD, FORM_TOKEN_FIELD } from '@bunbraco/core'
-import { ContentTypeRepository, FormEntryRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, FormEntryRepository } from '@bunbraco/data'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -31,8 +31,8 @@ const TYPE = `[document-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "contactForm"
@@ -88,26 +88,26 @@ const CONTACT = form(`message-on-submit = "Thanks, we will be in touch."
 async function site(definition = CONTACT) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-e2e-'))
   dirs.push(root)
-  for (const dir of ['schema/document-types', 'schema/forms', 'Views'])
+  for (const dir of ['schema/document-types', 'schema/forms', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
   writeFileSync(join(root, 'schema', 'forms', 'contact-us.toml'), definition)
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
     },
   })
   open.push(h)
 
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
   const created = await h.post(`${V1}/document`, {
     documentType: { id: typeKey },
-    template: { id: templateKey },
+    template: { id: componentKey },
     parent: null,
     values: [{ alias: 'contactForm', culture: null, segment: null, value: FORM_KEY }],
     variants: [{ culture: null, segment: null, name: 'Home' }],
@@ -177,10 +177,10 @@ describe('a form on a page', () => {
   test('a form that is not picked renders nothing rather than failing', async () => {
     const { h, visit } = await site()
     const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-    const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+    const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
     const created = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: null,
       values: [],
       variants: [{ culture: null, segment: null, name: 'Empty' }],

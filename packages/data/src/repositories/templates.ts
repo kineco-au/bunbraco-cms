@@ -3,27 +3,27 @@
  * file lives on disk, and the file system is the source of truth for its content.
  */
 import {
+  type ComponentModel,
   normaliseUuid,
   ObjectTypes,
   type Page,
   SystemNodes,
-  type TemplateModel,
 } from '@bunbraco/core'
 import type { Db } from '../database.ts'
 import { NodeRepository } from './nodes.ts'
 
-export interface TemplateFileStore {
+export interface ComponentFileStore {
   read(alias: string): Promise<string | undefined>
   write(alias: string, content: string): Promise<void>
   remove(alias: string): Promise<void>
 }
 
-export class TemplateRepository {
+export class ComponentRepository {
   #db: Db
   #nodes: NodeRepository
-  #files: TemplateFileStore | undefined
+  #files: ComponentFileStore | undefined
 
-  constructor(db: Db, files?: TemplateFileStore) {
+  constructor(db: Db, files?: ComponentFileStore) {
     this.#db = db
     this.#nodes = new NodeRepository(db)
     this.#files = files
@@ -33,7 +33,7 @@ export class TemplateRepository {
     return this.#nodes
   }
 
-  async byKey(key: string): Promise<TemplateModel | undefined> {
+  async byKey(key: string): Promise<ComponentModel | undefined> {
     const rows = await this.#db.query(
       `SELECT n.unique_id, n.text, t.alias FROM template t
        JOIN node n ON n.id = t.node_id WHERE n.unique_id = ?`,
@@ -50,7 +50,7 @@ export class TemplateRepository {
     }
   }
 
-  async byAlias(alias: string): Promise<TemplateModel | undefined> {
+  async byAlias(alias: string): Promise<ComponentModel | undefined> {
     const rows = await this.#db.query<{ unique_id: string }>(
       'SELECT n.unique_id FROM template t JOIN node n ON n.id = t.node_id WHERE t.alias = ?',
       [alias],
@@ -58,13 +58,13 @@ export class TemplateRepository {
     return rows[0] ? this.byKey(String(rows[0].unique_id)) : undefined
   }
 
-  async all(): Promise<TemplateModel[]> {
+  async all(): Promise<ComponentModel[]> {
     return (await this.list(0, 10_000)).items
   }
 
-  async list(skip: number, take: number): Promise<Page<TemplateModel>> {
+  async list(skip: number, take: number): Promise<Page<ComponentModel>> {
     const page = await this.#nodes.children(SystemNodes.Root, ObjectTypes.Template, skip, take)
-    const items: TemplateModel[] = []
+    const items: ComponentModel[] = []
     for (const node of page.items) {
       const template = await this.byKey(node.key)
       if (template) items.push(template)
@@ -72,9 +72,9 @@ export class TemplateRepository {
     return { total: page.total, items }
   }
 
-  async save(model: TemplateModel, userId?: number): Promise<TemplateModel> {
+  async save(model: ComponentModel, userId?: number): Promise<ComponentModel> {
     const saved = await this.#db.transaction(async (tx) => {
-      const repo = new TemplateRepository(tx, this.#files)
+      const repo = new ComponentRepository(tx, this.#files)
       const existing = await repo.nodes.byKey(model.key)
       if (existing) {
         await repo.nodes.rename(existing.id, model.name)

@@ -1,0 +1,35 @@
+{
+  "key": "62f479ff-0875-453e-99ae-3bf1bec5e3c8",
+  "kind": "element",
+  "contentType": {
+    "key": "2e4e319f-2627-43da-8200-27d6197aced7",
+    "alias": "highlight"
+  },
+  "parent": null,
+  "sortOrder": 4,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Water",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Hill spring above the cove, soft and cold."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Water"
+    }
+  ]
+}

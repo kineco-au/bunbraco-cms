@@ -12,13 +12,13 @@ import {
   type PropertyTypeModel,
 } from '@bunbraco/core'
 import {
+  ComponentRepository,
   ContentTypeRepository,
   DataTypeRepository,
   type Db,
   FolderRepository,
   LanguageRepository,
   SYSTEM_MEDIA_TYPES,
-  TemplateRepository,
 } from '@bunbraco/data'
 import { BUILTIN_DATA_TYPES, builtInMediaTypeSchema } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
@@ -45,7 +45,7 @@ import {
 export interface ExportContext {
   dataTypeAlias(key: string): string | undefined
   contentTypeAlias(key: string): string | undefined
-  templateAlias(key: string): string | undefined
+  componentAlias(key: string): string | undefined
 }
 
 function toSchemaProperty(p: PropertyTypeModel, ctx: ExportContext): SchemaProperty {
@@ -98,17 +98,17 @@ export function toSchemaDocumentType(
       .sort(byOrder)
       .map((c) => ctx.contentTypeAlias(c.contentTypeKey))
       .filter((alias): alias is string => alias !== undefined),
-    templates: aggregate.allowedTemplateKeys
-      .map((key) => ctx.templateAlias(key))
+    components: aggregate.allowedComponentKeys
+      .map((key) => ctx.componentAlias(key))
       .filter((alias): alias is string => alias !== undefined),
     cleanup: { prevent: aggregate.cleanup.preventCleanup },
     properties: under(null),
     tabs: [],
   }
   if (aggregate.description) type.description = aggregate.description
-  if (aggregate.defaultTemplateKey) {
-    const alias = ctx.templateAlias(aggregate.defaultTemplateKey)
-    if (alias) type.defaultTemplate = alias
+  if (aggregate.defaultComponentKey) {
+    const alias = ctx.componentAlias(aggregate.defaultComponentKey)
+    if (alias) type.defaultComponent = alias
   }
   if (aggregate.collectionKey) {
     const alias = ctx.dataTypeAlias(aggregate.collectionKey)
@@ -188,7 +188,7 @@ function isUnchangedBuiltin(dataType: SchemaDataType): boolean {
 export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSet> {
   const types = new ContentTypeRepository(db)
   const dataTypes = new DataTypeRepository(db)
-  const templates = new TemplateRepository(db)
+  const templates = new ComponentRepository(db)
 
   const mediaTypeRepo = new ContentTypeRepository(db, { kind: 'media' })
   const liveTypes = async (repo: ContentTypeRepository) => {
@@ -258,7 +258,7 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
   const ctx: ExportContext = {
     dataTypeAlias: (key) => dataTypeAliasByKey.get(key.toLowerCase()),
     contentTypeAlias: (key) => contentTypeAliasByKey.get(key.toLowerCase()),
-    templateAlias: (key) => templateAliasByKey.get(key.toLowerCase()),
+    componentAlias: (key) => templateAliasByKey.get(key.toLowerCase()),
   }
   const languages: SchemaLanguage[] = (await new LanguageRepository(db).all()).map((l) => {
     const language: SchemaLanguage = {
@@ -286,7 +286,7 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
   for (const a of mediaAggregates) {
     // Media types carry neither templates nor a cleanup policy.
     const type = toSchemaDocumentType(
-      { ...a, allowedTemplateKeys: [], defaultTemplateKey: null },
+      { ...a, allowedComponentKeys: [], defaultComponentKey: null },
       ctx,
     )
     type.cleanup = { prevent: false }
@@ -309,7 +309,7 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
   for (const a of memberAggregates) {
     // Member types carry neither templates, a cleanup policy, nor children.
     const type = toSchemaDocumentType(
-      { ...a, allowedTemplateKeys: [], defaultTemplateKey: null, allowedContentTypes: [] },
+      { ...a, allowedComponentKeys: [], defaultComponentKey: null, allowedContentTypes: [] },
       ctx,
     )
     type.cleanup = { prevent: false }

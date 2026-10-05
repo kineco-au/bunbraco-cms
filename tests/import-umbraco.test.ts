@@ -24,7 +24,7 @@ import {
   viewStub,
 } from '@bunbraco/import-umbraco'
 import { loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
-import { templateAliasesIn } from '@bunbraco/server'
+import { componentAliasesIn } from '@bunbraco/server'
 import { type BundleNode, importBundle, loadBundle } from '@bunbraco/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
@@ -181,7 +181,9 @@ describe('the schema it writes', () => {
     const loaded = loadSchemaDirectory(join(site, 'schema'))
     expect(loaded.problems).toEqual([])
     expect(
-      validateSchemaSet(loaded.set, { templateAliases: templateAliasesIn(join(site, 'Views')) }),
+      validateSchemaSet(loaded.set, {
+        componentAliases: componentAliasesIn(join(site, 'components')),
+      }),
     ).toEqual([])
     expect(loaded.set.documentTypes.length).toBe(25)
     expect(loaded.set.languages.map((l) => [l.iso, l.default, l.fallback])).toEqual([
@@ -199,8 +201,8 @@ describe('the schema it writes', () => {
       icon: 'icon-store color-black',
       allowAtRoot: true,
       folder: 'Pages',
-      templates: ['HomePage'],
-      defaultTemplate: 'HomePage',
+      components: ['HomePage'],
+      defaultComponent: 'HomePage',
     })
     expect(home?.compositions).toContain('pageComp')
     const products = set.documentTypes.find((t) => t.alias === 'productsPage')
@@ -219,7 +221,7 @@ describe('the schema it writes', () => {
   test('an element type loses the route settings Umbraco let it keep', () => {
     const { set } = loadSchemaDirectory(join(site, 'schema'))
     for (const type of set.documentTypes.filter((t) => t.isElement)) {
-      expect(type.templates).toEqual([])
+      expect(type.components).toEqual([])
       expect(type.allowAtRoot).toBe(false)
       expect(type.allowChildren).toEqual([])
     }
@@ -369,20 +371,20 @@ describe('the content it writes', () => {
 
 describe('the views it writes', () => {
   test('one stub per template, in the layout chain the Razor had', () => {
-    const views = plan.files.filter((f) => f.path.startsWith('Views/'))
+    const views = plan.files.filter((f) => f.path.startsWith('components/'))
     expect(views.length).toBe(20)
-    expect(fileText(plan, 'Views/HomePage.tsx')).toContain("export const layout = 'Page'")
-    expect(fileText(plan, 'Views/Page.tsx')).toContain("export const layout = 'Layout'")
+    expect(fileText(plan, 'components/HomePage.tsx')).toContain("export const layout = 'Page'")
+    expect(fileText(plan, 'components/Page.tsx')).toContain("export const layout = 'Layout'")
     // The outermost layout owns the document; the ones inside it only pass children on.
-    expect(fileText(plan, 'Views/Layout.tsx')).toContain('<body>{children}</body>')
-    expect(fileText(plan, 'Views/Layout.tsx')).not.toContain('export const layout')
-    expect(fileText(plan, 'Views/Page.tsx')).toContain('<div>{children}</div>')
+    expect(fileText(plan, 'components/Layout.tsx')).toContain('<body>{children}</body>')
+    expect(fileText(plan, 'components/Layout.tsx')).not.toContain('export const layout')
+    expect(fileText(plan, 'components/Page.tsx')).toContain('<div>{children}</div>')
     // A template with no layout is a whole document on its own.
-    expect(fileText(plan, 'Views/SitemapPage.tsx')).toContain('<html lang="en">')
+    expect(fileText(plan, 'components/SitemapPage.tsx')).toContain('<html lang="en">')
   })
 
   test('every stub compiles', async () => {
-    for (const file of plan.files.filter((f) => f.path.startsWith('Views/')))
+    for (const file of plan.files.filter((f) => f.path.startsWith('components/')))
       expect(() =>
         new Bun.Transpiler({ loader: 'tsx' }).transformSync(file.text as string),
       ).not.toThrow()
@@ -501,7 +503,7 @@ describe('with the site’s files', () => {
     expect(
       withSite.files.find((f) => f.path === 'import/razor/Views/HomePage.cshtml')?.copyFrom,
     ).toBe(join(web, 'Views/HomePage.cshtml'))
-    expect(fileText(withSite, 'Views/HomePage.tsx')).toContain(
+    expect(fileText(withSite, 'components/HomePage.tsx')).toContain(
       'The original is in import/razor/Views/HomePage.cshtml',
     )
     expect(finding(withSite, 'razor-templates')[0]?.items).toContain(
@@ -510,6 +512,17 @@ describe('with the site’s files', () => {
     expect(finding(withSite, 'razor-partials')[0]?.items).toEqual([
       'Views/Partials/Hero.cshtml (2 lines)',
     ])
+
+    // A partial view is a component like any other, so it arrives as a file
+    // rather than as reference material: `HomePage.cshtml` does
+    // `Html.PartialAsync("Hero")`, and whoever rewrites it needs something to
+    // import. The source site's own folder is kept, minus the Views/ prefix.
+    const hero = fileText(withSite, 'components/Partials/Hero.tsx')
+    expect(hero).toContain('export function Hero(')
+    // Not a page: a template is routed to, a component is imported.
+    expect(hero).not.toContain('export default')
+    expect(hero).not.toContain('PageProps')
+    expect(hero).toContain('import/razor/Views/Partials/Hero.cshtml')
 
     // The one media file present is copied under the key its value names.
     expect(
@@ -551,7 +564,7 @@ describe(`importing the result (${dialectUnderTest})`, () => {
     if (!(await canConnect())) throw new Error(`no ${dialectUnderTest} to test against`)
     expect(existsSync(join(site, 'schema', 'schema.toml'))).toBe(true)
     const h = await signedInServer({
-      config: { schemaDir: join(site, 'schema'), viewsDir: join(site, 'Views') },
+      config: { schemaDir: join(site, 'schema'), componentsDir: join(site, 'components') },
     })
     open.push(h)
 
@@ -561,7 +574,7 @@ describe(`importing the result (${dialectUnderTest})`, () => {
       nodeId: 'test',
       publish: true,
       allowMissingBlobs: true,
-      templateAliases: templateAliasesIn(join(site, 'Views')),
+      componentAliases: componentAliasesIn(join(site, 'components')),
     })
     expect(result.check.outstanding).toEqual([])
     expect(result.runId).toBeDefined()

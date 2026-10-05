@@ -51,7 +51,7 @@ async function site() {
     writeFileSync(join(root, path), content)
   }
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string

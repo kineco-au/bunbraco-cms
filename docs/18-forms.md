@@ -323,14 +323,16 @@ resolves the stored key to the definition — so a view gets the form, not a UUI
 `bunbraco generate` is what removes the cast.
 
 The demo template is the worked example:
-`templates/demo/harbourstone/files/schema/forms/visit-enquiry.toml` is pointed at
-by the Contact page's `enquiryForm` property and rendered by
-`Views/contentPage.tsx`.
+`templates/demo/harbourstone/files/schema/forms/contact.toml` is pointed at by the
+Contact page's `enquiryForm` property and rendered by `components/contactPage.tsx`. It
+is also where the conditional-field rule is exercised: `company` appears only for
+a trade enquiry, and the server discards its value when the condition does not
+hold.
 
 ### Theming is composition, not directories
 
 This is a **deliberate change from the plan above**, which described Umbraco's
-theme folders — `Views/Forms/<theme>/<fieldType>.tsx` with a fallback chain.
+theme folders — `components/Forms/<theme>/<fieldType>.tsx` with a fallback chain.
 Two things made that the wrong shape here:
 
 - A component renders synchronously, and a view cannot await. Loading theme

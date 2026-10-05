@@ -103,7 +103,7 @@ function page(typeKey: string, values: Record<string, string>) {
     key: crypto.randomUUID(),
     contentTypeKey: typeKey,
     parentKey: null,
-    templateKey: null,
+    componentKey: null,
     variants: [{ culture: null, segment: null, name: 'Page' }],
     values: Object.entries(values).map(([alias, value]) => ({
       alias,

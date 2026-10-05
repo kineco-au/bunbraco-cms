@@ -15,7 +15,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, cacheInstructionsAfter, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, cacheInstructionsAfter } from '@bunbraco/data'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -33,8 +33,8 @@ const HOME = `[document-type]
 alias = "homePage"
 name = "Home page"
 allow-at-root = true
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[property]]
 alias = "heading"
@@ -56,16 +56,16 @@ describe('a template edited under a running node', () => {
   async function site() {
     const root = mkdtempSync(join(process.cwd(), 'output', 'views-reload-'))
     dirs.push(root)
-    for (const dir of ['schema/document-types', 'Views/components'])
+    for (const dir of ['schema/document-types', 'components/components'])
       mkdirSync(join(root, dir), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(root, 'schema', 'document-types', 'home.toml'), HOME)
-    writeFileSync(join(root, 'Views', 'homePage.tsx'), TEMPLATE)
-    writeFileSync(join(root, 'Views', 'components', 'layout.tsx'), layout('first'))
+    writeFileSync(join(root, 'components', 'homePage.tsx'), TEMPLATE)
+    writeFileSync(join(root, 'components', 'components', 'layout.tsx'), layout('first'))
     return {
       root,
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       sqliteFile: join(root, 'site.sqlite'),
     }
   }
@@ -84,11 +84,11 @@ describe('a template edited under a running node', () => {
         siteDir: root,
         // Its own, as a deployed node has: two nodes sharing one would evict
         // generations the other is serving.
-        viewsCacheDir: join(root, '.bunbraco', nodeId),
+        componentsCacheDir: join(root, '.bunbraco', nodeId),
         // A short gate, and no coalescing floor: both are production intervals
         // that a test would otherwise have to wait out. The floor only ever
         // delays a change nobody announced.
-        viewsSnapshot: { gateTtlMs: 50, minSwapIntervalMs: 0 },
+        componentsSnapshot: { gateTtlMs: 50, minSwapIntervalMs: 0 },
         nodeId,
         development: first,
         schemaWritable: true,
@@ -104,11 +104,11 @@ describe('a template edited under a running node', () => {
   async function publishHome(h: Harness): Promise<void> {
     const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('homePage'))
       ?.key as string
-    const templateKey = (await new TemplateRepository(h.server.db).byAlias('homePage'))
+    const componentKey = (await new ComponentRepository(h.server.db).byAlias('homePage'))
       ?.key as string
     const created = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: null,
       values: [{ alias: 'heading', culture: null, segment: null, value: 'Hello' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
@@ -121,7 +121,7 @@ describe('a template edited under a running node', () => {
 
   /** Saves a template through the Management API, as the editor does. */
   async function saveTemplate(node: Harness, content: string): Promise<void> {
-    const key = (await new TemplateRepository(node.server.db).byAlias('homePage'))?.key as string
+    const key = (await new ComponentRepository(node.server.db).byAlias('homePage'))?.key as string
     const saved = await node.put(`${V1}/template/${key}`, {
       name: 'Home page',
       alias: 'homePage',
@@ -158,12 +158,12 @@ export default function Home({ model }) {
     await Bun.sleep(250)
 
     const added = (await cacheInstructionsAfter(writer.server.db, 0)).slice(before)
-    const views = added.filter((instruction) => instruction.kind === 'views')
+    const views = added.filter((instruction) => instruction.kind === 'components')
     expect(views.length).toBeGreaterThan(0)
     expect(views[0]?.createdBy).toBe('writer-node')
     // The hash it carries is the generation the write produced, so a receiver
     // knows when it has arrived.
-    expect(views[0]?.payload.hash).toBe(writer.server.health().views.hash as string)
+    expect(views[0]?.payload.hash).toBe(writer.server.health().components.hash as string)
     expect(views[0]?.payload.alias).toBe('homePage')
   })
 
@@ -175,7 +175,7 @@ export default function Home({ model }) {
     const reader = await boot(where, 'reader-node', false)
     // Renders once, which is what puts the module in the reader's registry.
     expect(await render(reader)).toContain('data-layout="first"')
-    const generation = reader.server.health().views.hash
+    const generation = reader.server.health().components.hash
 
     await saveTemplate(
       writer,
@@ -194,7 +194,7 @@ export default function Home({ model }) {
     await reader.server.snapshots.settle()
 
     expect(await render(reader)).toContain('second: Hello')
-    expect(reader.server.health().views.hash).not.toBe(generation as string)
+    expect(reader.server.health().components.hash).not.toBe(generation as string)
   })
 
   /**
@@ -210,7 +210,7 @@ export default function Home({ model }) {
 
     // Written to disk directly: a component is not a template, so the editor
     // has no route for it — this is a deploy, or a bucket synced underneath.
-    writeFileSync(join(where.viewsDir, 'components', 'layout.tsx'), layout('second'))
+    writeFileSync(join(where.componentsDir, 'components', 'layout.tsx'), layout('second'))
 
     // Nothing announced it, so the gate is what notices. A render starts the
     // check in the background and keeps serving, so the first one after the

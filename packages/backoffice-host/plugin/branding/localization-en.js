@@ -80,6 +80,18 @@ export default {
   sections: {
     packages: 'Bundles',
   },
+  create: {
+    // The create options on the Components tree. The folder option is Umbraco's
+    // own and already reads correctly.
+    newEmptyPartialView: 'Empty component',
+    newPartialViewFromSnippet: 'Component from snippet',
+  },
+  treeHeaders: {
+    // One tree over one directory: templates and partial views are the same
+    // kind of file here, and what makes one a template is that a document type
+    // names it, not where it sits.
+    partialViews: 'Components',
+  },
   packager: {
     createPackage: 'Create bundle',
     noPackagesCreated: 'No bundles have been created yet',

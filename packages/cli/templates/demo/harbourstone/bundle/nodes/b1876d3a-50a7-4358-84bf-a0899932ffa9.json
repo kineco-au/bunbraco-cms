@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 6,
+  "sortOrder": 14,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Nose — Orchard blossom and oak shav…",
+      "name": "Nose — Fig, orange marmalade, walnu…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Orchard blossom and oak shavings, bright and undiluted."
+      "value": "Fig, orange marmalade, walnut, a lift of sea air."
     }
   ]
 }

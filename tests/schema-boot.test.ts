@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { parseDocumentType } from '@bunbraco/schema'
 import { createServer, loadConfig, SchemaBootError } from '@bunbraco/server'
 import { dialectUnderTest } from './support/db.ts'
@@ -33,8 +33,8 @@ const ARTICLE = (version: string, withSummary: boolean) => `[document-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
-templates = ["article"]
-default-template = "article"
+components = ["article"]
+default-component = "article"
 ${version ? `since = "${version}"\n` : ''}
 [[property]]
 alias = "title"
@@ -54,7 +54,7 @@ type = "textarea"
 interface Site {
   root: string
   schemaDir: string
-  viewsDir: string
+  componentsDir: string
   sqliteFile: string
 }
 
@@ -62,14 +62,14 @@ function site(version: string, files: Record<string, string> = {}): Site {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-site-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
-  writeFileSync(join(root, 'Views', 'article.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
   for (const [name, content] of Object.entries(files)) writeFileSync(join(root, name), content)
   return {
     root,
     schemaDir: join(root, 'schema'),
-    viewsDir: join(root, 'Views'),
+    componentsDir: join(root, 'components'),
     sqliteFile: join(root, 'site.sqlite'),
   }
 }
@@ -89,7 +89,7 @@ async function boot(
     keepDatabase: options.keepDatabase,
     config: {
       schemaDir: s.schemaDir,
-      viewsDir: s.viewsDir,
+      componentsDir: s.componentsDir,
       sqliteFile: options.sqliteFile ?? s.sqliteFile,
       schemaRevision: options.revision ?? '1',
       nodeId: options.nodeId ?? 'test-node',
@@ -107,7 +107,7 @@ async function createArticle(
   name: string,
   values: Record<string, string>,
 ) {
-  const template = await new TemplateRepository(h.server.db).byAlias('article')
+  const template = await new ComponentRepository(h.server.db).byAlias('article')
   const response = await h.post(`${V1}/document`, {
     documentType: { id: typeKey },
     template: template ? { id: template.key } : null,
@@ -135,8 +135,8 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     const type = await new ContentTypeRepository(h.server.db).byAlias('article')
     expect(type?.properties.map((p) => p.alias)).toEqual(['title', 'summary'])
     // The template row was created for the view; the view's content is on disk.
-    const template = await new TemplateRepository(h.server.db).byAlias('article')
-    expect(template?.key).toBe(type?.defaultTemplateKey as string)
+    const template = await new ComponentRepository(h.server.db).byAlias('article')
+    expect(template?.key).toBe(type?.defaultComponentKey as string)
 
     // Keys were written back into the file (development).
     const written = parseDocumentType(
@@ -248,7 +248,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     writeFileSync(join(s.schemaDir, 'schema.toml'), '[schema]\nversion = "1.1.0"\n')
     const config = loadConfig({
       schemaDir: s.schemaDir,
-      viewsDir: s.viewsDir,
+      componentsDir: s.componentsDir,
       sqliteFile: s.sqliteFile,
       nodeId: 'test-node',
     })
@@ -270,7 +270,11 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     let failure: unknown
     try {
       const server = await createServer(
-        loadConfig({ schemaDir: s.schemaDir, viewsDir: s.viewsDir, sqliteFile: s.sqliteFile }),
+        loadConfig({
+          schemaDir: s.schemaDir,
+          componentsDir: s.componentsDir,
+          sqliteFile: s.sqliteFile,
+        }),
       )
       await server.close()
     } catch (error) {
@@ -304,7 +308,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
       // Node A still reads every page it did, but may not write
       expect((await a.call(`${V1}/document/${key}`)).status).toBe(200)
       expect((await a.call('/')).status).toBe(200)
-      const template = await new TemplateRepository(a.server.db).byAlias('article')
+      const template = await new ComponentRepository(a.server.db).byAlias('article')
       const rejected = await a.put(`${V1}/document/${key}`, {
         template: { id: template?.key },
         values: [{ alias: 'title', culture: null, segment: null, value: 'from a' }],

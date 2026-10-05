@@ -25,13 +25,13 @@ function site(files: Record<string, string> = { 'homePage.tsx': view('first') })
   mkdirSync(join(process.cwd(), 'output'), { recursive: true })
   const root = mkdtempSync(join(process.cwd(), 'output', 'snapshots-'))
   dirs.push(root)
-  const sourceDir = join(root, 'Views')
+  const sourceDir = join(root, 'components')
   for (const [name, content] of Object.entries(files)) {
     const file = join(sourceDir, name)
     mkdirSync(join(file, '..'), { recursive: true })
     writeFileSync(file, content)
   }
-  return { root, sourceDir, cacheDir: join(root, '.bunbraco', 'views') }
+  return { root, sourceDir, cacheDir: join(root, '.bunbraco', 'components') }
 }
 
 /** A clock the test moves, so no case waits for a real interval. */

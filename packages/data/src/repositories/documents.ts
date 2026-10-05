@@ -97,7 +97,7 @@ interface ValueRow {
 export interface SaveDocumentInput {
   key: string
   contentTypeKey: string
-  templateKey: string | null
+  componentKey: string | null
   parentKey: string | null
   values: DocumentValue[]
   variants: Array<{ culture: string | null; segment: string | null; name: string }>
@@ -114,7 +114,7 @@ export interface PublishedNodeRow {
   sortOrder: number
   name: string
   contentTypeAlias: string
-  templateAlias: string | null
+  componentAlias: string | null
   createDate: Date
   updateDate: Date
   cultures: string[]
@@ -411,7 +411,7 @@ export class DocumentRepository {
         sortOrder: Number(row.sort_order),
         name: String(row.name ?? ''),
         contentTypeAlias: String(row.content_type_alias),
-        templateAlias: (row.template_alias as string | null) ?? null,
+        componentAlias: (row.template_alias as string | null) ?? null,
         createDate: DbDate.fromDb(row.create_date) ?? new Date(),
         updateDate: DbDate.fromDb(row.version_date) ?? new Date(),
         cultures: cultures.map((c) => c.isoCode),
@@ -455,8 +455,8 @@ export class DocumentRepository {
           tx.dialect.boolValue(true),
         ])
 
-        const templateId = input.templateKey
-          ? ((await repo.nodes.byKey(input.templateKey))?.id ?? null)
+        const templateId = input.componentKey
+          ? ((await repo.nodes.byKey(input.componentKey))?.id ?? null)
           : null
         const eventId = await repo.#insertEvent(
           node.id,
@@ -611,8 +611,8 @@ export class DocumentRepository {
 
       const name = input.variants[0]?.name ?? node.text ?? ''
       await repo.nodes.rename(node.id, name)
-      const templateId = input.templateKey
-        ? ((await repo.nodes.byKey(input.templateKey))?.id ?? null)
+      const templateId = input.componentKey
+        ? ((await repo.nodes.byKey(input.componentKey))?.id ?? null)
         : null
       const eventId = await repo.#insertEvent(
         node.id,
@@ -976,7 +976,7 @@ export class DocumentRepository {
       const created = await this.create({
         key: crypto.randomUUID(),
         contentTypeKey: from.contentTypeKey,
-        templateKey: from.templateKey,
+        componentKey: from.componentKey,
         parentKey,
         values: from.values,
         variants,
@@ -1450,7 +1450,7 @@ export class DocumentRepository {
       contentTypeCollectionKey: row.content_type_collection
         ? normaliseUuid(String(row.content_type_collection))
         : null,
-      templateKey: row.template_key ? normaliseUuid(String(row.template_key)) : null,
+      componentKey: row.template_key ? normaliseUuid(String(row.template_key)) : null,
       parentKey: parent && parent.id !== SystemNodes.Root ? parent.key : null,
       sortOrder: node.sortOrder,
       isTrashed: node.trashed,

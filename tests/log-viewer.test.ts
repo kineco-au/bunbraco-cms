@@ -146,13 +146,13 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'log-viewer-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   const logsDir = join(root, 'logs')
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       logsDir,
       logLevel: 'debug',
       development: true,

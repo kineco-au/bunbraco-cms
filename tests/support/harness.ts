@@ -91,7 +91,9 @@ export interface HarnessOptions {
 
 export async function signedInServer(options: HarnessOptions = {}): Promise<Harness> {
   if (!options.keepDatabase) await resetPostgresSchema()
-  const server = await createServer(loadConfig({ viewsCacheDir: VIEWS_CACHE, ...options.config }))
+  const server = await createServer(
+    loadConfig({ componentsCacheDir: VIEWS_CACHE, ...options.config }),
+  )
   return signIn(server, ADMIN)
 }
 

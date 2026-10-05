@@ -33,7 +33,7 @@ import {
 } from '@bunbraco/schema'
 import type { BunbracoConfig } from '../config.ts'
 import { logger } from '../logging.ts'
-import { importSchema, templateAliasesIn } from '../schema.ts'
+import { componentAliasesIn, importSchema } from '../schema.ts'
 
 const log = logger('schema')
 
@@ -92,7 +92,7 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
     ]
     return validateSchemaSet(
       { ...set, documentTypes },
-      { templateAliases: templateAliasesIn(config.viewsDir) },
+      { componentAliases: componentAliasesIn(config.componentsDir) },
     )
   }
 

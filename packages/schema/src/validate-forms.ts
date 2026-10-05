@@ -41,7 +41,7 @@ const set = (field: SchemaFormField, model: keyof SchemaFormField): boolean => {
 }
 
 export interface ValidateFormsOptions {
-  /** Theme directories that exist under `Views/Forms/`; omit to skip the check. */
+  /** Theme directories that exist under `components/Forms/`; omit to skip the check. */
   formThemes?: ReadonlySet<string>
   /** Document type aliases, so `saveAsContent` can be held to a real one. */
   documentTypeAliases?: ReadonlySet<string>
@@ -77,7 +77,7 @@ export function validateForms(
 
     if (form.pages.length === 0) add(file, 'page', 'a form needs at least one page')
     if (options.formThemes && form.theme && !options.formThemes.has(form.theme))
-      add(file, 'form.theme', `no theme directory "Views/Forms/${form.theme}"`)
+      add(file, 'form.theme', `no theme directory "components/Forms/${form.theme}"`)
     if (form.maxEntries !== undefined && form.maxEntries < 1)
       add(file, 'form.max-entries', 'must be at least 1')
     if (form.minimumSubmitSeconds !== undefined && form.minimumSubmitSeconds < 0)

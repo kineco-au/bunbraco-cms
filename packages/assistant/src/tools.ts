@@ -386,6 +386,7 @@ export function createToolHost(options: ToolHostOptions) {
     if (!templateId) {
       const type = await read('GetDocumentTypeById', { id: documentTypeId })
       if (!('error' in type) && type.status === 200) {
+        // The management API's own field name, which is Umbraco's contract.
         templateId = (type.body as { defaultTemplate?: { id?: string } | null }).defaultTemplate?.id
       }
     }

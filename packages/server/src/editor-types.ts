@@ -28,7 +28,7 @@ const MODULE_DIR = 'file:///node_modules/bunbraco'
 
 /**
  * The generated types, at the depth they sit on disk. A view is opened under
- * `Views/`, so `../schema/content-types.d.ts` resolves in the editor exactly as
+ * `components/`, so `../schema/content-types.d.ts` resolves in the editor exactly as
  * it does in the site.
  */
 export const EDITOR_CONTENT_TYPES = 'file:///schema/content-types.d.ts'

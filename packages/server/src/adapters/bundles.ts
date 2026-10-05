@@ -22,13 +22,13 @@ import { ObjectTypes, type Page } from '@bunbraco/core'
 import {
   type Bundle,
   BundleRepository,
+  type ComponentFileStore,
+  ComponentRepository,
   currentSchemaState,
   type Db,
   DictionaryRepository,
   type NodeRow,
   resolveNodeRef,
-  type TemplateFileStore,
-  TemplateRepository,
 } from '@bunbraco/data'
 import {
   exportSchemaSet,
@@ -65,9 +65,9 @@ export interface PackagePortOptions {
   nodeId: string
   marketplaceUrl: string
   /** Reads a template's view, which lives on disk rather than in the row. */
-  templateFiles: TemplateFileStore
+  componentFiles: ComponentFileStore
   mediaStore: MediaStore
-  partialViews?: FileSystemPort
+  components?: FileSystemPort
   stylesheets?: FileSystemPort
   scripts?: FileSystemPort
 }
@@ -83,12 +83,26 @@ const definition = (row: Bundle): PackageDefinition => ({
   documentTypes: row.documentTypes,
   mediaTypes: row.mediaTypes,
   dataTypes: row.dataTypes,
-  templates: row.templates,
-  partialViews: row.partialViews,
+  // The wire format is Umbraco's, and it still has two fields. There is one
+  // list on this side, so it answers as `templates` and `partialViews` is
+  // always empty — the split is a property of the contract, not of the data.
+  templates: row.components,
+  partialViews: [],
   stylesheets: row.stylesheets,
   scripts: row.scripts,
   languages: row.languages,
   dictionaryItems: row.dictionaryItems,
+})
+
+/**
+ * The contract's two lists, stored as the one this side has.
+ *
+ * `templates` and `partialViews` are both components; which tree the backoffice
+ * picked one from is not something worth keeping.
+ */
+const stored = <T extends PackageDefinitionInput>(input: T) => ({
+  ...input,
+  components: [...input.templates, ...input.partialViews],
 })
 
 /** Matches a selection against a type's key or its alias, since the UI sends either. */
@@ -154,7 +168,7 @@ function mergeContentSets(sets: readonly ContentSet[]): ContentSet | undefined {
   const blobs = new Map<string, BundleBlob>()
   const carried = new Set<string>()
   const contentTypes = new Map<string, { key: string; alias: string }>()
-  const templates = new Set<string>()
+  const components = new Set<string>()
   const languages = new Set<string>()
   const roots: string[] = []
   const asGiven: string[] = []
@@ -164,7 +178,7 @@ function mergeContentSets(sets: readonly ContentSet[]): ContentSet | undefined {
     for (const key of set.manifest.dependencies.carried) carried.add(key)
     for (const type of set.manifest.dependencies.schema.contentTypes)
       contentTypes.set(type.key, type)
-    for (const alias of set.manifest.dependencies.schema.templates) templates.add(alias)
+    for (const alias of set.manifest.dependencies.schema.components) components.add(alias)
     for (const iso of set.manifest.dependencies.schema.languages) languages.add(iso)
     for (const blob of set.manifest.blobs) blobs.set(blob.key, blob)
     roots.push(...set.manifest.selector.roots)
@@ -184,7 +198,7 @@ function mergeContentSets(sets: readonly ContentSet[]): ContentSet | undefined {
         expected: [...expected.values()],
         schema: {
           contentTypes: [...contentTypes.values()],
-          templates: [...templates],
+          components: [...components],
           languages: [...languages],
         },
       },
@@ -222,9 +236,9 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
     return files
   }
 
-  const templateEntries = async (keys: readonly string[]): Promise<BundleFile[]> => {
+  const componentEntries = async (keys: readonly string[]): Promise<BundleFile[]> => {
     if (keys.length === 0) return []
-    const templates = new TemplateRepository(db, options.templateFiles)
+    const templates = new ComponentRepository(db, options.componentFiles)
     const all = await templates.all()
     const wanted = new Set(keys.map((key) => key.trim().toLowerCase()))
     const files: BundleFile[] = []
@@ -232,11 +246,29 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
       if (!wanted.has(template.key.toLowerCase()) && !wanted.has(template.alias.toLowerCase()))
         continue
       files.push({
-        path: `${BUNDLE_SECTIONS.views}/${template.alias}.tsx`,
+        path: `${BUNDLE_SECTIONS.components}/${template.alias}.tsx`,
         text: template.content ?? '',
       })
     }
     return files
+  }
+
+  /**
+   * The components a bundle carries, from one list that holds two kinds of
+   * name.
+   *
+   * The contract has `templates` and `partialViews`; this side has one list, so
+   * a picked component arrives either as a template alias — a row in
+   * `template`, whose file is read through the alias — or as a path in the
+   * components tree. Both are tried and the results are keyed by path, so a
+   * component picked both ways is carried once.
+   */
+  const componentSection = async (picked: readonly string[]): Promise<BundleFile[]> => {
+    const byPath = new Map<string, BundleFile>()
+    for (const file of await componentEntries(picked)) byPath.set(file.path, file)
+    for (const file of await fileEntries(options.components, picked, 'components'))
+      byPath.set(file.path, file)
+    return [...byPath.values()]
   }
 
   const dictionaryEntries = async (keys: readonly string[]): Promise<BundleFile[]> => {
@@ -323,7 +355,7 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
       const invalid = validate(input)
       if (invalid) return invalid
       if (await bundles.byName(input.name)) return { ok: false, status: 'DuplicateName' }
-      const row = await bundles.create(input, id)
+      const row = await bundles.create(stored(input), id)
       return { ok: true, id: row.id }
     },
 
@@ -333,7 +365,7 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
       if (!(await bundles.byId(id))) return { ok: false, status: 'NotFound' }
       const clash = await bundles.byName(input.name)
       if (clash && clash.id !== id) return { ok: false, status: 'DuplicateName' }
-      await bundles.update(id, input)
+      await bundles.update(id, stored(input))
       return { ok: true, id }
     },
 
@@ -363,8 +395,7 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
 
       const sections: BundleFile[] = [
         ...schemaEntries(schema, from),
-        ...(await templateEntries(from.templates)),
-        ...(await fileEntries(options.partialViews, from.partialViews, 'partials')),
+        ...(await componentSection([...from.templates, ...from.partialViews])),
         ...(await fileEntries(options.stylesheets, from.stylesheets, 'styles')),
         ...(await fileEntries(options.scripts, from.scripts, 'scripts')),
         ...(await dictionaryEntries(from.dictionaryItems)),

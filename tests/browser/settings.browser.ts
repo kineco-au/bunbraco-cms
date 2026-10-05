@@ -233,3 +233,51 @@ test('the log viewer shows the overview and searches the log, with no error', as
   // cannot load the `bun:` modules @bunbraco/server pulls in.
   await expect(page.getByText(/Bunbraco "[^"]+" started on node/).first()).toBeVisible()
 })
+
+/**
+ * One tree over `components/`, in place of Umbraco's Templates and Partial
+ * Views.
+ *
+ * The split exists in Umbraco because Razor needed a master-template concept; a
+ * TSX layout is an import, so here the only thing that makes a component a
+ * template is that a document type names it. The tree that survived is the
+ * partial-view one, because it is path-addressed and understands folders — the
+ * template tree is id-addressed and cannot show one.
+ */
+test('the Settings tree offers Components, and neither tree it replaced', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/bunbraco/section/settings')
+
+  // The sidebar groups it under Templating, beside Stylesheets and Scripts.
+  await expect(page.getByText('Components', { exact: true }).first()).toBeVisible()
+  // Both vendored menu items are overwritten, so neither name is left to click.
+  await expect(page.getByText('Templates', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Partial Views', { exact: true })).toHaveCount(0)
+})
+
+test('a component and a folder can both be created from the Components tree', async ({ page }) => {
+  const id = Math.random().toString(36).slice(2, 7)
+  await signIn(page)
+
+  // A folder, then a component inside it: the point of one root with folders is
+  // that a site can arrange its own components, which the flat template tree
+  // could not express at all.
+  const folder = await page.request.post('/umbraco/management/api/v1/partial-view/folder', {
+    data: { name: `grp${id}`, parent: null },
+  })
+  expect(folder.status()).toBe(201)
+
+  const component = await page.request.post('/umbraco/management/api/v1/partial-view', {
+    data: {
+      name: `card${id}.tsx`,
+      content: 'export function Card() {\n  return <p />\n}\n',
+      parent: { path: `/grp${id}` },
+    },
+  })
+  expect(component.status()).toBe(201)
+
+  // And the tree shows the folder it was put in.
+  await page.goto('/bunbraco/section/settings')
+  await page.getByText('Components', { exact: true }).first().click()
+  await expect(page.getByText(`grp${id}`, { exact: true })).toBeVisible()
+})

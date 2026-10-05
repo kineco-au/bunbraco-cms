@@ -37,7 +37,8 @@ directory**:
 my-site/
 ├── package.json, bunbraco.config.ts, server.ts, tsconfig.json
 ├── schema/                 document, media and member types, data types, languages
-├── Views/<alias>.tsx       a stub per template, in the layout chain the Razor had
+├── components/…            a stub per Razor view: templates in the layout chain
+│                        the Razor had, every other view where it sat
 ├── bundles/umbraco-import/ documents, media, blueprints and elements, as a content bundle
 ├── media/<key>             the media files, under the keys their values name
 ├── css/, scripts/          stylesheets and scripts from the web root

@@ -86,3 +86,38 @@ ${body}
 }
 `
 }
+
+/**
+ * Where a Razor view that is not a template lands under `components/`.
+ *
+ * The source site's own arrangement is kept, minus the `Views/` prefix it all
+ * sat under: `Views/Partials/Hero.cshtml` becomes `components/Partials/Hero.tsx`.
+ * Nothing here treats `Partials` as special — it is a folder the author chose,
+ * and since a component may sit at any depth it can simply stay where it is.
+ */
+export function componentPathFor(razorPath: string): string {
+  const withoutRoot = razorPath.replace(/^Views\//i, '')
+  return `components/${withoutRoot.replace(/\.cshtml$/i, '.tsx')}`
+}
+
+/**
+ * A stub for a Razor view that no document type names.
+ *
+ * It is a plain function rather than a default export taking `PageProps`: a
+ * template is routed to, and this is imported, so it takes whatever the thing
+ * importing it passes.
+ */
+export function componentStub(razorPath: string, original?: string): string {
+  const base = razorPath.replace(/^.*\//, '').replace(/\.cshtml$/i, '')
+  const name = componentName(base)
+  return `${
+    original
+      ? `// Imported from Umbraco: a stub for the Razor view "${razorPath}".\n// The original is in ${original}; this renders nothing of it yet.`
+      : `// Imported from Umbraco: a stub for the Razor view "${razorPath}".`
+  }
+
+export function ${name}() {
+  return null
+}
+`
+}

@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 3,
+  "sortOrder": 11,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Nose — Driftwood smoke over gorse f…",
+      "name": "Nose — Cold kiln smoke, kelp, lemon…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Driftwood smoke over gorse flower, damp rope, a squeeze of lemon."
+      "value": "Cold kiln smoke, kelp, lemon oil, crushed shells."
     }
   ]
 }

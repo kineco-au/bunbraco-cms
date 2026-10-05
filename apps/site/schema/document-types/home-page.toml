@@ -6,8 +6,8 @@ description = "The site's landing page"
 icon = "icon-home"
 allow-at-root = true
 allow-children = ["homePage", "contentPage"]
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[tab]]
 name = "Content"

@@ -14,7 +14,7 @@ my-site/
 ├── bunbraco.config.ts    site name, database, paths, providers
 ├── server.ts             import { bunbraco } from 'bunbraco'; Bun.serve(await bunbraco(config))
 ├── schema/               document types, data types, languages — see 09-schema-as-code.md
-├── Views/                templates (.tsx)
+├── components/           components (.tsx)
 ├── package.json          dependencies, backoffice extensions among them — see 17-bundles.md
 └── bunbraco.sqlite       content, users, versions — never schema
 ```
@@ -32,7 +32,7 @@ these packages. All four are fixed:
    database bootstrap, the backoffice mount — lives in what should be the *site*.
    A consumer would have to copy ~600 lines and re-copy them on every upgrade.
    It moves to a framework package, `@bunbraco/server`, and `apps/site` becomes a
-   true reference site: config, `Views/`, `schema/`, a three-line `server.ts`.
+   true reference site: config, `components/`, `schema/`, a three-line `server.ts`.
 2. **Inter-package dependencies are undeclared.** Packages import
    `@bunbraco/core` 19 times, `@bunbraco/contracts` 5, `@bunbraco/data` 1 — all
    resolved by tsconfig `paths`, not `package.json`. Only `data` declares a
@@ -79,7 +79,7 @@ of the framework, not the site; a site never generates or vendors anything.
 
 | Command | Does |
 | --- | --- |
-| `init` | scaffold a site: config, `schema/`, `Views/`, `server.ts` |
+| `init` | scaffold a site: config, `schema/`, `components/`, `server.ts` |
 | `start` | run the site (what `start:local` does today, minus the password reset by default) |
 | `upgrade check` / `upgrade check --fix` | the pre-upgrade report; with `--fix`, apply its additive part to the live site — Part 2 |
 | `upgrade` / `upgrade --plan` | run the upgrade, gated on a clean check; `--plan` prints the DDL and conversions without executing |
@@ -592,7 +592,7 @@ unchanged; see `docs/04-backoffice-hosting.md`.
 
 ## Templates
 
-A template is a `.tsx` file in the site's `Views/`, executed by Bun with
+A template is a `.tsx` file in the site's `components/`, executed by Bun with
 `jsxImportSource: "bunbraco"` (the `init` scaffold sets it). There is no virtual
 DOM: the JSX runtime renders straight to an HTML string. A page names its layout in the file rather than the database — the same
 choice Umbraco makes, which parses `Layout = "…"` back out of the Razor source:
@@ -609,7 +609,7 @@ ambient culture, `fallback: 'language'` following each language's fallback),
 model as Umbraco does), `culture` and `dictionary(key)` (a dictionary item in
 the page's culture, then its fallback languages).
 
-Partial views live in `Views/Partials/` as components a template imports and
+Partial views live in `components/Partials/` as components a template imports and
 renders (`<Breadcrumb model={model} nav={nav} />`). The Settings section edits
 them, and stylesheets (`css/`) and scripts (`scripts/`), as files; a new partial
 view starts from a TSX skeleton, and "from snippet" offers TSX versions of

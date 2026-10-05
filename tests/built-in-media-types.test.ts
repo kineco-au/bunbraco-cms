@@ -42,13 +42,13 @@ async function site(options: { withSiteMediaTypes?: boolean } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'built-in-media-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'media-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   if (options.withSiteMediaTypes ?? true)
     for (const [path, content] of Object.entries(siteMediaTypeFiles()))
       writeFileSync(join(root, path), content)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   return { h, schemaDir: join(root, 'schema') }
@@ -225,7 +225,7 @@ describe('built-in media types', () => {
           variesBySegment: false,
           compositions: [],
           allowChildren: ['Folder'],
-          templates: [],
+          components: [],
           cleanup: { prevent: false },
           properties: [],
           tabs: [],

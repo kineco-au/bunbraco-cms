@@ -13,12 +13,12 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_POSTGRES_URL`                     | —                                              | required when `BUNBRACO_DB=postgres`                                                                   |
 | `BUNBRACO_ADMIN_LOGIN`                      | `admin@bunbraco.local`                         | seeded administrator                                                                                   |
 | `BUNBRACO_ADMIN_PASSWORD`                   | generated                                      | seeded administrator's password                                                                        |
-| `BUNBRACO_VIEWS_DIR`                        | `apps/site/Views`                              | where template views live                                                                              |
-| `BUNBRACO_VIEWS_CACHE_DIR`                  | `<site>/.bunbraco/views`                       | where views are snapshotted so an edit needs no restart; inside the site, outside `Views/`     |
-| `BUNBRACO_VIEWS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
-| `BUNBRACO_VIEWS_SWAP_MS`                    | `10000`, `0` in development                    | the floor between generations, which absorbs a flapping sync; an announced save is never delayed by it    |
-| `BUNBRACO_VIEWS_GENERATION_LIMIT`           | `250`                                          | generations a node loads before it freezes, keeps serving and refuses newer ones                         |
-| `BUNBRACO_VIEWS_KEEP`                       | `3`                                            | generations left on disk, for an instant return to one                                                   |
+| `BUNBRACO_COMPONENTS_DIR`                        | `apps/site/Views`                              | where template views live                                                                              |
+| `BUNBRACO_COMPONENTS_CACHE_DIR`                  | `<site>/.bunbraco/components`                  | where components are snapshotted so an edit needs no restart; inside the site, outside `components/` |
+| `BUNBRACO_COMPONENTS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
+| `BUNBRACO_COMPONENTS_SWAP_MS`                    | `10000`, `0` in development                    | the floor between generations, which absorbs a flapping sync; an announced save is never delayed by it    |
+| `BUNBRACO_COMPONENTS_GENERATION_LIMIT`           | `250`                                          | generations a node loads before it freezes, keeps serving and refuses newer ones                         |
+| `BUNBRACO_COMPONENTS_KEEP`                       | `3`                                            | generations left on disk, for an instant return to one                                                   |
 | `BUNBRACO_BACKOFFICE_PATH`                  | `/bunbraco`                                    | where the editor is mounted; the Management API stays at `/umbraco/management/api/v1`                  |
 | `BUNBRACO_INSECURE_COOKIES`                 | `false`                                        | drops the `__Host-` prefix and `Secure`, for plain-http hosts that are not localhost                   |
 | `BUNBRACO_SCHEMA_DIR`                       | `schema`                                       | where `*.toml` definitions live; sync is skipped when absent                                           |
@@ -64,6 +64,29 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_EMAIL_SES_SECRET_ACCESS_KEY`      | `AWS_SECRET_ACCESS_KEY`                        | `ses` only: overrides the standard AWS variable                                                        |
 | `BUNBRACO_EMAIL_SES_CONFIGURATION_SET`      | —                                              | `ses` only: the configuration set that governs sending                                                 |
 | `BUNBRACO_EMAIL_SES_ENDPOINT`               | the regional SES host                          | `ses` only: a VPC endpoint, or a fake in a test                                                        |
+
+## The demo command and the database it may touch
+
+`bun run site <template>` exists so trying a starter template is one command
+rather than four. Two decisions in it are worth stating, because both are about
+not damaging anything:
+
+- **The database is forced, not defaulted.** The dialect is SQLite and the file
+  is inside the scaffolded site, whatever the environment says — a `.env` naming
+  Postgres, or a `BUNBRACO_SQLITE_FILE` pointing at a real site, is overridden
+  rather than honoured. A demo cannot migrate or seed a live database even by
+  accident. If the site's own file already holds content the run stops and names
+  the two flags that continue it.
+- **The site lives in `sites/<template>`**, not `output/`. The compose stack
+  mounts `cms_output:/app/output`, which masks the host directory inside the
+  container, so a site scaffolded there would be invisible to `--docker`.
+  `sites/` is inside the bind mount, matches no workspace glob — so it joins no
+  `bun install` — and is gitignored.
+
+Nothing is installed into the site. Resolution walks up to this repository's
+`node_modules`, where every `@bunbraco/*` name is a workspace symlink, so the
+demo serves the working tree. That is the point: a demo that installed from npm
+would not show you your own changes.
 
 ## Settings with no environment variable
 
@@ -211,6 +234,7 @@ when a link can actually be delivered.
 | `bun run start:local`                                 | **local development**: `bunbraco start` in `apps/site` — migrate, seed, reset and print the admin password, serve                                             |
 | `bun run start:local:watch`                           | as above, reloading on change                                                                                                                                 |
 | `bun run dev`                                         | `apps/site/server.ts` under `bun --watch`, with no password handling                                                                                          |
+| `bun run site <template>`                             | **a starter template, running**: scaffolds it into `sites/<template>` and starts it. `--docker` in the compose stack, `--fresh` to scaffold again, `--reuse` to accept a database that already holds content, `--dry-run` to say what it would do. Runs the working tree, not the published packages |
 | `bunx bunbraco <cmd>`                                 | the CLI: `start [--bundle <dir>]`, `init [--name\|--postgres\|--template]`, `status [--json]`, `admin reset-password`, `schema check\|sync\|export\|rewrite\|purge\|new\|add-property`, `generate`, `views check\|list\|new`, `assets list\|new`, `content export\|check\|import\|runs\|revert\|publish\|unpublish`, `domains [set\|clear\|apply\|undo]`, `dictionary export\|import`, `upgrade [check [--fix]\|--plan\|ledger\|schema]` |
 | `bun add -g @bunbraco/cli`                            | the same CLI without a site: `init` somewhere new, or run commands against a site this machine does not serve                                                  |
 | `bun run build:template`                              | regenerate a starter template's content bundle and images (`scripts/build-template.ts`); no argument does every template                                       |

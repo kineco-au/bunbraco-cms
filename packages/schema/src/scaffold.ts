@@ -29,7 +29,7 @@ export interface NewTypeOptions {
   allowAtRoot?: boolean
   /** An element type: content with no URL, created in the Library. */
   element?: boolean
-  /** Document types only: declare `templates`/`default-template` for a view of its own. */
+  /** Document types only: declare `components`/`default-component` for a view of its own. */
   template?: boolean
   /** The tab the scaffolded `title` goes in; absent means no properties at all. */
   tab?: string
@@ -87,8 +87,8 @@ export function newType(
     variesBySegment: false,
     compositions: [],
     allowChildren: [],
-    templates: templated ? [options.alias] : [],
-    defaultTemplate: templated ? options.alias : undefined,
+    components: templated ? [options.alias] : [],
+    defaultComponent: templated ? options.alias : undefined,
     cleanup: { prevent: false },
     properties: [],
     tabs,

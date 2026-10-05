@@ -3,13 +3,13 @@
   "id": "2de473a2-d391-4161-801e-e34b202759b8",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-54953d59c1d0434524196e5b6b09a4af4fc96a76a7da0aa50c3aeab3fceb1d3c",
+  "integrity": "sha256-5d5a5258e27aa39c3e10792d80e7317a9cc0df966e5cde22708c5c22135e2e99",
   "snapshot": "published",
   "provenance": {
     "siteName": "Basic",
     "schemaVersion": "1.0.0",
     "schemaRevision": "0",
-    "schemaHash": "7ed3f0aac1bed8529738bf48c675f360cb05b05e26b2387c59a21b60a1608de5"
+    "schemaHash": "d2f98d4c7fb3912eddbfed69f10fda9bca20875f01fc6ffe123172edc8610693"
   },
   "selector": {
     "roots": [
@@ -35,7 +35,7 @@
           "alias": "homePage"
         }
       ],
-      "templates": [
+      "components": [
         "homePage"
       ],
       "languages": []

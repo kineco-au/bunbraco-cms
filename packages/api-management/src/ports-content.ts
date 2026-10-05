@@ -5,6 +5,7 @@
  * from the wire shape fails to compile.
  */
 import type {
+  ComponentModel,
   ContentTypeAggregate,
   DataTypeModel,
   DocumentAggregate,
@@ -14,7 +15,6 @@ import type {
   DocumentVersionSummary,
   ElementTreeItem,
   Page,
-  TemplateModel,
   TreeItem,
 } from '@bunbraco/core'
 import type { Principal } from './router.ts'
@@ -247,12 +247,12 @@ export interface DataTypePort extends TreePort {
 }
 
 export interface TemplatePort extends TreePort {
-  byKey(key: string): Promise<TemplateModel | undefined>
-  save(model: TemplateModel, principal: Principal): Promise<void>
+  byKey(key: string): Promise<ComponentModel | undefined>
+  save(model: ComponentModel, principal: Principal): Promise<void>
   remove(key: string): Promise<boolean>
   /** A starter view for a new template, as Umbraco scaffolds one. */
   scaffold(name: string, alias: string): string
-  search(query: string, paging: SkipTake): Promise<Page<TemplateModel>>
+  search(query: string, paging: SkipTake): Promise<Page<ComponentModel>>
   siblings(
     target: string,
     before: number,
@@ -382,7 +382,7 @@ export interface DocumentPort extends TreePort {
 export interface SaveDocument {
   key: string
   contentTypeKey: string
-  templateKey: string | null
+  componentKey: string | null
   parentKey: string | null
   values: DocumentValue[]
   variants: Array<{ culture: string | null; segment: string | null; name: string }>

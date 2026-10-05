@@ -48,13 +48,13 @@ function site(version: string, extra: string) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'dashboard-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
   writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE(extra))
   return {
     root,
     schemaDir: join(root, 'schema'),
-    viewsDir: join(root, 'Views'),
+    componentsDir: join(root, 'components'),
     sqliteFile: join(root, 'site.sqlite'),
   }
 }
@@ -100,6 +100,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'propertyEditorUi:Bunbraco.PropertyEditorUi.FormPicker',
       'backofficeEntryPoint:Bunbraco.EntryPoint.ClientCredentials',
       'backofficeEntryPoint:Bunbraco.EntryPoint.BundleBuilderLabels',
+      // One tree over components/, in place of Templates and Partial Views.
+      'menuItem:Bunbraco.MenuItem.Components',
     ])
     // The welcome dashboard takes the place of Umbraco's news dashboard through
     // the registry's own `overwrites`, rather than mutating it while rendering.
@@ -119,15 +121,18 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     const created = ours?.extensions.find((e) => e.alias === 'Bunbraco.SectionView.Bundles.Created')
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
-    // Two kinds of extension have no module of their own: a `section`, which is
-    // a route and a label, and a `propertyEditorSchema`, which declares a
-    // server-side editor alias and its default UI. Everything else loads one.
+    // Three kinds of extension have no module of their own: a `section`, which
+    // is a route and a label; a `propertyEditorSchema`, which declares a
+    // server-side editor alias and its default UI; and a `menuItem` of kind
+    // `tree`, which is a label over a tree somebody else registered. Everything
+    // else loads one.
     const moduleless = ours?.extensions.filter((e) => !e.element && !e.js) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
       'Bunbraco.Section.Forms',
       'Bunbraco.FormPicker',
+      'Bunbraco.MenuItem.Components',
     ])
-    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema'])
+    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema', 'menuItem'])
 
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {
@@ -156,7 +161,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     const first = await signedInServer({
       config: {
         schemaDir: s.schemaDir,
-        viewsDir: s.viewsDir,
+        componentsDir: s.componentsDir,
         sqliteFile: s.sqliteFile,
         development: true,
         nodeId: 'dev',
@@ -221,7 +226,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       keepDatabase: true,
       config: {
         schemaDir: s.schemaDir,
-        viewsDir: s.viewsDir,
+        componentsDir: s.componentsDir,
         sqliteFile: s.sqliteFile,
         development: true,
         nodeId: 'dev',
@@ -266,7 +271,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     const s = site('1.0.0', '')
     const config = {
       schemaDir: s.schemaDir,
-      viewsDir: s.viewsDir,
+      componentsDir: s.componentsDir,
       sqliteFile: s.sqliteFile,
       development: false,
       schemaWritable: false,

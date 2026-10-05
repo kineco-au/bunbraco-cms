@@ -1,5 +1,5 @@
 /**
- * A file-system area on disk — partial views, stylesheets or scripts — as the
+ * A file-system area on disk — components, stylesheets or scripts — as the
  * Management API sees it: paths relative to the area's root, which never
  * escape it, and only files of the area's extension.
  */

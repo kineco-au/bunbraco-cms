@@ -163,7 +163,7 @@ export interface ServerHandle {
     nodeId: string
     role: ServerRole
     /** The views generation in use, and whether newer ones are being refused. */
-    views: SnapshotStatus
+    components: SnapshotStatus
   }
   /** Scheduled publishing and version cleanup; each run can be called directly. */
   jobs: BackgroundJobs
@@ -285,11 +285,11 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // deploy, a bucket synced underneath — is picked up without restarting this
   // node. `assertViewRuntime` first, because a cache directory the JSX runtime
   // cannot be resolved from fails every render rather than the boot.
-  assertViewRuntime(config.viewsCacheDir)
+  assertViewRuntime(config.componentsCacheDir)
   const snapshots = new ViewSnapshots({
-    sourceDir: config.viewsDir,
-    cacheDir: config.viewsCacheDir,
-    limits: { ...(config.development ? DEVELOPMENT_LIMITS : {}), ...config.viewsSnapshot },
+    sourceDir: config.componentsDir,
+    cacheDir: config.componentsCacheDir,
+    limits: { ...(config.development ? DEVELOPMENT_LIMITS : {}), ...config.componentsSnapshot },
     onProblem: (message) => renderLog.error('{message}', { message }),
     // Only a change: every boot takes a generation, and saying so each time is
     // noise. The start banner names the one a node came up on.
@@ -305,7 +305,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // Before the poller, which tells it to look again on a `views` instruction
   // from another node: a closure over a `const` declared later would be a
   // temporal dead zone waiting for the first instruction to land.
-  const renderer = new Renderer({ cache, viewsDir: config.viewsDir, snapshots })
+  const renderer = new Renderer({ cache, componentsDir: config.componentsDir, snapshots })
   // The site's own redirects are code, so the database follows the file: rules it
   // no longer declares are removed, which is what makes deleting one from config
   // actually take effect.
@@ -375,7 +375,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     // definitions. `views` changes the code that renders it, which is a new
     // snapshot rather than anything in the published cache.
     onInstruction: (kind, payload) => {
-      if (kind !== 'views') return cache.invalidate()
+      if (kind !== 'components') return cache.invalidate()
       // The hash only says when to stop looking eagerly; the snapshot is always
       // of the bytes this node reads, so a superseded one is harmless.
       snapshots.announce(typeof payload.hash === 'string' ? payload.hash : undefined)
@@ -454,7 +454,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         mediaFiles,
         email,
         // This node looks again at once; the others are told to. The write has
-        // already landed wherever `viewsDir` points, so there is nothing to
+        // already landed wherever `componentsDir` points, so there is nothing to
         // distribute — only the fact that it happened.
         onViewsChange: async (alias) => {
           // The snapshot first, and awaited: the hash announced is then the one
@@ -462,7 +462,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
           // editor's next request renders what they just saved.
           const hash = await snapshots.refresh()
           void appendCacheInstruction(db, {
-            kind: 'views',
+            kind: 'components',
             payload: hash ? { alias, hash } : { alias },
             by: schema.nodeId,
           }).catch((error: unknown) => {
@@ -512,7 +512,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       revision: schema.nodeState.revision,
       nodeId: schema.nodeId,
       role: config.role,
-      views: snapshots.status(),
+      components: snapshots.status(),
     }
   }
 

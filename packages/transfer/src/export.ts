@@ -13,12 +13,12 @@
 import type { DocumentAggregate, DocumentValue } from '@bunbraco/core'
 import { ObjectTypes } from '@bunbraco/core'
 import {
+  ComponentRepository,
   type ContentKind,
   currentSchemaState,
   type Db,
   DocumentRepository,
   type NodeRow,
-  TemplateRepository,
 } from '@bunbraco/data'
 import {
   BUNDLE_FORMAT_VERSION,
@@ -117,7 +117,7 @@ function toBundleNode(
   kind: BundleKind,
   aggregate: DocumentAggregate,
   parentKeyByNodeId: (id: number) => string | null,
-  templateAlias: string | null,
+  componentAlias: string | null,
   candidates: Map<DocumentValue, string[]>,
 ): BundleNode {
   return {
@@ -126,7 +126,7 @@ function toBundleNode(
     contentType: { key: aggregate.contentTypeKey, alias: aggregate.contentTypeAlias },
     parent: parentKeyByNodeId(node.parentId),
     sortOrder: node.sortOrder,
-    template: templateAlias,
+    template: componentAlias,
     variants: aggregate.variants.map((v) => ({
       culture: v.culture,
       segment: v.segment,
@@ -189,7 +189,7 @@ export async function exportBundle(db: Db, options: ExportOptions): Promise<Expo
   }
 
   const nodes = new DocumentRepository(db).nodes
-  const templateRepo = new TemplateRepository(db)
+  const templateRepo = new ComponentRepository(db)
   const keyOfNodeId = new Map<number, string>()
   for (const { node } of chosen) keyOfNodeId.set(node.id, node.key)
 
@@ -229,16 +229,16 @@ export async function exportBundle(db: Db, options: ExportOptions): Promise<Expo
         : (keyOfNodeId.get(node.parentId) ?? (await nodes.byId(node.parentId))?.key ?? null)
     // A template's definition is its file, so the alias travels and the key does
     // not: the same view has a different key in every environment.
-    const templateAlias = aggregate.templateKey
-      ? ((await templateRepo.byKey(aggregate.templateKey))?.alias ?? null)
+    const componentAlias = aggregate.componentKey
+      ? ((await templateRepo.byKey(aggregate.componentKey))?.alias ?? null)
       : null
 
     bundleNodes.push(
-      toBundleNode(node, kind, aggregate, () => parentKey, templateAlias, candidates),
+      toBundleNode(node, kind, aggregate, () => parentKey, componentAlias, candidates),
     )
     counts[kind] = (counts[kind] ?? 0) + 1
     contentTypes.set(aggregate.contentTypeAlias, aggregate.contentTypeKey)
-    if (templateAlias) templates.add(templateAlias)
+    if (componentAlias) templates.add(componentAlias)
     for (const variant of aggregate.variants) if (variant.culture) languages.add(variant.culture)
     if (kind === 'media')
       for (const key of blobKeysOf(aggregate.values))
@@ -301,7 +301,7 @@ export async function exportBundle(db: Db, options: ExportOptions): Promise<Expo
           expected,
           schema: {
             contentTypes: [...contentTypes].map(([alias, key]) => ({ key, alias })),
-            templates: [...templates],
+            components: [...templates],
             languages: [...languages],
           },
         },

@@ -15,7 +15,7 @@ import { type ValidateFormsOptions, validateForms } from './validate-forms.ts'
 
 export interface ValidateOptions extends ValidateFormsOptions {
   /** Template aliases that exist as view files; omit to skip template checks. */
-  templateAliases?: ReadonlySet<string>
+  componentAliases?: ReadonlySet<string>
 }
 
 const VERSION = /^\d+(\.\d+)*$/
@@ -109,12 +109,12 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
       // Silently ignoring them is worse: the file says one thing and the editor
       // another.
       if (t.isElement) {
-        if (t.templates.length > 0)
-          add(file, `${header}.templates`, 'an element type has no template: it is never routed')
-        if (t.defaultTemplate)
+        if (t.components.length > 0)
+          add(file, `${header}.components`, 'an element type has no component: it is never routed')
+        if (t.defaultComponent)
           add(
             file,
-            `${header}.default-template`,
+            `${header}.default-component`,
             'an element type has no template: it is never routed',
           )
         if (t.allowAtRoot)
@@ -130,12 +130,12 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
             'an element type has no children: it is not in the content tree',
           )
       }
-      if (t.defaultTemplate && !t.templates.includes(t.defaultTemplate))
-        add(file, `${header}.default-template`, `"${t.defaultTemplate}" is not in templates`)
-      if (options.templateAliases) {
-        for (const alias of t.templates)
-          if (!options.templateAliases.has(alias))
-            add(file, `${header}.templates`, `no view Views/${alias}.tsx`)
+      if (t.defaultComponent && !t.components.includes(t.defaultComponent))
+        add(file, `${header}.default-component`, `"${t.defaultComponent}" is not in components`)
+      if (options.componentAliases) {
+        for (const alias of t.components)
+          if (!options.componentAliases.has(alias))
+            add(file, `${header}.components`, `no components/${alias}.tsx`)
       }
     }
 

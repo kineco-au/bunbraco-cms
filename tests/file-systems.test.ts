@@ -1,5 +1,5 @@
 /**
- * Partial views, stylesheets and scripts: files on disk under Views/Partials,
+ * Components, stylesheets and scripts: files on disk under components/,
  * css and scripts, edited through the Settings section by path — the tree,
  * items, create, read, update, rename, delete, folders — and served on the
  * front end. Partial views are TSX, and the snippets are TSX components.
@@ -24,12 +24,12 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'file-systems-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       stylesheetsDir: join(root, 'css'),
       scriptsDir: join(root, 'scripts'),
     },
@@ -56,7 +56,7 @@ const AREAS = [
   // The editor names partial views Razor-style; they are stored as TSX
   {
     route: 'partial-view',
-    dir: 'Views/Partials',
+    dir: 'components',
     sent: 'nav.cshtml',
     stored: 'nav.tsx',
     content: 'export default function Nav() { return <nav /> }',
@@ -163,7 +163,7 @@ describe('files on the front end and the snippets', () => {
     expect(await (await h.call('/css/site.css')).text()).toBe('body{}')
     expect(await (await h.call('/scripts/site.js')).text()).toBe('let a')
     expect((await h.call('/css/notes.txt')).status).toBe(404)
-    expect((await h.call('/css/%2E%2E/Views/x.css')).status).toBe(404)
+    expect((await h.call('/css/%2E%2E/components/x.css')).status).toBe(404)
     expect((await h.call('/css/missing.css')).status).toBe(404)
     // A new stylesheet is empty, and still a stylesheet
     await h.post(`${V1}/stylesheet`, { name: 'empty.css', parent: null, content: '' })
@@ -193,7 +193,7 @@ describe('files on the front end and the snippets', () => {
     const list = await h.json<{ items: Array<{ id: string }> }>(
       `${V1}/partial-view/snippet?skip=0&take=100`,
     )
-    const out = join(root, 'Views', 'Partials')
+    const out = join(root, 'components')
     for (const { id } of list.items) {
       const { content } = await h.json<{ content: string }>(`${V1}/partial-view/snippet/${id}`)
       const created = await h.post(`${V1}/partial-view`, {

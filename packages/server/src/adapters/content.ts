@@ -15,16 +15,18 @@ import type {
   TreePage,
 } from '@bunbraco/api-management'
 import {
+  type ComponentModel,
   type ContentTypeAggregate,
   type DataTypeModel,
   ObjectTypes,
   type Page,
   SystemNodes,
-  type TemplateModel,
   type TreeItem,
 } from '@bunbraco/core'
 import {
   CONTENT_TYPE_OBJECT_TYPES,
+  type ComponentFileStore,
+  ComponentRepository,
   type ContentTypeKind,
   ContentTypeRepository,
   type ContentTypeRepositoryOptions,
@@ -33,8 +35,6 @@ import {
   FolderRepository,
   type NodeRepository,
   type NodeRow,
-  type TemplateFileStore,
-  TemplateRepository,
 } from '@bunbraco/data'
 import { aliasFromName } from '@bunbraco/schema'
 import { readContentTypeUdt, writeContentTypeUdt } from '../content-type-udt.ts'
@@ -177,7 +177,7 @@ export interface ContentTypePortOptions extends ContentTypeRepositoryOptions {
   /** Document types by default; media types share the port. */
   kind?: ContentTypeKind
   /** Lets "Create template" write the view file. */
-  templateFiles?: TemplateFileStore
+  componentFiles?: ComponentFileStore
 }
 
 export function createContentTypePort(
@@ -192,7 +192,7 @@ export function createContentTypePort(
   const containerType = CONTENT_TYPE_OBJECT_TYPES[kind].container
   const folders = new FolderRepository(db, containerType, objectType)
   const files = schemaFiles ? createSchemaFileWriter(db, schemaFiles, kind) : undefined
-  const templates = new TemplateRepository(db, options.templateFiles)
+  const templates = new ComponentRepository(db, options.componentFiles)
   const rewrite = () => files?.rewriteAll() ?? Promise.resolve()
 
   const decorate = async (item: TreeItem) => {
@@ -303,16 +303,16 @@ export function createContentTypePort(
           alias,
           content: scaffoldTemplate(name, alias),
         }))
-      const allowed = aggregate.allowedTemplateKeys.includes(saved.key)
-        ? aggregate.allowedTemplateKeys
-        : [...aggregate.allowedTemplateKeys, saved.key]
+      const allowed = aggregate.allowedComponentKeys.includes(saved.key)
+        ? aggregate.allowedComponentKeys
+        : [...aggregate.allowedComponentKeys, saved.key]
       const updated: ContentTypeAggregate = {
         ...aggregate,
-        allowedTemplateKeys: allowed,
-        defaultTemplateKey:
-          template.isDefault || !aggregate.defaultTemplateKey
+        allowedComponentKeys: allowed,
+        defaultComponentKey:
+          template.isDefault || !aggregate.defaultComponentKey
             ? saved.key
-            : aggregate.defaultTemplateKey,
+            : aggregate.defaultComponentKey,
       }
       await repo.save(updated)
       await files?.write(updated)
@@ -331,17 +331,17 @@ export function createContentTypePort(
         const other = await repo.byKey(reference)
         if (other) aliases.set(reference, other.alias)
       }
-      const templateAliases = new Map<string, string>()
-      for (const templateKey of [
-        ...aggregate.allowedTemplateKeys,
-        ...(aggregate.defaultTemplateKey ? [aggregate.defaultTemplateKey] : []),
+      const componentAliases = new Map<string, string>()
+      for (const componentKey of [
+        ...aggregate.allowedComponentKeys,
+        ...(aggregate.defaultComponentKey ? [aggregate.defaultComponentKey] : []),
       ]) {
-        const template = await templates.byKey(templateKey)
-        if (template) templateAliases.set(templateKey, template.alias)
+        const template = await templates.byKey(componentKey)
+        if (template) componentAliases.set(componentKey, template.alias)
       }
       return writeContentTypeUdt(aggregate, kind, {
         aliasOf: (k: string) => aliases.get(k),
-        templateAliasOf: (k: string) => templateAliases.get(k),
+        templateAliasOf: (k: string) => componentAliases.get(k),
       })
     },
 
@@ -418,12 +418,12 @@ export function createContentTypePort(
         const found = await keyFor(alias)
         if (found) allowed.push({ contentTypeKey: found, sortOrder: index })
       }
-      const templateKeys = []
-      for (const alias of parsed.templateAliases) {
+      const componentKeys = []
+      for (const alias of parsed.componentAliases) {
         const template = await templates.byAlias(alias)
-        if (template) templateKeys.push(template.key)
+        if (template) componentKeys.push(template.key)
       }
-      const defaultTemplate = parsed.defaultTemplateAlias
+      const defaultComponent = parsed.defaultTemplateAlias
         ? ((await templates.byAlias(parsed.defaultTemplateAlias))?.key ?? null)
         : null
 
@@ -451,8 +451,8 @@ export function createContentTypePort(
         containers,
         compositions,
         allowedContentTypes: allowed,
-        allowedTemplateKeys: templateKeys,
-        defaultTemplateKey: defaultTemplate,
+        allowedComponentKeys: componentKeys,
+        defaultComponentKey: defaultComponent,
       } as ContentTypeAggregate
 
       if (!existing && (await repo.aliasExists(aggregate.alias)))
@@ -646,11 +646,11 @@ export function layoutAliasOf(content: string | null): string | null {
   return match?.[1] ?? null
 }
 
-export function createTemplatePort(db: Db, files: TemplateFileStore): TemplatePort {
-  const repo = new TemplateRepository(db, files)
+export function createTemplatePort(db: Db, files: ComponentFileStore): TemplatePort {
+  const repo = new ComponentRepository(db, files)
 
   /** Every template with its master resolved from the view, one pass. */
-  const withMasters = async (): Promise<TemplateModel[]> => {
+  const withMasters = async (): Promise<ComponentModel[]> => {
     const all = await repo.all()
     const byAlias = new Map(all.map((t) => [t.alias, t]))
     return all.map((t) => {
@@ -658,7 +658,7 @@ export function createTemplatePort(db: Db, files: TemplateFileStore): TemplatePo
       return { ...t, masterKey: layout ? (byAlias.get(layout)?.key ?? null) : null }
     })
   }
-  const toItem = (t: TemplateModel, all: readonly TemplateModel[]): TreeItem => ({
+  const toItem = (t: ComponentModel, all: readonly ComponentModel[]): TreeItem => ({
     key: t.key,
     name: t.name,
     hasChildren: all.some((o) => o.masterKey === t.key),
@@ -679,7 +679,7 @@ export function createTemplatePort(db: Db, files: TemplateFileStore): TemplatePo
       const master = layout ? await repo.byAlias(layout) : undefined
       return { ...model, masterKey: master?.key ?? null }
     },
-    async save(model: TemplateModel) {
+    async save(model: ComponentModel) {
       await repo.save({
         ...model,
         content:

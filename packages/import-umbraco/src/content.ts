@@ -245,7 +245,7 @@ export function convertContent(
   const blobs: SourceBlob[] = []
   const counts: Partial<Record<BundleKind, number>> = {}
   const usedTypes = new Map<string, string>()
-  const usedTemplates = new Set<string>()
+  const usedComponents = new Set<string>()
   const usedLanguages = new Set<string>()
   const dangling = new Set<string>()
   let unknownType = 0
@@ -327,7 +327,7 @@ export function convertContent(
       kind === 'document' && version.templateId !== null
         ? (schema.templates.get(Number(version.templateId))?.alias ?? null)
         : null
-    if (template) usedTemplates.add(template)
+    if (template) usedComponents.add(template)
     usedTypes.set(contentType.alias, contentType.key)
     counts[kind] = (counts[kind] ?? 0) + 1
 
@@ -423,7 +423,7 @@ export function convertContent(
           expected: [],
           schema: {
             contentTypes: [...usedTypes].map(([alias, typeKey]) => ({ key: typeKey, alias })),
-            templates: [...usedTemplates],
+            components: [...usedComponents],
             languages: [...usedLanguages],
           },
         },

@@ -30,7 +30,7 @@ x-cms: &cms
 x-test-environment: &test-environment
   BUNBRACO_SQLITE_FILE: ':memory:'
   BUNBRACO_ADMIN_PASSWORD: test-password
-  BUNBRACO_VIEWS_DIR: output/test-views
+  BUNBRACO_COMPONENTS_DIR: output/test-views
   BUNBRACO_MEDIA_DIR: output/test-media
   BUNBRACO_LOGS_DIR: output/test-logs
   BUNBRACO_LOG_TO_CONSOLE: 'false'
@@ -106,7 +106,7 @@ services:
       # `BUNBRACO_MEDIA_STORE=s3`, which is a store rather than a mount.
       - cms_media:/app/apps/site/media
       # Snapshots of the views tree, so an edited template is picked up without a
-      # restart. A tmpfs because it is pure cache — rebuilt from `Views/` in
+      # restart. A tmpfs because it is pure cache — rebuilt from `components/` in
       # milliseconds — and because it must not reach the bind mount, where
       # `--watch` would see the server's own writes and reload on them.
       - type: tmpfs

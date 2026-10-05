@@ -5,12 +5,19 @@ name = "Home Page"
 description = "The site's landing page"
 icon = "icon-home"
 allow-at-root = true
-allow-children = ["contentPage", "whiskyList", "journal"]
-templates = ["homePage"]
-default-template = "homePage"
+allow-children = ["contentPage", "whiskyList", "contactPage"]
+components = ["pages/homePage"]
+default-component = "pages/homePage"
 
 [[tab]]
-name = "Content"
+name = "Hero"
+
+[[tab.property]]
+key = "4beadbaf-51d7-40bc-bb3e-3560413b42dc"
+alias = "eyebrow"
+name = "Eyebrow"
+description = "The small line above the heading"
+type = "textstring"
 
 [[tab.property]]
 key = "be74a0df-3e9d-47f3-b60e-778a89682a80"
@@ -25,7 +32,7 @@ key = "a540c93a-228b-49f6-931a-be1b986bedd1"
 alias = "strapline"
 name = "Strapline"
 description = "One line under the heading"
-type = "textstring"
+type = "textarea"
 
 [[tab.property]]
 key = "ad73357a-4beb-497d-9b55-9fe5222f781e"
@@ -34,7 +41,64 @@ name = "Hero image"
 type = "imageMediaPicker"
 
 [[tab.property]]
+key = "768f61dc-4808-40d4-a9cd-515516848640"
+alias = "heroCtaLabel"
+name = "Hero button"
+description = "Links to the range. Leave empty for no button."
+type = "textstring"
+
+[[tab]]
+name = "House style"
+
+[[tab.property]]
+key = "5f5aab62-b28d-4a2e-9f0b-6d6f888f9de0"
+alias = "styleEyebrow"
+name = "Eyebrow"
+type = "textstring"
+
+[[tab.property]]
+key = "2c0f6d01-068a-444a-9f74-bb8d5642574c"
+alias = "styleHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
 key = "0aad18a5-a627-42f5-a95f-311fdaed30ae"
-alias = "intro"
+alias = "styleIntro"
 name = "Introduction"
 type = "richtext"
+
+[[tab.property]]
+key = "2d297b00-721d-462c-939c-c462467b40d3"
+alias = "stats"
+name = "Figures"
+description = "Picked from the Library; shown as a grid under the introduction"
+type = "highlightPicker"
+
+[[tab.property]]
+key = "3de44366-c05d-4036-aa92-481d4763c6e2"
+alias = "styleImage"
+name = "Image"
+type = "imageMediaPicker"
+
+[[tab]]
+name = "Range"
+
+[[tab.property]]
+key = "827433bb-9a7c-47d7-84e5-9d386bcc9e73"
+alias = "rangeEyebrow"
+name = "Eyebrow"
+type = "textstring"
+
+[[tab.property]]
+key = "74c2e4dd-34b7-4905-baeb-c6c100602bd8"
+alias = "rangeHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "af8b51ac-208e-40ad-a311-80495dced2a7"
+alias = "rangeCtaLabel"
+name = "Button"
+description = "Links to the range. Leave empty for no button."
+type = "textstring"

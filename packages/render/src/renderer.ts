@@ -16,7 +16,7 @@ import type { PageProps, PublishedContent, RequestMember } from './model.ts'
 import { type PublishedCache, translate } from './published-cache.ts'
 import type { ViewSnapshots } from './snapshots.ts'
 
-export interface TemplateModule {
+export interface ComponentModule {
   default: (props: PageProps) => Child
   /** Alias of the layout template to wrap this one in. */
   layout?: string
@@ -28,11 +28,11 @@ export interface LayoutProps extends PageProps {
 
 export interface RenderOptions {
   cache: PublishedCache
-  viewsDir: string
+  componentsDir: string
   /**
-   * Content-addressed copies of `viewsDir` to import from.
+   * Content-addressed copies of `componentsDir` to import from.
    *
-   * Without one the renderer imports straight from `viewsDir`, which is what a
+   * Without one the renderer imports straight from `componentsDir`, which is what a
    * unit test wants and means an edited view is not picked up until the process
    * restarts — see `snapshots.ts` for why.
    */
@@ -71,19 +71,32 @@ export interface RenderRequest {
   submission?: FormSubmissionState
 }
 
+/**
+ * Whether an alias is a path that stays inside the components tree.
+ *
+ * `@bunbraco/server` has the same rule as `isSafeAlias`; it is written again
+ * here because render does not depend on server, and the two are checked
+ * against each other in the suite.
+ */
+function isSafeComponentAlias(alias: string): boolean {
+  if (alias.length === 0 || alias.startsWith('/') || alias.includes('\\')) return false
+  if (/^[a-zA-Z]:/.test(alias)) return false
+  return alias.split('/').every((part) => /^[A-Za-z0-9_-]+$/.test(part))
+}
+
 export class Renderer {
   #cache: PublishedCache
-  #viewsDir: string
+  #componentsDir: string
   #snapshots: ViewSnapshots | undefined
   /** Keyed by the generation that holds the view, so one swap retires them all. */
-  #modules = new Map<string, TemplateModule>()
+  #modules = new Map<string, ComponentModule>()
   #importedFrom: string | undefined
 
   constructor(options: RenderOptions) {
     this.#cache = options.cache
     // Resolved to an absolute path: a dynamic import of a relative specifier
     // resolves against this module, not the working directory.
-    this.#viewsDir = resolve(options.viewsDir)
+    this.#componentsDir = resolve(options.componentsDir)
     this.#snapshots = options.snapshots
   }
 
@@ -107,7 +120,7 @@ export class Renderer {
    * nobody renders would grow without limit.
    */
   #importDir(): string {
-    const dir = this.#snapshots?.directory() ?? this.#viewsDir
+    const dir = this.#snapshots?.directory() ?? this.#componentsDir
     if (dir !== this.#importedFrom) {
       this.#modules.clear()
       this.#importedFrom = dir
@@ -121,14 +134,19 @@ export class Renderer {
    * Not the file anybody edits — that is `sourceFor`, and the two differ by the
    * generation in between.
    */
-  templatePath(alias: string): string | undefined {
-    if (!/^[A-Za-z0-9_-]+$/.test(alias)) return undefined
+  componentPath(alias: string): string | undefined {
+    // An alias is a path under `components/`, so it may carry folders — but it
+    // reaches here from the database, and a path from the database is a path
+    // from a request. Each segment is checked rather than the whole string, so
+    // `..`, an absolute path and a drive letter are all refused while
+    // `pages/homePage` resolves.
+    if (!isSafeComponentAlias(alias)) return undefined
     const file = join(this.#importDir(), `${alias}.tsx`)
     return existsSync(file) ? file : undefined
   }
 
   /**
-   * Rewrites snapshot paths back to `viewsDir`, for anything a person reads: an
+   * Rewrites snapshot paths back to `componentsDir`, for anything a person reads: an
    * error, a log line, a stack trace. A snapshot names a directory nobody edits
    * and a generation they cannot act on, so naming it would send them to the
    * wrong file.
@@ -140,7 +158,7 @@ export class Renderer {
     const cacheDir = this.#snapshots?.cacheDir
     if (!cacheDir) return text
     const escaped = cacheDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return text.replaceAll(new RegExp(`${escaped}[/\\\\][0-9a-f]+`, 'g'), this.#viewsDir)
+    return text.replaceAll(new RegExp(`${escaped}[/\\\\][0-9a-f]+`, 'g'), this.#componentsDir)
   }
 
   /** Renders the page a request resolves to; `host` lets hostnames root and localise it. */
@@ -151,10 +169,10 @@ export class Renderer {
     const permitted = await this.#permitted(resolved.content, culture, request)
     if (!permitted) return { status: 'notFound' }
     const content = permitted
-    if (!content.templateAlias) return { status: 'noTemplate', content }
+    if (!content.componentAlias) return { status: 'noTemplate', content }
 
     try {
-      const html = await this.#renderContent(content, content.templateAlias, culture, request)
+      const html = await this.#renderContent(content, content.componentAlias, culture, request)
       return html === undefined
         ? { status: 'noTemplate', content }
         : { status: 'ok', html, content }
@@ -195,9 +213,9 @@ export class Renderer {
     culture: string | null,
     request: RenderRequest = {},
   ): Promise<RenderResult> {
-    if (!content.templateAlias) return { status: 'noTemplate', content }
+    if (!content.componentAlias) return { status: 'noTemplate', content }
     try {
-      const html = await this.#renderContent(content, content.templateAlias, culture, request)
+      const html = await this.#renderContent(content, content.componentAlias, culture, request)
       return html === undefined
         ? { status: 'noTemplate', content }
         : { status: 'ok', html, content }
@@ -249,15 +267,15 @@ export class Renderer {
     return body?.value
   }
 
-  async #load(alias: string): Promise<TemplateModule | undefined> {
-    const file = this.templatePath(alias)
+  async #load(alias: string): Promise<ComponentModule | undefined> {
+    const file = this.componentPath(alias)
     if (!file) return undefined
     // The path carries the generation, so one entry per view per generation and
     // a swap never answers from the generation before it.
     const cached = this.#modules.get(file)
     if (cached) return cached
 
-    const module = (await import(pathToFileURL(file).href)) as TemplateModule
+    const module = (await import(pathToFileURL(file).href)) as ComponentModule
     if (typeof module.default !== 'function') {
       throw new Error(`Template '${alias}' does not export a default function.`)
     }

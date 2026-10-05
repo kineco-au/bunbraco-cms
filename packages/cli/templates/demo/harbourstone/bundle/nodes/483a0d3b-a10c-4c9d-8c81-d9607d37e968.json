@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 0,
+  "sortOrder": 8,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Nose — Sea pink and cut hay, with a…",
+      "name": "Nose — Lemon zest, warm porridge, w…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Sea pink and cut hay, with a lick of salt off the harbour wall."
+      "value": "Lemon zest, warm porridge, wet slate, a thread of vanilla."
     }
   ]
 }

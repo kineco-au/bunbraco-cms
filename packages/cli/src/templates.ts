@@ -257,10 +257,10 @@ export default await bunbraco()
     { path: 'schema/schema.toml', text: '[schema]\nversion = "1.0.0"\n' },
     // The media types a site owns as files rather than inheriting silently.
     ...Object.entries(siteMediaTypeFiles()).map(([path, text]) => ({ path, text })),
-    { path: 'Views/.gitkeep', text: '' },
+    { path: 'components/.gitkeep', text: '' },
     {
       path: '.gitignore',
-      // `.bunbraco/` holds the view snapshots: pure cache, rebuilt from `Views/`
+      // `.bunbraco/` holds the view snapshots: pure cache, rebuilt from `components/`
       // at every boot, and per node.
       text: '*.sqlite\n*.sqlite-*\nnode_modules/\n.env\n.bunbraco/\nmedia/\nlogs/\n',
     },
@@ -278,14 +278,14 @@ BUNBRACO_POSTGRES_URL=postgres://bunbraco:bunbraco@localhost:5432/${packageNameF
 `,
     })
 
-  for (const file of templateFiles(options.template)) files.push(file)
+  for (const file of componentFiles(options.template)) files.push(file)
   // One entry per path, the last winning, so a template's own `schema.toml` is
   // the one written rather than being skipped as a file that already exists.
   return [...new Map(files.map((file) => [file.path, file])).values()]
 }
 
 /** `files/` into the site root, `bundle/` under `bundles/<slug>`. */
-export function templateFiles(template: SiteTemplate | undefined): ScaffoldFile[] {
+export function componentFiles(template: SiteTemplate | undefined): ScaffoldFile[] {
   if (!template) return []
   const out: ScaffoldFile[] = []
   const walk = (dir: string, target: (path: string) => string): void => {

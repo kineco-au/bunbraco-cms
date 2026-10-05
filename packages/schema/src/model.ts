@@ -64,8 +64,8 @@ export interface SchemaDocumentType {
   variesBySegment: boolean
   compositions: string[]
   allowChildren: string[]
-  templates: string[]
-  defaultTemplate?: string
+  components: string[]
+  defaultComponent?: string
   collection?: string
   /** Tree placement in the backoffice, `A/B`; not part of the type's meaning. */
   folder?: string

@@ -5,6 +5,8 @@ node_modules/
 .env.local
 dist/
 output/
+# Scaffolded template sites: `bun run site <template>`, disposable.
+sites/
 packages/backoffice-dist/dist/
 packages/contracts/generated/
 # Uploaded media belongs to the site's content, not the repository

@@ -72,14 +72,14 @@ describe('writeZip', () => {
     const archive = writeZip([
       { path: 'bundle.json', bytes: text('{"formatVersion":1}') },
       { path: 'schema/document-types/home.toml', bytes: text('[document-type]\nalias = "home"\n') },
-      { path: 'files/Views/Home.tsx', bytes: text('export default () => <h1>Home</h1>\n') },
+      { path: 'files/components/Home.tsx', bytes: text('export default () => <h1>Home</h1>\n') },
     ])
 
     const entries = readZip(archive)
     expect(entries.map((e) => e.path)).toEqual([
       'bundle.json',
       'schema/document-types/home.toml',
-      'files/Views/Home.tsx',
+      'files/components/Home.tsx',
     ])
     expect(decode(entries[1]?.bytes as Uint8Array)).toBe('[document-type]\nalias = "home"\n')
   })

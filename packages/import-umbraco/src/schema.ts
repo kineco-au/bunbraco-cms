@@ -484,7 +484,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       allowChildren: allowed
         .filter((a) => Number(a.id) === meta.id)
         .flatMap((a) => aliasOf(Number(a.allowed), kind) ?? []),
-      templates: [],
+      components: [],
       cleanup: { prevent: false },
       properties: propertiesByGroup.get(`${meta.id}:`) ?? [],
       tabs: [],
@@ -500,8 +500,8 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       for (const link of typeTemplates.filter((t) => Number(t.typeId) === meta.id)) {
         const template = templates.get(Number(link.templateId))
         if (!template) continue
-        type.templates.push(template.alias)
-        if (truthy(link.isDefault)) type.defaultTemplate = template.alias
+        type.components.push(template.alias)
+        if (truthy(link.isDefault)) type.defaultComponent = template.alias
       }
       const policy = cleanup.get(meta.id)
       if (policy) {
@@ -512,11 +512,11 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       // An element type is a property bag with no URL; Umbraco tolerates route
       // settings left on one, and the schema validator here does not.
       if (type.isElement) {
-        if (type.allowAtRoot || type.templates.length > 0 || type.allowChildren.length > 0)
+        if (type.allowAtRoot || type.components.length > 0 || type.allowChildren.length > 0)
           strippedElements.push(type.alias)
         type.allowAtRoot = false
-        type.templates = []
-        type.defaultTemplate = undefined
+        type.components = []
+        type.defaultComponent = undefined
         type.allowChildren = []
       }
     }
@@ -563,7 +563,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       if (!shipped || shapeOf(type) !== shapeOf(builtInMediaTypeSchema(shipped, present)))
         mediaTypes.push(type)
     } else {
-      type.templates = []
+      type.components = []
       type.allowChildren = []
       const hasProperties =
         type.properties.length > 0 || type.tabs.length > 0 || (type.groups ?? []).length > 0
@@ -628,8 +628,8 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
     items: orphaned,
   })
 
-  const templateAliases = new Set([...templates.values()].map((t) => t.alias))
-  for (const problem of validateSchemaSet(set, { templateAliases }))
+  const componentAliases = new Set([...templates.values()].map((t) => t.alias))
+  for (const problem of validateSchemaSet(set, { componentAliases }))
     findings.add({
       class: 'blocking',
       code: 'schema-invalid',

@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/schema",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Schema-as-code for bunbraco: TOML document, media and member type definitions.",
   "license": "MIT",
   "author": "Kineco",

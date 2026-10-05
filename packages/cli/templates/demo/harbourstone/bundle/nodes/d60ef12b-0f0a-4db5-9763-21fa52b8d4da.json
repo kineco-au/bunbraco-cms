@@ -7,7 +7,7 @@
   },
   "parent": null,
   "sortOrder": 0,
-  "template": "homePage",
+  "template": "pages/homePage",
   "variants": [
     {
       "culture": null,
@@ -18,47 +18,133 @@
   ],
   "values": [
     {
+      "property": "eyebrow",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Caithness · North coast of Scotland"
+    },
+    {
+      "property": "heroCtaLabel",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "The bottlings"
+    },
+    {
       "property": "heroImage",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.MediaPicker3",
       "value": [
         {
-          "key": "26931d28-b2fd-49ed-8b22-6560c971b146",
-          "mediaKey": "2462ad2e-8038-46ab-920c-af66ca5143a9",
+          "key": "26f2bd69-b17f-4e3c-8f8a-a9438e60bbcd",
+          "mediaKey": "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
           "mediaTypeAlias": "Image",
           "crops": [],
           "focalPoint": null
         }
       ],
       "references": [
-        "2462ad2e-8038-46ab-920c-af66ca5143a9",
-        "26931d28-b2fd-49ed-8b22-6560c971b146"
+        "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
+        "26f2bd69-b17f-4e3c-8f8a-a9438e60bbcd"
       ]
     },
     {
-      "property": "intro",
+      "property": "rangeCtaLabel",
       "culture": null,
       "segment": null,
-      "editor": "Umbraco.RichText",
-      "value": {
-        "markup": "<p>We fill into soft oak and leave it by the sea. The warehouses stand close enough to the water that the air works on the casks all year: the spirit comes out floral and gentle, with the salt that only a coastal maturation gives.</p><p>Three bottlings, a small still house, and an open door most of the year.</p>",
-        "blocks": null
-      }
+      "editor": "Umbraco.TextBox",
+      "value": "Tasting notes"
+    },
+    {
+      "property": "rangeEyebrow",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "On offer"
+    },
+    {
+      "property": "rangeHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Four expressions, one shoreline."
+    },
+    {
+      "property": "stats",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "3dc30fc1-973a-4217-b26f-24902210be17",
+        "d7f13222-d060-4496-b86d-bef21da963c1",
+        "a5e36a18-a2ef-4eb5-85b4-7e12b21cca06",
+        "4e5c7f3f-54cb-4328-ad61-bc4c2736b890"
+      ],
+      "references": [
+        "3dc30fc1-973a-4217-b26f-24902210be17",
+        "4e5c7f3f-54cb-4328-ad61-bc4c2736b890",
+        "a5e36a18-a2ef-4eb5-85b4-7e12b21cca06",
+        "d7f13222-d060-4496-b86d-bef21da963c1"
+      ]
     },
     {
       "property": "strapline",
       "culture": null,
       "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "A cliff-side distillery where Atlantic weather, pale malt, and warehouse salt shape a coastal single malt."
+    },
+    {
+      "property": "styleEyebrow",
+      "culture": null,
+      "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "Coastal single malt, matured within sight of the water"
+      "value": "The house style"
+    },
+    {
+      "property": "styleHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Salt on the rim of the glass."
+    },
+    {
+      "property": "styleImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "f8d942b2-27b0-45b8-8fa7-0083247ad850",
+          "mediaKey": "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
+        "f8d942b2-27b0-45b8-8fa7-0083247ad850"
+      ]
+    },
+    {
+      "property": "styleIntro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Spring water comes off the peat-dark hills behind the stillhouse. Spirit is filled into casks that sleep in stone warehouses open to the sea wind. We do not chill-filter, and we do not colour.</p>",
+        "blocks": null
+      }
     },
     {
       "property": "title",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "Harbourstone Distillery"
+      "value": "Harbourstone"
     }
   ]
 }

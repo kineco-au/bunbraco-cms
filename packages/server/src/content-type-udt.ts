@@ -65,13 +65,14 @@ export function writeContentTypeUdt(
   info += tag('AllowedInLibrary', bool(aggregate.allowedInLibrary), '    ')
   info += tag('Variations', variations(aggregate), '    ')
   if (kind === 'document') {
-    const templates = aggregate.allowedTemplateKeys
+    const templates = aggregate.allowedComponentKeys
       .map((key) => context.templateAliasOf(key))
       .filter((alias): alias is string => !!alias)
     info += `    <AllowedTemplates>\n${templates.map((a) => tag('Template', a, '      ')).join('')}    </AllowedTemplates>\n`
     info += tag(
       'DefaultTemplate',
-      (aggregate.defaultTemplateKey && context.templateAliasOf(aggregate.defaultTemplateKey)) || '',
+      (aggregate.defaultComponentKey && context.templateAliasOf(aggregate.defaultComponentKey)) ||
+        '',
       '    ',
     )
   }
@@ -163,7 +164,7 @@ export interface UdtContentType {
   variesBySegment: boolean
   compositionAliases: string[]
   allowedAliases: string[]
-  templateAliases: string[]
+  componentAliases: string[]
   defaultTemplateAlias: string | null
   containers: Array<{ key?: string; name: string; alias: string; type: string; sortOrder: number }>
   properties: Array<{
@@ -223,7 +224,7 @@ export function readContentTypeUdt(source: string): UdtContentType | undefined {
     allowedAliases: childrenNamed(child(root, 'Structure'), ROOT[kind])
       .map((c) => c.text.trim())
       .filter(Boolean),
-    templateAliases: childrenNamed(child(info, 'AllowedTemplates'), 'Template')
+    componentAliases: childrenNamed(child(info, 'AllowedTemplates'), 'Template')
       .map((c) => c.text.trim())
       .filter(Boolean),
     defaultTemplateAlias: childText(info, 'DefaultTemplate') || null,

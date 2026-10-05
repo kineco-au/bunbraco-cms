@@ -356,8 +356,8 @@ describe('the udt writer and reader', () => {
       allowedContentTypes: [
         { contentTypeKey: 'eeeeeeee-0000-4000-8000-000000000001', sortOrder: 0 },
       ],
-      allowedTemplateKeys: ['ffffffff-0000-4000-8000-000000000001'],
-      defaultTemplateKey: 'ffffffff-0000-4000-8000-000000000001',
+      allowedComponentKeys: ['ffffffff-0000-4000-8000-000000000001'],
+      defaultComponentKey: 'ffffffff-0000-4000-8000-000000000001',
       parentKey: null,
     }
     const xml = writeContentTypeUdt(aggregate as never, 'document', {
@@ -373,7 +373,7 @@ describe('the udt writer and reader', () => {
     expect(read?.allowedInLibrary).toBe(true)
     expect(read?.compositionAliases).toEqual(['base'])
     expect(read?.allowedAliases).toEqual(['child'])
-    expect(read?.templateAliases).toEqual(['pageTemplate'])
+    expect(read?.componentAliases).toEqual(['pageTemplate'])
     expect(read?.defaultTemplateAlias).toBe('pageTemplate')
     const property = read?.properties[0]
     expect(property?.mandatoryMessage).toBe('Needed')

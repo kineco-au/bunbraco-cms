@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, RedirectRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@bunbraco/data'
 import { redirect } from '@bunbraco/render'
 import { type BunbracoConfig, syncConfiguredRedirects } from '@bunbraco/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -26,8 +26,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "title"
@@ -40,8 +40,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 varies-by-culture = true
 
 [[property]]
@@ -60,22 +60,22 @@ async function site(config: Partial<BunbracoConfig> = {}, variant = false) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'redirects-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(
     join(root, 'schema', 'document-types', 'page.toml'),
     variant ? VARIANT_TYPE_TOML : TYPE_TOML,
   )
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), ...config },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), ...config },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
 
   const body = (names: Record<string, string>) => ({
-    template: { id: templateKey },
+    template: { id: componentKey },
     values: [],
     variants: Object.entries(names).map(([culture, name]) => ({
       culture: culture === '' ? null : culture,
@@ -129,7 +129,7 @@ async function site(config: Partial<BunbracoConfig> = {}, variant = false) {
       }>
     }>(`${V1}/redirect-management?skip=0&take=100`)
 
-  return { h, page, rename, visit, at, listed, typeKey, templateKey }
+  return { h, page, rename, visit, at, listed, typeKey, componentKey }
 }
 
 describe('the URL tracker', () => {

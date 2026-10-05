@@ -17,7 +17,7 @@
  *   bunbraco schema new             scaffold a type file, and the view it points at
  *   bunbraco schema add-property    append a property to a type, and apply it
  *   bunbraco generate               TypeScript for the document types in schema/
- *   bunbraco views check            compile every view before a visitor does
+ *   bunbraco components check       compile every component before a visitor does
  *   bunbraco assets list            the stylesheets and scripts beside them
  *
  *   bunbraco content export         write a subtree as a bundle, to move to another environment
@@ -87,7 +87,10 @@ import {
   type BunbracoConfig,
   backupBefore,
   bootstrapDatabase,
-  checkViews,
+  checkComponents,
+  componentAliasesIn,
+  componentFileFor,
+  componentScaffold,
   createServer,
   DOMAINS_FILE,
   type DomainDeclaration,
@@ -95,11 +98,11 @@ import {
   dictionaryToUdt,
   domainsFilePath,
   importDictionaryUdt,
+  isSafeAlias,
   listAssets,
-  listViews,
+  listComponents,
   loadConfig,
   mediaStoreFor,
-  partialScaffold,
   placeBlobs,
   readDomainsFile,
   resolveDomainNode,
@@ -108,9 +111,7 @@ import {
   siteStatus,
   syncDomainsFile,
   syncSchemaDirectory,
-  templateAliasesIn,
   undoDomainsFile,
-  viewFileFor,
   withoutNode,
   writeDictionaryUdt,
   writeDomains,
@@ -214,10 +215,10 @@ async function start(): Promise<void> {
         lines.push(`  Ended ${admin.sessionsEnded} session(s): the password changed.`)
     }
   }
-  const views = server.health().views
+  const components = server.health().components
   lines.push(
     `  database    ${describeDatabase(config)}`,
-    `  views       ${config.viewsDir}${views.hash ? `   generation ${views.hash.slice(0, 8)}` : ''}`,
+    `  components  ${config.componentsDir}${components.hash ? `   generation ${components.hash.slice(0, 8)}` : ''}`,
   )
   for (const line of bundles) lines.push(line)
   const report = server.schema.report
@@ -374,7 +375,7 @@ async function status(): Promise<void> {
 
   const line = (label: string, value: string) => console.log(`  ${label.padEnd(10)} ${value}`)
   line('site', `${report.site.name}${report.site.dir ? `   ${report.site.dir}` : ''}`)
-  line('views', `${report.site.views}   snapshots in ${report.site.viewsCache}`)
+  line('components', `${report.site.components}   snapshots in ${report.site.componentsCache}`)
   line(
     'database',
     `${report.database.description}   ${
@@ -501,7 +502,9 @@ async function schema(): Promise<void> {
       const loaded = loadSchemaDirectory(config.schemaDir)
       const problems = [
         ...loaded.problems,
-        ...validateSchemaSet(loaded.set, { templateAliases: templateAliasesIn(config.viewsDir) }),
+        ...validateSchemaSet(loaded.set, {
+          componentAliases: componentAliasesIn(config.componentsDir),
+        }),
       ]
       if (problems.length > 0) {
         console.error(`${problems.length} problem(s):`)
@@ -638,8 +641,8 @@ async function schemaNew(config: BunbracoConfig): Promise<void> {
       )
   }
 
-  if (type.templates.length > 0) {
-    const view = join(config.viewsDir, `${alias}.tsx`)
+  if (type.components.length > 0) {
+    const view = join(config.componentsDir, `${alias}.tsx`)
     if (existsSync(view)) console.log(`  exists   ${relative(cwd, view)}`)
     else {
       await mkdir(join(view, '..'), { recursive: true })
@@ -1637,9 +1640,9 @@ async function importSite(): Promise<void> {
  * `bunbraco views`: what is on disk, whether it compiles, and a new one.
  *
  * A view is loaded when a request renders it, so one that does not compile is a
- * 500 waiting for a visitor. `views check` is that failure brought forward.
+ * 500 waiting for a visitor. `components check` is that failure brought forward.
  */
-async function views(): Promise<void> {
+async function components(): Promise<void> {
   const config = await siteConfig()
   const sub = positional[0] ?? 'check'
   if (sub !== 'check' && sub !== 'list' && sub !== 'new') return help()
@@ -1648,19 +1651,17 @@ async function views(): Promise<void> {
   const types = loaded?.set.documentTypes ?? []
 
   if (sub === 'list') {
-    const found = listViews(config.viewsDir)
-    if (found.length === 0) console.log(`No views in ${relative(cwd, config.viewsDir) || '.'}.`)
-    for (const view of found) {
+    const found = listComponents(config.componentsDir)
+    if (found.length === 0) console.log(`Nothing in ${relative(cwd, config.componentsDir) || '.'}.`)
+    for (const component of found) {
+      // A component is a template because a document type names it, not
+      // because of where it sits — so the label is read off the schema.
       const declaredBy = types
-        .filter((type) => type.templates.includes(view.alias))
+        .filter((type) => type.components.includes(component.alias))
         .map((type) => type.alias)
-      const note =
-        view.kind !== 'template'
-          ? ''
-          : declaredBy.length > 0
-            ? `  ← ${declaredBy.join(', ')}`
-            : '  (no document type declares it)'
-      console.log(`  ${view.kind.padEnd(9)} ${relative(cwd, view.path)}${note}`)
+      const kind = declaredBy.length > 0 ? 'template' : 'component'
+      const note = declaredBy.length > 0 ? `  ← ${declaredBy.join(', ')}` : ''
+      console.log(`  ${kind.padEnd(9)} ${relative(cwd, component.path)}${note}`)
     }
     return
   }
@@ -1668,39 +1669,40 @@ async function views(): Promise<void> {
   if (sub === 'new') {
     const alias = positional[1]
     if (!alias) {
-      console.error('views new needs a name: `bunbraco views new article` or `--partial header`.')
+      console.error('components new needs a name: `bunbraco components new pages/article`.')
       process.exit(1)
     }
-    const partial = flags.has('--partial')
-    const file = viewFileFor(config.viewsDir, alias, partial)
+    if (!isSafeAlias(alias)) {
+      console.error(`"${alias}" is not a path inside ${relative(cwd, config.componentsDir)}.`)
+      process.exit(1)
+    }
+    const file = componentFileFor(config.componentsDir, alias)
     if (existsSync(file)) {
       console.error(`${relative(cwd, file)} already exists.`)
       process.exit(1)
     }
-    const type = types.find((candidate) => candidate.templates.includes(alias))
-    if (!partial && !type)
+    // A document type that names this alias gets the page scaffold, which takes
+    // PageProps; anything else gets the plain one. Nothing turns on the folder.
+    const type = types.find((candidate) => candidate.components.includes(alias))
+    if (!type)
       console.log(
         `  note     no document type declares the template "${alias}" — add it to one's templates, or \`bunbraco schema new\``,
       )
     await mkdir(join(file, '..'), { recursive: true })
-    await writeFile(
-      file,
-      partial ? partialScaffold(alias) : type ? viewScaffold(type) : partialScaffold(alias),
-    )
+    await writeFile(file, type ? viewScaffold(type) : componentScaffold(alias))
     console.log(`  created  ${relative(cwd, file)}`)
     return
   }
 
-  const report = await checkViews({
-    viewsDir: config.viewsDir,
+  const report = await checkComponents({
+    componentsDir: config.componentsDir,
     siteDir: config.siteDir,
-    declaredTemplates: types.flatMap((type) => type.templates),
+    declaredComponents: types.flatMap((type) => type.components),
   })
-  const counts: Record<string, number> = { template: 0, partial: 0, component: 0 }
-  for (const view of report.views) counts[view.kind] = (counts[view.kind] ?? 0) + 1
+  const templates = report.declared.length
   console.log(
-    `  checked  ${report.views.length} file(s): ${counts.template} template(s), ` +
-      `${counts.partial} partial(s), ${counts.component} component(s)`,
+    `  checked  ${report.components.length} file(s): ${templates} template(s), ` +
+      `${report.components.length - templates} component(s)`,
   )
   for (const problem of report.problems)
     console.error(`  [error]  ${problem.file}: ${problem.message}`)
@@ -1923,10 +1925,9 @@ function help(): void {
                               [--name <name>] [--mandatory] [--tab <tab>] [--dry-run]
   schema purge --older-than N delete properties retired more than N days ago, with their values
   generate                    schema/content-types.d.ts from schema/
-  views check                 compile every view, and report a template with no file
-  views list                  what is in Views/, and which type declares each template
-  views new <alias> [--partial]
-                              a view for a type that declares one, or Views/Partials/<name>.tsx
+  components check            compile every component, and report one a type declares with no file
+  components list             what is in components/, and which type declares each
+  components new <alias>      components/<alias>.tsx; the alias may carry folders
   assets list                 the stylesheets and scripts this site has
   assets new <stylesheet|script> <name>
                               write an empty one in the place the backoffice edits
@@ -2041,8 +2042,8 @@ async function dispatch(): Promise<void> {
     case 'domains':
       await domains()
       break
-    case 'views':
-      await views()
+    case 'components':
+      await components()
       break
     case 'assets':
       await assets()

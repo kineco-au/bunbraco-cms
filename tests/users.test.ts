@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, SUPER_USER_KEY, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, SUPER_USER_KEY } from '@bunbraco/data'
 import type { UserLinkSender } from '@bunbraco/server'
 import { BACKOFFICE, type Harness, signedInServer, signIn, V1 } from './support/harness.ts'
 
@@ -26,8 +26,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "title"
@@ -60,25 +60,25 @@ async function site(config: Record<string, unknown> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'users-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE_TOML)
-  writeFileSync(join(root, 'Views', 'page.tsx'), 'export default () => <main />\n')
+  writeFileSync(join(root, 'components', 'page.tsx'), 'export default () => <main />\n')
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
       ...config,
     },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
   const page = async (name: string, parent: string | null = null, client = h) => {
     const response = await client.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: parent ? { id: parent } : null,
       values: [],
       variants: [{ culture: null, segment: null, name }],
@@ -903,11 +903,11 @@ describe('who may do what', () => {
     const current = await c.json<{ values: unknown[]; variants: Array<{ name: string }> }>(
       `${V1}/document/${about}`,
     )
-    const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+    const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
     expect(
       (
         await c.put(`${V1}/document/${about}`, {
-          template: { id: templateKey },
+          template: { id: componentKey },
           values: current.values,
           variants: [{ culture: null, segment: null, name: 'About us' }],
         })

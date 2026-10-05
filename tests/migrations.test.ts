@@ -320,7 +320,7 @@ describe('boot and backup rules', () => {
     const prod = loadConfig({
       sqliteFile: file,
       development: false,
-      viewsDir: dir,
+      componentsDir: dir,
       schemaDir: join(dir, 'schema'),
     })
 

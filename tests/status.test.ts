@@ -18,8 +18,8 @@ key = "6d1f9a70-2c55-4a7e-9f3b-1b2c3d4e5f60"
 alias = "page"
 name = "Page"
 allow-at-root = true
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 key = "6d1f9a70-2c55-4a7e-9f3b-1b2c3d4e5f61"
@@ -47,10 +47,10 @@ describe(`status (${dialectUnderTest})`, () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'status-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
     writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
-    writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     return root
   }
 
@@ -60,7 +60,7 @@ describe(`status (${dialectUnderTest})`, () => {
         siteName: 'Status Test',
         siteDir: root,
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         ...overrides,
       },
       root,
@@ -116,7 +116,7 @@ describe(`status (${dialectUnderTest})`, () => {
       config: {
         siteDir: root,
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         sqliteFile: join(root, 'site.sqlite'),
       },
     })
@@ -139,7 +139,7 @@ describe(`status (${dialectUnderTest})`, () => {
       config: {
         siteDir: root,
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         sqliteFile: join(root, 'site.sqlite'),
       },
     })
@@ -153,7 +153,7 @@ describe(`status (${dialectUnderTest})`, () => {
         {
           siteDir: older,
           schemaDir: join(older, 'schema'),
-          viewsDir: join(older, 'Views'),
+          componentsDir: join(older, 'components'),
           sqliteFile: h.server.config.sqliteFile,
         },
         older,
@@ -170,7 +170,7 @@ describe(`status (${dialectUnderTest})`, () => {
       config: {
         siteDir: root,
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         sqliteFile: join(root, 'site.sqlite'),
       },
     })
@@ -182,7 +182,7 @@ describe(`status (${dialectUnderTest})`, () => {
         {
           siteDir: newer,
           schemaDir: join(newer, 'schema'),
-          viewsDir: join(newer, 'Views'),
+          componentsDir: join(newer, 'components'),
           sqliteFile: h.server.config.sqliteFile,
         },
         newer,

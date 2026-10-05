@@ -21,8 +21,7 @@ export interface Bundle {
   documentTypes: string[]
   mediaTypes: string[]
   dataTypes: string[]
-  templates: string[]
-  partialViews: string[]
+  components: string[]
   stylesheets: string[]
   scripts: string[]
   languages: string[]
@@ -45,8 +44,7 @@ interface Row {
   document_types: string
   media_types: string
   data_types: string
-  templates: string
-  partial_views: string
+  components: string
   stylesheets: string
   scripts: string
   languages: string
@@ -57,7 +55,7 @@ interface Row {
 
 const SELECT = `SELECT id, name, content_node_id, content_load_child_nodes,
                        media_load_child_nodes, media_ids, element_ids, document_types,
-                       media_types, data_types, templates, partial_views, stylesheets,
+                       media_types, data_types, components, stylesheets,
                        scripts, languages, dictionary_items, create_date, update_date
                   FROM bundle`
 
@@ -84,8 +82,7 @@ const hydrate = (row: Row): Bundle => ({
   documentTypes: list(row.document_types),
   mediaTypes: list(row.media_types),
   dataTypes: list(row.data_types),
-  templates: list(row.templates),
-  partialViews: list(row.partial_views),
+  components: list(row.components),
   stylesheets: list(row.stylesheets),
   scripts: list(row.scripts),
   languages: list(row.languages),
@@ -131,10 +128,10 @@ export class BundleRepository {
     await this.#db.exec(
       `INSERT INTO bundle
          (id, name, content_node_id, content_load_child_nodes, media_load_child_nodes,
-          media_ids, element_ids, document_types, media_types, data_types, templates,
-          partial_views, stylesheets, scripts, languages, dictionary_items,
+          media_ids, element_ids, document_types, media_types, data_types, components,
+          stylesheets, scripts, languages, dictionary_items,
           create_date, update_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name,
@@ -146,8 +143,7 @@ export class BundleRepository {
         JSON.stringify(input.documentTypes),
         JSON.stringify(input.mediaTypes),
         JSON.stringify(input.dataTypes),
-        JSON.stringify(input.templates),
-        JSON.stringify(input.partialViews),
+        JSON.stringify(input.components),
         JSON.stringify(input.stylesheets),
         JSON.stringify(input.scripts),
         JSON.stringify(input.languages),
@@ -164,8 +160,8 @@ export class BundleRepository {
       `UPDATE bundle
           SET name = ?, content_node_id = ?, content_load_child_nodes = ?,
               media_load_child_nodes = ?, media_ids = ?, element_ids = ?,
-              document_types = ?, media_types = ?, data_types = ?, templates = ?,
-              partial_views = ?, stylesheets = ?, scripts = ?, languages = ?,
+              document_types = ?, media_types = ?, data_types = ?, components = ?,
+              stylesheets = ?, scripts = ?, languages = ?,
               dictionary_items = ?, update_date = ?
         WHERE id = ?`,
       [
@@ -178,8 +174,7 @@ export class BundleRepository {
         JSON.stringify(input.documentTypes),
         JSON.stringify(input.mediaTypes),
         JSON.stringify(input.dataTypes),
-        JSON.stringify(input.templates),
-        JSON.stringify(input.partialViews),
+        JSON.stringify(input.components),
         JSON.stringify(input.stylesheets),
         JSON.stringify(input.scripts),
         JSON.stringify(input.languages),

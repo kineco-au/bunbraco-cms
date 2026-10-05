@@ -4,8 +4,7 @@
  * node's caches coherent with the others. docs/09-schema-as-code.md.
  */
 
-import { existsSync, readdirSync, watch } from 'node:fs'
-import { basename } from 'node:path'
+import { existsSync, watch } from 'node:fs'
 import {
   type CacheInstructionKind,
   cacheInstructionsAfter,
@@ -37,6 +36,7 @@ import {
   syncSchema,
   writeKeysBack,
 } from '@bunbraco/schema'
+import { listComponents } from './components.ts'
 import type { BunbracoConfig } from './config.ts'
 import { logger } from './logging.ts'
 import { materialiseSchema } from './schema-store.ts'
@@ -94,20 +94,18 @@ export class SchemaBootError extends Error {
   }
 }
 
-/** The view files a schema may name as templates. */
-export function templateAliasesIn(viewsDir: string): Set<string> {
-  if (!existsSync(viewsDir)) return new Set()
-  return new Set(
-    readdirSync(viewsDir)
-      .filter((name) => /\.(tsx|jsx)$/.test(name))
-      .map((name) => basename(name).replace(/\.(tsx|jsx)$/, '')),
-  )
+/**
+ * The components a schema may name as templates: every one of them, at any
+ * depth, keyed by the path that is its alias.
+ */
+export function componentAliasesIn(componentsDir: string): Set<string> {
+  return new Set(listComponents(componentsDir).map((component) => component.alias))
 }
 
 export function syncOptionsFor(config: BunbracoConfig): SyncOptions {
   return {
     mode: config.development ? 'development' : 'production',
-    templateAliases: templateAliasesIn(config.viewsDir),
+    componentAliases: componentAliasesIn(config.componentsDir),
   }
 }
 

@@ -42,7 +42,7 @@ export interface PublishedContentInit {
   sortOrder: number
   createDate: Date
   updateDate: Date
-  templateAlias: string | null
+  componentAlias: string | null
   cultures: string[]
   properties: PublishedProperty[]
   /** The culture in scope for this request; null for an invariant site. */
@@ -63,7 +63,7 @@ export class PublishedContent {
   readonly sortOrder: number
   readonly createDate: Date
   readonly updateDate: Date
-  readonly templateAlias: string | null
+  readonly componentAlias: string | null
   readonly cultures: string[]
   readonly properties: PublishedProperty[]
   #culture: string | null
@@ -83,7 +83,7 @@ export class PublishedContent {
     this.sortOrder = init.sortOrder
     this.createDate = init.createDate
     this.updateDate = init.updateDate
-    this.templateAlias = init.templateAlias
+    this.componentAlias = init.componentAlias
     this.cultures = init.cultures
     this.properties = init.properties
     this.#culture = init.variationCulture

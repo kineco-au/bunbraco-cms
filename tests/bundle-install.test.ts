@@ -63,14 +63,14 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bundle-install-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema'), { recursive: true })
-  mkdirSync(join(root, 'Views', 'Partials'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   mkdirSync(join(root, 'css'), { recursive: true })
   mkdirSync(join(root, 'scripts'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       stylesheetsDir: join(root, 'css'),
       scriptsDir: join(root, 'scripts'),
     },
@@ -105,8 +105,10 @@ async function bundleWith(h: Harness, sections: BundleFile[]): Promise<CarriedSe
 
 const SECTIONS = (): BundleFile[] => [
   { path: 'schema/document-types/brochure.toml', text: PAGE_TOML },
-  { path: 'views/brochure.tsx', text: VIEW },
-  { path: 'partials/promo.tsx', text: 'export default () => <aside />\n' },
+  { path: 'components/brochure.tsx', text: VIEW },
+  // A nested one: there is one section and one root, so a bundle can carry a
+  // component in the folder its author put it in.
+  { path: 'components/shared/promo.tsx', text: 'export default () => <aside />\n' },
   { path: 'styles/brochure.css', text: '.brochure { color: red }\n' },
   { path: 'scripts/brochure.js', text: 'console.log("brochure")\n' },
 ]
@@ -123,11 +125,10 @@ describe('what a bundle carries', () => {
     const carried = await bundleWith(h, SECTIONS())
     expect(carriesSections(carried)).toBe(true)
     expect(Object.keys(carried.carries).sort()).toEqual([
-      'partials',
+      'components',
       'schema',
       'scripts',
       'styles',
-      'views',
     ])
   })
 })
@@ -138,9 +139,10 @@ describe('planning, before anything is written', () => {
     const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
     const target = (path: string) => plan.files.find((f) => f.path === path)?.target
 
-    expect(target('views/brochure.tsx')).toBe(join(root, 'Views', 'brochure.tsx'))
-    // Umbraco's place, and ours: partials sit under the views directory.
-    expect(target('partials/promo.tsx')).toBe(join(root, 'Views', 'Partials', 'promo.tsx'))
+    expect(target('components/brochure.tsx')).toBe(join(root, 'components', 'brochure.tsx'))
+    expect(target('components/shared/promo.tsx')).toBe(
+      join(root, 'components', 'shared', 'promo.tsx'),
+    )
     expect(target('styles/brochure.css')).toBe(join(root, 'css', 'brochure.css'))
     expect(target('scripts/brochure.js')).toBe(join(root, 'scripts', 'brochure.js'))
     expect(target('schema/document-types/brochure.toml')).toBe(
@@ -151,7 +153,7 @@ describe('planning, before anything is written', () => {
   test('writes nothing: the site is untouched by a plan', async () => {
     const { h, config, db, root } = await site()
     await planSections(db, config, await bundleWith(h, SECTIONS()))
-    expect(existsSync(join(root, 'Views', 'brochure.tsx'))).toBe(false)
+    expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(false)
     expect(existsSync(join(root, 'schema', 'document-types', 'brochure.toml'))).toBe(false)
     // And the type it describes has not been created either.
     expect(await new ContentTypeRepository(db).byAlias('brochure')).toBeUndefined()
@@ -166,12 +168,12 @@ describe('planning, before anything is written', () => {
 
   test('tells create from overwrite from unchanged', async () => {
     const { h, config, db, root } = await site()
-    writeFileSync(join(root, 'Views', 'brochure.tsx'), 'something else\n')
+    writeFileSync(join(root, 'components', 'brochure.tsx'), 'something else\n')
     writeFileSync(join(root, 'css', 'brochure.css'), '.brochure { color: red }\n')
 
     const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
     const action = (path: string) => plan.files.find((f) => f.path === path)?.action
-    expect(action('views/brochure.tsx')).toBe('overwrite')
+    expect(action('components/brochure.tsx')).toBe('overwrite')
     expect(action('styles/brochure.css')).toBe('unchanged')
     expect(action('scripts/brochure.js')).toBe('create')
   })
@@ -194,8 +196,8 @@ describe('applying', () => {
     const { h, config, db, root } = await site()
     const result = await applySections(db, config, await bundleWith(h, SECTIONS()))
 
-    expect(readFileSync(join(root, 'Views', 'brochure.tsx'), 'utf8')).toBe(VIEW)
-    expect(readFileSync(join(root, 'Views', 'Partials', 'promo.tsx'), 'utf8')).toContain(
+    expect(readFileSync(join(root, 'components', 'brochure.tsx'), 'utf8')).toBe(VIEW)
+    expect(readFileSync(join(root, 'components', 'shared', 'promo.tsx'), 'utf8')).toContain(
       '<aside />',
     )
     expect(readFileSync(join(root, 'css', 'brochure.css'), 'utf8')).toContain('.brochure')
@@ -251,13 +253,13 @@ describe('applying', () => {
     expect(existsSync(join(root, 'schema', 'document-types', 'brochure.toml'))).toBe(false)
     expect(await new ContentTypeRepository(db).byAlias('brochure')).toBeUndefined()
     // The views still arrived.
-    expect(existsSync(join(root, 'Views', 'brochure.tsx'))).toBe(true)
+    expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(true)
   })
 
   test('declining the files applies only the schema', async () => {
     const { h, config, db, root } = await site()
     await applySections(db, config, await bundleWith(h, SECTIONS()), { withoutFiles: true })
-    expect(existsSync(join(root, 'Views', 'brochure.tsx'))).toBe(false)
+    expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(false)
     expect(await new ContentTypeRepository(db).byAlias('brochure')).toBeDefined()
   })
 
@@ -315,9 +317,9 @@ describe('applying', () => {
 
   test('creates a directory a section needs but the site has not got', async () => {
     const { h, config, db, root } = await site()
-    rmSync(join(root, 'Views', 'Partials'), { recursive: true, force: true })
+    rmSync(join(root, 'components', 'shared', 'promo.tsx'), { force: true })
     await applySections(db, config, await bundleWith(h, SECTIONS()))
-    expect(existsSync(join(root, 'Views', 'Partials', 'promo.tsx'))).toBe(true)
+    expect(existsSync(join(root, 'components', 'shared', 'promo.tsx'))).toBe(true)
   })
 })
 
@@ -357,7 +359,7 @@ describe('permission to replace a file', () => {
   test('granting it clears every one', async () => {
     const { h, config, db, root } = await site()
     writeFileSync(join(root, 'css', 'brochure.css'), '.brochure { color: blue }\n')
-    writeFileSync(join(root, 'Views', 'brochure.tsx'), 'different\n')
+    writeFileSync(join(root, 'components', 'brochure.tsx'), 'different\n')
     const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
 
     expect(replacementsNeedingPermission(plan)).toHaveLength(2)
@@ -392,7 +394,7 @@ describe('reverting the files an install wrote', () => {
       backupDir: staging,
       replaceFiles: true,
     })
-    const createdTarget = join(root, 'Views', 'brochure.tsx')
+    const createdTarget = join(root, 'components', 'brochure.tsx')
     expect(existsSync(createdTarget)).toBe(true)
 
     const kept = promoteBackups(config, staging, RUN)
@@ -424,10 +426,10 @@ describe('reverting the files an install wrote', () => {
     expect(existsSync(staging)).toBe(false)
   })
 
-  test('the backups sit beside the views cache, not inside it', async () => {
-    // `.bunbraco/views` is rebuilt from Views/ and cleared at boot; these have
-    // to outlive a restart to be worth taking.
+  test('the backups sit beside the components cache, not inside it', async () => {
+    // `.bunbraco/components` is rebuilt from components/ and cleared at boot;
+    // these have to outlive a restart to be worth taking.
     expect(RUN_BACKUP_DIR).toBe(join('.bunbraco', 'transfer'))
-    expect(RUN_BACKUP_DIR.startsWith(join('.bunbraco', 'views'))).toBe(false)
+    expect(RUN_BACKUP_DIR.startsWith(join('.bunbraco', 'components'))).toBe(false)
   })
 })

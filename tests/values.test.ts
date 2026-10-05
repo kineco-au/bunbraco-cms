@@ -63,8 +63,8 @@ async function prepared(): Promise<{ db: Db; typeKey: string }> {
     properties: [prop('title', TEXTSTRING, 0), prop('summary', TEXTSTRING, 1)],
     compositions: [],
     allowedContentTypes: [],
-    allowedTemplateKeys: [],
-    defaultTemplateKey: null,
+    allowedComponentKeys: [],
+    defaultComponentKey: null,
     parentKey: null,
   })
   return { db, typeKey }
@@ -98,7 +98,7 @@ const invariant = (alias: string, value: unknown) => ({
 const save = (key: string, typeKey: string, values: Array<{ alias: string; value: unknown }>) => ({
   key,
   contentTypeKey: typeKey,
-  templateKey: null,
+  componentKey: null,
   parentKey: null,
   values: values.map((v) => invariant(v.alias, v.value)),
   variants: [{ culture: null, segment: null, name: 'Page' }],

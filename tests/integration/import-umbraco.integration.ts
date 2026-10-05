@@ -34,7 +34,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
       'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_VIEWS_DIR',
+      'BUNBRACO_COMPONENTS_DIR',
       'BUNBRACO_SCHEMA_DIR',
       'BUNBRACO_MEDIA_DIR',
       'BUNBRACO_CSS_DIR',
@@ -184,7 +184,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
       'schema/schema.toml',
       'schema/document-types/home-page.toml',
       'schema/languages.toml',
-      'Views/HomePage.tsx',
+      'components/HomePage.tsx',
       'bundles/umbraco-import/bundle.json',
       'media/qvzdvqf4/whiterthanwhite.jpg',
       'css/site.css',
@@ -217,9 +217,12 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
     const schema = await cli(site, 'schema', 'check', '--static')
     expect(schema.code, schema.out).toBe(0)
     expect(schema.out).toContain('25 document type(s)')
-    const views = await cli(site, 'views', 'check')
+    const views = await cli(site, 'components', 'check')
     expect(views.code, views.out).toBe(0)
-    expect(views.out).toContain('20 template(s)')
+    // 20 files, of which 17 are named by a document type. The other three are
+    // layouts another view names in `export const layout`, so nothing routes to
+    // them — which is exactly what a component is.
+    expect(views.out).toContain('20 file(s): 17 template(s), 3 component(s)')
   }, 120_000)
 
   test('the first boot imports the bundle and publishes what was live', () => {

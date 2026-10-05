@@ -35,10 +35,10 @@ export interface SiteStatus {
   site: {
     name: string
     dir: string
-    views: string
+    components: string
     schema: string
     /** Where views are snapshotted so an edit needs no restart. */
-    viewsCache: string
+    componentsCache: string
   }
   database: {
     dialect: string
@@ -123,9 +123,9 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
     site: {
       name: config.siteName,
       dir: config.siteDir,
-      views: config.viewsDir,
+      components: config.componentsDir,
       schema: config.schemaDir,
-      viewsCache: config.viewsCacheDir,
+      componentsCache: config.componentsCacheDir,
     },
     database: {
       dialect: config.dialect,
@@ -152,7 +152,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
   // Checked here as well as at boot, so a deploy learns before it serves: a
   // views cache the JSX runtime does not resolve from fails every render.
   try {
-    assertViewRuntime(config.viewsCacheDir)
+    assertViewRuntime(config.componentsCacheDir)
   } catch (error) {
     status.problems.push((error as Error).message.split('\n')[0] as string)
   }

@@ -39,7 +39,7 @@ A full CMS, not a headless content store with a rendering problem left over:
   version history and rollback, media with crops, block editors, languages and
   variants, members, users and permissions. The editing UI is the open-source
   Umbraco backoffice, served by Bunbraco
-- **For developers**, a site is a small Bun project: `Views/*.tsx` for templates,
+- **For developers**, a site is a small Bun project: `components/**/*.tsx` for its views,
   `schema/*.toml` for document types, a config file and a three-line `server.ts`.
   Everything else arrives with `bun add bunbraco`
 
@@ -257,7 +257,31 @@ bunx bunbraco init --template basic                  # a home page type, a view,
 bunx bunbraco init --template demo/harbourstone      # a whole brochure site, content and all
 ```
 
-A template brings `schema/`, `Views/`, a stylesheet, its images — and its content as
+### Run one in a single command
+
+From a checkout of this repository, to try a template without scaffolding a site
+by hand:
+
+```bash
+bun run site                            # the catalogue
+bun run site demo/harbourstone          # on localhost
+bun run site demo/harbourstone --docker # in the compose stack
+bun run site demo/harbourstone --fresh  # scrap it and scaffold again
+```
+
+It scaffolds into `sites/<template>` — gitignored and disposable — and runs the
+**working tree**, not the published packages: nothing is installed into the site,
+so resolution walks up to this repository's `node_modules` where every
+`@bunbraco/*` name is a workspace symlink. Your edits to `packages/**` are what
+the demo serves.
+
+It will not touch a database that is not its own. The dialect and the file are
+forced to SQLite inside the site directory — an environment naming Postgres, or a
+`BUNBRACO_SQLITE_FILE` pointing elsewhere, is ignored rather than honoured — and a
+database that already holds content stops the run until you pass `--reuse` or
+`--fresh`.
+
+A template brings `schema/`, `components/`, a stylesheet, its images — and its content as
 a **bundle**, the same artifact `bunbraco content export` writes. `init` puts it in
 `bundles/` and wires the import into the scaffolded `start` script:
 
@@ -272,14 +296,22 @@ restarts cost a query and a line in the banner — and if the import is refused 
 says why and does not start, rather than serving a site missing the content you
 asked for.
 
-The demo is a fictitious coastal distillery: a range with tasting-note elements, a
-journal, media with crops, a list view, and a visit-enquiry form on the Contact
+The demo is a fictitious coastal distillery across four pages — home, about, the
+bottlings and contact. It carries a range with tasting-note elements, a second
+element type reused for the home page's figures and the About page's four
+decisions, photographs with crops, a list view, and a contact form on the Contact
 page — a form definition in `schema/forms/`, rendered by `<Form>`, with its
-submissions in the Forms section. Its content is regenerated, never hand-edited,
-by `bun run build:template` — which builds a throwaway site from the template's
-own schema files, creates the content through the repositories and exports it, so
-the committed bundle is a real export, and a rebuild of an unchanged template
-produces an identical one.
+submissions in the Forms section. Its views are broken up under `components/`: `pages/` for the five a document
+type names, `shared/` for the six they import. Nothing turns on those folder
+names — a component is a template because the schema names it.
+
+Its content is regenerated, never hand-edited, by `bun run build:template` —
+which builds a throwaway site from the template's own schema files, creates the
+content through the repositories and exports it, so the committed bundle is a
+real export, and a rebuild of an unchanged template produces an identical one.
+The photographs come from `assets/templates/`, which is outside the published
+`files` list: the bytes are copied into the bundle untouched, so they ship once
+and a rebuild neither churns the diff nor re-compresses them.
 
 A template may also wire a bundle's server half, which the demo does for
 redirects: `template.json` names the package and the factory, and `init` writes
@@ -317,7 +349,7 @@ Open the backoffice at `http://localhost:8080/bunbraco` and sign in.
 
 1. **Settings → Templates → Create.** Name it `Home Page`. The editor opens with
    Umbraco's Razor starter; save it unchanged and it becomes a TSX view, written
-   to `apps/site/Views/homePage.tsx`. Reopen it and give it something to render:
+   to `apps/site/components/homePage.tsx`. Reopen it and give it something to render:
 
     ```tsx
     export default function HomePage({ model, nav }) {
@@ -417,6 +449,8 @@ Design documents, in reading order:
 ```
 bunbraco/
 ├── docs/                          # the detail: design documents, configuration, operations
+├── assets/                        # source media for the starter templates, at the size it ships at;
+│                                  #    outside the published `files` list, so it is never published twice
 ├── packages/
 │   ├── bunbraco/                  # the package a site installs: `bunbraco()`, the JSX runtime,
 │   │                              #    and a `bunbraco` bin that delegates to cli/
@@ -448,7 +482,7 @@ bunbraco/
 │   └── render/                    # the JSX→HTML runtime behind TSX templates, published cache (one view per culture),
 │                                  #    URL and hostname routing, language fallback, the dictionary,
 │                                  #    value converters (pickers, links, blocks, media and crops)
-├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, Views/, schema/
+├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, components/, schema/
 ├── scripts/                       # vendoring, module-graph check, coverage, versioning and publishing
 ├── .github/workflows/             # ci.yml on every push to main; release.yml on a v* tag
 ├── .githooks/                     # pre-push: the host gate, wired by `bun run hooks:install`
@@ -459,7 +493,7 @@ bunbraco/
 ```
 
 A site is three files plus its views and its schema: `bunbraco.config.ts`, a
-three-line `server.ts`, `Views/*.tsx`, and `schema/*.toml`. Everything else — the composition root, the
+three-line `server.ts`, `components/**/*.tsx`, and `schema/*.toml`. Everything else — the composition root, the
 migrations, the backoffice — arrives with `bun add bunbraco`. `apps/site` is
 exactly that shape and nothing more; `bunbraco init` scaffolds the same.
 

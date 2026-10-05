@@ -94,8 +94,8 @@ key = "${K(1)}"
 alias = "article"
 name = "Article"
 allow-at-root = true
-templates = ["article"]
-default-template = "article"
+components = ["article"]
+default-component = "article"
 
 [[property]]
 key = "${K(2)}"
@@ -158,7 +158,7 @@ async function createPages(db: Db, values: Array<Record<string, string>>): Promi
       key: crypto.randomUUID(),
       contentTypeKey: typeKey,
       parentKey: null,
-      templateKey: null,
+      componentKey: null,
       variants: [{ culture: null, segment: null, name: `Page ${i + 1}` }],
       values: Object.entries(v).map(([alias, value]) => ({
         alias,
@@ -195,7 +195,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
     })
     const migrations = await loadValueMigrations(v2)
     expect(migrations.map((m) => m.id)).toEqual(['0001-summary-to-intro'])
-    const options = { mode: 'production' as const, templateAliases: templates, migrations }
+    const options = { mode: 'production' as const, componentAliases: templates, migrations }
 
     const databases: Array<{ db: Db; keys: string[]; summaries: string[] }> = []
     for (const [db, summaries] of [
@@ -260,7 +260,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
         key: first,
         contentTypeKey: (await new ContentTypeRepository(db).byAlias('article'))?.key as string,
         parentKey: null,
-        templateKey: null,
+        componentKey: null,
         variants: [{ culture: null, segment: null, name: 'Page 1' }],
         values: [
           { alias: 'title', culture: null, segment: null, value: 'T0' },
@@ -342,7 +342,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
     })
     const options = {
       mode: 'production' as const,
-      templateAliases: templates,
+      componentAliases: templates,
       migrations: [] as ValueMigration[],
     }
     await runUpgrade(db, loadSchemaDirectory(v1), node(S1), {
@@ -412,7 +412,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
         key,
         contentTypeKey: typeKey,
         parentKey: null,
-        templateKey: null,
+        componentKey: null,
         variants: [{ culture: null, segment: null, name: `Page ${i + 1}` }],
         values: [
           { alias: 'title', culture: null, segment: null, value: String.fromCharCode(65 + i) },
@@ -453,7 +453,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
       key: crypto.randomUUID(),
       contentTypeKey: typeKey,
       parentKey: null,
-      templateKey: null,
+      componentKey: null,
       variants: [{ culture: null, segment: null, name: 'Blank' }],
       values: [{ alias: 'title', culture: null, segment: null, value: 'F' }],
       userId: 1,
@@ -466,7 +466,7 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
     const db = await prepared()
     const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
     const v2 = schemaDir('1.1.0', { 'document-types/article.toml': ARTICLE(REQUIRED_SUMMARY) })
-    const options = { mode: 'development' as const, templateAliases: templates }
+    const options = { mode: 'development' as const, componentAliases: templates }
     await runUpgrade(db, loadSchemaDirectory(v1), node(S1), {
       ...options,
       by: 'dev',
@@ -518,9 +518,9 @@ describe('an old instance through an upgrade (sqlite)', () => {
     async () => {
       const root = mkdtempSync(join(process.cwd(), 'output', 'upgrade-site-'))
       dirs.push(root)
-      mkdirSync(join(root, 'Views'), { recursive: true })
+      mkdirSync(join(root, 'components'), { recursive: true })
       writeFileSync(
-        join(root, 'Views', 'article.tsx'),
+        join(root, 'components', 'article.tsx'),
         `export default function Article({ model }) { return <h1>{model.text('title')}</h1> }\n`,
       )
       const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
@@ -529,7 +529,7 @@ describe('an old instance through an upgrade (sqlite)', () => {
       const a = await signedInServer({
         config: {
           schemaDir: v1,
-          viewsDir: join(root, 'Views'),
+          componentsDir: join(root, 'components'),
           sqliteFile,
           schemaRevision: '1',
           nodeId: 'node-a',
@@ -558,7 +558,7 @@ describe('an old instance through an upgrade (sqlite)', () => {
       open.push(cli)
       const result = await runUpgrade(cli, loadSchemaDirectory(v2), node(S2, 'cli'), {
         mode: 'production',
-        templateAliases: templates,
+        componentAliases: templates,
         by: 'cli',
         policy: 'strict',
       })
@@ -593,7 +593,7 @@ describe(`upgrade from a database behind the framework (${dialectUnderTest})`, (
     const db = await freshDb()
     open.push(db)
     const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
-    const options = { mode: 'production' as const, templateAliases: templates }
+    const options = { mode: 'production' as const, componentAliases: templates }
     const check = await runCheck(db, loadSchemaDirectory(v1), node(S1), options)
     expect(check.siteChecked).toBe(false)
     expect(check.frameworkPending).toEqual(bunbracoPlan.migrations.map((m) => m.name))

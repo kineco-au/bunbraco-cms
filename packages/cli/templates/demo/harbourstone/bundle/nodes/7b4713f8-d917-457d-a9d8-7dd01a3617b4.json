@@ -1,0 +1,60 @@
+{
+  "key": "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
+  "kind": "media",
+  "contentType": {
+    "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+    "alias": "Image"
+  },
+  "parent": null,
+  "sortOrder": 1,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Copper pot stills in the stillhouse",
+      "published": false
+    }
+  ],
+  "values": [
+    {
+      "property": "umbracoBytes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "164374"
+    },
+    {
+      "property": "umbracoExtension",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "jpg"
+    },
+    {
+      "property": "umbracoFile",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ImageCropper",
+      "value": {
+        "src": "/media/7b4713f8/copper-pot-stills.jpg",
+        "crops": [],
+        "focalPoint": null
+      }
+    },
+    {
+      "property": "umbracoHeight",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 800
+    },
+    {
+      "property": "umbracoWidth",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 1200
+    }
+  ]
+}

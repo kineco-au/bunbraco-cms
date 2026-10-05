@@ -97,7 +97,7 @@ because ids differ between environments and keys do not.
 | --- | --- | --- |
 | A node | `unique_id` | stable everywhere |
 | A content type | key **and** alias | tooling writes keys into `schema/*.toml`, so they are stable; the alias is what a person reads |
-| A template | alias only | a template's definition *is* `Views/<alias>.tsx`; the row is derived, so its key differs per environment |
+| A template | alias only | a template's definition *is* `components/<alias>.tsx`; the row is derived, so its key differs per environment |
 | A property | alias, culture, segment | the wire format the API already uses |
 | A media file | the store key, with an etag | the blob itself moves separately |
 

@@ -219,7 +219,7 @@ export class MemberRepository {
     identity: MemberIdentityInput,
   ): Promise<MemberCredentials> {
     // Members never nest: the parent is always the tree root.
-    const created = await this.content.create({ ...content, parentKey: null, templateKey: null })
+    const created = await this.content.create({ ...content, parentKey: null, componentKey: null })
     const node = await this.#nodes.byKey(created.key)
     if (!node) throw new Error(`the member node ${created.key} vanished while being created`)
     const now = new Date()
@@ -258,7 +258,7 @@ export class MemberRepository {
   ): Promise<MemberCredentials | undefined> {
     const node = await this.#nodes.byKey(key)
     if (!node || node.objectType !== ObjectTypes.Member) return undefined
-    const updated = await this.content.update({ ...content, key, templateKey: null })
+    const updated = await this.content.update({ ...content, key, componentKey: null })
     if (!updated) return undefined
     const now = new Date()
     const sets = ['email = ?', 'login_name = ?', 'is_approved = ?', 'is_locked_out = ?']

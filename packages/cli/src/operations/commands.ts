@@ -28,12 +28,12 @@ import {
   backupBefore,
   bootstrapDatabase,
   checkSchemaDirectory,
+  componentAliasesIn,
   installDatabase,
   mediaStoreFor,
   placeBlobs,
   readBlobs,
   syncOptionsFor,
-  templateAliasesIn,
 } from '@bunbraco/server'
 import {
   type CheckOptions,
@@ -196,7 +196,7 @@ export async function transferOptions(
       under,
       resolutions,
       resolveAll,
-      templateAliases: templateAliasesIn(config.viewsDir),
+      componentAliases: componentAliasesIn(config.componentsDir),
       allowMissingBlobs: input.allowMissingBlobs ?? false,
       hasBlob: async (key: string) => Boolean(await store.get(key)),
       backOfficePath: config.backOfficePath,

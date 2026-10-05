@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 2,
+  "sortOrder": 10,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Finish — Long, floral, faintly saline…",
+      "name": "Finish — Clean and saline, with oak s…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Long, floral, faintly saline — the sea air again, on the way out."
+      "value": "Clean and saline, with oak spice that stays polite."
     }
   ]
 }

@@ -3,7 +3,7 @@
  *
  * `tests/upgrade.test.ts` tests the functions; this tests the process. Three
  * releases of one site are laid out as a deploy lays them out — a directory per
- * release, each with its own `schema/` and `Views/` — and the commands are
+ * release, each with its own `schema/` and `components/` — and the commands are
  * spawned against two separate SQLite databases, standing in for two
  * environments with different content. It asserts exit codes, the output an
  * operator reads, the backup file on disk, and what a real server boot of each
@@ -35,8 +35,8 @@ alias = "article"
 name = "Article"
 allow-at-root = true
 allow-children = ["article"]
-templates = ["article"]
-default-template = "article"
+components = ["article"]
+default-component = "article"
 ${properties}`
 
 const TITLE = (type = 'textstring') => `
@@ -123,7 +123,7 @@ const SEED = `
 import {
   ContentTypeRepository,
   DocumentRepository,
-  TemplateRepository,
+  ComponentRepository,
   currentSchemaState,
 } from '@bunbraco/data'
 import { bootstrapDatabase, loadConfig } from '@bunbraco/server'
@@ -139,7 +139,7 @@ if (mode === 'state') {
   const [version, revision, ...summaries] = args
   const docs = new DocumentRepository(db, { nodeState: { version, revision }, nodeId: 'seed' })
   const type = await new ContentTypeRepository(db).byAlias('article')
-  const template = await new TemplateRepository(db).byAlias('article')
+  const template = await new ComponentRepository(db).byAlias('article')
   if (!type) throw new Error('the article type is not synced')
   if (!template) throw new Error('the article template is not synced')
   const keys = []
@@ -148,7 +148,7 @@ if (mode === 'state') {
     const doc = await docs.create({
       key: crypto.randomUUID(),
       contentTypeKey: type.key,
-      templateKey: template.key,
+      componentKey: template.key,
       parentKey: null,
       variants: [{ culture: null, segment: null, name }],
       values: [
@@ -198,7 +198,7 @@ describe('the upgrade, end to end through the CLI', () => {
       BUNBRACO_DB: 'sqlite',
       BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
       BUNBRACO_SCHEMA_DIR: join(releaseDir(release), 'schema'),
-      BUNBRACO_VIEWS_DIR: join(releaseDir(release), 'Views'),
+      BUNBRACO_COMPONENTS_DIR: join(releaseDir(release), 'components'),
       BUNBRACO_SCHEMA_REVISION: RELEASES[release].revision,
       BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
       BUNBRACO_LOGS_DIR: join(dir, 'logs'),
@@ -329,13 +329,13 @@ describe('the upgrade, end to end through the CLI', () => {
   function deploy(release: Release): void {
     const root = releaseDir(release)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(
       join(root, 'schema', 'schema.toml'),
       `[schema]\nversion = "${RELEASES[release].version}"\n`,
     )
     writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), RELEASES[release].type)
-    writeFileSync(join(root, 'Views', 'article.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
     // The same tsconfig `bunbraco init` scaffolds: without `jsxImportSource` the
     // view transpiles against React and every page is a 500.
     writeFileSync(join(root, 'tsconfig.json'), TSCONFIG)

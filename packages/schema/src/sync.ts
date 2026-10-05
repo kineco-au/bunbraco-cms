@@ -8,6 +8,7 @@ import {
   appendCacheInstruction,
   appendSchemaState,
   BUILT_IN_MEDIA_TYPES,
+  ComponentRepository,
   ContentTypeRepository,
   compareStates,
   currentSchemaState,
@@ -23,7 +24,6 @@ import {
   type SchemaStateRow,
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
-  TemplateRepository,
   updateSchemaStateHash,
 } from '@bunbraco/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
@@ -45,7 +45,7 @@ export interface SyncNode extends NodeSchemaState {
 export interface SyncOptions {
   mode: 'development' | 'production'
   /** Template aliases that exist as view files. */
-  templateAliases?: ReadonlySet<string>
+  componentAliases?: ReadonlySet<string>
   /** Retire a type even though documents of it exist. */
   forceRetireTypes?: boolean
   /** Compute the report and roll back: `schema check`. */
@@ -131,7 +131,7 @@ export async function syncSchema(
 ): Promise<SyncReport> {
   const problems = [
     ...loaded.problems,
-    ...validateSchemaSet(loaded.set, { templateAliases: options.templateAliases }),
+    ...validateSchemaSet(loaded.set, { componentAliases: options.componentAliases }),
   ]
   if (problems.length > 0)
     return emptySyncReport('refused', { reason: 'the schema has problems', problems })
@@ -215,7 +215,7 @@ export async function syncSchema(
               )
             : Promise.resolve(null)
         const types = new ContentTypeRepository(tx)
-        const templates = new TemplateRepository(tx)
+        const templates = new ComponentRepository(tx)
         const languages = new LanguageRepository(tx)
 
         // ---- data types: built-ins are seeded; files add or override by alias
@@ -268,12 +268,12 @@ export async function syncSchema(
         }
 
         // ---- templates referenced by types must have a row
-        const templateKeyByAlias = new Map<string, string>()
-        for (const alias of new Set(set.documentTypes.flatMap((t) => t.templates))) {
+        const componentKeyByAlias = new Map<string, string>()
+        for (const alias of new Set(set.documentTypes.flatMap((t) => t.components))) {
           const existing = await templates.byAlias(alias)
           const key = existing?.key ?? crypto.randomUUID()
           if (!existing) await templates.save({ key, name: alias, alias, content: null })
-          templateKeyByAlias.set(alias, key)
+          componentKeyByAlias.set(alias, key)
         }
 
         // Document types, then media types: one table, two kinds, the same rules.
@@ -490,11 +490,11 @@ export async function syncSchema(
                   compositionType: 'Composition' as const,
                 })),
                 allowedContentTypes: [],
-                allowedTemplateKeys: t.templates.map(
-                  (alias) => templateKeyByAlias.get(alias) ?? '',
+                allowedComponentKeys: t.components.map(
+                  (alias) => componentKeyByAlias.get(alias) ?? '',
                 ),
-                defaultTemplateKey: t.defaultTemplate
-                  ? (templateKeyByAlias.get(t.defaultTemplate) ?? null)
+                defaultComponentKey: t.defaultComponent
+                  ? (componentKeyByAlias.get(t.defaultComponent) ?? null)
                   : null,
                 parentKey:
                   t.folder !== undefined

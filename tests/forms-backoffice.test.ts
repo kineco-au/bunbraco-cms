@@ -68,13 +68,13 @@ async function site(definition = CONTACT, config: Record<string, unknown> = {}) 
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-bo-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'forms'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'forms', 'contact-us.toml'), definition)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
       ...config,
     },

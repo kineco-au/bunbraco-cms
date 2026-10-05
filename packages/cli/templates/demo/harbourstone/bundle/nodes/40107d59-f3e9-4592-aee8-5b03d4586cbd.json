@@ -1,0 +1,101 @@
+{
+  "key": "40107d59-f3e9-4592-aee8-5b03d4586cbd",
+  "kind": "document",
+  "contentType": {
+    "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
+    "alias": "expression"
+  },
+  "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
+  "sortOrder": 3,
+  "template": "pages/expression",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Neap Tide",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "abv",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "58.4%"
+    },
+    {
+      "property": "batch",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "07"
+    },
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>No age statement and no reduction: a small vatting of first-fill bourbon barrels taken at the strength they came out at. Batch 07 is 58.4%. Water is not cheating.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "bottleImage",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.MediaPicker3",
+      "value": [
+        {
+          "key": "504e6b48-cd9f-4b1f-880d-b246e2dcff0b",
+          "mediaKey": "c114b7d8-0138-404b-9d8f-a39d992577a2",
+          "mediaTypeAlias": "Image",
+          "crops": [],
+          "focalPoint": null
+        }
+      ],
+      "references": [
+        "504e6b48-cd9f-4b1f-880d-b246e2dcff0b",
+        "c114b7d8-0138-404b-9d8f-a39d992577a2"
+      ]
+    },
+    {
+      "property": "kind",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Cask strength"
+    },
+    {
+      "property": "summary",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Unreduced vatting of first-fill bourbon. Add water when you are ready."
+    },
+    {
+      "property": "tastingNotes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "2caa099b-3884-472d-9cea-797a0f0c376f",
+        "26e87610-e2d6-4b47-bf92-3967f7186907",
+        "a2eb439f-71d9-4ea6-89d7-c5bc72618281"
+      ],
+      "references": [
+        "26e87610-e2d6-4b47-bf92-3967f7186907",
+        "2caa099b-3884-472d-9cea-797a0f0c376f",
+        "a2eb439f-71d9-4ea6-89d7-c5bc72618281"
+      ]
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Neap Tide"
+    }
+  ]
+}

@@ -36,13 +36,13 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'media-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'media-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   for (const [path, content] of Object.entries(siteMediaTypeFiles()))
     writeFileSync(join(root, path), content)
   const mediaDir = join(root, 'media')
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), mediaDir },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), mediaDir },
   })
   open.push(h)
 

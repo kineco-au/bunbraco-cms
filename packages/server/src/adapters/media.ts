@@ -144,7 +144,7 @@ export function createMediaPort(
       try {
         const created = await repo.create({
           ...input,
-          templateKey: null,
+          componentKey: null,
           userId: await userIdOf(principal),
         })
         await changed()
@@ -160,7 +160,7 @@ export function createMediaPort(
         const updated = await repo.update({
           ...input,
           key,
-          templateKey: null,
+          componentKey: null,
           userId: await userIdOf(principal),
         })
         if (!updated) return notFound()

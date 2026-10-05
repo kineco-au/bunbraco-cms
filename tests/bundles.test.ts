@@ -37,7 +37,7 @@ const definition = (over: Record<string, unknown> = {}) => ({
   documentTypes: [],
   mediaTypes: [],
   dataTypes: [],
-  templates: [],
+  components: [],
   partialViews: [],
   stylesheets: [],
   scripts: [],
@@ -542,12 +542,12 @@ describe('the files half of a package', () => {
     const root = mkdtempSync(join(tmpdir(), 'bunbraco-package-files-'))
     temporary.push(root)
     mkdirSync(join(root, 'schema'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     const h = await signedInServer({
       config: {
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
         stylesheetsDir: join(root, 'css'),
         scriptsDir: join(root, 'scripts'),
       },
@@ -586,7 +586,8 @@ describe('the files half of a package', () => {
     )
     expect(text(entries, 'styles/site.css')).toBe('body { margin: 0 }')
     expect(text(entries, 'scripts/site.js')).toBe('console.log(1)')
-    expect(text(entries, 'partials/nav.tsx')).toBe('export default () => <nav />')
+    // One section: a component picked either way lands in components/.
+    expect(text(entries, 'components/nav.tsx')).toBe('export default () => <nav />')
   })
 
   test('keeps a file inside a folder at its folder path', async () => {
@@ -616,7 +617,7 @@ describe('the files half of a package', () => {
     const key = made.headers.get('umb-generated-resource') as string
 
     const entries = await download(h, await create({ name: 'Templates', templates: [key] }))
-    expect(text(entries, 'views/homePage.tsx')).toContain('<h1>Home</h1>')
+    expect(text(entries, 'components/homePage.tsx')).toContain('<h1>Home</h1>')
   })
 
   test('a file that has since been deleted is dropped, not an error', async () => {

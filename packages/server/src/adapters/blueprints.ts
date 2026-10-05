@@ -56,7 +56,7 @@ export function createBlueprintPort(
 
     async create(input, principal) {
       try {
-        await repo.create({ ...input, templateKey: null, userId: await userIdOf(principal) })
+        await repo.create({ ...input, componentKey: null, userId: await userIdOf(principal) })
         return { ok: true as const }
       } catch (error) {
         return failure(error)
@@ -68,7 +68,7 @@ export function createBlueprintPort(
         const updated = await repo.update({
           ...input,
           key,
-          templateKey: null,
+          componentKey: null,
           userId: await userIdOf(principal),
         })
         if (!updated)
@@ -87,7 +87,7 @@ export function createBlueprintPort(
         const created = await repo.create({
           key: init.key,
           contentTypeKey: document.contentTypeKey,
-          templateKey: null,
+          componentKey: null,
           parentKey: init.parentKey,
           values: document.values,
           variants: document.variants.map((v) => ({

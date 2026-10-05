@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, SYSTEM_MEMBER_TYPE, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
 import type { BunbracoConfig } from '@bunbraco/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -29,8 +29,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 `
 
 const VIEW = `export default function Page({ model, member }) {
@@ -48,21 +48,21 @@ async function site(config: Partial<BunbracoConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'public-access-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE)
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), ...config },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), ...config },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
 
   const page = async (name: string, parent: string | null = null) => {
     const response = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: parent ? { id: parent } : null,
       values: [],
       variants: [{ culture: null, segment: null, name }],

@@ -28,11 +28,11 @@ async function site(files: Record<string, string> = {}) {
   dirs.push(root)
   for (const dir of ['document-types', 'media-types', 'data-types'])
     mkdirSync(join(root, 'schema', dir), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   for (const [name, content] of Object.entries(files)) writeFileSync(join(root, name), content)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   return { h, schemaDir: join(root, 'schema') }
@@ -264,7 +264,7 @@ describe('media types', () => {
 
     const withTemplates = parseMediaType(
       'bad',
-      '[media-type]\nalias = "bad"\nname = "Bad"\ntemplates = ["x"]\n',
+      '[media-type]\nalias = "bad"\nname = "Bad"\ncomponents = ["x"]\n',
     )
     expect(withTemplates.problems.map((p) => p.message)).toEqual([
       expect.stringContaining('unknown key'),

@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -25,8 +25,8 @@ name = "Page"
 icon = "icon-document"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "title"
@@ -49,16 +49,16 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'content-editing-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE_TOML)
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
 
   const create = async (
     name: string,
@@ -67,7 +67,7 @@ async function site() {
   ) => {
     const response = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: parent ? { id: parent } : null,
       values:
         title === null ? [] : [{ alias: 'title', culture: null, segment: null, value: title }],
@@ -90,7 +90,7 @@ async function site() {
     ).items
   const names = async (parent: string | null) =>
     (await children(parent)).map((i) => i.variants[0]?.name)
-  return { h, create, publish, children, names, templateKey }
+  return { h, create, publish, children, names, componentKey }
 }
 
 describe('WP-6.5 move, copy, sort', () => {
@@ -628,11 +628,11 @@ describe('WP-6.5 culture and hostnames, notifications', () => {
 
 describe('WP-6.5 preview', () => {
   test('the preview URL enters preview; a signed-in editor then sees drafts, and nobody else does', async () => {
-    const { h, create, publish, templateKey } = await site()
+    const { h, create, publish, componentKey } = await site()
     const home = await create('Home', null, 'Published title')
     await publish(home)
     await h.put(`${V1}/document/${home}`, {
-      template: { id: templateKey },
+      template: { id: componentKey },
       values: [{ alias: 'title', culture: null, segment: null, value: 'Draft title' }],
       variants: [{ culture: null, segment: null, name: 'Home' }],
     })
@@ -861,7 +861,7 @@ describe('WP-6.5 document blueprints', () => {
 
 describe('WP-6.5 item ancestors and public access', () => {
   test('item ancestors: folders for types and data types, the layout chain for templates', async () => {
-    const { h, create, templateKey } = await site()
+    const { h, create, componentKey } = await site()
     const home = await create('Home')
     const typeKey = (await h.json<{ documentType: { id: string } }>(`${V1}/document/${home}`))
       .documentType.id
@@ -886,7 +886,7 @@ describe('WP-6.5 item ancestors and public access', () => {
     })
     const childKey = child.headers.get('umb-generated-resource') as string
     expect(await h.json<unknown>(`${V1}/item/template/ancestors?id=${childKey}`)).toEqual([
-      { id: childKey, ancestors: [{ id: templateKey, name: 'page', alias: 'page', flags: [] }] },
+      { id: childKey, ancestors: [{ id: componentKey, name: 'page', alias: 'page', flags: [] }] },
     ])
   })
 

@@ -78,8 +78,8 @@ export interface ContentTypeAggregate {
   containers: PropertyGroupModel[]
   compositions: CompositionModel[]
   allowedContentTypes: AllowedChildModel[]
-  allowedTemplateKeys: string[]
-  defaultTemplateKey: string | null
+  allowedComponentKeys: string[]
+  defaultComponentKey: string | null
   /** Folder placement in the tree, which is not the composition graph. */
   parentKey: string | null
   sinceVersion?: string | null
@@ -128,7 +128,7 @@ export interface DataTypeModel {
   parentKey: string | null
 }
 
-export interface TemplateModel {
+export interface ComponentModel {
   key: string
   name: string
   alias: string

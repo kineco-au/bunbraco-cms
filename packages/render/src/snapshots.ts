@@ -14,7 +14,7 @@
  *
  *   alias  →  <cacheDir>/<hash>/<alias>.tsx
  *
- * `sourceDir` stays the truth, for the template editor, `listViews` and
+ * `sourceDir` stays the truth, for the template editor, `listComponents` and
  * `views check`. A snapshot is only ever an import target.
  */
 import { createHash } from 'node:crypto'

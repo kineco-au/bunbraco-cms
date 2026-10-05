@@ -442,12 +442,12 @@ export class ContentTypeRepository {
           )
       }
       await tx.exec('DELETE FROM content_type_template WHERE content_type_node_id = ?', [nodeId])
-      for (const templateKey of aggregate.allowedTemplateKeys) {
-        const template = await repo.nodes.byKey(templateKey)
+      for (const componentKey of aggregate.allowedComponentKeys) {
+        const template = await repo.nodes.byKey(componentKey)
         if (template)
           await tx.exec(
             'INSERT INTO content_type_template (content_type_node_id, template_node_id, is_default) VALUES (?, ?, ?)',
-            [nodeId, template.id, bool(templateKey === aggregate.defaultTemplateKey)],
+            [nodeId, template.id, bool(componentKey === aggregate.defaultComponentKey)],
           )
       }
 
@@ -810,8 +810,8 @@ export class ContentTypeRepository {
         contentTypeKey: normaliseUuid(String(row.unique_id)),
         sortOrder: Number(row.sort_order),
       })),
-      allowedTemplateKeys: templateRows.map((row) => normaliseUuid(String(row.unique_id))),
-      defaultTemplateKey:
+      allowedComponentKeys: templateRows.map((row) => normaliseUuid(String(row.unique_id))),
+      defaultComponentKey:
         templateRows
           .filter((row) => fromDbBool(row.is_default))
           .map((row) => normaliseUuid(String(row.unique_id)))[0] ?? null,

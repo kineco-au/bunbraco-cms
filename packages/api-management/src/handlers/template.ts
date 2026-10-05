@@ -3,13 +3,13 @@
  * and the editor reads and writes it through `content`.
  */
 import type { ResponseOf } from '@bunbraco/contracts'
-import type { TemplateModel } from '@bunbraco/core'
+import type { ComponentModel } from '@bunbraco/core'
 import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@bunbraco/core'
 import type { TemplatePort } from '../ports-content.ts'
 import type { ManagementApiRouter } from '../router.ts'
 import { created, paging, toTreeItemResponse } from './content-type.ts'
 
-function toResponse(model: TemplateModel): ResponseOf<'GetTemplateById'> {
+function toResponse(model: ComponentModel): ResponseOf<'GetTemplateById'> {
   return {
     id: model.key,
     name: model.name,

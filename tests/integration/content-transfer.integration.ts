@@ -24,8 +24,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "title"
@@ -58,7 +58,7 @@ if (args[0] === 'tree') {
   const root = await docs.create({
     key: crypto.randomUUID(),
     contentTypeKey: page.key,
-    templateKey: null,
+    componentKey: null,
     parentKey: null,
     values: [{ alias: 'title', culture: null, segment: null, value: 'Campaigns' }],
     variants: [{ culture: null, segment: null, name: 'Campaigns' }],
@@ -69,7 +69,7 @@ if (args[0] === 'tree') {
     const child = await docs.create({
       key: crypto.randomUUID(),
       contentTypeKey: page.key,
-      templateKey: null,
+      componentKey: null,
       parentKey: root.key,
       values: [{ alias: 'title', culture: null, segment: null, value: name }],
       variants: [{ culture: null, segment: null, name }],
@@ -84,7 +84,7 @@ if (args[0] === 'tree') {
   await docs.update({
     key: args[1],
     contentTypeKey: existing.contentTypeKey,
-    templateKey: existing.templateKey,
+    componentKey: existing.componentKey,
     parentKey: existing.parentKey,
     values: [{ alias: 'title', culture: null, segment: null, value: args[2] }],
     variants: existing.variants.map((v) => ({ culture: v.culture, segment: v.segment, name: v.name })),
@@ -108,7 +108,7 @@ if (args[0] === 'tree') {
   await media.create({
     key,
     contentTypeKey: image.key,
-    templateKey: null,
+    componentKey: null,
     parentKey: null,
     values: [
       { alias: 'umbracoFile', culture: null, segment: null, value: { src: '/media/' + blob, crops: [], focalPoint: null } },
@@ -155,7 +155,7 @@ describe('content transfer, end to end through the CLI', () => {
         BUNBRACO_DB: 'sqlite',
         BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
         BUNBRACO_SCHEMA_DIR: join(site, 'schema'),
-        BUNBRACO_VIEWS_DIR: join(site, 'Views'),
+        BUNBRACO_COMPONENTS_DIR: join(site, 'components'),
         BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
         BUNBRACO_LOGS_DIR: join(dir, 'logs'),
         BUNBRACO_LOG_TO_CONSOLE: 'false',
@@ -179,7 +179,7 @@ describe('content transfer, end to end through the CLI', () => {
         BUNBRACO_DB: 'sqlite',
         BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
         BUNBRACO_SCHEMA_DIR: join(site, 'schema'),
-        BUNBRACO_VIEWS_DIR: join(site, 'Views'),
+        BUNBRACO_COMPONENTS_DIR: join(site, 'components'),
         // The same store the CLI uses, or a media file seeded here is one the
         // export cannot find.
         BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
@@ -214,10 +214,10 @@ describe('content transfer, end to end through the CLI', () => {
     dir = mkdtempSync(join(ROOT, 'output', 'integration-'))
     site = join(dir, 'site')
     mkdirSync(join(site, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(site, 'Views'), { recursive: true })
+    mkdirSync(join(site, 'components'), { recursive: true })
     writeFileSync(join(site, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(site, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
-    writeFileSync(join(site, 'Views', 'page.tsx'), VIEW)
+    writeFileSync(join(site, 'components', 'page.tsx'), VIEW)
     writeFileSync(join(site, 'seed.ts'), SEED)
 
     // Both environments get the same schema, which is what a deploy guarantees.

@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -44,11 +44,11 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'elements-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'quote.toml'), QUOTE_TOML)
   const h = await signedInServer({
-    config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+    config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('quote'))?.key as string
@@ -414,8 +414,8 @@ editor-ui = "Umb.PropertyEditorUi.ElementPicker"
 alias = "page"
 name = "Page"
 allow-at-root = true
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "heroes"
@@ -445,20 +445,20 @@ type = "heroPicker"
     dirs.push(root)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
     mkdirSync(join(root, 'schema', 'data-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(root, 'schema', 'document-types', 'quote.toml'), QUOTE_TOML)
     writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
     writeFileSync(join(root, 'schema', 'data-types', 'hero-picker.toml'), HERO_TOML)
-    writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     const h = await signedInServer({
-      config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views') },
+      config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
     })
     open.push(h)
     const types = new ContentTypeRepository(h.server.db)
     const quoteKey = (await types.byAlias('quote'))?.key as string
     const pageKey = (await types.byAlias('page'))?.key as string
-    const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+    const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
 
     const element = async (name: string, text: string, publish = true) => {
       const created = await h.post(`${V1}/element`, {
@@ -474,7 +474,7 @@ type = "heroPicker"
     const page = async (picks: string[]) => {
       const created = await h.post(`${V1}/document`, {
         documentType: { id: pageKey },
-        template: { id: templateKey },
+        template: { id: componentKey },
         parent: null,
         values: [{ alias: 'heroes', culture: null, segment: null, value: picks }],
         variants: [{ culture: null, segment: null, name: 'Home' }],
@@ -658,14 +658,14 @@ name = "Bad Element"
 is-element = true
 allow-at-root = true
 allow-children = ["badElement"]
-templates = ["badElement"]
-default-template = "badElement"
+components = ["badElement"]
+default-component = "badElement"
 `,
     )
     const problems = validateSchemaSet(loadSchemaDirectory(join(root, 'schema')).set)
     const paths = problems.map((p) => p.path)
-    expect(paths).toContain('document-type.templates')
-    expect(paths).toContain('document-type.default-template')
+    expect(paths).toContain('document-type.components')
+    expect(paths).toContain('document-type.default-component')
     expect(paths).toContain('document-type.allow-at-root')
     expect(paths).toContain('document-type.allow-children')
     // Each says why, and points at allow-in-library where that is the answer.

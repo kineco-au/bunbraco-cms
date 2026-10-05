@@ -13,6 +13,7 @@
  */
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
+import { bundleComponentsMigration } from './bundle-components.ts'
 import { bundlesRenameMigration } from './bundles-rename.ts'
 import { changeReportMigration } from './change-report.ts'
 import { clientIdPrefixMigration } from './client-id-prefix.ts'
@@ -68,4 +69,5 @@ export const bunbracoPlan = new MigrationPlan([
   formPermissionsMigration,
   formPermissionPrefixMigration,
   bundlesRenameMigration,
+  bundleComponentsMigration,
 ])

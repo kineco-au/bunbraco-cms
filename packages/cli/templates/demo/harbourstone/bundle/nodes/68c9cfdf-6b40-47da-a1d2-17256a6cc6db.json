@@ -1,0 +1,60 @@
+{
+  "key": "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
+  "kind": "media",
+  "contentType": {
+    "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+    "alias": "Image"
+  },
+  "parent": null,
+  "sortOrder": 4,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Brine & Kiln",
+      "published": false
+    }
+  ],
+  "values": [
+    {
+      "property": "umbracoBytes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "104864"
+    },
+    {
+      "property": "umbracoExtension",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "jpg"
+    },
+    {
+      "property": "umbracoFile",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ImageCropper",
+      "value": {
+        "src": "/media/68c9cfdf/bottle-brine-and-kiln.jpg",
+        "crops": [],
+        "focalPoint": null
+      }
+    },
+    {
+      "property": "umbracoHeight",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 1140
+    },
+    {
+      "property": "umbracoWidth",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 760
+    }
+  ]
+}

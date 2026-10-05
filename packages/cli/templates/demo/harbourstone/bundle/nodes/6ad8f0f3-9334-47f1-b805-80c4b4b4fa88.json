@@ -7,12 +7,12 @@
   },
   "parent": "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
   "sortOrder": 0,
-  "template": "expression",
+  "template": "pages/expression",
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Harbourstone 12",
+      "name": "The Cove",
       "published": true
     }
   ],
@@ -22,7 +22,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "46.3%"
+      "value": "46%"
     },
     {
       "property": "age",
@@ -37,7 +37,7 @@
       "segment": null,
       "editor": "Umbraco.RichText",
       "value": {
-        "markup": "<p>Twelve years in refill American oak, in the low warehouse nearest the pier. Bottled at 46.3%, never chill-filtered, no colouring.</p>",
+        "markup": "<p>The house style with nothing in the way of it: twelve years in ex-bourbon and refill hogsheads in the low warehouse nearest the water, and no attempt to make it into anything else.</p>",
         "blocks": null
       }
     },
@@ -48,17 +48,31 @@
       "editor": "Umbraco.MediaPicker3",
       "value": [
         {
-          "key": "cf779db2-9e78-411e-857d-c1822ae44bb1",
-          "mediaKey": "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+          "key": "5db76859-7718-44f0-8dd4-3c25aecf9aff",
+          "mediaKey": "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe",
           "mediaTypeAlias": "Image",
           "crops": [],
           "focalPoint": null
         }
       ],
       "references": [
-        "ce973ab0-62cd-40d1-930a-78ee4e467e60",
-        "cf779db2-9e78-411e-857d-c1822ae44bb1"
+        "5db76859-7718-44f0-8dd4-3c25aecf9aff",
+        "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe"
       ]
+    },
+    {
+      "property": "kind",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "House malt"
+    },
+    {
+      "property": "summary",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Ex-bourbon and refill hogsheads. The everyday dram from the shore."
     },
     {
       "property": "tastingNotes",
@@ -81,7 +95,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "Harbourstone 12 Year Old"
+      "value": "The Cove"
     }
   ]
 }

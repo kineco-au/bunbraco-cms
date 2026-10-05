@@ -205,7 +205,7 @@ async function saveAsContent(
     const created = await documents.create({
       key: crypto.randomUUID(),
       contentTypeKey: type.key,
-      templateKey: null,
+      componentKey: null,
       // `root` or nothing both mean the top of the tree.
       parentKey: parent && parent !== 'root' ? parent : null,
       values: Object.entries(map).map(([fieldAlias, propertyAlias]) => ({

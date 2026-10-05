@@ -41,7 +41,7 @@ describe('creating a site, end to end through the CLI', () => {
   const siteDir = (name: string) => join(dir, name)
 
   /**
-   * A scaffolded site is meant to work on its own defaults — its own `Views/`,
+   * A scaffolded site is meant to work on its own defaults — its own `components/`,
    * its own `media/`, its own SQLite file beside `bunbraco.config.ts`. The test
    * environment points those at shared directories, so they are cleared here or
    * this suite would prove a site works only where the harness aims it.
@@ -50,7 +50,7 @@ describe('creating a site, end to end through the CLI', () => {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
       'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_VIEWS_DIR',
+      'BUNBRACO_COMPONENTS_DIR',
       'BUNBRACO_SCHEMA_DIR',
       'BUNBRACO_MEDIA_DIR',
       'BUNBRACO_CSS_DIR',
@@ -273,27 +273,28 @@ describe('creating a site, end to end through the CLI', () => {
 
   test('the demo template serves its home page, in the order its author put it in', async () => {
     const html = await page(demo, '/')
-    expect(html).toContain('Harbourstone Distillery')
-    expect(html).toContain('Coastal single malt, matured within sight of the water')
+    expect(html).toContain('Harbourstone')
+    expect(html).toContain('A cliff-side distillery where Atlantic weather')
     // Sort order travels with the bundle: without that this arrives shuffled.
-    const nav = /<nav>(.*?)<\/nav>/s.exec(html)?.[1] ?? ''
+    const nav = /<nav aria-label="Primary">(.*?)<\/nav>/s.exec(html)?.[1] ?? ''
     expect([...nav.matchAll(/>([^<]+)<\/a>/g)].map((m) => m[1])).toEqual([
-      'Our Whisky',
-      'The Distillery',
-      'Visit',
-      'Journal',
+      'Home',
+      'About',
+      'Bottlings',
       'Contact',
     ])
-    // Each section card carries its own summary, so the type travelled whole.
-    expect(html).toContain('Tours at 11.00 and 14.00')
+    // Each bottling card carries its own summary, so the type travelled whole.
+    expect(html).toContain('The everyday dram from the shore')
+    // Elements picked on the home page, not only on a bottling.
+    expect(html).toContain('First season on this rock')
   })
 
   test('its elements travel too: a bottling renders the tasting notes it picked', async () => {
-    const html = await page(demo, '/our-whisky/harbourstone-12')
-    expect(html).toContain('Harbourstone 12 Year Old')
-    expect(html).toContain('12 years in cask')
+    const html = await page(demo, '/bottlings/the-cove')
+    expect(html).toContain('The Cove')
+    expect(html).toContain('House malt · 46% · 12 years')
     for (const aspect of ['Nose', 'Palate', 'Finish']) expect(html).toContain(`<dt>${aspect}</dt>`)
-    expect(html).toContain('salt off the harbour wall')
+    expect(html).toContain('wet slate, a thread of vanilla')
     // The picked order, not the order the elements were created in.
     expect(html.indexOf('<dt>Nose</dt>')).toBeLessThan(html.indexOf('<dt>Palate</dt>'))
     expect(html.indexOf('<dt>Palate</dt>')).toBeLessThan(html.indexOf('<dt>Finish</dt>'))
@@ -301,18 +302,19 @@ describe('creating a site, end to end through the CLI', () => {
 
   test('its media travels: the file the template shipped is what the site serves', async () => {
     const html = await page(demo, '/')
-    const src = /<img src="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&') as string
+    const src = /<img[^>]*\ssrc="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&') as string
     expect(src).toStartWith('/media/')
 
     // The bundle carried the bytes and the boot placed them in this site's
     // store, so what it serves is the file the template shipped.
-    const shipped = join(TEMPLATES, 'demo/harbourstone/bundle/blobs/2462ad2e/harbour-at-dawn.jpg')
-    const landed = join(siteDir('demo'), 'media', '2462ad2e', 'harbour-at-dawn.jpg')
+    const file = '180cc8ef/distillery-from-the-cliff-path.jpg'
+    const shipped = join(TEMPLATES, 'demo/harbourstone/bundle/blobs', file)
+    const landed = join(siteDir('demo'), 'media', file)
     expect(readFileSync(landed)).toEqual(readFileSync(shipped))
 
     // The original, and a crop computed from it: a raster the image pipeline
     // can actually work on, which is the reason the template ships one.
-    const original = await get(demo, '/media/2462ad2e/harbour-at-dawn.jpg')
+    const original = await get(demo, `/media/${file}`)
     expect(original.status).toBe(200)
     expect(original.headers.get('content-type')).toContain('image/jpeg')
 
@@ -323,14 +325,19 @@ describe('creating a site, end to end through the CLI', () => {
   })
 
   test('the demo site is a working site, not a fixture: every page in the nav answers', async () => {
-    for (const path of ['/our-whisky', '/the-distillery', '/visit', '/journal', '/contact']) {
+    for (const path of ['/about', '/bottlings', '/contact']) {
       const response = await get(demo, path)
       expect(response.status, path).toBe(200)
     }
-    const journal = await page(demo, '/journal')
-    expect(journal).toContain('Filling the first cask of 2026')
-    // A date property, rendered as prose rather than as a timestamp.
-    expect(journal).toContain('February 2026')
+    // The dark band on the About page is the same element type the home page
+    // picks its figures from, so this proves the reuse travelled.
+    const about = await page(demo, '/about')
+    expect(about).toContain('Four decisions that set the style.')
+    expect(about).toContain('Hill spring above the cove, soft and cold.')
+    // The form is on the page, rendered from the file rather than from content.
+    const contact = await page(demo, '/contact')
+    expect(contact).toContain('bunbraco-form')
+    expect(contact).toContain('Book a distillery visit')
   })
 
   test('scaffolds a type and a property, and applies them to the site it is in', async () => {
@@ -344,9 +351,9 @@ describe('creating a site, end to end through the CLI', () => {
     const created = await cli('scaffold', 'schema', 'new', 'document-type', 'note', '--at-root')
     expect(created.code, created.out).toBe(0)
     expect(created.out).toContain('schema/document-types/note.toml')
-    expect(created.out).toContain('Views/note.tsx')
+    expect(created.out).toContain('components/note.tsx')
     expect(created.out).toContain('schema   applied')
-    expect(existsSync(join(siteDir('scaffold'), 'Views', 'note.tsx'))).toBe(true)
+    expect(existsSync(join(siteDir('scaffold'), 'components', 'note.tsx'))).toBe(true)
 
     const added = await cli(
       'scaffold',
@@ -386,15 +393,16 @@ describe('creating a site, end to end through the CLI', () => {
     expect(again.out).toContain('already has a property')
   }, 60_000)
 
-  test('checks the views it shipped, and lists what is in Views/', async () => {
-    const listed = await cli('demo', 'views', 'list')
+  test('checks the components it shipped, and lists what is in components/', async () => {
+    const listed = await cli('demo', 'components', 'list')
     expect(listed.code, listed.out).toBe(0)
-    expect(listed.out).toContain('template  Views/homePage.tsx')
+    expect(listed.out).toContain('template  components/pages/homePage.tsx')
     expect(listed.out).toContain('← homePage')
-    // Only the top level is a template; the shared layout is a component.
-    expect(listed.out).toContain('component Views/components/layout.tsx')
+    // A template because a document type names it; the shared layout is named
+    // by nothing, so it is a component wherever it sits.
+    expect(listed.out).toContain('component components/shared/layout.tsx')
 
-    const checked = await cli('demo', 'views', 'check')
+    const checked = await cli('demo', 'components', 'check')
     expect(checked.code, checked.out).toBe(0)
     expect(checked.out).toContain('template(s)')
     // No typescript in a site nothing has installed into, said rather than skipped.
@@ -402,34 +410,35 @@ describe('creating a site, end to end through the CLI', () => {
   }, 60_000)
 
   test('catches a view that would be a 500, before a visitor finds it', async () => {
-    const view = join(siteDir('demo'), 'Views', 'broken.tsx')
+    const view = join(siteDir('demo'), 'components', 'broken.tsx')
     writeFileSync(view, 'export default function Broken() {\n  return <p>{oops\n}\n')
     try {
-      const checked = await cli('demo', 'views', 'check')
+      const checked = await cli('demo', 'components', 'check')
       expect(checked.code).toBe(1)
-      expect(checked.out).toMatch(/Views\/broken\.tsx:\d+/)
+      expect(checked.out).toMatch(/components\/broken\.tsx:\d+/)
     } finally {
       rmSync(view, { force: true })
     }
 
     // And a template a type declares with no file is the other half of it.
-    const moved = join(siteDir('demo'), 'Views', 'journal.tsx')
+    const moved = join(siteDir('demo'), 'components', 'pages', 'whiskyList.tsx')
     const kept = readFileSync(moved, 'utf8')
     rmSync(moved)
     try {
-      const checked = await cli('demo', 'views', 'check')
+      const checked = await cli('demo', 'components', 'check')
       expect(checked.code).toBe(1)
-      expect(checked.out).toContain('declares the template "journal"')
+      expect(checked.out).toContain('declares the component "pages/whiskyList"')
     } finally {
       writeFileSync(moved, kept)
     }
   }, 60_000)
 
-  test('writes a partial, a stylesheet and a script where each belongs', async () => {
-    const partial = await cli('demo', 'views', 'new', 'header', '--partial')
-    expect(partial.code, partial.out).toBe(0)
-    expect(partial.out).toContain('Views/Partials/header.tsx')
-    expect(existsSync(join(siteDir('demo'), 'Views', 'Partials', 'header.tsx'))).toBe(true)
+  test('writes a component, a stylesheet and a script where each belongs', async () => {
+    // The alias carries the folder, and the folder is made.
+    const component = await cli('demo', 'components', 'new', 'shared/header')
+    expect(component.code, component.out).toBe(0)
+    expect(component.out).toContain('components/shared/header.tsx')
+    expect(existsSync(join(siteDir('demo'), 'components', 'shared', 'header.tsx'))).toBe(true)
 
     const stylesheet = await cli('demo', 'assets', 'new', 'stylesheet', 'print.css')
     expect(stylesheet.code, stylesheet.out).toBe(0)
@@ -447,11 +456,11 @@ describe('creating a site, end to end through the CLI', () => {
     expect(again.code).toBe(1)
     expect(again.out).toContain('already exists')
 
-    // The partial counts as a partial, not as a template nothing declares.
-    const listed = await cli('demo', 'views', 'list')
-    expect(listed.out).toContain('partial   Views/Partials/header.tsx')
+    // It is a component, not a template: no document type names it.
+    const listed = await cli('demo', 'components', 'list')
+    expect(listed.out).toContain('component components/shared/header.tsx')
     // And the site still checks clean with them there.
-    const checked = await cli('demo', 'views', 'check')
+    const checked = await cli('demo', 'components', 'check')
     expect(checked.code, checked.out).toBe(0)
   }, 60_000)
 
@@ -478,7 +487,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(status.out).toContain('up to date')
     expect(status.out).toContain('no migration pending')
     // The demo's own content, counted.
-    expect(status.out).toMatch(/content\s+11 document\(s\), 5 media/)
+    expect(status.out).toMatch(/content\s+8 document\(s\), 7 media/)
 
     const json = await cli('demo', 'status', '--json')
     expect(json.code, json.out).toBe(0)
@@ -490,8 +499,8 @@ describe('creating a site, end to end through the CLI', () => {
     }
     expect(report.database.installed).toBe(true)
     expect(report.schema.files).toBe(report.schema.database.version)
-    expect(report.content.documents).toBe(11)
-    expect(report.content.media).toBe(5)
+    expect(report.content.documents).toBe(8)
+    expect(report.content.media).toBe(7)
     expect(report.versions.bunbraco).toMatch(/^\d+\.\d+\.\d+$/)
   }, 60_000)
 

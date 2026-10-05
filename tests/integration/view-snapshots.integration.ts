@@ -38,7 +38,7 @@ describe('view snapshots, across processes', () => {
   const running: Serving[] = []
   let web: Serving
 
-  const viewsDir = () => join(site(), 'Views')
+  const componentsDir = () => join(site(), 'components')
 
   function environment(
     role: string | undefined,
@@ -47,7 +47,7 @@ describe('view snapshots, across processes', () => {
   ): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_VIEWS_DIR',
+      'BUNBRACO_COMPONENTS_DIR',
       'BUNBRACO_SCHEMA_DIR',
       'BUNBRACO_MEDIA_DIR',
       'BUNBRACO_CSS_DIR',
@@ -64,8 +64,8 @@ describe('view snapshots, across processes', () => {
       BUNBRACO_ADMIN_PASSWORD: 'integration-password',
       // A short gate, so a change nobody announced is noticed inside a test
       // rather than after the production interval.
-      BUNBRACO_VIEWS_GATE_MS: '100',
-      ...(cacheDir ? { BUNBRACO_VIEWS_CACHE_DIR: cacheDir } : {}),
+      BUNBRACO_COMPONENTS_GATE_MS: '100',
+      ...(cacheDir ? { BUNBRACO_COMPONENTS_CACHE_DIR: cacheDir } : {}),
       ...(role ? { BUNBRACO_ROLE: role } : {}),
       ...extra,
     }
@@ -147,7 +147,7 @@ describe('view snapshots, across processes', () => {
 
   const health = async (node: Serving) =>
     (await (await fetch(new URL('/health', node.url))).json()) as {
-      views: { hash: string; generations: number; frozen: boolean; refused: string | null }
+      components: { hash: string; generations: number; frozen: boolean; refused: string | null }
     }
 
   /** Polls until `check` passes: a change travels through the filesystem. */
@@ -167,13 +167,13 @@ describe('view snapshots, across processes', () => {
     const init = await cli(undefined, 'init', '--name', 'Snapshot Site', '--template', 'basic')
     expect(init.code, init.out).toBe(0)
     // A layout the template goes through, so a component-only change is testable.
-    mkdirSync(join(viewsDir(), 'components'), { recursive: true })
+    mkdirSync(join(componentsDir(), 'components'), { recursive: true })
     writeFileSync(
-      join(viewsDir(), 'components', 'layout.tsx'),
+      join(componentsDir(), 'components', 'layout.tsx'),
       'export const Layout = ({ children }) => <main data-layout="first">{children}</main>\n',
     )
     writeFileSync(
-      join(viewsDir(), 'homePage.tsx'),
+      join(componentsDir(), 'homePage.tsx'),
       `import { Layout } from './components/layout.tsx'
 export default function Home({ model }) {
   return <Layout><h1>{model.value('title')}</h1></Layout>
@@ -192,7 +192,7 @@ export default function Home({ model }) {
   })
 
   test('a node names the generation it is serving, and keeps it on disk', async () => {
-    const reported = (await health(web)).views
+    const reported = (await health(web)).components
     expect(reported.hash).toMatch(/^[0-9a-f]{16}$/)
     expect(reported.frozen).toBe(false)
     expect(existsSync(join(web.cacheDir, reported.hash))).toBe(true)
@@ -201,9 +201,9 @@ export default function Home({ model }) {
   }, 60_000)
 
   test('a component changed on disk reaches a running renderer, with no restart', async () => {
-    const before = (await health(web)).views.hash
+    const before = (await health(web)).components.hash
     writeFileSync(
-      join(viewsDir(), 'components', 'layout.tsx'),
+      join(componentsDir(), 'components', 'layout.tsx'),
       'export const Layout = ({ children }) => <main data-layout="second">{children}</main>\n',
     )
 
@@ -211,21 +211,22 @@ export default function Home({ model }) {
       (await page(web)).includes('data-layout="second"'),
     )
     // A new generation, because the tree's content changed.
-    expect((await health(web)).views.hash).not.toBe(before)
+    expect((await health(web)).components.hash).not.toBe(before)
   }, 120_000)
 
   /**
-   * The source stays the truth. `Views/` is what the template editor, `views
-   * list` and `views check` read; a snapshot is only ever an import target, and
+   * The source stays the truth. `components/` is what the editor,
+   * `components list` and `components check` read; a snapshot is only ever an
+   * import target, and
    * nothing user-facing should mention it.
    */
   test('the CLI reads the views, never the snapshot of them', async () => {
-    const listed = await cli('api', 'views', 'list')
+    const listed = await cli('api', 'components', 'list')
     expect(listed.code, listed.out).toBe(0)
     expect(listed.out).toContain('homePage')
     expect(listed.out).not.toContain('.bunbraco')
 
-    const checked = await cli('api', 'views', 'check')
+    const checked = await cli('api', 'components', 'check')
     expect(checked.code, checked.out).toBe(0)
     expect(checked.out).not.toContain('.bunbraco')
 
@@ -236,17 +237,17 @@ export default function Home({ model }) {
   }, 120_000)
 
   test('reverting a change returns to a generation already loaded', async () => {
-    const first = (await health(web)).views.hash
+    const first = (await health(web)).components.hash
     writeFileSync(
-      join(viewsDir(), 'components', 'layout.tsx'),
+      join(componentsDir(), 'components', 'layout.tsx'),
       'export const Layout = ({ children }) => <main data-layout="third">{children}</main>\n',
     )
     await until('the third layout', async () => (await page(web)).includes('data-layout="third"'))
-    const third = (await health(web)).views.hash
+    const third = (await health(web)).components.hash
     expect(third).not.toBe(first)
 
     writeFileSync(
-      join(viewsDir(), 'components', 'layout.tsx'),
+      join(componentsDir(), 'components', 'layout.tsx'),
       'export const Layout = ({ children }) => <main data-layout="second">{children}</main>\n',
     )
     await until('the second layout again', async () =>
@@ -254,7 +255,7 @@ export default function Home({ model }) {
     )
     // The same hash as before, so flapping between two versions costs two
     // generations in total rather than one per write.
-    expect((await health(web)).views.hash).toBe(first)
+    expect((await health(web)).components.hash).toBe(first)
   }, 180_000)
 
   /**
@@ -271,12 +272,12 @@ export default function Home({ model }) {
       // rather than after 250 generations.
       bounded = await serve('web', {
         env: {
-          BUNBRACO_VIEWS_GENERATION_LIMIT: String(limit),
-          BUNBRACO_VIEWS_KEEP: '2',
+          BUNBRACO_COMPONENTS_GENERATION_LIMIT: String(limit),
+          BUNBRACO_COMPONENTS_KEEP: '2',
           // No coalescing floor, so each distinct tree counts: the floor is what
           // would otherwise absorb this churn, and the budget is what has to
           // hold when it does not.
-          BUNBRACO_VIEWS_SWAP_MS: '0',
+          BUNBRACO_COMPONENTS_SWAP_MS: '0',
         },
       })
     }, 180_000)
@@ -292,19 +293,19 @@ export default function Home({ model }) {
       // Far more distinct trees than the node will load.
       for (let i = 0; i < 40; i++) {
         writeFileSync(
-          join(viewsDir(), 'components', 'layout.tsx'),
+          join(componentsDir(), 'components', 'layout.tsx'),
           `export const Layout = ({ children }) => <main data-layout="v${i}">{children}</main>\n`,
         )
         // Every write is a render, as traffic would be.
         const body = await page(bounded)
         expect(body).toContain('data-layout=')
-        const state = (await health(bounded)).views
+        const state = (await health(bounded)).components
         seen.add(state.hash)
         if (state.frozen && !frozenAt) frozenAt = state.hash
         await Bun.sleep(150)
       }
 
-      const state = (await health(bounded)).views
+      const state = (await health(bounded)).components
       // It froze rather than loading one generation per write.
       expect(state.frozen).toBe(true)
       expect(state.refused).toContain('restart the node')

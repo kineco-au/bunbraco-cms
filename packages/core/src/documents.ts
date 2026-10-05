@@ -47,7 +47,7 @@ export interface DocumentAggregate {
   contentTypeIcon: string
   /** The list view the type shows its children in, if any. */
   contentTypeCollectionKey?: string | null
-  templateKey: string | null
+  componentKey: string | null
   parentKey: string | null
   sortOrder: number
   isTrashed: boolean

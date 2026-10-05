@@ -77,7 +77,7 @@ async function typecheck(view: string): Promise<string[]> {
   dirs.push(root)
   const libs = await editorTypeLibs({ schemaDir: schemaFiles() })
   for (const lib of libs) await Bun.write(join(root, lib.path.replace('file:///', '')), lib.content)
-  await Bun.write(join(root, 'Views', 'view.tsx'), view)
+  await Bun.write(join(root, 'components', 'view.tsx'), view)
   await Bun.write(
     join(root, 'tsconfig.json'),
     JSON.stringify({
@@ -92,7 +92,7 @@ async function typecheck(view: string): Promise<string[]> {
         strict: true,
         lib: ['ESNext', 'DOM'],
       },
-      include: ['Views/**/*'],
+      include: ['components/**/*'],
     }),
   )
   const tsc = Bun.spawn(['bun', 'node_modules/typescript/bin/tsc', '-p', root], {
@@ -107,8 +107,8 @@ async function typecheck(view: string): Promise<string[]> {
   // diagnostics are never shown against the file being edited.
   return out
     .split('\n')
-    .filter((line) => line.includes('Views/view.tsx'))
-    .map((line) => line.slice(line.indexOf('Views/view.tsx')))
+    .filter((line) => line.includes('components/view.tsx'))
+    .map((line) => line.slice(line.indexOf('components/view.tsx')))
 }
 
 describe('the declarations the view editor checks a view against', () => {
@@ -208,7 +208,7 @@ describe('the editor configuration', () => {
     // them type-checks, so this lays the declarations out the way the editor
     // does and asks `tsc`. It covers what nothing else can: that a bare
     // `bunbraco` resolves to the served module, that `jsxImportSource` reaches
-    // the JSX namespace so a tag is legal at all, and that `Views/` is the right
+    // the JSX namespace so a tag is legal at all, and that `components/` is the right
     // depth for the generated types.
     expect(
       await typecheck(`import type { PageProps } from 'bunbraco'

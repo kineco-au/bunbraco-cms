@@ -134,7 +134,7 @@ carries its own `OpenApi.json`; every package declares dependencies and an
 and the CLI (`start`, `init`, `admin reset-password`, with `upgrade`, `schema`
 and `generate` stubbed until 5b/5c). Verified with a site in `/tmp` whose only
 dependency is `bunbraco`: `init`, boot, login, a template in the site's own
-`Views/`, and a rendered page.
+`components/`, and a rendered page.
 
 The exit test earned its keep on the first run: everything passed except the
 render, because a view's JSX imported `@bunbraco/render/jsx-dev-runtime` — a
@@ -424,7 +424,7 @@ manual checklist is in `08-testing.md`. API coverage 61/513.
   `PostDocumentTypeAvailableCompositions`,
   `GetDocumentTypeByIdCompositionReferences`, `GetDocumentTypeByIdAllowedParents`,
   `GetItemDocumentTypeSearch`, `GetTreeDocumentTypeSiblings`, `GetDocumentTypeBatch`,
-  `PostDocumentTypeByIdTemplate` (creates `Views/<alias>.tsx` from the
+  `PostDocumentTypeByIdTemplate` (creates `components/<alias>.tsx` from the
   scaffold), copy and move; **folders** — decision below.
 - Data types: `GetFilterDataType` (the editor picker), `GetItemDataTypeSearch`,
   `GetTreeDataTypeAncestors`, `GetDataTypeByIdReferencedBy`, copy, folders;
@@ -443,7 +443,7 @@ manual checklist is in `08-testing.md`. API coverage 61/513.
 properties on three editors (one via "Select editor → create new data type"),
 a composition, an allowed child and "Create template"; reload: it persists,
 its file is in `schema/document-types/`, the data type's in
-`schema/data-types/`, the view in `Views/`. Settings opens clean.
+`schema/data-types/`, the view in `components/`. Settings opens clean.
 
 **Built:** everything above, pinned by `tests/settings.test.ts`. Folders live in
 the files as `folder = "Pages/Blog"`: the sync creates the path, a folder
@@ -468,7 +468,7 @@ document-type and data-type tree search (with `itemKind`) and the document
 recycle bin's siblings.
 Deferred: partial views, scripts and stylesheets as real file trees (their
 roots answer empty), and the template query builder (Razor-specific, stays 501).
-*Since built:* partial views (`Views/Partials/*.tsx`), stylesheets (`css/`,
+*Since built:* partial views (`components/Partials/*.tsx`), stylesheets (`css/`,
 served at `/css/`) and scripts (`scripts/`, at `/scripts/`) — tree, items,
 CRUD, rename and folders, one handler for all three over path-safe file
 stores; the editor's `.cshtml` names are stored as `.tsx`; a new partial view

@@ -226,7 +226,7 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
                 : [],
             )
           : [],
-        templates: keys(schema.templates),
+        components: keys(schema.components),
         languages: keys(schema.languages),
       },
     },

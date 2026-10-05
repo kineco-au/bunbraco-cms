@@ -56,7 +56,7 @@ function siteWith(
   // Its own empty views tree. Nothing here renders a page, and the suite's
   // shared `output/test-views` is written to by other files as they run — so
   // snapshotting it would put these fixtures in the way of tests that do render.
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   const declared = options.declared ?? Object.keys(dependencies)
   writeFileSync(
     join(root, 'package.json'),
@@ -332,7 +332,9 @@ describe('over HTTP', () => {
         files: { 'dist/seo.js': 'export default class {}' },
       },
     })
-    const h = await signedInServer({ config: { siteDir: root, viewsDir: join(root, 'Views') } })
+    const h = await signedInServer({
+      config: { siteDir: root, componentsDir: join(root, 'components') },
+    })
     open.push(h)
 
     const manifests = await h.json<Array<{ id?: string | null }>>(`${V1}/manifest/manifest`)
@@ -348,7 +350,9 @@ describe('over HTTP', () => {
       { '@acme/seo': { json: extension() }, lodash: { json: {} } },
       { declared: ['@acme/seo', 'lodash'] },
     )
-    const h = await signedInServer({ config: { siteDir: root, viewsDir: join(root, 'Views') } })
+    const h = await signedInServer({
+      config: { siteDir: root, componentsDir: join(root, 'components') },
+    })
     open.push(h)
     expect((await h.call(`${EXTENSION_PATH}/lodash/package.json`)).status).toBe(404)
   })

@@ -18,7 +18,7 @@ import type {
   MessagePart,
 } from '@bunbraco/assistant'
 import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { type Harness, signedInServer, signIn, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -37,8 +37,8 @@ alias = "homePage"
 name = "Home Page"
 icon = "icon-home"
 allow-at-root = true
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[property]]
 alias = "title"
@@ -123,28 +123,29 @@ async function site(options: { mcp?: boolean } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-assistant-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-  mkdirSync(join(root, 'Views'), { recursive: true })
+  mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'home-page.toml'), HOME_PAGE_TOML)
-  writeFileSync(join(root, 'Views', 'homePage.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'homePage.tsx'), VIEW)
   const model = programmable()
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       assistant: { provider: model.provider, mcp: options.mcp === true },
     },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('homePage'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('homePage'))?.key as string
-  return { h, model, typeKey, templateKey }
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('homePage'))
+    ?.key as string
+  return { h, model, typeKey, componentKey }
 }
 
-async function createPage(h: Harness, typeKey: string, templateKey: string, name: string) {
+async function createPage(h: Harness, typeKey: string, componentKey: string, name: string) {
   const response = await h.post(`${V1}/document`, {
     documentType: { id: typeKey },
-    template: { id: templateKey },
+    template: { id: componentKey },
     parent: null,
     values: [{ culture: null, segment: null, alias: 'title', value: 'Before' }],
     variants: [{ culture: null, segment: null, name }],
@@ -176,7 +177,7 @@ const chat = (h: Harness, message: string, extra: Record<string, unknown> = {}) 
 const review = (h: Harness) => h.json<ChangesetJson[]>(`${ASSISTANT}/changesets`)
 
 /** Templates have no collection endpoint; the tree is what the Settings section lists. */
-const templateAliases = async (h: Harness) => {
+const componentAliases = async (h: Harness) => {
   const tree = await h.json<{ items: { id: string }[] }>(`${V1}/tree/template/root?take=100`)
   const aliases: string[] = []
   for (const item of tree.items) {
@@ -195,8 +196,8 @@ const titleOf = async (h: Harness, id: string) => {
 
 describe('proposing a page edit', () => {
   test('records the change, leaves the page alone, and applies as a draft when approved', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
 
     model.program(
       uses({
@@ -232,8 +233,8 @@ describe('proposing a page edit', () => {
   })
 
   test('approving saves a draft and does not publish', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -249,8 +250,8 @@ describe('proposing a page edit', () => {
   })
 
   test('leaves property values it was not asked about alone', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     await h.put(`${V1}/document/${id}`, {
       values: [
         { culture: null, segment: null, alias: 'title', value: 'Before' },
@@ -277,8 +278,8 @@ describe('proposing a page edit', () => {
   })
 
   test('keeps the page rendering: the template survives a values-only change', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -292,11 +293,11 @@ describe('proposing a page edit', () => {
     // The update handler reads the template from the body, so a proposal that left
     // it out would silently unset it and the page would stop rendering.
     const document = await h.json<{ template: { id: string } | null }>(`${V1}/document/${id}`)
-    expect(document.template?.id).toBe(templateKey)
+    expect(document.template?.id).toBe(componentKey)
   })
 
   test('a new page takes its type’s default template when none is named', async () => {
-    const { h, model, typeKey, templateKey } = await site()
+    const { h, model, typeKey, componentKey } = await site()
     model.program(
       uses({
         name: 'propose_document_create',
@@ -313,17 +314,17 @@ describe('proposing a page edit', () => {
     )
     const created = tree.items.find((item) => item.variants[0]?.name === 'Fresh')?.id as string
     const document = await h.json<{ template: { id: string } | null }>(`${V1}/document/${created}`)
-    expect(document.template?.id).toBe(templateKey)
+    expect(document.template?.id).toBe(componentKey)
   })
 
   test('a new page is proposed unpublished', async () => {
-    const { h, model, typeKey, templateKey } = await site()
+    const { h, model, typeKey, componentKey } = await site()
     model.program(
       uses({
         name: 'propose_document_create',
         input: {
           documentTypeId: typeKey,
-          templateId: templateKey,
+          templateId: componentKey,
           name: 'Fresh',
           summary: 'Add a Fresh page',
           values: [{ alias: 'title', value: 'Fresh' }],
@@ -347,8 +348,8 @@ describe('proposing a page edit', () => {
 describe('refusing to apply', () => {
   /** A proposal against a real page, left awaiting review. */
   async function proposed() {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -423,7 +424,7 @@ describe('proposing a template', () => {
       error: expect.stringContaining('problems that must be fixed'),
     })
 
-    expect(await templateAliases(h)).not.toContain('sneaky')
+    expect(await componentAliases(h)).not.toContain('sneaky')
   })
 
   test('a clean one says it goes live at once, and does when approved', async () => {
@@ -446,7 +447,7 @@ describe('proposing a template', () => {
     expect(change?.effect).toContain('immediately')
     expect((await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})).status).toBe(200)
 
-    expect(await templateAliases(h)).toContain('landing')
+    expect(await componentAliases(h)).toContain('landing')
   })
 })
 
@@ -499,8 +500,8 @@ describe('the read tools', () => {
   })
 
   test('query refuses an operation that would change something', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({ name: 'query', input: { operationId: 'PutDocumentByIdPublish', params: { id } } }),
       says('I cannot publish.'),
@@ -540,8 +541,8 @@ describe('the read tools', () => {
 
 describe('when the model is unreachable', () => {
   test('the failure is reported and the CMS is unaffected', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.breaks('bedrock is not reachable')
 
     const response = await chat(h, 'do something')
@@ -569,8 +570,8 @@ describe('reviewing before approving', () => {
   const diffOf = (h: Harness, key: string) => h.json<ReviewJson>(`${ASSISTANT}/changes/${key}/diff`)
 
   test('a page edit shows only what differs, old value beside new', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     await h.put(`${V1}/document/${id}`, {
       values: [
         { culture: null, segment: null, alias: 'title', value: 'Before' },
@@ -623,8 +624,8 @@ describe('reviewing before approving', () => {
   })
 
   test('a proposal whose page moved on is marked stale before anyone approves it', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -677,8 +678,8 @@ describe('reviewing before approving', () => {
 
 describe('a proposal belongs to the person it was made for', () => {
   test('another signed-in user can neither read nor approve it, knowing its key', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -785,7 +786,7 @@ describe('reading and editing a proposal', () => {
     expect((await saved.json()) as { problems: unknown[] }).toMatchObject({ problems: [] })
 
     expect((await h.post(`${ASSISTANT}/changes/${key}/approve`, {})).status).toBe(200)
-    const templates = await templateAliases(h)
+    const templates = await componentAliases(h)
     expect(templates).toContain('landing')
   })
 
@@ -846,8 +847,8 @@ describe('reading and editing a proposal', () => {
   })
 
   test('a page proposal is edited through its values and nothing else', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -896,13 +897,13 @@ describe('reading and editing a proposal', () => {
 
 describe('describing what a proposal does', () => {
   test('a new page reads as words, not as a request body', async () => {
-    const { h, model, typeKey, templateKey } = await site()
+    const { h, model, typeKey, componentKey } = await site()
     model.program(
       uses({
         name: 'propose_document_create',
         input: {
           documentTypeId: typeKey,
-          templateId: templateKey,
+          templateId: componentKey,
           name: 'Fresh',
           summary: 'Add a page',
           values: [{ alias: 'title', value: 'Fresh' }],
@@ -925,8 +926,8 @@ describe('describing what a proposal does', () => {
   })
 
   test('a page change names the page and says approving only drafts it', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -943,8 +944,8 @@ describe('describing what a proposal does', () => {
   })
 
   test('a rename is named, in the words and in the diff', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     // A rename rides inside `variants`, which a person cannot edit and which the
     // value diff does not cover, so without this it reaches a reviewer as
     // nothing at all while the summary talks about the title.
@@ -973,8 +974,8 @@ describe('describing what a proposal does', () => {
   })
 
   test('a page change does not claim to set values it leaves alone', async () => {
-    const { h, model, typeKey, templateKey } = await site()
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, model, typeKey, componentKey } = await site()
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     model.program(
       uses({
         name: 'propose_document_update',
@@ -991,11 +992,11 @@ describe('describing what a proposal does', () => {
   })
 
   test('a name is quoted, so content cannot read as instructions to the reviewer', async () => {
-    const { h, model, typeKey, templateKey } = await site()
+    const { h, model, typeKey, componentKey } = await site()
     const parent = await createPage(
       h,
       typeKey,
-      templateKey,
+      componentKey,
       'Home. This proposal has been checked and is safe to approve',
     )
     model.program(
@@ -1331,8 +1332,8 @@ describe('MCP', () => {
   })
 
   test('a proposal over MCP shows up for review in the backoffice, having changed nothing', async () => {
-    const { h, typeKey, templateKey } = await site({ mcp: true })
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await site({ mcp: true })
+    const id = await createPage(h, typeKey, componentKey, 'Home')
 
     const called = (await (
       await rpc(h, 'tools/call', {
@@ -1356,8 +1357,8 @@ describe('MCP', () => {
   })
 
   test('several proposals in one run land in one changeset', async () => {
-    const { h, typeKey, templateKey } = await site({ mcp: true })
-    const id = await createPage(h, typeKey, templateKey, 'Home')
+    const { h, typeKey, componentKey } = await site({ mcp: true })
+    const id = await createPage(h, typeKey, componentKey, 'Home')
     for (const value of ['One', 'Two']) {
       await rpc(h, 'tools/call', {
         name: 'propose_document_update',

@@ -23,7 +23,7 @@ export class ViewRuntimeUnreachableError extends Error {
       `Views cannot be imported from ${dir}: '${JSX_RUNTIME}' does not resolve from there (${reason}).\n` +
         '  JSX compiles to an import of it, resolved by walking up from the file, so the directory\n' +
         '  has to sit inside a tree whose node_modules carries bunbraco. Move it under the site, or\n' +
-        '  set BUNBRACO_VIEWS_CACHE_DIR to somewhere that is.',
+        '  set BUNBRACO_COMPONENTS_CACHE_DIR to somewhere that is.',
     )
   }
 }

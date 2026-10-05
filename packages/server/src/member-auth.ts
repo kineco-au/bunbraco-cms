@@ -331,7 +331,7 @@ export function createMemberAuth(
       {
         key: crypto.randomUUID(),
         contentTypeKey: type.key,
-        templateKey: null,
+        componentKey: null,
         parentKey: null,
         values: [],
         variants: [{ culture: null, segment: null, name }],

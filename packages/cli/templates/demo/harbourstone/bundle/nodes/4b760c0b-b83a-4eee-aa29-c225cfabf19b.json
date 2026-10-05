@@ -6,13 +6,13 @@
     "alias": "tastingNote"
   },
   "parent": null,
-  "sortOrder": 4,
+  "sortOrder": 12,
   "template": null,
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Palate — Soft oak under the smoke, wh…",
+      "name": "Palate — Sweet peat, oyster shell, bl…",
       "published": true
     }
   ],
@@ -29,7 +29,7 @@
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Soft oak under the smoke, white pepper, sea spray on warm stone."
+      "value": "Sweet peat, oyster shell, black pepper, barley sugar."
     }
   ]
 }

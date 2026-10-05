@@ -307,7 +307,7 @@ export interface SchemaForm {
   messageOnSubmit?: string
   /** A document key to send the visitor to instead of showing a message. */
   redirectTo?: string
-  /** A theme directory under `Views/Forms/`. */
+  /** A theme directory under `components/Forms/`. */
   theme?: string
   /** A field real visitors never fill; a filled one is marked as spam. */
   honeypot: boolean

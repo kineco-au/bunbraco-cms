@@ -29,7 +29,7 @@ export interface PublishedNode {
   /** The invariant name; a culture's own name comes from `names`. */
   name: string
   contentTypeAlias: string
-  templateAlias: string | null
+  componentAlias: string | null
   createDate: Date
   updateDate: Date
   /** The cultures a culture-varying node is published in; empty for an invariant node. */
@@ -585,7 +585,7 @@ export class PublishedCache {
           sortOrder: node.sortOrder,
           createDate: node.createDate,
           updateDate: node.updateDate,
-          templateAlias: node.templateAlias,
+          componentAlias: node.componentAlias,
           cultures: node.cultures,
           properties: node.properties,
           variationCulture: variant ? culture : null,
@@ -747,7 +747,7 @@ export function contentForNode(
     sortOrder: node.sortOrder,
     createDate: node.createDate,
     updateDate: node.updateDate,
-    templateAlias: node.templateAlias,
+    componentAlias: node.componentAlias,
     cultures: node.cultures,
     properties: node.properties,
     variationCulture: scoped,

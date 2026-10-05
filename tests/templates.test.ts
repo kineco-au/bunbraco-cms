@@ -7,8 +7,8 @@
  * would fail in somebody's terminal fails here first.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import {
   findTemplate,
   listTemplates,
@@ -18,7 +18,9 @@ import {
 } from '@bunbraco/cli'
 import { allFormFields, type SchemaForm } from '@bunbraco/core'
 import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
+import { listComponents } from '@bunbraco/server'
 import { loadBundle } from '@bunbraco/transfer'
+import { ROOT } from '../scripts/packages.ts'
 
 const templates = listTemplates()
 const byId = (id: string): SiteTemplate => {
@@ -43,14 +45,14 @@ describe('the starter templates', () => {
   test.each(templates.map((t) => [t.id] as const))('%s has schema a site would accept', (id) => {
     const template = byId(id)
     const loaded = loadSchemaDirectory(join(template.dir, 'files', 'schema'))
+    // Every component at any depth, keyed by the path that is its alias —
+    // which is what the schema names and what the server scans for.
     const views = new Set(
-      readdirSync(join(template.dir, 'files', 'Views'))
-        .filter((name) => name.endsWith('.tsx'))
-        .map((name) => name.replace(/\.tsx$/, '')),
+      listComponents(join(template.dir, 'files', 'components')).map((c) => c.alias),
     )
     const problems = [
       ...loaded.problems,
-      ...validateSchemaSet(loaded.set, { templateAliases: views }),
+      ...validateSchemaSet(loaded.set, { componentAliases: views }),
     ]
     expect(problems.map((p) => `${p.file}: ${p.message}`)).toEqual([])
 
@@ -111,7 +113,7 @@ describe('the demo’s form', () => {
   const forms = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.forms ?? []
 
   test('is a file in the schema directory, like the types beside it', () => {
-    expect(forms.map((form) => form.alias)).toEqual(['visitEnquiry'])
+    expect(forms.map((form) => form.alias)).toEqual(['contactEnquiry'])
     expect(forms[0]?.key).toBeTruthy()
   })
 
@@ -140,7 +142,10 @@ describe('the demo’s form', () => {
     // Without `submission` a refused submission comes back on a bare page
     // instead of inside the site's own layout, which is the whole point of the
     // prop being on PageProps.
-    const view = readFileSync(join(template.dir, 'files', 'Views', 'contentPage.tsx'), 'utf8')
+    const view = readFileSync(
+      join(template.dir, 'files', 'components', 'pages', 'contactPage.tsx'),
+      'utf8',
+    )
     expect(view).toContain('<Form')
     expect(view).toContain('submission={submission}')
   })
@@ -232,7 +237,7 @@ describe('what init writes', () => {
     const files = scaffoldFiles({ siteName: 'Harbourstone', template })
     const paths = files.map((f) => f.path)
 
-    expect(paths).toContain('Views/homePage.tsx')
+    expect(paths).toContain('components/pages/homePage.tsx')
     expect(paths).toContain('schema/document-types/home-page.toml')
     expect(paths).toContain('css/site.css')
     expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/nodes/'))).toBe(true)
@@ -259,5 +264,99 @@ describe('what init writes', () => {
     // on disk, so planning both would have let the scaffolded one win.
     expect(schemaFiles).toHaveLength(1)
     expect(schemaFiles[0]?.copyFrom).toBeTruthy()
+  })
+})
+
+describe('the demo’s element types, reused across page types', () => {
+  const template = byId('demo/harbourstone')
+  const set = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set
+
+  test('one highlight type answers for the figures and the decisions alike', () => {
+    // The home page's figures and the About page's four decisions are the same
+    // shape, so they are the same element type picked twice. If this ever
+    // becomes two types, it is a decision somebody should have to make
+    // deliberately rather than by adding a file.
+    const highlight = set.documentTypes.find((type) => type.alias === 'highlight')
+    expect(highlight?.isElement).toBe(true)
+
+    const picker = (set.dataTypes ?? []).find((type) => type.alias === 'highlightPicker')
+    expect(picker?.config?.allowedContentTypes).toBe(highlight?.key)
+
+    const pickedBy = set.documentTypes
+      .filter((type) => allProperties(type).some((property) => property.type === 'highlightPicker'))
+      .map((type) => type.alias)
+      .sort()
+    expect(pickedBy).toEqual(['contentPage', 'homePage'])
+  })
+
+  test('every picker names a type that is in this template', () => {
+    // A picker narrowed to a key that no longer exists offers nothing at all,
+    // silently, and only in the dialog nobody opened.
+    const keys = new Set(set.documentTypes.map((type) => type.key))
+    for (const dataType of set.dataTypes ?? []) {
+      const allowed = dataType.config?.allowedContentTypes
+      if (typeof allowed !== 'string') continue
+      for (const key of allowed.split(',').filter(Boolean))
+        expect([dataType.alias, keys.has(key)]).toEqual([dataType.alias, true])
+    }
+  })
+})
+
+describe('the demo’s photographs', () => {
+  const template = byId('demo/harbourstone')
+  const sources = join(ROOT, 'assets/templates/harbourstone')
+
+  test('are the files in assets/, byte for byte', () => {
+    // `build:template` copies the bytes through rather than re-encoding them:
+    // re-encoding an already-compressed JPEG would churn the committed bundle
+    // on every build and lose a little more of the image each time.
+    const blobs = join(template.dir, 'bundle', 'blobs')
+    const shipped = readdirSync(blobs, { recursive: true, encoding: 'utf8' }).filter((file) =>
+      file.endsWith('.jpg'),
+    )
+    expect(shipped.length).toBeGreaterThan(0)
+    for (const file of shipped) {
+      const source = join(sources, basename(file))
+      expect([file, existsSync(source)]).toEqual([file, true])
+      expect(readFileSync(join(blobs, file))).toEqual(readFileSync(source))
+    }
+  })
+
+  test('are not published a second time as sources', () => {
+    // `assets/` is outside the `files` list, so the originals stay in the
+    // repository and only the bundle ships.
+    const manifest = JSON.parse(readFileSync(join(ROOT, 'packages/cli/package.json'), 'utf8')) as {
+      files: string[]
+    }
+    expect(manifest.files.some((entry) => entry.startsWith('assets'))).toBe(false)
+  })
+})
+
+describe('the demo’s typography', () => {
+  const template = byId('demo/harbourstone')
+  const css = readFileSync(join(template.dir, 'files', 'css', 'site.css'), 'utf8')
+  const layout = readFileSync(
+    join(template.dir, 'files', 'components', 'shared', 'layout.tsx'),
+    'utf8',
+  )
+
+  test('links every family the stylesheet asks for first', () => {
+    // The two are a pair: a family renamed in the stylesheet and not in the
+    // link falls back silently, and looks merely a bit wrong rather than
+    // broken. Reading the first-named family out of each custom property is
+    // enough to catch that.
+    const families = [...css.matchAll(/--(?:display|sans):\s*"([^"]+)"/g)].map((m) => m[1] ?? '')
+    expect(families.length).toBe(2)
+    for (const family of families) expect([family, layout.includes(family)]).toEqual([family, true])
+  })
+
+  test('names a fallback for each, so a blocked request still reads', () => {
+    // The fonts come off a third party. A site behind a filter that cannot
+    // reach it should land on a system serif and sans, not on a default.
+    for (const property of ['--display', '--sans']) {
+      const declaration = new RegExp(`${property}:([^;]+);`).exec(css)?.[1] ?? ''
+      expect([property, declaration.split(',').length > 2]).toEqual([property, true])
+      expect([property, /serif/.test(declaration)]).toEqual([property, true])
+    }
   })
 })

@@ -153,11 +153,15 @@ describe('the media route and resize URLs', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'imaging-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     const mediaDir = join(root, 'media')
     const h = await signedInServer({
-      config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), mediaDir },
+      config: {
+        schemaDir: join(root, 'schema'),
+        componentsDir: join(root, 'components'),
+        mediaDir,
+      },
     })
     open.push(h)
     const id = crypto.randomUUID()
@@ -218,7 +222,7 @@ describe('the media route and resize URLs', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'imaging-svg-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     const mediaDir = join(root, 'media')
     mkdirSync(join(mediaDir, 'abcd1234'), { recursive: true })
@@ -227,7 +231,11 @@ describe('the media route and resize URLs', () => {
       '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>',
     )
     const h = await signedInServer({
-      config: { schemaDir: join(root, 'schema'), viewsDir: join(root, 'Views'), mediaDir },
+      config: {
+        schemaDir: join(root, 'schema'),
+        componentsDir: join(root, 'components'),
+        mediaDir,
+      },
     })
     open.push(h)
 

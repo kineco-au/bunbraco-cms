@@ -6,40 +6,37 @@
     "alias": "whiskyList"
   },
   "parent": "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
-  "sortOrder": 0,
-  "template": "whiskyList",
+  "sortOrder": 1,
+  "template": "pages/whiskyList",
   "variants": [
     {
       "culture": null,
       "segment": null,
-      "name": "Our Whisky",
+      "name": "Bottlings",
       "published": true
     }
   ],
   "values": [
     {
-      "property": "intro",
+      "property": "eyebrow",
       "culture": null,
       "segment": null,
-      "editor": "Umbraco.RichText",
-      "value": {
-        "markup": "<p>Everything we bottle is matured here on the coast. Soft oak first, floral always, and the salt air underneath it.</p>",
-        "blocks": null
-      }
+      "editor": "Umbraco.TextBox",
+      "value": "The range"
     },
     {
-      "property": "summary",
+      "property": "standfirst",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextArea",
-      "value": "Three bottlings: the 12, the peated 10 and this year’s harbour cask."
+      "value": "All Harbourstone single malt is bottled at the distillery. Natural colour. Non-chill filtered. 700 ml."
     },
     {
       "property": "title",
       "culture": null,
       "segment": null,
       "editor": "Umbraco.TextBox",
-      "value": "Our Whisky"
+      "value": "Bottlings on offer."
     }
   ]
 }

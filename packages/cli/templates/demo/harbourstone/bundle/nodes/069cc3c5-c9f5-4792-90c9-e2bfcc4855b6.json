@@ -1,0 +1,35 @@
+{
+  "key": "069cc3c5-c9f5-4792-90c9-e2bfcc4855b6",
+  "kind": "element",
+  "contentType": {
+    "key": "2e4e319f-2627-43da-8200-27d6197aced7",
+    "alias": "highlight"
+  },
+  "parent": null,
+  "sortOrder": 6,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Copper",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "One wash still, one tall spirit still."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Copper"
+    }
+  ]
+}

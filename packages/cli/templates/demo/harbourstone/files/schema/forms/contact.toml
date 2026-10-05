@@ -1,0 +1,119 @@
+# A form is structure, so it is a file like the document types beside it and a
+# change to it shows up in a diff (`docs/18-forms.md`). The Contact page points
+# at this one through its `enquiryForm` property, and `components/contactPage.tsx`
+# renders it with `<Form>`.
+#
+# Submissions land in the Forms section under Entries. `phone` is marked
+# sensitive, so it is redacted for anyone without the sensitive-data permission
+# — in the API response and in the CSV export, not merely in the screen.
+[form]
+key = "7b1f4c20-9a63-4e18-8d25-3c6f5a1e9b04"
+alias = "contactEnquiry"
+name = "Write to the cove"
+store-entries = true
+requires-approval = false
+submit-label = "Send message"
+message-on-submit = "Received. We answer from the stillhouse office within two working days."
+# A field no visitor ever fills, and a floor on how fast the form can come back:
+# between them they stop the bulk of automated submissions without a captcha.
+honeypot = true
+minimum-submit-seconds = 3
+
+[[page]]
+
+  [[page.group]]
+  columns = 1
+
+    [[page.group.field]]
+    key = "7b1f4c20-0001-4e18-8d25-3c6f5a1e9b04"
+    alias = "visitorName"
+    type = "shortAnswer"
+    caption = "Name"
+    mandatory = true
+    mandatory-message = "We need a name to reply to"
+    autocomplete = "name"
+
+    [[page.group.field]]
+    key = "7b1f4c20-0002-4e18-8d25-3c6f5a1e9b04"
+    alias = "visitorEmail"
+    type = "email"
+    caption = "Email"
+    mandatory = true
+    mandatory-message = "We need an email address to reply to"
+    autocomplete = "email"
+
+    [[page.group.field]]
+    key = "7b1f4c20-0003-4e18-8d25-3c6f5a1e9b04"
+    alias = "topic"
+    type = "dropdown"
+    caption = "Subject"
+    mandatory = true
+    default-value = "Book a distillery visit"
+    values = [
+      "Book a distillery visit",
+      "Trade and allocation",
+      "Press",
+      "Something else",
+    ]
+
+    [[page.group.field]]
+    key = "7b1f4c20-0004-4e18-8d25-3c6f5a1e9b04"
+    alias = "company"
+    type = "shortAnswer"
+    caption = "Company"
+    help-text = "Who you buy for, and where"
+    mandatory = true
+    mandatory-message = "We need the company name for a trade enquiry"
+
+      # A condition may only look backwards, at a field already answered above —
+      # so this one names `topic` and not something further down the form. It is
+      # evaluated on the server as well as in the browser, and the server's
+      # answer is the one that counts: a mandatory field the condition hides is
+      # not demanded, and a hidden field's value is discarded.
+      [page.group.field.condition]
+      action = "show"
+      match = "all"
+      rule = [{ field = "topic", operator = "is", value = "Trade and allocation" }]
+
+    [[page.group.field]]
+    key = "7b1f4c20-0005-4e18-8d25-3c6f5a1e9b04"
+    alias = "phone"
+    type = "shortAnswer"
+    caption = "Phone"
+    help-text = "Only if you would rather we rang"
+    sensitive = true
+    autocomplete = "tel"
+
+    [[page.group.field]]
+    key = "7b1f4c20-0006-4e18-8d25-3c6f5a1e9b04"
+    alias = "message"
+    type = "longAnswer"
+    caption = "Message"
+    placeholder = "Preferred dates, party size, or the bottling you are after."
+    mandatory = true
+    mandatory-message = "Tell us what you are after"
+    rows = 5
+
+    [[page.group.field]]
+    key = "7b1f4c20-0007-4e18-8d25-3c6f5a1e9b04"
+    alias = "consent"
+    type = "dataConsent"
+    caption = "I am happy for Harbourstone to hold these details in order to answer my message."
+    mandatory = true
+    mandatory-message = "We cannot store your message without this"
+
+# Telling somebody about a submission takes an e-mail provider, which this
+# template does not configure — see `docs/14-configuration.md`. With
+# BUNBRACO_EMAIL_* set, uncomment this and the message is mailed on submit; the
+# queue retries, so a provider that is briefly down loses nothing.
+#
+# [[workflow]]
+# key = "7b1f4c20-0008-4e18-8d25-3c6f5a1e9b04"
+# type = "sendEmail"
+# name = "Tell the stillhouse office"
+# on = "submit"
+#
+#   [workflow.settings]
+#   to = "visitors@harbourstone.scot"
+#   reply-to = "{visitorEmail}"
+#   subject = "Website: {topic}"

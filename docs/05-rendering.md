@@ -4,12 +4,24 @@ Umbraco renders with Razor. We render with **TSX executed by Bun**. The goal is
 not syntactic similarity but the same *contract*: the same model, the same
 fallback semantics, the same layout chain, the same routing.
 
-## Templates on disk
+## Components on disk
 
-A template is a `template` row (`alias`, plus a `node` row for name and parent)
-paired with a file. Umbraco uses `~/Views/{alias}.cshtml`; we use
-`apps/site/Views/{alias}.tsx`. The alias determines the filename, exactly as
-upstream.
+Every `.tsx` a site renders lives under one root, `components/`, at whatever
+depth suits it. A **template** is one that a document type names; everything
+else is only ever reached by an `import`. That is the whole distinction, and it
+is recorded in the schema (`templates = ["pages/homePage"]`) rather than in the
+directory — so there is no second place that could disagree with it.
+
+**This is a deliberate divergence.** Umbraco splits the two into `~/Views` and
+`~/Views/Partials`, with separate trees and separate APIs, because Razor needed
+the distinction for master-template inheritance. A TSX layout is an import, so
+the split bought nothing here and cost a rule about where a file may live.
+
+A template is still a `template` row (`alias`, plus a `node` row for name and
+parent) paired with a file, and **the alias is the path**: `pages/homePage`
+means `components/pages/homePage.tsx`. An alias arrives from the database, so it
+is checked segment by segment before it is joined to a path — `..`, an absolute
+path and a drive letter are all refused.
 
 The **layout chain lives in the file, not the database**. Umbraco parses
 `Layout = "master.cshtml";` back out of the Razor source with a regex and treats
@@ -37,18 +49,19 @@ Which template a document renders comes from `document_version.template_id` —
 *per version*, so a draft and its published version can legitimately differ —
 constrained by `content_type_template`. `?altTemplate=` overrides it.
 
-Partials resolve from an ordered list, mirroring
-`RenderRazorViewEngineOptionsSetup`:
+There is no resolution order to mirror, because there is nothing to resolve: a
+component is imported by its own relative path, the way any other module is.
 
 ```
-Views/{name}.tsx    Views/Shared/{name}.tsx    Views/Partials/{name}.tsx
+components/pages/homePage.tsx     a template — homePage's type names it
+components/shared/layout.tsx      a component — imported, never routed to
 ```
 
 ### Checking them before a visitor does
 
 A view is compiled when a request renders it, so one that does not compile is a
 500 that waits to be found. `bunbraco views check` brings that forward: every
-`.tsx` under `Views/` is transpiled — which gives the line a syntax error is on
+`.tsx` under `components/` is transpiled — which gives the line a syntax error is on
 — and then imported, which is what a render does, so an import that does not
 resolve is caught as well. It also reports a template a document type declares
 with no file behind it, the `noTemplate` 404 seen from the other side.
@@ -57,13 +70,13 @@ Types are a separate question, because they need the compiler and a site may not
 have one: when `typescript` is installed the command also runs `tsc --noEmit`
 over the site, and when it is not it says so rather than quietly checking less.
 
-Only the top level of `Views/` holds templates, which is what `templateAliasesIn`
-scans and what the schema validator checks against. A view nobody declares is
-left alone — a shared component is a legitimate file, and it belongs in a
-subdirectory, where nothing will mistake it for a template.
+`templateAliasesIn` scans the whole tree and the schema validator checks against
+it, so a document type naming a template that no file provides is refused by
+name. A component nobody declares is left alone: that is the normal case, not a
+suspicious one.
 
-A view may only import what the tree contains. A relative import that climbs out
-of `Views/` resolves on disk and fails the moment the view is rendered, because
+A component may only import what the tree contains. A relative import that
+climbs out of `components/` resolves on disk and fails the moment the view is rendered, because
 it is rendered from a snapshot of the tree and nothing above it; `views check`
 refuses one, where the message can explain itself.
 
@@ -78,14 +91,14 @@ first imported. Clearing any cache this codebase owns changes none of it.
 Only a new path is read fresh, so each node renders from a content-addressed copy
 of the tree (`render/snapshots.ts`):
 
-    alias  →  <viewsCacheDir>/<hash>/<alias>.tsx
+    alias  →  <componentsCacheDir>/<hash>/<alias>.tsx
 
 The hash covers the whole tree, because a template's behaviour is its import
 graph: `homePage.tsx` can be byte-identical while its layout changed. Structure
 is preserved, so relative imports resolve inside the snapshot and no request can
 pair a new template with an old layout.
 
-`viewsDir` stays the truth — the template editor, `listViews` and `views check`
+`componentsDir` stays the truth — the template editor, `listComponents` and `views check`
 all read it, and a snapshot is only ever an import target. Render errors are
 mapped back through `Renderer.inSource`, so a stack trace names the file somebody
 can open rather than the generation it was imported from.
@@ -535,7 +548,7 @@ that, and one node's work serves every node. Bun's `Image` decodes, resizes
 and encodes; cropping and padding go through raw RGBA pixels via a small PNG
 codec in `@bunbraco/server` `imaging.ts`.
 
-## Views
+## Components
 
 A view is reached only through a document type's template alias, and it is
 loaded when a request renders it — so a view that does not compile is a 500 that
@@ -543,8 +556,8 @@ waits for a visitor to find it. `views check` is that failure brought forward:
 
 ```bash
 bunx bunbraco views check             # compile every view; report a template with no file
-bunx bunbraco views list              # what is in Views/, and which type declares each
-bunx bunbraco views new header --partial     # Views/Partials/header.tsx
+bunx bunbraco views list              # what is in components/, and which type declares each
+bunx bunbraco views new shared/header        # components/shared/header.tsx
 bunx bunbraco assets list             # the stylesheets and scripts beside them
 bunx bunbraco assets new stylesheet print.css
 ```
@@ -553,7 +566,7 @@ Every `.tsx` is transpiled and then imported, which is what a render does, so an
 import that does not resolve is caught as well as a syntax error. Types need the
 compiler: when the site has `typescript` installed — `bunbraco init` puts it in
 `devDependencies` — it also runs `tsc --noEmit` over the site, and says so when
-it cannot. Only the top level of `Views/` holds templates, so a shared component
+it cannot. A component is a template only when a document type names it, so a shared one
 belongs in a subdirectory, where the template scan never looks.
 
 ## Hostnames
@@ -600,8 +613,8 @@ Only a **new path** is read fresh. So the server renders from a content-addresse
 copy of the tree:
 
 ```
-<site>/.bunbraco/views/<hash>/homePage.tsx          ← imported
-<site>/.bunbraco/views/<hash>/components/layout.tsx ← resolves inside the snapshot
+<site>/.bunbraco/components/<hash>/homePage.tsx          ← imported
+<site>/.bunbraco/components/<hash>/components/layout.tsx ← resolves inside the snapshot
 ```
 
 The hash is of the whole tree, because a template's behaviour is its import
@@ -622,19 +635,19 @@ generation already loaded. It also takes the mount off the request path entirely
 
 | Setting | Default | Development |
 | --- | --- | --- |
-| `BUNBRACO_VIEWS_CACHE_DIR` | `<site>/.bunbraco/views` | same |
-| `BUNBRACO_VIEWS_GATE_MS` — how often a node looks | 5,000 | 500 |
-| `BUNBRACO_VIEWS_SWAP_MS` — floor between generations | 10,000 | 0 |
-| `BUNBRACO_VIEWS_GENERATION_LIMIT` | 250 | 250 |
-| `BUNBRACO_VIEWS_KEEP` — generations left on disk | 3 | all, until boot |
+| `BUNBRACO_COMPONENTS_CACHE_DIR` | `<site>/.bunbraco/views` | same |
+| `BUNBRACO_COMPONENTS_GATE_MS` — how often a node looks | 5,000 | 500 |
+| `BUNBRACO_COMPONENTS_SWAP_MS` — floor between generations | 10,000 | 0 |
+| `BUNBRACO_COMPONENTS_GENERATION_LIMIT` | 250 | 250 |
+| `BUNBRACO_COMPONENTS_KEEP` — generations left on disk | 3 | all, until boot |
 
 Three things to know before changing them:
 
 - **The cache directory must sit inside the site**, for the `jsx-runtime` reason
-  above, and outside `Views/`, or it would snapshot itself. Both are refused at
+  above, and outside `components/`, or it would snapshot itself. Both are refused at
   boot, and `bunbraco status` reports the same check so a deploy learns first.
 - **It is cache, and cleared at boot**, so it must not be anything you would mind
-  losing — it is rebuilt from `Views/` in milliseconds. Compose keeps it on a
+  losing — it is rebuilt from `components/` in milliseconds. Compose keeps it on a
   tmpfs so it never reaches the bind mount, where `--watch` would see it.
 - **Each generation stays in the runtime's registry until restart** — about 88 KB
   for a small tree. That is what the generation limit bounds: at the limit a node

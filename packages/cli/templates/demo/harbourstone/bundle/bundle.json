@@ -3,21 +3,31 @@
   "id": "af030aee-ba70-4bed-8a27-a3806a79100d",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-3b68578260083d7e6614a2cfec79670925c01ea564725ceafedb88311319cd0e",
+  "integrity": "sha256-87f88f8f9f2c8f377a2b897f764995a051db61794f201e2fc3d2330b6dc77844",
   "snapshot": "published",
   "provenance": {
     "siteName": "Harbourstone Distillery",
     "schemaVersion": "1.0.0",
     "schemaRevision": "0",
-    "schemaHash": "74956a08cabc0ab6a9d8166fd085560f006ea00ff54d7481d77a3bde609426ab"
+    "schemaHash": "f3c96643d95aed6a6ce41db4bfc6a572f69199b2d8ef7482927610546b3b9617"
   },
   "selector": {
     "roots": [
-      "2462ad2e-8038-46ab-920c-af66ca5143a9",
-      "a386a383-d4dd-421f-9afa-e1bdc711713b",
-      "ce973ab0-62cd-40d1-930a-78ee4e467e60",
-      "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
-      "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
+      "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
+      "fd337567-df67-41ca-ae94-9d84d8d6042f",
+      "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe",
+      "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
+      "6be45535-83e5-4469-acf0-4127016721ae",
+      "c114b7d8-0138-404b-9d8f-a39d992577a2",
+      "3dc30fc1-973a-4217-b26f-24902210be17",
+      "d7f13222-d060-4496-b86d-bef21da963c1",
+      "a5e36a18-a2ef-4eb5-85b4-7e12b21cca06",
+      "4e5c7f3f-54cb-4328-ad61-bc4c2736b890",
+      "62f479ff-0875-453e-99ae-3bf1bec5e3c8",
+      "38b009f7-03c0-4fda-b5c7-843ad6044e9c",
+      "069cc3c5-c9f5-4792-90c9-e2bfcc4855b6",
+      "13788fe7-1a45-4b48-8ae4-f4227e154e1e",
       "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
       "88ec1185-53b5-439a-a2ce-3f56603be4ff",
       "b4e38bbd-c1a3-431a-b7a9-5868aa32993a",
@@ -27,16 +37,16 @@
       "b1876d3a-50a7-4358-84bf-a0899932ffa9",
       "2fe03891-1294-4344-8e24-47e8b212e5b0",
       "f36dd4a9-927c-4ca3-a790-c9c859ac7302",
+      "2caa099b-3884-472d-9cea-797a0f0c376f",
+      "26e87610-e2d6-4b47-bf92-3967f7186907",
+      "a2eb439f-71d9-4ea6-89d7-c5bc72618281",
       "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
+      "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
       "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
       "6ad8f0f3-9334-47f1-b805-80c4b4b4fa88",
       "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
       "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
-      "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
-      "62695966-b12c-4a56-a3fc-310d23f8a6e4",
-      "5f3eb924-146f-4ca3-b477-5abb4af2ea32",
-      "26cd36fc-b9f5-4ebc-9d24-666567ebeb3e",
-      "ead3325b-ac35-4f46-b6c6-cecf0a4f5965",
+      "40107d59-f3e9-4592-aee8-5b03d4586cbd",
       "3d312cc8-2937-40e1-ba14-fd781c9a862d"
     ],
     "descendants": true,
@@ -45,41 +55,55 @@
     ]
   },
   "counts": {
-    "media": 5,
-    "element": 9,
-    "document": 11
+    "media": 7,
+    "element": 20,
+    "document": 8
   },
   "dependencies": {
     "carried": [
+      "069cc3c5-c9f5-4792-90c9-e2bfcc4855b6",
+      "13788fe7-1a45-4b48-8ae4-f4227e154e1e",
+      "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
       "22144db2-e214-4006-a0bb-53b5bd121fd6",
-      "2462ad2e-8038-46ab-920c-af66ca5143a9",
-      "26cd36fc-b9f5-4ebc-9d24-666567ebeb3e",
+      "26e87610-e2d6-4b47-bf92-3967f7186907",
+      "2caa099b-3884-472d-9cea-797a0f0c376f",
       "2efbdb5b-7888-4a49-bca5-c0f85b76e472",
       "2fe03891-1294-4344-8e24-47e8b212e5b0",
+      "38b009f7-03c0-4fda-b5c7-843ad6044e9c",
       "3d312cc8-2937-40e1-ba14-fd781c9a862d",
+      "3dc30fc1-973a-4217-b26f-24902210be17",
+      "40107d59-f3e9-4592-aee8-5b03d4586cbd",
       "483a0d3b-a10c-4c9d-8c81-d9607d37e968",
       "4b760c0b-b83a-4eee-aa29-c225cfabf19b",
-      "5f3eb924-146f-4ca3-b477-5abb4af2ea32",
-      "62695966-b12c-4a56-a3fc-310d23f8a6e4",
-      "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "4e5c7f3f-54cb-4328-ad61-bc4c2736b890",
+      "62f479ff-0875-453e-99ae-3bf1bec5e3c8",
+      "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
       "6ad8f0f3-9334-47f1-b805-80c4b4b4fa88",
+      "6be45535-83e5-4469-acf0-4127016721ae",
+      "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe",
+      "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
       "88ec1185-53b5-439a-a2ce-3f56603be4ff",
-      "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
       "97469df2-107c-4010-8c14-4de88f735529",
-      "a386a383-d4dd-421f-9afa-e1bdc711713b",
+      "a2eb439f-71d9-4ea6-89d7-c5bc72618281",
       "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
+      "a5e36a18-a2ef-4eb5-85b4-7e12b21cca06",
       "b1876d3a-50a7-4358-84bf-a0899932ffa9",
       "b4e38bbd-c1a3-431a-b7a9-5868aa32993a",
+      "c114b7d8-0138-404b-9d8f-a39d992577a2",
       "cb4c569e-c28a-43b6-a4d7-d33bb544e973",
       "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
-      "ce973ab0-62cd-40d1-930a-78ee4e467e60",
       "d60ef12b-0f0a-4db5-9763-21fa52b8d4da",
-      "ead3325b-ac35-4f46-b6c6-cecf0a4f5965",
-      "f36dd4a9-927c-4ca3-a790-c9c859ac7302"
+      "d7f13222-d060-4496-b86d-bef21da963c1",
+      "f36dd4a9-927c-4ca3-a790-c9c859ac7302",
+      "fd337567-df67-41ca-ae94-9d84d8d6042f"
     ],
     "expected": [],
     "schema": {
       "contentTypes": [
+        {
+          "key": "7100a925-a7e5-48a4-ad8e-120fc08cf987",
+          "alias": "contactPage"
+        },
         {
           "key": "086fc24d-2c96-4298-8678-145b38dcc14a",
           "alias": "contentPage"
@@ -87,6 +111,10 @@
         {
           "key": "cf0bade1-5027-4f98-b7b3-0f7ae51f0a7f",
           "alias": "expression"
+        },
+        {
+          "key": "2e4e319f-2627-43da-8200-27d6197aced7",
+          "alias": "highlight"
         },
         {
           "key": "e7fa436b-a7bc-4413-8d12-7eb535b61cb2",
@@ -97,14 +125,6 @@
           "alias": "Image"
         },
         {
-          "key": "f80b78ff-2f3d-47ba-a8e6-fb079db4571d",
-          "alias": "journal"
-        },
-        {
-          "key": "5455e64f-f8e0-4629-a482-498bf9b04a6e",
-          "alias": "journalEntry"
-        },
-        {
           "key": "55138391-faf2-4795-9ed6-43d581d350a4",
           "alias": "tastingNote"
         },
@@ -113,51 +133,64 @@
           "alias": "whiskyList"
         }
       ],
-      "templates": [
-        "contentPage",
-        "expression",
-        "homePage",
-        "journal",
-        "journalEntry",
-        "whiskyList"
+      "components": [
+        "pages/contactPage",
+        "pages/contentPage",
+        "pages/expression",
+        "pages/homePage",
+        "pages/whiskyList"
       ],
       "languages": []
     }
   },
   "blobs": [
     {
-      "key": "2462ad2e/harbour-at-dawn.jpg",
-      "node": "2462ad2e-8038-46ab-920c-af66ca5143a9",
+      "key": "180cc8ef/distillery-from-the-cliff-path.jpg",
+      "node": "180cc8ef-caf1-4316-b6a7-e3b5aee41ffd",
       "etag": null,
-      "size": 74382,
+      "size": 249675,
       "included": true
     },
     {
-      "key": "6a26db3b/bottle-harbour-cask.jpg",
-      "node": "6a26db3b-1f16-48b1-8283-0277e2fbc186",
+      "key": "68c9cfdf/bottle-brine-and-kiln.jpg",
+      "node": "68c9cfdf-6b40-47da-a1d2-17256a6cc6db",
       "etag": null,
-      "size": 26033,
+      "size": 104864,
       "included": true
     },
     {
-      "key": "913c89e8/bottle-peated.jpg",
-      "node": "913c89e8-c3a1-4722-b37f-0e4d44a71d8f",
+      "key": "6be45535/bottle-oloroso-pier.jpg",
+      "node": "6be45535-83e5-4469-acf0-4127016721ae",
       "etag": null,
-      "size": 25641,
+      "size": 76471,
       "included": true
     },
     {
-      "key": "a386a383/warehouse.jpg",
-      "node": "a386a383-d4dd-421f-9afa-e1bdc711713b",
+      "key": "6d8d6398/bottle-the-cove.jpg",
+      "node": "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe",
       "etag": null,
-      "size": 74465,
+      "size": 60553,
       "included": true
     },
     {
-      "key": "ce973ab0/bottle-12.jpg",
-      "node": "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+      "key": "7b4713f8/copper-pot-stills.jpg",
+      "node": "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
       "etag": null,
-      "size": 26039,
+      "size": 164374,
+      "included": true
+    },
+    {
+      "key": "c114b7d8/bottle-neap-tide.jpg",
+      "node": "c114b7d8-0138-404b-9d8f-a39d992577a2",
+      "etag": null,
+      "size": 94004,
+      "included": true
+    },
+    {
+      "key": "fd337567/casks-in-the-sea-facing-warehouse.jpg",
+      "node": "fd337567-df67-41ca-ae94-9d84d8d6042f",
+      "etag": null,
+      "size": 113141,
       "included": true
     }
   ]

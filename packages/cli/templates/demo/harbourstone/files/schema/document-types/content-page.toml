@@ -2,14 +2,21 @@
 key = "086fc24d-2c96-4298-8678-145b38dcc14a"
 alias = "contentPage"
 name = "Content Page"
-description = "A page of prose: the distillery, visiting, contact"
+description = "A page of prose with an image section and a band of highlights"
 icon = "icon-document"
 allow-children = ["contentPage"]
-templates = ["contentPage"]
-default-template = "contentPage"
+components = ["pages/contentPage"]
+default-component = "pages/contentPage"
 
 [[tab]]
-name = "Content"
+name = "Header"
+
+[[tab.property]]
+key = "69bc242b-d03f-4b59-911f-98887d4e93d3"
+alias = "eyebrow"
+name = "Eyebrow"
+description = "The small line above the heading"
+type = "textstring"
 
 [[tab.property]]
 key = "4501d20d-3b78-40a4-97e4-dd25b2d8535a"
@@ -20,16 +27,31 @@ mandatory = true
 
 [[tab.property]]
 key = "33199ac7-8128-4dc4-bae1-554b2a622447"
-alias = "summary"
-name = "Summary"
-description = "Shown wherever this page is listed"
+alias = "standfirst"
+name = "Standfirst"
+description = "A paragraph under the title"
 type = "textarea"
+
+[[tab]]
+name = "Section"
 
 [[tab.property]]
 key = "6e9917d3-0a7c-4568-9e43-7468c6181d9c"
 alias = "heroImage"
-name = "Hero image"
+name = "Image"
 type = "imageMediaPicker"
+
+[[tab.property]]
+key = "93877ded-cbb6-440a-8042-06508caec630"
+alias = "sectionEyebrow"
+name = "Eyebrow"
+type = "textstring"
+
+[[tab.property]]
+key = "317b652e-ceca-4e98-b89f-7a8cac855854"
+alias = "sectionHeading"
+name = "Heading"
+type = "textstring"
 
 [[tab.property]]
 key = "f3a8a9f6-f841-486b-be9e-038bd15df843"
@@ -37,13 +59,31 @@ alias = "bodyText"
 name = "Body"
 type = "richtext"
 
-# `formPicker` is seeded with the other built-in data types, so a property can
-# use it with no file of its own. The value is a form's UUID from
-# `schema/forms/`, and the value converter hands the view the definition rather
-# than the key — see `Views/contentPage.tsx`.
+[[tab]]
+name = "Highlights"
+
 [[tab.property]]
-key = "9f2c71b5-5de4-4a6e-9c0a-1b7d84f3a2ce"
-alias = "enquiryForm"
-name = "Enquiry form"
-description = "Shown under the body text. Leave empty for a page that just reads."
-type = "formPicker"
+key = "986368b7-8b5e-4b0c-a5bb-7b9c0a789998"
+alias = "highlightsEyebrow"
+name = "Eyebrow"
+type = "textstring"
+
+[[tab.property]]
+key = "e0c93426-bf71-4ba9-a9a7-ebd97bce7a63"
+alias = "highlightsHeading"
+name = "Heading"
+type = "textstring"
+
+# The same element type the home page picks its figures from. Leave this empty
+# and the whole dark band disappears — see `components/contentPage.tsx`.
+[[tab.property]]
+key = "93a7b537-c3e7-4826-9ec8-ce8f150bce50"
+alias = "highlights"
+name = "Highlights"
+type = "highlightPicker"
+
+[[tab.property]]
+key = "d1b0e86e-65aa-497f-825b-b48fd301e52a"
+alias = "highlightsImage"
+name = "Image"
+type = "imageMediaPicker"

@@ -33,8 +33,8 @@ describe('scaffolding a type', () => {
     const type = newType({ alias: 'articlePage', allowAtRoot: true, tab: 'Content' }, keys())
     expect(type.name).toBe('Article Page')
     expect(type.allowAtRoot).toBe(true)
-    expect(type.templates).toEqual(['articlePage'])
-    expect(type.defaultTemplate).toBe('articlePage')
+    expect(type.components).toEqual(['articlePage'])
+    expect(type.defaultComponent).toBe('articlePage')
     // A page with no properties cannot say anything, so it starts with one.
     expect(allProperties(type).map((p) => p.alias)).toEqual(['title'])
     expect(allProperties(type)[0]?.mandatory).toBe(true)
@@ -51,14 +51,14 @@ describe('scaffolding a type', () => {
     // Umbraco needs both: one makes it an element, the other puts it in the
     // Library's Create dialog.
     expect(type.allowInLibrary).toBe(true)
-    expect(type.templates).toEqual([])
-    expect(type.defaultTemplate).toBeUndefined()
+    expect(type.components).toEqual([])
+    expect(type.defaultComponent).toBeUndefined()
   })
 
   test('writes media and member types without the vocabulary they do not have', () => {
     for (const kind of ['media', 'member'] as const) {
       const type = newType({ alias: 'brochure', kind }, keys())
-      expect(type.templates).toEqual([])
+      expect(type.components).toEqual([])
       expect(type.allowAtRoot).toBe(false)
       // Nothing is assumed about what belongs on one.
       expect(allProperties(type)).toEqual([])
@@ -77,8 +77,8 @@ describe('scaffolding a type', () => {
       name: 'Article',
       allowAtRoot: true,
       isElement: false,
-      templates: ['article'],
-      defaultTemplate: 'article',
+      components: ['article'],
+      defaultComponent: 'article',
     })
     expect(allProperties(parsed.value as typeof type).map((p) => p.alias)).toEqual(['title'])
 
@@ -89,7 +89,7 @@ describe('scaffolding a type', () => {
         dataTypes: [],
         languages: [],
       },
-      { templateAliases: new Set(['article']) },
+      { componentAliases: new Set(['article']) },
     )
     expect(problems).toEqual([])
   })

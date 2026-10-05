@@ -31,7 +31,7 @@ import { logger } from '../logging.ts'
 export interface SchemaFiles {
   schemaDir: string
   writable: boolean
-  templateAliases(): ReadonlySet<string>
+  componentAliases(): ReadonlySet<string>
   /**
    * Called after any write, so a shared schema store outlives this container.
    * Absent when the schema is a directory on disk, which needs no publishing.
@@ -122,7 +122,7 @@ export function createSchemaFileWriter(
             : (set.memberTypes ?? [])
       const type = list.find((t) => t.key === aggregate.key)
       if (!type) return
-      const problems = validateSchemaSet(set, { templateAliases: files.templateAliases() })
+      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not writing {file}: {detail}', {
@@ -157,7 +157,7 @@ export function createSchemaFileWriter(
       // The same guard `write` applies to a document type: a set that does not
       // validate never reaches the disk, because the file is what every other
       // node reads and what a deploy boots from.
-      const problems = validateSchemaSet(set, { templateAliases: files.templateAliases() })
+      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not writing {file}: {detail}', {
@@ -191,7 +191,7 @@ export function createSchemaFileWriter(
       if (!managed() || !files.writable) return
       const loaded = loadSchemaDirectory(files.schemaDir)
       const set = await exportSchemaSet(db, loaded.set.version)
-      const problems = validateSchemaSet(set, { templateAliases: files.templateAliases() })
+      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not rewriting the schema files: {detail}', { detail })

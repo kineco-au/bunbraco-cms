@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository } from '@bunbraco/data'
 import { signedInServer, V1 } from './support/harness.ts'
 
 const TYPE = `[document-type]
@@ -17,8 +17,8 @@ key = "0f74e1c2-5a16-4d9c-9c70-9a2a6c3a1f10"
 alias = "page"
 name = "Page"
 allow-at-root = true
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 key = "0f74e1c2-5a16-4d9c-9c70-9a2a6c3a1f11"
@@ -46,15 +46,15 @@ describe('a site with nothing published', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'no-nodes-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
-    writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     const h = await signedInServer({
       config: {
         siteName: 'Fresh Site',
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
       },
     })
     open.push(h)
@@ -83,7 +83,7 @@ describe('a site with nothing published', () => {
 
   test('and stops once a page is published, leaving a missing path a plain 404', async () => {
     const h = await site()
-    const template = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+    const template = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
     const created = await h.post(`${V1}/document`, {
       documentType: { id: '0f74e1c2-5a16-4d9c-9c70-9a2a6c3a1f10' },
       template: { id: template },

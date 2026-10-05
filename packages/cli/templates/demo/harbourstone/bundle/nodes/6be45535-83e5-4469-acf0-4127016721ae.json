@@ -1,0 +1,60 @@
+{
+  "key": "6be45535-83e5-4469-acf0-4127016721ae",
+  "kind": "media",
+  "contentType": {
+    "key": "cc07b313-0843-4aa8-bbda-871c8da728c8",
+    "alias": "Image"
+  },
+  "parent": null,
+  "sortOrder": 5,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Oloroso Pier",
+      "published": false
+    }
+  ],
+  "values": [
+    {
+      "property": "umbracoBytes",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "76471"
+    },
+    {
+      "property": "umbracoExtension",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": "jpg"
+    },
+    {
+      "property": "umbracoFile",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ImageCropper",
+      "value": {
+        "src": "/media/6be45535/bottle-oloroso-pier.jpg",
+        "crops": [],
+        "focalPoint": null
+      }
+    },
+    {
+      "property": "umbracoHeight",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 1140
+    },
+    {
+      "property": "umbracoWidth",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.Label",
+      "value": 760
+    }
+  ]
+}

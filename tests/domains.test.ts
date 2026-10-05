@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DomainRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, DomainRepository } from '@bunbraco/data'
 import {
   DOMAINS_BACKUP_FILE,
   DOMAINS_FILE,
@@ -35,8 +35,8 @@ alias = "page"
 name = "Page"
 allow-at-root = true
 allow-children = ["page"]
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 key = "2b6c2d1e-9b48-4a7f-8d53-4f2f0f5c2a02"
@@ -129,21 +129,21 @@ describe(`applying the domains file (${dialectUnderTest})`, () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'domains-'))
     dirs.push(root)
     mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
-    mkdirSync(join(root, 'Views'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
-    writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+    writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     if (domains !== undefined) writeFileSync(join(root, DOMAINS_FILE), domains)
     const h = await signedInServer({
       config: {
         siteDir: root,
         schemaDir: join(root, 'schema'),
-        viewsDir: join(root, 'Views'),
+        componentsDir: join(root, 'components'),
       },
     })
     open.push(h)
 
-    const template = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+    const template = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
     const page = async (name: string, parent?: string) => {
       const created = await h.post(`${V1}/document`, {
         documentType: { id: TYPE_KEY },

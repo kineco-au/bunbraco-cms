@@ -1,30 +1,84 @@
+/*
+ * Harbourstone: a coastal palette, a display serif for headings and a geometric
+ * sans for everything else. Hand-written rather than generated — the template
+ * ships a stylesheet, not a build step.
+ */
+
 :root {
-  --ink: #14222b;
-  --paper: #f7f4ee;
-  --sea: #2c5b6b;
-  --brass: #a9772f;
-  --rule: #ddd6c9;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  --paper: #efe8dc;
+  --foam: #f7f3eb;
+  --card: #fbf8f3;
+  --ink: #1a1612;
+  --muted: #6d6156;
+  --brass: #a6844a;
+  --brass-deep: #7a5c2e;
+  --sea: #24383c;
+  --line: #d8cebf;
+
+  --display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --sans: "Outfit", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+
+  --measure: 72rem;
+  --gutter: clamp(1.25rem, 4vw, 2rem);
+
+  /* One duration, so `prefers-reduced-motion` turns every transition off by
+   * redefining it rather than by out-shouting each rule with `!important`. */
+  --ease: 0.2s;
 }
 
-* {
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease: 0s;
+  }
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
-  color: var(--ink);
   background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 300;
   line-height: 1.55;
 }
 
-a {
-  color: var(--sea);
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+  margin: 0;
 }
 
-.range a {
-  text-decoration: none;
-  color: inherit;
+h1 {
+  font-size: clamp(2.75rem, 7vw, 4.5rem);
+}
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin-top: 0.75rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+  margin: 0.5rem 0 0;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 img {
@@ -33,163 +87,634 @@ img {
   height: auto;
 }
 
+a {
+  color: inherit;
+}
+
+::selection {
+  background: #e4d3ae;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------ the shell */
+
+main > section,
+main > article,
+.page-header {
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  max-width: var(--measure);
+}
+
+/* The rule under the masthead and over the footer runs the full width; the
+ * content inside them stops at the measure, which is what the inner div is
+ * for. */
 .masthead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.masthead__inner,
+.site-footer__inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 2rem;
-  align-items: baseline;
+  gap: 0.5rem 2rem;
+  align-items: center;
   justify-content: space-between;
-  padding: 1.25rem clamp(1rem, 5vw, 4rem);
-  border-bottom: 1px solid var(--rule);
+  margin: 0 auto;
+  padding: 1rem var(--gutter);
+  max-width: var(--measure);
 }
 
 .wordmark {
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
   text-decoration: none;
-  color: var(--ink);
+}
+
+.wordmark span {
+  color: var(--brass-deep);
 }
 
 .masthead nav {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.95rem;
+  flex-wrap: wrap;
+  gap: 1.75rem;
 }
 
 .masthead nav a {
-  text-decoration: none;
-}
-
-.masthead nav a.here {
-  border-bottom: 2px solid var(--brass);
-}
-
-main,
-article,
-footer {
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 5vw, 4rem);
-  max-width: 68rem;
-}
-
-h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.1;
-  margin: 2rem 0 0.5rem;
-}
-
-.strapline {
-  font-size: 1.2rem;
-  color: var(--sea);
-  margin: 0 0 2rem;
-}
-
-.meta {
-  font-size: 0.9rem;
-  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-decoration: none;
+  color: var(--muted);
+  transition: color var(--ease);
+}
+
+.masthead nav a:hover,
+.masthead nav a.here {
+  color: var(--brass-deep);
+}
+
+.site-footer {
+  margin-top: 5rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.site-footer__inner {
+  align-items: baseline;
+  padding-block: 2rem 3rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+/* ------------------------------------------------------- shared pieces */
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass-deep);
+}
+
+.eyebrow--light {
   color: var(--brass);
 }
 
-.hero {
-  padding: 0;
-  max-width: none;
+.standfirst {
+  margin: 1.5rem 0 0;
+  max-width: 36rem;
+  font-size: 1.125rem;
+  color: var(--muted);
 }
 
-.hero img {
-  max-height: 70vh;
-  object-fit: cover;
+.page-header {
+  padding-block: 4rem 1.5rem;
 }
 
-.hero-text {
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 5vw, 4rem);
-  max-width: 68rem;
+.page-header h1 {
+  margin-top: 0.75rem;
+  max-width: 20ch;
 }
 
 .prose {
   max-width: 38rem;
 }
 
-.cards,
-.range,
-.entries {
+.prose p {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+}
+
+.prose h2 {
+  font-size: 1.75rem;
+  margin-top: 2rem;
+}
+
+.prose ul {
+  margin: 1.25rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-top: 2rem;
+  padding-inline: 1.25rem;
+  border: 1px solid var(--ink);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background-color var(--ease),
+    color var(--ease);
+}
+
+.button:hover {
+  background: var(--ink);
+  color: var(--foam);
+}
+
+.button--light {
+  border-color: var(--brass);
+  color: var(--foam);
+}
+
+.button--light:hover {
+  background: var(--brass);
+  color: var(--ink);
+}
+
+/* ----------------------------------------------------------- home page */
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 88vh;
+  max-width: none;
+  padding: 7rem 0 4rem;
+  background: var(--sea);
+  color: var(--foam);
+}
+
+.hero__image {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--sea) 92%, transparent),
+    color-mix(in srgb, var(--sea) 70%, transparent) 24%,
+    color-mix(in srgb, var(--sea) 25%, transparent) 62%,
+    color-mix(in srgb, var(--sea) 10%, transparent)
+  );
+}
+
+.hero__text {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  width: 100%;
+  max-width: var(--measure);
+}
+
+.hero__text h1 {
+  margin-top: 1rem;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+}
+
+.hero__text .strapline {
+  margin: 1.25rem 0 0;
+  max-width: 32rem;
+  font-size: 1.125rem;
+  color: var(--foam);
+}
+
+.split {
   display: grid;
-  gap: 2rem;
+  gap: 2.5rem;
+  align-items: center;
+  padding-block: 5rem;
+}
+
+.split__image {
+  height: 28rem;
+  object-fit: cover;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin: 2.5rem 0 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.figures dt {
+  font-family: var(--display);
+  font-size: 1.875rem;
+}
+
+.figures dd {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.band {
+  max-width: none;
+  padding-block: 5rem;
+  background: var(--foam);
+}
+
+.band > * {
+  margin-inline: auto;
+  max-width: var(--measure);
+}
+
+.band--dark {
+  background: var(--sea);
+  color: var(--foam);
+}
+
+.band--dark h2 {
+  color: var(--foam);
+}
+
+.band--dark .split {
+  padding-block: 0;
+}
+
+.highlight-rows {
+  margin: 2rem 0 0;
   padding: 0;
-  margin: 3rem auto;
   list-style: none;
 }
 
-.cards,
-.range {
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+.highlight-rows li {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--foam) 15%, transparent);
+  color: color-mix(in srgb, var(--foam) 80%, transparent);
 }
 
-.card {
+.highlight-rows li:first-child {
+  border-top: 0;
+}
+
+.highlight-rows__heading {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  color: var(--foam);
+}
+
+/* -------------------------------------------------------- the bottlings */
+
+.bottlings {
+  display: grid;
+  gap: 1.25rem;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bottling-card {
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.bottling-card__image {
   display: block;
+  background: var(--foam);
+}
+
+.bottling-card__image img {
+  height: 24rem;
+  object-fit: cover;
+}
+
+.bottling-card__text {
   padding: 1.5rem;
+}
+
+.bottling-card h3 {
+  font-size: 1.875rem;
+}
+
+.bottling-card h3 a {
   text-decoration: none;
-  border: 1px solid var(--rule);
-  background: #fff;
 }
 
-.card h2,
-.range h2 {
-  margin: 0.25rem 0;
-  font-size: 1.15rem;
+.bottling-card h3 a:hover {
+  color: var(--brass-deep);
 }
 
-.entries li {
-  border-top: 1px solid var(--rule);
-  padding-top: 1.5rem;
+.bottling-card__text > p:not(.eyebrow) {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
 }
 
-.entries h2 {
-  margin: 0.25rem 0;
+.bottlings--brief .bottling-card__text {
+  padding: 1.5rem;
+}
+
+.tasting {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+}
+
+.tasting dt {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.tasting dd {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .bottling {
   display: grid;
   gap: 3rem;
-  grid-template-columns: minmax(12rem, 1fr) 2fr;
+  padding-block: 3rem 4rem;
   align-items: start;
-  margin: 2rem auto 4rem;
 }
 
-.tasting {
-  margin-top: 2rem;
-  border-top: 1px solid var(--rule);
+.bottling__image {
+  background: var(--foam);
+  border: 1px solid var(--line);
 }
 
-.tasting dt {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  letter-spacing: 0.04em;
+.bottling__text h1 {
+  margin-top: 0.75rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.back {
+  margin-top: 2.5rem;
+  color: var(--brass-deep);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--brass);
 }
 
-.tasting dd {
+/* ------------------------------------------------------------- contact */
+
+.contact {
+  display: grid;
+  gap: 3rem;
+  padding-block: 3rem 4rem;
+}
+
+.contact__aside h2 {
+  font-size: 1.875rem;
+}
+
+.contact__aside img {
+  margin-top: 2rem;
+  height: 14rem;
+  object-fit: cover;
+}
+
+/* --------------------------------------------------------- the form ---
+ * `<Form>` emits its own class names, so a site themes the form by styling
+ * them. Nothing here is required for the form to work.
+ */
+
+.bunbraco-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bunbraco-form__group {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.bunbraco-form__group--columns-2 {
+  grid-template-columns: repeat(var(--bunbraco-form-columns, 2), 1fr);
+}
+
+.bunbraco-form__group-caption,
+.bunbraco-form__page-caption {
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brass-deep);
+}
+
+.bunbraco-form__label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bunbraco-form__required {
+  margin-left: 0.25rem;
+  color: var(--brass-deep);
+}
+
+.bunbraco-form__help {
   margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
-footer {
-  margin-top: 4rem;
-  padding-top: 2rem;
-  padding-bottom: 3rem;
-  border-top: 1px solid var(--rule);
+.bunbraco-form input[type="text"],
+.bunbraco-form input[type="email"],
+.bunbraco-form input[type="tel"],
+.bunbraco-form input[type="number"],
+.bunbraco-form input[type="date"],
+.bunbraco-form select,
+.bunbraco-form textarea {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color var(--ease);
 }
 
-.fine-print {
-  font-size: 0.85rem;
-  color: #6b6b63;
+.bunbraco-form textarea {
+  resize: vertical;
 }
 
-@media (max-width: 40rem) {
+.bunbraco-form :is(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--brass);
+}
+
+.bunbraco-form__field--invalid :is(input, select, textarea) {
+  border-color: #9c3b2e;
+}
+
+.bunbraco-form__error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #9c3b2e;
+}
+
+.bunbraco-form__summary {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #9c3b2e;
+  background: color-mix(in srgb, #9c3b2e 6%, transparent);
+  color: #9c3b2e;
+}
+
+.bunbraco-form__choices {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.bunbraco-form__choice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+/* The label sits above its control everywhere else; a consent tick reads the
+ * other way round, so the two are swapped with grid placement rather than by
+ * changing what the renderer emits. */
+.bunbraco-form__field--dataConsent,
+.bunbraco-form__field--checkbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  align-items: start;
+}
+
+.bunbraco-form__field--dataConsent > input,
+.bunbraco-form__field--checkbox > input {
+  grid-area: 1 / 1;
+  margin: 0.3rem 0 0;
+  accent-color: var(--brass-deep);
+}
+
+.bunbraco-form__field--dataConsent > .bunbraco-form__label,
+.bunbraco-form__field--checkbox > .bunbraco-form__label {
+  grid-area: 1 / 2;
+  font-size: 0.9375rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.bunbraco-form__field--dataConsent > :is(.bunbraco-form__help, .bunbraco-form__error),
+.bunbraco-form__field--checkbox > :is(.bunbraco-form__help, .bunbraco-form__error) {
+  grid-column: 2;
+}
+
+.bunbraco-form__actions {
+  margin-top: 2rem;
+}
+
+.bunbraco-form__submit {
+  min-height: 2.75rem;
+  padding-inline: 1.5rem;
+  border: 0;
+  background: var(--ink);
+  color: var(--foam);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--ease);
+}
+
+.bunbraco-form__submit:hover {
+  background: var(--brass-deep);
+}
+
+.bunbraco-form--submitted {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+/* --------------------------------------------------------- wider than a
+ * phone. Everything above is the single-column case. */
+
+@media (min-width: 48rem) {
+  .page-header {
+    padding-block: 6rem 1.5rem;
+  }
+
+  .split {
+    grid-template-columns: 1fr 1fr;
+    padding-block: 7rem;
+  }
+
+  .split--image-first .split__image {
+    order: -1;
+  }
+
+  .bottlings {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .bottlings--brief {
+    gap: 1.25rem;
+  }
+
   .bottling {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 2fr) 3fr;
+  }
+
+  .contact {
+    grid-template-columns: 3fr 2fr;
+    gap: 3rem;
+  }
+
+  .band--dark .split {
+    padding-block: 0;
   }
 }

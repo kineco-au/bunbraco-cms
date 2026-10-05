@@ -76,9 +76,9 @@ export interface SectionOptions {
 /**
  * Where an install keeps the files it replaced, under the site.
  *
- * A sibling of the views cache, not inside it: `.bunbraco/views` is rebuilt
- * from `Views/` and cleared at boot, and these have to outlive a restart to be
- * worth taking.
+ * A sibling of the components cache, not inside it: `.bunbraco/components` is
+ * rebuilt from `components/` and cleared at boot, and these have to outlive a
+ * restart to be worth taking.
  */
 export const RUN_BACKUP_DIR = join('.bunbraco', 'transfer')
 
@@ -96,11 +96,8 @@ function destinationOf(config: BunbracoConfig, section: BundleSection): string |
   switch (section) {
     case 'schema':
       return config.schemaDir
-    case 'views':
-      return config.viewsDir
-    // Umbraco's place, and ours: `Views/Partials`.
-    case 'partials':
-      return join(config.viewsDir, 'Partials')
+    case 'components':
+      return config.componentsDir
     case 'styles':
       return config.stylesheetsDir
     case 'scripts':
@@ -110,7 +107,7 @@ function destinationOf(config: BunbracoConfig, section: BundleSection): string |
   }
 }
 
-const FILE_SECTIONS: readonly BundleSection[] = ['views', 'partials', 'styles', 'scripts']
+const FILE_SECTIONS: readonly BundleSection[] = ['components', 'styles', 'scripts']
 
 /** The path inside a section, with the section's own directory stripped. */
 const withinSection = (path: string, section: BundleSection): string =>

@@ -1,4 +1,3 @@
-import { join } from 'node:path'
 /** Implementations of the Management API ports. */
 import type {
   CurrentUserPort,
@@ -59,6 +58,7 @@ import {
 } from './adapters/schema-files.ts'
 import { createTemplateFileStore } from './adapters/template-files.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
+import { COMPONENT_SNIPPETS } from './component-snippets.ts'
 import { type BunbracoConfig, type UserLinkSender, VERSION } from './config.ts'
 import { type EmailPort, resolveEmailPort } from './email.ts'
 import { createFileIntake } from './file-intake.ts'
@@ -67,9 +67,8 @@ import { logger } from './logging.ts'
 import { MediaFileStore } from './media-files.ts'
 import { createModelsBuilderPort } from './models-builder.ts'
 import { createOEmbedService } from './oembed.ts'
-import { PARTIAL_VIEW_SNIPPETS } from './partial-view-snippets.ts'
 import { createRedirectTracker } from './redirects.ts'
-import { type SchemaBoot, templateAliasesIn } from './schema.ts'
+import { componentAliasesIn, type SchemaBoot } from './schema.ts'
 import { publishSchema } from './schema-store.ts'
 
 /** Re-exported for tests; the canonical list lives in @bunbraco/core. */
@@ -326,7 +325,7 @@ function schemaFiles(config: BunbracoConfig): SchemaFiles {
   return {
     schemaDir: config.schemaDir,
     writable: config.schemaWritable,
-    templateAliases: () => templateAliasesIn(config.viewsDir),
+    componentAliases: () => componentAliasesIn(config.componentsDir),
     // Only when a store is configured: a schema directory in a repository is
     // already where the files durably live.
     onChanged: store
@@ -421,12 +420,16 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
   deps.temporaryFiles = createTemporaryFilePort(mediaFiles)
   const valueIntake = createFileIntake(mediaFiles)
   deps.oembed = createOEmbedService(options.fetch)
-  // Umbraco's places: ~/Views/Partials, ~/css and ~/scripts
-  deps.partialViews = createFileSystemPort(join(options.config.viewsDir, 'Partials'), {
+  // The whole components tree, which is one root with folders rather than
+  // Umbraco's split of ~/Views and ~/Views/Partials. The backoffice reaches it
+  // through the partial-view file API because that one is path-addressed and
+  // already understands folders; the template API is id-addressed and cannot
+  // express a folder at all.
+  deps.components = createFileSystemPort(options.config.componentsDir, {
     extension: '.tsx',
     rewrites: ['.cshtml'],
   })
-  deps.partialViewSnippets = PARTIAL_VIEW_SNIPPETS
+  deps.componentSnippets = COMPONENT_SNIPPETS
   deps.stylesheets = createFileSystemPort(options.config.stylesheetsDir, { extension: '.css' })
   deps.scripts = createFileSystemPort(options.config.scriptsDir, { extension: '.js' })
   if (options.db) {
@@ -460,7 +463,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     })
     deps.contentTypes = createContentTypePort(options.db, schemaFiles(options.config), {
       nodeState: options.schema?.nodeState,
-      templateFiles: createTemplateFileStore(options.config.viewsDir, options.onViewsChange),
+      componentFiles: createTemplateFileStore(options.config.componentsDir, options.onViewsChange),
     })
     deps.mediaTypes = createContentTypePort(options.db, schemaFiles(options.config), {
       nodeState: options.schema?.nodeState,
@@ -473,7 +476,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     deps.dataTypes = createDataTypePort(options.db, schemaFiles(options.config))
     deps.templates = createTemplatePort(
       options.db,
-      createTemplateFileStore(options.config.viewsDir, options.onViewsChange),
+      createTemplateFileStore(options.config.componentsDir, options.onViewsChange),
     )
     deps.logViewer = createLogViewerPort(options.db, options.config)
     deps.modelsBuilder = createModelsBuilderPort(options.config)
@@ -501,9 +504,9 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
       siteName: options.config.siteName,
       nodeId: options.config.nodeId,
       marketplaceUrl: options.config.marketplaceUrl,
-      templateFiles: createTemplateFileStore(options.config.viewsDir, options.onViewsChange),
+      componentFiles: createTemplateFileStore(options.config.componentsDir, options.onViewsChange),
       mediaStore: mediaFiles.store,
-      partialViews: deps.partialViews,
+      components: deps.components,
       stylesheets: deps.stylesheets,
       scripts: deps.scripts,
     })

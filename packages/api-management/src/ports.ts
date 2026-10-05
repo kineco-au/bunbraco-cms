@@ -204,8 +204,9 @@ export interface ManagementApiDeps {
   userManagement?: UserPort
   userGroups?: UserGroupPort
   userData?: UserDataPort
-  partialViews?: FileSystemPort
-  partialViewSnippets?: readonly Snippet[]
+  /** The site's `components/` tree: one root, folders and all. */
+  components?: FileSystemPort
+  componentSnippets?: readonly Snippet[]
   stylesheets?: FileSystemPort
   scripts?: FileSystemPort
   logViewer?: LogViewerPort

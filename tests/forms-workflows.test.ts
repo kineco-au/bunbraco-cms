@@ -11,10 +11,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { SchemaForm } from '@bunbraco/core'
 import {
+  ComponentRepository,
   ContentTypeRepository,
   FormEntryRepository,
   FormWorkflowRepository,
-  TemplateRepository,
 } from '@bunbraco/data'
 import {
   createWorkflowRunner,
@@ -80,8 +80,8 @@ const TYPE = `[document-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
-templates = ["page"]
-default-template = "page"
+components = ["page"]
+default-component = "page"
 
 [[property]]
 alias = "contactForm"
@@ -130,7 +130,7 @@ function recordingEmail(failures = 0): EmailPort & { sent: EmailMessage[]; attem
 async function site(options: { form?: string; extraTypes?: Record<string, string> } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-wf-'))
   dirs.push(root)
-  for (const dir of ['schema/document-types', 'schema/forms', 'Views'])
+  for (const dir of ['schema/document-types', 'schema/forms', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
@@ -140,22 +140,22 @@ async function site(options: { form?: string; extraTypes?: Record<string, string
     join(root, 'schema', 'forms', 'contact-us.toml'),
     options.form ?? definition(EMAIL_WORKFLOW),
   )
-  writeFileSync(join(root, 'Views', 'page.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
 
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
     },
   })
   open.push(h)
 
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('page'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('page'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('page'))?.key as string
   const created = await h.post(`${V1}/document`, {
     documentType: { id: typeKey },
-    template: { id: templateKey },
+    template: { id: componentKey },
     parent: null,
     values: [{ alias: 'contactForm', culture: null, segment: null, value: FORM_KEY }],
     variants: [{ culture: null, segment: null, name: 'Home' }],

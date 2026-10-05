@@ -479,7 +479,7 @@ export function createPublishedContentSource(
         sortOrder: row.sortOrder,
         name: row.name,
         contentTypeAlias: row.contentTypeAlias,
-        templateAlias: row.templateAlias,
+        componentAlias: row.componentAlias,
         createDate: row.createDate,
         updateDate: row.updateDate,
         cultures: row.cultures,
@@ -600,8 +600,8 @@ export async function loadDraftNode(
   if (!node || node.objectType !== repo.objectType) return undefined
   const draft = await repo.load(node)
   if (!draft) return undefined
-  const template = draft.templateKey ? await repo.nodes.byKey(draft.templateKey) : undefined
-  const templateAlias = template
+  const template = draft.componentKey ? await repo.nodes.byKey(draft.componentKey) : undefined
+  const componentAlias = template
     ? ((
         await db.query<{ alias: string }>('SELECT alias FROM template WHERE node_id = ?', [
           template.id,
@@ -618,7 +618,7 @@ export async function loadDraftNode(
     sortOrder: node.sortOrder,
     name: invariant?.name ?? node.text ?? '',
     contentTypeAlias: draft.contentTypeAlias,
-    templateAlias: templateAlias ? String(templateAlias) : null,
+    componentAlias: componentAlias ? String(componentAlias) : null,
     createDate: node.createDate ?? new Date(),
     updateDate: invariant?.updateDate ?? new Date(),
     cultures: draft.variants.flatMap((v) => (v.culture ? [v.culture] : [])),

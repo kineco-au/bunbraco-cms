@@ -106,7 +106,7 @@ export function writeManifest(manifest: BundleManifest): string {
         contentTypes: [...d.schema.contentTypes]
           .sort((a, b) => a.alias.localeCompare(b.alias))
           .map((t) => ({ key: t.key, alias: t.alias })),
-        templates: [...d.schema.templates].sort(),
+        components: [...d.schema.components].sort(),
         languages: [...d.schema.languages].sort(),
       },
     },

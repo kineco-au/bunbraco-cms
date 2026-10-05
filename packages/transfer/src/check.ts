@@ -88,7 +88,7 @@ export interface CheckOptions {
   /** One decision for every node that needs one. */
   resolveAll?: Resolution | undefined
   /** Template aliases with a view on disk; absent means templates are not checked. */
-  templateAliases?: ReadonlySet<string> | undefined
+  componentAliases?: ReadonlySet<string> | undefined
   /** Whether a media blob is present in this environment's store. */
   hasBlob?: ((key: string) => Promise<boolean>) | undefined
   allowMissingBlobs?: boolean
@@ -329,7 +329,7 @@ export async function checkBundle(
     // A template's definition is its file, so the alias travels and the view
     // has to be there. Missing one is not fatal — the page imports without a
     // template and renders nothing until the view is deployed.
-    if (node.template && options.templateAliases && !options.templateAliases.has(node.template))
+    if (node.template && options.componentAliases && !options.componentAliases.has(node.template))
       findings.push({
         kind: 'auto',
         code: 'missing-template',
@@ -338,7 +338,7 @@ export async function checkBundle(
         subjectName: name,
         propertyAlias: null,
         culture: null,
-        message: `no view Views/${node.template}.tsx here, so "${name}" arrives without a template`,
+        message: `no view components/${node.template}.tsx here, so "${name}" arrives without a template`,
         link: link(node.key),
       })
 

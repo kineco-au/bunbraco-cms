@@ -53,8 +53,8 @@ const TYPE_KEYS = [
   'varies-by-segment',
   'compositions',
   'allow-children',
-  'templates',
-  'default-template',
+  'components',
+  'default-component',
   'collection',
   'folder',
   'cleanup',
@@ -131,7 +131,7 @@ function tab(r: Reader, t: Toml, path: string): SchemaTab {
 
 /** Media types have no templates and no version cleanup policy. */
 const MEDIA_TYPE_KEYS = TYPE_KEYS.filter(
-  (k) => k !== 'templates' && k !== 'default-template' && k !== 'cleanup',
+  (k) => k !== 'components' && k !== 'default-component' && k !== 'cleanup',
 )
 /** Member types, besides, allow no children: members are not a tree. */
 const MEMBER_TYPE_KEYS = MEDIA_TYPE_KEYS.filter((k) => k !== 'allow-children')
@@ -173,8 +173,8 @@ export function parseDocumentType(
     variesBySegment: r.bool(t, 'varies-by-segment', path, false),
     compositions: r.strs(t, 'compositions', path),
     allowChildren: r.strs(t, 'allow-children', path),
-    templates: r.strs(t, 'templates', path),
-    defaultTemplate: r.str(t, 'default-template', path),
+    components: r.strs(t, 'components', path),
+    defaultComponent: r.str(t, 'default-component', path),
     collection: r.str(t, 'collection', path),
     folder: r.str(t, 'folder', path),
     cleanup: {

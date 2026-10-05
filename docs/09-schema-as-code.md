@@ -13,7 +13,7 @@ paper over it.
 
 Three placements, decided by one question — what changes it?
 
-- **Files** (`schema/`, `Views/`, `bunbraco.config.ts`): changes with a deploy.
+- **Files** (`schema/`, `components/`, `bunbraco.config.ts`): changes with a deploy.
 - **Database**: changes with editing, or is per-person, per-page or per-environment.
 - **Derived**: rebuildable from one of the above; authoritative nowhere.
 
@@ -162,7 +162,7 @@ bunbraco schema add-property article summary --type textarea --mandatory
 
 `schema new` writes the type with its keys already in it — so the file passes
 the production rules on the first deploy rather than needing a development sync
-to fill them in — and the `Views/<alias>.tsx` it declares. `--element` writes a
+to fill them in — and the `components/<alias>.tsx` it declares. `--element` writes a
 Library element type, which has no URL and so no template. Media and member
 types are written with nothing assumed about what belongs on one.
 
@@ -231,7 +231,7 @@ Reference:
 | `varies-by-culture`, `varies-by-segment` | Variance flags on the type | `false` |
 | `compositions` | Aliases of types whose properties are inherited | `[]` |
 | `allow-children` | Aliases permitted beneath this type | `[]` |
-| `templates`, `default-template` | Template aliases — a template is `Views/<alias>.tsx` | `[]` |
+| `components`, `default-component` | Component aliases — the path under `components/`, so `pages/homePage` is `components/pages/homePage.tsx` | `[]` |
 | `collection` | Alias of a data type used as the list view | none |
 | `cleanup.prevent`, `cleanup.keep-all-newer-than-days`, `cleanup.keep-latest-per-day-for-days` | Version cleanup policy | global |
 | `since` | The schema version this type goes live in; pending until then — see below | stamped by tooling |
@@ -386,7 +386,7 @@ fallback = "en-US"
 
 ## Templates
 
-A template's definition *is* its file: `Views/<alias>.tsx`. No TOML. The display
+A template's definition *is* its file: `components/<alias>.tsx`. No TOML. The display
 name comes from an optional `export const name = 'Home Page'`; the layout chain
 from `export const layout = 'siteLayout'`, as today. The database row is derived
 and exists only so the backoffice's template tree and document-type template
@@ -611,7 +611,7 @@ bunx bunbraco generate                # schema/content-types.d.ts for typed view
 ```
 
 `schema new` writes the type file — keys filled in, so it passes the production
-rules — and the `Views/<alias>.tsx` it points at, then applies it. `--element`
+rules — and the `components/<alias>.tsx` it points at, then applies it. `--element`
 writes a Library element type instead, which has no URL and so no view.
 `add-property` appends one property and applies that; it re-emits the file
 canonically, as `schema rewrite` does, so a comment in it is not kept and the

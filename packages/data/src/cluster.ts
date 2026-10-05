@@ -11,7 +11,7 @@ import { DbDate } from './dialect.ts'
  * node has to look at its views tree again. The other two invalidate the
  * published cache; this one makes a node take a new snapshot.
  */
-export type CacheInstructionKind = 'schema' | 'content' | 'views'
+export type CacheInstructionKind = 'schema' | 'content' | 'components'
 
 export interface CacheInstruction {
   id: number

@@ -35,19 +35,19 @@ for (const entry of readdirSync(join(repo, 'output'), { withFileTypes: true })) 
 
 const root = mkdtempSync(join(repo, 'output', 'browser-site-'))
 cpSync(join(repo, 'apps/site/schema'), join(root, 'schema'), { recursive: true })
-cpSync(join(repo, 'apps/site/Views'), join(root, 'Views'), { recursive: true })
+cpSync(join(repo, 'apps/site/components'), join(root, 'components'), { recursive: true })
 
 // A document type with a property for every built-in data type, for the
 // editor-coverage tests, and a view that renders a crop of its image picker.
 const editors = DEFAULT_DATA_TYPES.filter((d) => d.editorAlias !== 'Umbraco.ListView')
 writeFileSync(
   join(root, 'schema', 'document-types', 'every-editor.toml'),
-  `[document-type]\nalias = "everyEditor"\nname = "Every editor"\nallow-at-root = true\ntemplates = ["everyEditor"]\ndefault-template = "everyEditor"\n${editors
+  `[document-type]\nalias = "everyEditor"\nname = "Every editor"\nallow-at-root = true\ncomponents = ["everyEditor"]\ndefault-component = "everyEditor"\n${editors
     .map((d) => `\n[[property]]\nalias = "${d.alias}"\nname = "${d.name}"\ntype = "${d.alias}"\n`)
     .join('')}`,
 )
 writeFileSync(
-  join(root, 'Views', 'everyEditor.tsx'),
+  join(root, 'components', 'everyEditor.tsx'),
   `export default function EveryEditor({ model }) {
   const hero = model.value('imageMediaPicker')
   return <main><h1>{model.name}</h1><img class="hero" src={hero?.cropUrl({ width: 40, height: 40 })} /></main>
@@ -62,8 +62,8 @@ writeFileSync(
 alias = "variantPage"
 name = "Variant page"
 allow-at-root = true
-templates = ["variantPage"]
-default-template = "variantPage"
+components = ["variantPage"]
+default-component = "variantPage"
 varies-by-culture = true
 
 [[property]]
@@ -74,7 +74,7 @@ varies-by-culture = true
 `,
 )
 writeFileSync(
-  join(root, 'Views', 'variantPage.tsx'),
+  join(root, 'components', 'variantPage.tsx'),
   `export default function VariantPage({ model, culture }) {
   return <main><h1>{model.name}</h1><p class="title">{model.text('title', { fallback: 'language' })}</p><i>{culture}</i></main>
 }
@@ -111,7 +111,7 @@ const server = await createServer(
       port,
       sqliteFile: join(root, 'site.sqlite'),
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
       adminLogin: BROWSER_ADMIN.login,
       adminPassword: BROWSER_ADMIN.password,

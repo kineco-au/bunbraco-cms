@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
-import { ContentTypeRepository, TemplateRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
 import { siteMediaTypeFiles } from '@bunbraco/schema'
 import { decodePng, encodePng } from '@bunbraco/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -28,8 +28,8 @@ alias = "article"
 name = "Article"
 allow-at-root = true
 allow-children = ["article"]
-templates = ["article"]
-default-template = "article"
+components = ["article"]
+default-component = "article"
 
 [[property]]
 alias = "hero"
@@ -89,24 +89,30 @@ const halves = () => {
 async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'media-render-'))
   dirs.push(root)
-  for (const dir of ['schema/document-types', 'schema/data-types', 'schema/media-types', 'Views'])
+  for (const dir of [
+    'schema/document-types',
+    'schema/data-types',
+    'schema/media-types',
+    'components',
+  ])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   for (const [path, content] of Object.entries(siteMediaTypeFiles()))
     writeFileSync(join(root, path), content)
   writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE)
   writeFileSync(join(root, 'schema', 'data-types', 'cover-cropper.toml'), COVER_CROPPER)
-  writeFileSync(join(root, 'Views', 'article.tsx'), VIEW)
+  writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
-      viewsDir: join(root, 'Views'),
+      componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
     },
   })
   open.push(h)
   const typeKey = (await new ContentTypeRepository(h.server.db).byAlias('article'))?.key as string
-  const templateKey = (await new TemplateRepository(h.server.db).byAlias('article'))?.key as string
+  const componentKey = (await new ComponentRepository(h.server.db).byAlias('article'))
+    ?.key as string
 
   const upload = async (name: string) => {
     const id = crypto.randomUUID()
@@ -139,7 +145,7 @@ async function site() {
   const page = async (name: string, values: Record<string, unknown>) => {
     const response = await h.post(`${V1}/document`, {
       documentType: { id: typeKey },
-      template: { id: templateKey },
+      template: { id: componentKey },
       parent: null,
       values: Object.entries(values).map(([alias, value]) => ({
         alias,
