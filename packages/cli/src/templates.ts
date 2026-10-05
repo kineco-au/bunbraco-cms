@@ -184,7 +184,6 @@ export default await bunbraco()
     // The media types a site owns as files rather than inheriting silently.
     ...Object.entries(siteMediaTypeFiles()).map(([path, text]) => ({ path, text })),
     { path: 'Views/.gitkeep', text: '' },
-    { path: 'App_Plugins/.gitkeep', text: '' },
     {
       path: '.gitignore',
       // `.bunbraco/` holds the view snapshots: pure cache, rebuilt from `Views/`

@@ -6,6 +6,7 @@
  * hashed prefix gets immutable caching while the unhashed one does not.
  */
 import { join, normalize } from 'node:path'
+import { type InstalledExtension, resolveExtensionFile } from './extensions.ts'
 import { BRANDED_ASSETS } from './graphics.ts'
 import type { BackOfficePaths } from './paths.ts'
 import { VENDORED_ASSETS_PATH } from './paths.ts'
@@ -13,8 +14,8 @@ import { VENDORED_ASSETS_PATH } from './paths.ts'
 const IMMUTABLE = 'public, max-age=31536000, immutable'
 
 export interface StaticOptions {
-  /** Directory backing /App_Plugins. */
-  appPluginsDir?: string
+  /** The installed npm extensions, which serve their own assets at /packages/. */
+  extensions?: readonly InstalledExtension[]
   /** Serve the hashed prefix with immutable caching. Off in development. */
   immutable?: boolean
 }
@@ -76,10 +77,12 @@ export function resolveStaticFile(
     return { file, cacheControl: 'no-cache' }
   }
 
-  if (options.appPluginsDir && pathname.startsWith('/App_Plugins/')) {
-    const file = safeJoin(options.appPluginsDir, pathname.slice('/App_Plugins/'.length))
-    if (!file) return undefined
-    return { file, cacheControl: 'no-cache' }
+  // An installed extension's own files, resolved inside the package it names
+  // and nowhere else. `no-cache` for the same reason the framework plugin uses
+  // it: a version bump moves the file behind an unchanged path.
+  if (options.extensions && options.extensions.length > 0) {
+    const file = resolveExtensionFile(options.extensions, pathname)
+    if (file) return { file, cacheControl: 'no-cache' }
   }
 
   return undefined

@@ -59,7 +59,9 @@ operations are implemented and 161 tests pass on both dialects. See
 
 ## Non-goals
 
-- Plugin/package ecosystem; Razor and AngularJS-era compatibility
+- Compatibility with Umbraco's own package ecosystem; Razor and AngularJS-era
+  compatibility. Backoffice extensions of our own are npm dependencies
+  ([`17-packages.md`](17-packages.md)); an Umbraco package does not install here
 - .NET-specific machinery: ModelsBuilder DLL generation, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Forms, Commerce and other commercial add-ons
 - SQL Server support
@@ -77,4 +79,4 @@ operations are implemented and 161 tests pass on both dialects. See
 | `Umbraco.Cms.Api.Common` (OpenIddict auth) | `packages/auth` |
 | `Umbraco.Cms.StaticAssets` + backoffice shell views | `packages/backoffice-host` |
 | `Umbraco.Web.Website` + `PublishedCache.HybridCache` | `packages/render` |
-| `Umbraco.Web.UI` (host app), `Views/`, `App_Plugins/` | `apps/site` |
+| `Umbraco.Web.UI` (host app), `Views/` | `apps/site` |

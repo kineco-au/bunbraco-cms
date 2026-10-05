@@ -76,15 +76,6 @@ export interface BunbracoConfig {
   /** Where template views live on disk. */
   viewsDir: string
   /**
-   * Where backoffice plugin packages live, served at `/App_Plugins/`.
-   *
-   * Its own setting rather than a sibling of `viewsDir`, which is what it used
-   * to be: pointing the views somewhere else — a mounted bucket, a cache
-   * directory — would otherwise move this with it and the backoffice would
-   * quietly find no plugins.
-   */
-  appPluginsDir: string
-  /**
    * Where content-addressed copies of `viewsDir` are written, so an edited view
    * is picked up without restarting the node.
    *
@@ -223,6 +214,16 @@ export interface BunbracoConfig {
    */
   trackRedirects: boolean
   /**
+   * Where the Packages section's Marketplace sends someone browsing for
+   * extensions. Never framed — npm refuses to be framed — so the native view
+   * uses it as the link out while listing the registry itself.
+   */
+  marketplaceUrl: string
+  /** The npm keyword a package publishes to be discoverable here. */
+  packageKeyword: string
+  /** The registry the marketplace searches. Overridden by tests, and by a mirror. */
+  npmRegistry: string
+  /**
    * Source control for the schema, so a change made on a running site reaches the
    * repository without an editor meeting git. Unset means the feature does not
    * exist: no route, no credentials. Set with `gitHub({ repository, token })`.
@@ -261,7 +262,6 @@ export const DEFAULTS = {
   secureCookies: true,
   siteName: 'Bunbraco',
   viewsDir: 'Views',
-  appPluginsDir: 'App_Plugins',
   viewsCacheDir: join('.bunbraco', 'views'),
   schemaDir: 'schema',
   schemaRevision: '0',
@@ -269,6 +269,9 @@ export const DEFAULTS = {
   stylesheetsDir: 'css',
   logsDir: 'logs',
   scriptsDir: 'scripts',
+  marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-package',
+  packageKeyword: 'bunbraco-package',
+  npmRegistry: 'https://registry.npmjs.org',
   keepAllVersionsNewerThanDays: 7,
   keepLatestVersionPerDayForDays: 90,
   memberRegistrationType: 'Member',
@@ -323,7 +326,6 @@ export function loadConfig(
     siteName: Bun.env.BUNBRACO_SITE_NAME ?? DEFAULTS.siteName,
     siteDir: cwd,
     viewsDir: Bun.env.BUNBRACO_VIEWS_DIR ?? DEFAULTS.viewsDir,
-    appPluginsDir: Bun.env.BUNBRACO_APP_PLUGINS_DIR ?? DEFAULTS.appPluginsDir,
     viewsCacheDir: Bun.env.BUNBRACO_VIEWS_CACHE_DIR ?? DEFAULTS.viewsCacheDir,
     viewsSnapshot: {
       ...(Bun.env.BUNBRACO_VIEWS_GATE_MS
@@ -396,6 +398,9 @@ export function loadConfig(
     ),
     redirects: [],
     trackRedirects: Bun.env.BUNBRACO_TRACK_REDIRECTS !== 'false',
+    marketplaceUrl: Bun.env.BUNBRACO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
+    packageKeyword: Bun.env.BUNBRACO_PACKAGE_KEYWORD ?? DEFAULTS.packageKeyword,
+    npmRegistry: Bun.env.BUNBRACO_NPM_REGISTRY ?? DEFAULTS.npmRegistry,
     // No environment variable: enabling it takes a provider, which is code.
     assistant: undefined,
   }
@@ -415,7 +420,6 @@ export function loadConfig(
   // JSX runtime resolves from, which is the site's own tree.
   merged.viewsCacheDir = resolve(merged.siteDir, merged.viewsCacheDir)
   merged.viewsDir = resolve(cwd, merged.viewsDir)
-  merged.appPluginsDir = resolve(cwd, merged.appPluginsDir)
   merged.schemaDir = resolve(cwd, merged.schemaDir)
   merged.mediaDir = resolve(cwd, merged.mediaDir)
   merged.logsDir = resolve(cwd, merged.logsDir)
@@ -463,4 +467,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.4.0'
+export const VERSION = '0.5.0'

@@ -314,7 +314,7 @@ in one place: `isPending(row, nodeState)` in `@bunbraco/data`.
 - **Upgrade dashboard** (the Changes dashboard since migration 018): a
   framework-shipped backoffice package
   (`packages/backoffice-host/plugin/`, served at `<backoffice>/bunbraco/*` and
-  merged into the manifests like an `App_Plugins` package): a Settings-section
+  merged into the manifests like an installed npm extension): a Settings-section
   dashboard reading `GET <backoffice>/bunbraco/api/change-report` (non-contract,
   same footing as the auth routes) — counts by kind, each finding with its
   link, resolved ones greyed; and a header app that shows a *read-only* banner
@@ -1137,8 +1137,7 @@ most of the remaining gap used to sit.
 
 **Diagnostics and tooling**, none of which a visitor sees: health checks,
 telemetry, profiling, `server/troubleshooting` and `server/upgrade-check` (0 of
-11); package import/export (0 of 9, and media/member type `.udt` export still
-deferred); relation and relation-type administration (2 ops — "referenced by" is
+11); relation and relation-type administration (2 ops — "referenced by" is
 derived from current values instead, which cannot go stale but is not a relation
 table); dynamic root pickers (2); and the odds and ends
 `document/{id}/patch`, `object-types`, `data-type/{id}/is-used`,

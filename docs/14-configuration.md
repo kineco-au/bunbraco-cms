@@ -14,7 +14,6 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_ADMIN_LOGIN`                      | `admin@bunbraco.local`                         | seeded administrator                                                                                   |
 | `BUNBRACO_ADMIN_PASSWORD`                   | generated                                      | seeded administrator's password                                                                        |
 | `BUNBRACO_VIEWS_DIR`                        | `apps/site/Views`                              | where template views live                                                                              |
-| `BUNBRACO_APP_PLUGINS_DIR`                  | `App_Plugins`                                  | backoffice plugin packages, served at `/App_Plugins/`; independent of `BUNBRACO_VIEWS_DIR`              |
 | `BUNBRACO_VIEWS_CACHE_DIR`                  | `<site>/.bunbraco/views`                       | where views are snapshotted so an edit needs no restart; inside the site, outside `Views/`     |
 | `BUNBRACO_VIEWS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
 | `BUNBRACO_VIEWS_SWAP_MS`                    | `10000`, `0` in development                    | the floor between generations, which absorbs a flapping sync; an announced save is never delayed by it    |
@@ -51,6 +50,9 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_MEMBER_SESSION_MINUTES`           | `20160` (14 days)                              | how long a member's sign-in is good for                                                                |
 | `BUNBRACO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
 | `BUNBRACO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
+| `BUNBRACO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Packages section sends someone browsing for extensions                                       |
+| `BUNBRACO_PACKAGE_KEYWORD`                  | `bunbraco-package`                             | the npm keyword a backoffice extension publishes to be discoverable                                    |
+| `BUNBRACO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
 
 Invitations and password resets reach people through `sendUserLink`, a function
 a site sets in `bunbraco.config.ts` (typically handing the link to its mailer).

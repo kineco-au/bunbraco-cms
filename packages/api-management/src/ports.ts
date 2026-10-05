@@ -24,6 +24,7 @@ import type { FileSystemPort, Snippet } from './ports-files.ts'
 import type { LogViewerPort } from './ports-logs.ts'
 import type { MemberGroupPort, MemberPort, PublicAccessPort } from './ports-members.ts'
 import type { ModelsBuilderPort } from './ports-models-builder.ts'
+import type { PackagePort } from './ports-packages.ts'
 import type { UserDataPort, UserGroupPort, UserPort } from './ports-users.ts'
 import type { Principal } from './router.ts'
 
@@ -216,4 +217,5 @@ export interface ManagementApiDeps {
   elements?: ElementPort
   references?: ReferencePort
   redirects?: RedirectPort
+  packages?: PackagePort
 }

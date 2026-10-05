@@ -88,7 +88,8 @@ tail of 1–3 each.
 ### Cross-cutting
 - Relations and relation types; tags; redirect management (URL tracker)
 - Backoffice search: `searcher`, `indexer`, `filter` over FTS5/`tsvector`
-- Package manifest discovery (`manifest/*`) so `App_Plugins` and the core manifest reach the client
+- Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`17-packages.md`](17-packages.md))
+- Created packages: exporting a slice of the site — schema, files, content, media — as a zip, and backoffice extensions installed as npm dependencies ([`17-packages.md`](17-packages.md))
 - Background jobs: version cleanup, scheduled publishing, temp-file cleanup, log scrubbing
 - Notification/event bus decoupling publishing, caching, indexing and webhooks
 
@@ -103,7 +104,6 @@ tail of 1–3 each.
   `@microsoft/signalr`) for live tree refresh and user notifications
 - Log viewer, health checks, telemetry, profiling, published-cache admin endpoints
 - Webhooks (events → HTTP) with a delivery log
-- Package import/export of document types and data types (`package`, `import`)
 - Content segments (A/B, personalisation); dynamic root pickers
 - oEmbed proxy; `help` and `news-dashboard` dashboards
 - Email sending (invites, resets, notifications) — several must-have flows degrade
@@ -116,7 +116,9 @@ tail of 1–3 each.
 
 ## Out of scope for now
 
-- Plugin/package ecosystem; Razor and AngularJS-era compatibility
+- Compatibility with Umbraco's own package ecosystem; Razor and AngularJS-era
+  compatibility. Backoffice extensions of our own are npm dependencies
+  ([`17-packages.md`](17-packages.md)); an Umbraco package does not install here
 - ModelsBuilder DLLs, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Forms, Commerce
 - SQL Server

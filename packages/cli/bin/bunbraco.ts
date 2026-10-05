@@ -940,6 +940,28 @@ function transferInput(dir: string): ops.TransferInput {
     resolutions: parseResolutions(),
     resolveAll: allFlag as Resolution | undefined,
     allowMissingBlobs: flags.has('--allow-missing-blobs'),
+    // What a bundle carries is applied by default — that is the point of it
+    // carrying anything — so these decline a half, for someone who wants the
+    // content without the structure that came with it.
+    withoutSchema: flags.has('--no-schema'),
+    withoutFiles: flags.has('--no-files'),
+  }
+}
+
+/** What the carried sections would do, or did. */
+function printSections(plan: ops.SectionPlan | undefined): void {
+  if (!plan) return
+  console.log(`  carries  ${plan.sections.join(', ')}`)
+  const counts = new Map<string, number>()
+  for (const file of plan.files) counts.set(file.action, (counts.get(file.action) ?? 0) + 1)
+  const summary = [...counts].map(([action, n]) => `${n} ${action}`).join(', ')
+  if (summary) console.log(`  files    ${summary}`)
+  for (const file of plan.files)
+    if (file.action === 'overwrite') console.log(`    overwrites ${relative(cwd, file.target)}`)
+  if (plan.dictionaryItems > 0) console.log(`  dict     ${plan.dictionaryItems} file(s)`)
+  if (plan.schema) {
+    console.log(`  schema   ${plan.schema.classification}`)
+    for (const finding of plan.schema.findings) console.log(`    ${finding}`)
   }
 }
 
@@ -986,9 +1008,23 @@ async function contentImport(config: BunbracoConfig): Promise<void> {
 
   if (!result.runId) {
     printTransferFindings(result.check)
-    console.error(
-      `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
-    )
+    // Sections are applied before the content is checked, because content
+    // naming a type the bundle brings cannot pass a check until that type
+    // exists. So a refusal here may still have written files, and saying
+    // otherwise would send somebody looking in the wrong place.
+    if (result.sections) {
+      console.error(
+        `\nimport refused, but this bundle's structure was already applied: ` +
+          `${result.sections.written.length} file(s) written${
+            result.sections.schema ? `, schema ${result.sections.schema.action}` : ''
+          }.`,
+      )
+      for (const file of result.sections.written) console.error(`    ${relative(cwd, file)}`)
+    } else {
+      console.error(
+        `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
+      )
+    }
     process.exit(1)
   }
 
@@ -999,6 +1035,12 @@ async function contentImport(config: BunbracoConfig): Promise<void> {
   )
   const placed = describePlaced(result.blobs)
   if (placed) console.log(`  blobs    ${placed}`)
+  if (result.sections) {
+    console.log(`  files    ${result.sections.written.length} written`)
+    if (result.sections.schema) console.log(`  schema   ${result.sections.schema.action}`)
+    if (result.sections.dictionary)
+      console.log(`  dict     ${result.sections.dictionary.imported} imported`)
+  }
   if (result.published > 0) console.log(`  published ${result.published} node(s)`)
   for (const failure of result.publishFailures)
     console.error(`  not published  ${failure.key}: ${failure.reason}`)
@@ -1173,6 +1215,7 @@ async function contentCheck(config: BunbracoConfig): Promise<void> {
   for (const problem of result.problems) console.error(`  ${problem}`)
   describeBundle(result.bundle)
   if (result.under) console.log(`  under    ${result.under}`)
+  printSections(result.sections)
   printTransferFindings(result.check)
 
   if (flags.has('--save')) {
@@ -1870,6 +1913,10 @@ function help(): void {
                               arrive as drafts, media is live. One transaction, so a
                               failure leaves nothing behind
                               [--publish] [--label <text>] [--backup-taken] + the check flags
+                              [--no-schema] [--no-files] decline a section it carries
+  bundle check <dir>          the same as content check
+  bundle install <dir>        the same as content import; a bundle carrying its own
+                              schema and views installs into a site that has neither
   content runs [--limit N]    the imports applied here, newest first
   content publish <path|uuid> take it live; --descendants for the branch below it,
                               --culture <iso> per culture, --at/--until to schedule
@@ -1945,6 +1992,16 @@ async function dispatch(): Promise<void> {
       await generate()
       break
     case 'content':
+      await content()
+      break
+    /**
+     * The artifact's own name. A bundle that carries its own structure is what
+     * the Packages section builds (`docs/17-packages.md`), and `install` reads
+     * better than `import` for one — but it is the same operation on the same
+     * artifact, so this is the same code path, not a second one.
+     */
+    case 'bundle':
+      if (positional[0] === 'install') positional[0] = 'import'
       await content()
       break
     case 'dictionary':

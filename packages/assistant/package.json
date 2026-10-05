@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/assistant",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Optional AI helper for bunbraco: reads the CMS through the management contract and proposes changes for a human to approve.",
   "license": "MIT",
   "author": "Kineco",

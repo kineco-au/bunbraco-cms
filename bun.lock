@@ -76,7 +76,7 @@
     },
     "packages/api-management": {
       "name": "@bunbraco/api-management",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/contracts": "workspace:*",
         "@bunbraco/core": "workspace:*",
@@ -84,7 +84,7 @@
     },
     "packages/assistant": {
       "name": "@bunbraco/assistant",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@aws-sdk/client-bedrock-runtime": "^3.1142.0",
         "@aws-sdk/credential-provider-node": "^3.972.84",
@@ -97,7 +97,7 @@
     },
     "packages/auth": {
       "name": "@bunbraco/auth",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
         "@bunbraco/data": "workspace:*",
@@ -109,7 +109,7 @@
     },
     "packages/backoffice-host": {
       "name": "@bunbraco/backoffice-host",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/backoffice-dist": "workspace:*",
         "@bunbraco/core": "workspace:*",
@@ -117,7 +117,7 @@
     },
     "packages/bunbraco": {
       "name": "bunbraco",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "bin": {
         "bunbraco": "./bin/bunbraco.ts",
       },
@@ -139,7 +139,7 @@
     },
     "packages/cli": {
       "name": "@bunbraco/cli",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "bin": {
         "bunbraco": "./bin/bunbraco.ts",
       },
@@ -154,22 +154,22 @@
     },
     "packages/contracts": {
       "name": "@bunbraco/contracts",
-      "version": "0.4.0",
+      "version": "0.5.0",
     },
     "packages/core": {
       "name": "@bunbraco/core",
-      "version": "0.4.0",
+      "version": "0.5.0",
     },
     "packages/data": {
       "name": "@bunbraco/data",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
       },
     },
     "packages/import-umbraco": {
       "name": "@bunbraco/import-umbraco",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
         "@bunbraco/data": "workspace:*",
@@ -180,14 +180,14 @@
     },
     "packages/render": {
       "name": "@bunbraco/render",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
       },
     },
     "packages/schema": {
       "name": "@bunbraco/schema",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
         "@bunbraco/data": "workspace:*",
@@ -195,7 +195,7 @@
     },
     "packages/server": {
       "name": "@bunbraco/server",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/api-management": "workspace:*",
         "@bunbraco/assistant": "workspace:*",
@@ -211,7 +211,7 @@
     },
     "packages/transfer": {
       "name": "@bunbraco/transfer",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
         "@bunbraco/core": "workspace:*",
         "@bunbraco/data": "workspace:*",

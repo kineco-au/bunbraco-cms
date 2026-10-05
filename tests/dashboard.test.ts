@@ -1,6 +1,6 @@
 /**
  * The framework's backoffice package: the Changes dashboard and the read-only
- * banner are served and registered like any App_Plugins package, and read a
+ * banner are served and registered like any installed npm extension, and read a
  * report endpoint that a development boot fills. Proved by its endpoint and
  * its manifest, not by clicking it. docs/10, "The upgrade dashboard ships in the first release".
  */
@@ -79,6 +79,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(ours).toBeDefined()
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
     expect(aliases).toEqual([
+      'sectionView:Bunbraco.SectionView.Packages.Marketplace',
+      'sectionView:Bunbraco.SectionView.Packages.Installed',
       'dashboard:Bunbraco.Dashboard.Changes',
       'dashboard:Bunbraco.Dashboard.Welcome',
       'dashboard:Bunbraco.Dashboard.Settings',
@@ -96,6 +98,18 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     // the registry's own `overwrites`, rather than mutating it while rendering.
     const welcome = ours?.extensions.find((e) => e.alias === 'Bunbraco.Dashboard.Welcome')
     expect(welcome?.overwrites).toEqual(['Umb.Dashboard.UmbracoNews'])
+    // The two Packages views replace Umbraco's the same way: its Marketplace is
+    // an iframe of a site that refuses to be framed, and its Installed view is
+    // built around package migrations, which cannot exist here
+    // (`docs/17-packages.md`).
+    const marketplace = ours?.extensions.find(
+      (e) => e.alias === 'Bunbraco.SectionView.Packages.Marketplace',
+    )
+    expect(marketplace?.overwrites).toEqual(['Umb.SectionView.Packages.Marketplace'])
+    const installed = ours?.extensions.find(
+      (e) => e.alias === 'Bunbraco.SectionView.Packages.Installed',
+    )
+    expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {
       const path = (extension.element ?? extension.js) as string

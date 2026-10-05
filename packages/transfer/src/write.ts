@@ -10,7 +10,17 @@
  *
  * `read(write(x))` must equal `x` — the tests hold it to that.
  */
-import type { BundleManifest, BundleNode, BundleValue, BundleVariant, ContentSet } from './model.ts'
+import {
+  BUNDLE_FORMAT_VERSION,
+  BUNDLE_SECTIONS,
+  type BundleManifest,
+  type BundleNode,
+  type BundleSection,
+  type BundleValue,
+  type BundleVariant,
+  CONTENT_ONLY_FORMAT_VERSION,
+  type ContentSet,
+} from './model.ts'
 
 /** One file of a written bundle, ready to be put on disk or into a store. */
 export interface BundleFile {
@@ -70,6 +80,7 @@ export function writeManifest(manifest: BundleManifest): string {
   return json({
     formatVersion: manifest.formatVersion,
     id: manifest.id,
+    ...(manifest.label ? { label: manifest.label } : {}),
     createdAt: manifest.createdAt,
     createdBy: manifest.createdBy,
     integrity: manifest.integrity,
@@ -108,10 +119,35 @@ export function writeManifest(manifest: BundleManifest): string {
         size: b.size,
         included: b.included,
       })),
+    // Absent on a content-only bundle, so version 1 output is unchanged.
+    ...(manifest.carries && Object.keys(manifest.carries).length > 0
+      ? { carries: sortedCarries(manifest.carries) }
+      : {}),
   })
 }
 
+/** Sections in a declared order, each one's paths sorted, so a diff means something. */
+function sortedCarries(
+  carries: Partial<Record<BundleSection, string[]>>,
+): Partial<Record<BundleSection, string[]>> {
+  const out: Partial<Record<BundleSection, string[]>> = {}
+  for (const section of Object.keys(BUNDLE_SECTIONS) as BundleSection[]) {
+    const paths = carries[section]
+    if (paths && paths.length > 0) out[section] = [...paths].sort()
+  }
+  return out
+}
+
 export const nodePath = (key: string): string => `nodes/${key}.json`
+
+/** The section a carried file belongs to, from the directory it sits in. */
+export function sectionOf(path: string): BundleSection | undefined {
+  if (path === `${BUNDLE_SECTIONS.dictionary}.udt`) return 'dictionary'
+  const top = path.split('/')[0]
+  for (const [section, dir] of Object.entries(BUNDLE_SECTIONS))
+    if (top === dir) return section as BundleSection
+  return undefined
+}
 
 /** Where a media file's bytes sit when the bundle carries them. */
 export const blobPath = (key: string): string => `blobs/${key}`
@@ -149,6 +185,7 @@ export function bundleIntegrity(files: readonly BundleFile[]): string {
 export function writeBundle(
   set: ContentSet,
   blobs: ReadonlyMap<string, Uint8Array> = new Map(),
+  sections: readonly BundleFile[] = [],
 ): BundleFile[] {
   const nodes: BundleFile[] = [...set.nodes]
     .sort((a, b) => a.key.localeCompare(b.key))
@@ -156,13 +193,28 @@ export function writeBundle(
   const carried: BundleFile[] = [...blobs]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, bytes]) => ({ path: blobPath(key), bytes }))
+
+  // A file in no known section would travel without being declared, so it
+  // would not be hashed and a reader would never look for it. Refused here
+  // rather than written and silently ignored at the far end.
+  const extra = [...sections].sort((a, b) => a.path.localeCompare(b.path))
+  const carries: Partial<Record<BundleSection, string[]>> = {}
+  for (const file of extra) {
+    const section = sectionOf(file.path)
+    if (!section) throw new Error(`${file.path} is not in a bundle section`)
+    carries[section] = [...(carries[section] ?? []), file.path]
+  }
+
   const manifest: BundleManifest = {
     ...set.manifest,
+    // Content-only bundles keep saying 1, so an older node can still read one.
+    formatVersion: extra.length > 0 ? BUNDLE_FORMAT_VERSION : CONTENT_ONLY_FORMAT_VERSION,
     blobs: set.manifest.blobs.map((blob) => {
       const bytes = blobs.get(blob.key)
       return bytes ? { ...blob, included: true, size: bytes.length } : { ...blob, included: false }
     }),
-    integrity: bundleIntegrity([...nodes, ...carried]),
+    carries: extra.length > 0 ? carries : undefined,
+    integrity: bundleIntegrity([...nodes, ...carried, ...extra]),
   }
-  return [{ path: MANIFEST_FILE, text: writeManifest(manifest) }, ...nodes, ...carried]
+  return [{ path: MANIFEST_FILE, text: writeManifest(manifest) }, ...nodes, ...carried, ...extra]
 }

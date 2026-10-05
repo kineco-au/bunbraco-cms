@@ -47,6 +47,16 @@ import {
   type TransferCheck,
   writeBundle,
 } from '@bunbraco/transfer'
+import {
+  applySections,
+  type CarriedSections,
+  carriedSections,
+  carriesSections,
+  planSections,
+  type SectionOptions,
+  type SectionPlan,
+  type SectionResult,
+} from './sections.ts'
 
 export {
   isResolution,
@@ -54,6 +64,20 @@ export {
   type Resolution,
   type TransferCheck,
 } from '@bunbraco/transfer'
+// The section half of an install, exported for the same reason the commands
+// are: tooling that applies a bundle without a terminal needs the plan too.
+export {
+  applySections,
+  type CarriedSections,
+  carriedSections,
+  carriesSections,
+  type FileAction,
+  planSections,
+  type SectionFile,
+  type SectionOptions,
+  type SectionPlan,
+  type SectionResult,
+} from './sections.ts'
 export type { BackupResult, WritesPaused }
 
 /** The trees a content selector or placement may name. */
@@ -80,6 +104,21 @@ export interface BundleSummary {
   blobBytes: number
 }
 
+/**
+ * The check an install that never reached the content reports.
+ *
+ * Nothing was examined, so nothing is outstanding: the refusal is in
+ * `problems`, and a caller reading `outstanding.length` must not be told there
+ * were content findings when there were none.
+ */
+const emptyCheck = (bundleId = ''): TransferCheck => ({
+  bundleId,
+  findings: [],
+  outstanding: [],
+  plan: [],
+  counts: { create: 0, update: 0, unchanged: 0, skip: 0 },
+})
+
 function summarise(set: ContentSet): BundleSummary {
   const carried = set.manifest.blobs.filter((blob) => blob.included)
   return {
@@ -98,6 +137,8 @@ function summarise(set: ContentSet): BundleSummary {
 export function readBundle(dir: string): {
   set: ContentSet
   blobs: ReadonlyMap<string, string>
+  /** The sections it carries beyond its content; empty for a content-only bundle. */
+  carried: CarriedSections
 } {
   const loaded = loadBundle(dir)
   const problems = loaded.problems.map((problem) => `${problem.file}: ${problem.message}`)
@@ -106,10 +147,10 @@ export function readBundle(dir: string): {
       'The bundle is incomplete or damaged; nothing was read from it.',
       problems,
     )
-  return { set: loaded.set, blobs: loaded.blobs }
+  return { set: loaded.set, blobs: loaded.blobs, carried: carriedSections(loaded) }
 }
 
-export interface TransferInput {
+export interface TransferInput extends SectionOptions {
   /** The bundle's directory on this machine. */
   dir: string
   /** Where the bundle's roots go: a path or a key. */
@@ -159,6 +200,8 @@ export interface ContentCheckResult {
   bundle: BundleSummary
   under: string | null
   check: TransferCheck
+  /** What the carried sections would do here; undefined for a content-only bundle. */
+  sections: SectionPlan | undefined
   /** Nothing outstanding: the bundle would import cleanly. */
   clean: boolean
   /** The decisions this check ran with — the bundle's saved ones under the caller's. */
@@ -171,7 +214,7 @@ export async function contentCheck(
   config: BunbracoConfig,
   input: TransferInput,
 ): Promise<ContentCheckResult> {
-  const { set } = readBundle(input.dir)
+  const { set, carried } = readBundle(input.dir)
   const { db } = await bootstrapDatabase(config)
   try {
     const prepared = await transferOptions(db, config, set, input)
@@ -182,6 +225,9 @@ export async function contentCheck(
       bundle: summarise(set),
       under: prepared.under ? (prepared.under.text ?? prepared.under.key) : null,
       check,
+      sections: carriesSections(carried)
+        ? await planSections(db, config, carried, input)
+        : undefined,
       clean: check.outstanding.length === 0,
       decisions: {
         all: prepared.options.resolveAll ?? null,
@@ -204,6 +250,14 @@ export interface ContentImportInput extends TransferInput {
 export interface ContentImportResult {
   bundle: BundleSummary
   backup: BackupResult
+  /**
+   * What the carried sections did, when the bundle carried any.
+   *
+   * Applied before the content and outside the content run's ledger entry: the
+   * files are now in `schema/` and the views directory, where the repository
+   * owns them — so a revert takes the content back and git takes the files.
+   */
+  sections: SectionResult | undefined
   /** Undefined when the import was refused; then nothing was written. */
   runId: string | undefined
   check: TransferCheck
@@ -218,7 +272,7 @@ export async function contentImport(
   config: BunbracoConfig,
   input: ContentImportInput,
 ): Promise<ContentImportResult> {
-  const { set, blobs } = readBundle(input.dir)
+  const { set, blobs, carried } = readBundle(input.dir)
   // The coarse layer, under the fine-grained revert: in-place conversion is not
   // reversible by itself, so the same rule as `upgrade` applies here.
   const backup = await backupBefore(config, {
@@ -229,6 +283,37 @@ export async function contentImport(
   try {
     const prepared = await transferOptions(db, config, set, input)
     const started = performance.now()
+
+    /**
+     * Structure first, but planned before anything is written.
+     *
+     * The order is forced: content naming a type this bundle brings cannot pass
+     * a check until that type exists, so the schema has to land before the
+     * content is checked. Which means a blocking schema change has to be caught
+     * *before* the first file is written — otherwise a refused install leaves a
+     * half-applied site behind. `planSections` answers that from an overlay
+     * copy, so the site is untouched until it is known the schema can apply.
+     */
+    const plan = carriesSections(carried)
+      ? await planSections(db, config, carried, input)
+      : undefined
+    if (plan?.schema?.classification === 'breaking')
+      return {
+        bundle: summarise(set),
+        backup,
+        runId: undefined,
+        check: emptyCheck(set.manifest.id),
+        blobs: null,
+        published: 0,
+        publishFailures: [],
+        problems: [
+          'the schema this bundle carries cannot be applied here without data work',
+          ...plan.schema.findings,
+        ],
+        sections: undefined,
+      }
+
+    const sections = plan ? await applySections(db, config, carried, input) : undefined
     const result = await importBundle(db, set, {
       ...prepared.options,
       publish: input.publish ?? false,
@@ -245,6 +330,7 @@ export async function contentImport(
       published: result.published.length,
       publishFailures: result.publishFailures,
       problems: prepared.problems,
+      sections,
     }
     if (!result.runId) return outcome
     if (blobs.size > 0) outcome.blobs = await placeBlobs(await mediaStoreFor(config), blobs)

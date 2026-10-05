@@ -1,3 +1,4 @@
+export * from './extensions.ts'
 export * from './graphics.ts'
 export * from './login-assets.ts'
 export * from './manifests.ts'

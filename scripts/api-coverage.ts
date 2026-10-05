@@ -6,7 +6,7 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createManagementApiRouter, EMPTY_SETTINGS_OPERATIONS } from '@bunbraco/api-management'
-import { createBackOfficePaths } from '@bunbraco/backoffice-host'
+import { createBackOfficePaths, createExtensionRegistry } from '@bunbraco/backoffice-host'
 import { bunbracoPlan, connect, migrate } from '@bunbraco/data'
 import { PublishedCache } from '@bunbraco/render'
 import { createDeps, createPublishedContentSource, loadConfig } from '@bunbraco/server'
@@ -23,7 +23,7 @@ const router = createManagementApiRouter({
   deps: createDeps({
     config: loadConfig(),
     paths,
-    appPluginsDir: join(ROOT, 'apps/site/App_Plugins'),
+    extensions: createExtensionRegistry(join(ROOT, 'apps/site')),
     db,
     cache: new PublishedCache(createPublishedContentSource(db)),
   }),

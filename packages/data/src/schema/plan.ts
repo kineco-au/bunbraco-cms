@@ -17,6 +17,7 @@ import { changeReportMigration } from './change-report.ts'
 import { clientIdPrefixMigration } from './client-id-prefix.ts'
 import { contentMigration } from './content.ts'
 import { contentEditingMigration } from './content-editing.ts'
+import { createdPackagesMigration } from './created-packages.ts'
 import { elementsMigration } from './elements.ts'
 import { groupPermissionsMigration } from './group-permissions.ts'
 import { identityMigration } from './identity.ts'
@@ -56,4 +57,5 @@ export const bunbracoPlan = new MigrationPlan([
   transferRunsMigration,
   clientIdPrefixMigration,
   serverRoleMigration,
+  createdPackagesMigration,
 ])

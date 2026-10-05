@@ -1,13 +1,14 @@
 /**
- * Package manifest discovery, mirroring Umbraco's PackageManifestReader: the
- * vendored client contributes the core manifest, and each App_Plugins package
- * contributes one `umbraco-package.json` found at most one directory deep.
+ * Package manifest discovery: the vendored client contributes the core
+ * manifest, the framework contributes its own, and each installed npm
+ * extension contributes one (`extensions.ts`).
  *
  * The merged importmap is what the shell embeds; without it the backoffice
  * cannot resolve a single bare `@umbraco-cms/backoffice/*` specifier.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import type { InstalledExtension } from './extensions.ts'
 import type { BackOfficePaths } from './paths.ts'
 import { PLUGIN_PATH_PLACEHOLDER, VENDORED_ASSETS_PATH } from './paths.ts'
 
@@ -76,23 +77,23 @@ export interface ManifestSet {
 }
 
 /**
- * Collects the core manifest plus App_Plugins, and rewrites the importmap's
- * virtual directory to the cache-busted assets path — exactly what Umbraco's
- * HtmlHelperBackOfficeExtensions does with a string replace.
+ * Collects the core manifest plus the installed extensions, and rewrites the
+ * importmap's virtual directory to the cache-busted assets path — exactly what
+ * Umbraco's HtmlHelperBackOfficeExtensions does with a string replace.
  *
  * `omit` drops a framework manifest by id, which is how an optional feature
  * leaves no trace in the backoffice when it is not configured.
  */
 export function collectManifests(
   paths: BackOfficePaths,
-  appPluginsDir?: string,
+  extensions: readonly InstalledExtension[] = [],
   options: { omit?: readonly string[] } = {},
 ): ManifestSet {
   const omit = new Set(options.omit ?? [])
   const all = [...discoverManifests(paths.vendorDir), ...frameworkManifests(paths)].filter(
     (manifest) => !omit.has(manifest.id ?? ''),
   )
-  if (appPluginsDir) all.push(...discoverManifests(appPluginsDir))
+  all.push(...extensions.map((extension) => extension.manifest))
 
   const imports: Record<string, string> = {}
   const scopes: Record<string, Record<string, string>> = {}

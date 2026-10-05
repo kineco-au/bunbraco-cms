@@ -6,10 +6,12 @@
  * truncated one has to be refused rather than imported as though it were whole.
  */
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   BUNDLE_FORMAT_VERSION,
+  BUNDLE_SECTIONS,
+  type BundleFile,
   type BundleNode,
   bundleIntegrity,
   type ContentSet,
@@ -76,9 +78,13 @@ function set(nodes: BundleNode[]): ContentSet {
   }
 }
 
-function onDisk(content: ContentSet, blobs?: Map<string, Uint8Array>): string {
+function onDisk(
+  content: ContentSet,
+  blobs?: Map<string, Uint8Array>,
+  sections?: BundleFile[],
+): string {
   const dir = mkdtempSync(join('output', 'bundle-'))
-  for (const file of writeBundle(content, blobs)) {
+  for (const file of writeBundle(content, blobs, sections)) {
     const target = join(dir, file.path)
     mkdirSync(join(target, '..'), { recursive: true })
     writeFileSync(target, file.bytes ?? (file.text as string))
@@ -286,5 +292,100 @@ describe('the media a bundle carries', () => {
     const gone = loadBundle(dir)
     expect(gone.problems.map((p) => p.message).join('\n')).toContain('carried')
     rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+/**
+ * A bundle carrying its own structure, which is what a created package is
+ * (`docs/17-packages.md`). The sections travel under logical names — the
+ * destination decides which of its directories each one lands in — and they are
+ * declared in the manifest so a reader knows to look for them and the integrity
+ * hash covers them.
+ */
+describe('the sections a bundle can carry', () => {
+  const SCHEMA = 'schema/document-types/campaign-page.toml'
+  const VIEW = 'views/campaignPage.tsx'
+  const sections = (): BundleFile[] => [
+    { path: SCHEMA, text: '[document-type]\nalias = "campaignPage"\n' },
+    { path: VIEW, text: 'export default () => <h1>Campaign</h1>\n' },
+  ]
+
+  test('a content-only bundle still says version 1, so an older node can read it', () => {
+    const files = writeBundle(set([node()]))
+    const manifest = JSON.parse(
+      files.find((f) => f.path === MANIFEST_FILE)?.text as string,
+    ) as Record<string, unknown>
+    expect(manifest.formatVersion).toBe(1)
+    expect(manifest.carries).toBeUndefined()
+  })
+
+  test('carrying a section moves the version up and declares what is there', () => {
+    const files = writeBundle(set([node()]), undefined, sections())
+    const manifest = JSON.parse(files.find((f) => f.path === MANIFEST_FILE)?.text as string) as {
+      formatVersion: number
+      carries: Record<string, string[]>
+    }
+    expect(manifest.formatVersion).toBe(BUNDLE_FORMAT_VERSION)
+    expect(manifest.carries).toEqual({ schema: [SCHEMA], views: [VIEW] })
+    expect(files.map((f) => f.path)).toContain(SCHEMA)
+  })
+
+  test('reads the sections back, as paths on disk', () => {
+    const loaded = loadBundle(onDisk(set([node()]), undefined, sections()))
+    expect(loaded.problems).toEqual([])
+    expect([...loaded.files.keys()].sort()).toEqual([SCHEMA, VIEW])
+    expect(loaded.set?.manifest.carries).toEqual({ schema: [SCHEMA], views: [VIEW] })
+  })
+
+  test('the integrity hash covers them, so an edited view is refused', () => {
+    const dir = onDisk(set([node()]), undefined, sections())
+    writeFileSync(join(dir, VIEW), 'export default () => <h1>Tampered</h1>\n')
+    const loaded = loadBundle(dir)
+    expect(loaded.problems.map((p) => p.message).join(' ')).toContain('integrity does not match')
+  })
+
+  test('a declared file that is not there is reported, as a missing blob is', () => {
+    const dir = onDisk(set([node()]), undefined, sections())
+    rmSync(join(dir, SCHEMA))
+    const loaded = loadBundle(dir)
+    expect(loaded.problems).toContainEqual({
+      file: SCHEMA,
+      message: 'the manifest says this file is carried, and it is not',
+    })
+  })
+
+  test('a file in no known section is refused rather than written undeclared', () => {
+    expect(() =>
+      writeBundle(set([node()]), undefined, [{ path: 'elsewhere/x.txt', text: 'x' }]),
+    ).toThrow(/not in a bundle section/)
+  })
+
+  /** A manifest is a file that travelled, so what it names is read, never trusted. */
+  test('a declared path that climbs out of the bundle is dropped', () => {
+    const dir = onDisk(set([node()]), undefined, sections())
+    const manifestFile = join(dir, MANIFEST_FILE)
+    const manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as Record<string, unknown>
+    manifest.carries = { schema: ['schema/../../etc/passwd'] }
+    writeFileSync(manifestFile, JSON.stringify(manifest, null, 2))
+    const loaded = loadBundle(dir)
+    expect([...loaded.files.keys()]).toEqual([])
+  })
+
+  test('a format newer than this version understands is refused by name', () => {
+    const dir = onDisk(set([node()]), undefined, sections())
+    const manifestFile = join(dir, MANIFEST_FILE)
+    const manifest = JSON.parse(readFileSync(manifestFile, 'utf8')) as Record<string, unknown>
+    manifest.formatVersion = BUNDLE_FORMAT_VERSION + 1
+    writeFileSync(manifestFile, JSON.stringify(manifest, null, 2))
+    const loaded = loadBundle(dir)
+    expect(loaded.set).toBeUndefined()
+    expect(loaded.problems.map((p) => p.message).join(' ')).toContain('upgrade bunbraco')
+  })
+
+  test('every section a bundle may carry has a directory of its own', () => {
+    const paths = Object.values(BUNDLE_SECTIONS)
+    expect(new Set(paths).size).toBe(paths.length)
+    expect(paths).toContain('schema')
+    expect(paths).toContain('views')
   })
 })

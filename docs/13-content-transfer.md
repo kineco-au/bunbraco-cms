@@ -37,7 +37,7 @@ artifact, a commit, an object store.
 
 ```
 bundles/campaign-x/
-├── bundle.json          manifest, including an integrity hash over nodes/
+├── bundle.json          manifest, including an integrity hash over everything
 ├── nodes/<uuid>.json    one file per node, every kind
 ├── blobs/<key>          the media bytes, with --with-blobs
 └── resolutions.json     conflict decisions, once check has been run
@@ -53,9 +53,37 @@ same content always serialises identically. A property's `value` is **passed
 through untouched** — it is an editor's own payload, often JSON inside a string,
 and reordering its keys would rewrite somebody's data to no purpose.
 
-`integrity` is a hash over the node files. `load` checks it before checking
-shape, so a bundle that was copied half-way is refused as incomplete rather than
-reported as a pile of confusing field errors.
+`integrity` is a hash over everything the bundle carries. `load` checks it
+before checking shape, so a bundle that was copied half-way is refused as
+incomplete rather than reported as a pile of confusing field errors.
+
+### A bundle that carries its own structure
+
+Everything above describes a bundle that carries **content** and *names* the
+structure it needs — which is the normal case, because a deploy has already put
+the same `schema/*.toml` in both environments.
+
+A bundle may also carry that structure, and then it installs into a site that
+has none of it. That is what the Packages section builds
+([`17-packages.md`](17-packages.md)): the same format, with optional sections.
+
+```
+├── schema/*.toml        types and languages
+├── views/<alias>.tsx    templates
+├── partials/, styles/, scripts/
+└── dictionary.udt
+```
+
+The names are logical, not directory names: the importer maps each section onto
+wherever this site keeps that kind of file, so a bundle is not tied to the
+layout it was built from. The manifest's `carries` declares every one, the
+integrity hash covers them, and `bundle install` applies them before the content
+that needs them. A content-only bundle carries no `carries` key and still says
+`formatVersion: 1`, so nothing about an existing bundle changed.
+
+`label` is the bundle's own name, when it has one — a created package's name
+travels in the artifact rather than being supplied at import time, so a
+downloaded file still knows what it is.
 
 ### Identity
 
@@ -402,10 +430,14 @@ bunbraco content check <dir>
 
 bunbraco content import <dir>
                         [--publish] [--label <text>] [--backup-taken] + the check flags
+                        [--no-schema] [--no-files]  decline a section the bundle carries
 bunbraco content runs   [--limit N]
 bunbraco content revert <run-id>
                         [--resolve <key>=discard|skip] [--resolve-all <choice>]
                         [--force] [--backup-taken]
+
+bunbraco bundle check   <dir>     alias of `content check`
+bunbraco bundle install <dir>     alias of `content import`
 
 bunbraco dictionary export --out <file.udt> [--key <uuid>]
 bunbraco dictionary import <file.udt>

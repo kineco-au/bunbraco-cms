@@ -18,6 +18,7 @@ import { registerMediaHandlers } from './handlers/media.ts'
 import { registerMemberHandlers } from './handlers/member.ts'
 import { registerMemberGroupHandlers } from './handlers/member-group.ts'
 import { registerModelsBuilderHandlers } from './handlers/models-builder.ts'
+import { registerPackageHandlers } from './handlers/package.ts'
 import { registerPublicAccessHandlers } from './handlers/public-access.ts'
 import { registerPublishedCacheHandlers } from './handlers/published-cache.ts'
 import { registerRedirectHandlers } from './handlers/redirects.ts'
@@ -85,6 +86,7 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
   if (deps.publicAccess) registerPublicAccessHandlers(router, deps.publicAccess)
   if (deps.elements) registerElementHandlers(router, deps.elements, deps.references)
   if (deps.redirects) registerRedirectHandlers(router, deps.redirects)
+  if (deps.packages) registerPackageHandlers(router, deps.packages)
   if (deps.references)
     for (const area of ['Document', 'Media', 'Member', 'Element'] as const)
       registerReferenceHandlers(router, area, deps.references)

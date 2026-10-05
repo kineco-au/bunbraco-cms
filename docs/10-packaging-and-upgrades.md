@@ -15,7 +15,7 @@ my-site/
 ├── server.ts             import { bunbraco } from 'bunbraco'; Bun.serve(await bunbraco(config))
 ├── schema/               document types, data types, languages — see 09-schema-as-code.md
 ├── Views/                templates (.tsx)
-├── App_Plugins/          backoffice extensions (later)
+├── package.json          dependencies, backoffice extensions among them — see 17-packages.md
 └── bunbraco.sqlite       content, users, versions — never schema
 ```
 
@@ -481,7 +481,7 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
   element row; `isPending(row, nodeState)` is the only place the rule exists.
 - **No client change for the pending badge.** Names and descriptions are
   decorated in the API response (`Title (goes live in 2.1)`). The shipped client
-  code is a framework package on the same footing as an `App_Plugins` package —
+  code is a framework package on the same footing as an installed npm extension —
   the upgrade and welcome dashboards, the read-only banner, the TSX editor entry
   point and the element-type hint. All of it is *registered* through
   `umbraco-package.json`, never patched into Umbraco's own elements, so an
@@ -525,7 +525,7 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
   `GET <backoffice>/bunbraco/api/change-report` (session required) returns
   it with the node's health; the dashboard and the banner are a framework
   package served at `<backoffice>/bunbraco/`, registered like an
-  `App_Plugins` package.
+  installed npm extension.
 - **`/health`** answers 503 once the poll sees the database ahead of the node,
   and the document API answers 409 to its writes.
 - **Backups**: SQLite is copied beside the file before `check --fix`,

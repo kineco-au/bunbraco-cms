@@ -65,25 +65,20 @@ describe('what is in Views/', () => {
   })
 })
 
-describe('where the views and the plugins live', () => {
-  test('are independent paths, so moving one does not move the other', () => {
+describe('where the views live', () => {
+  test('moving the views moves nothing else', () => {
     const { root } = site({ 'Views/homePage.tsx': GOOD })
     const moved = loadConfig({ viewsDir: join(root, 'elsewhere') }, root)
-    // App_Plugins used to be derived as `viewsDir/../App_Plugins`, so pointing
-    // the views at a mounted bucket or a cache directory took the backoffice's
-    // plugins with it and the editor silently lost them.
     expect(moved.viewsDir).toBe(join(root, 'elsewhere'))
-    expect(moved.appPluginsDir).toBe(join(root, 'App_Plugins'))
   })
 
-  test('are each settable on their own', () => {
+  /**
+   * App_Plugins is gone (`docs/17-packages.md`): backoffice extensions are the
+   * site's npm dependencies, so there is no plugin directory to point anywhere.
+   */
+  test('there is no plugin directory setting any more', () => {
     const { root } = site({ 'Views/homePage.tsx': GOOD })
-    // Compared against an untouched config rather than a literal: the suite sets
-    // BUNBRACO_VIEWS_DIR, so the default here is not `Views`.
-    const plain = loadConfig({}, root)
-    const config = loadConfig({ appPluginsDir: join(root, 'plugins') }, root)
-    expect(config.appPluginsDir).toBe(join(root, 'plugins'))
-    expect(config.viewsDir).toBe(plain.viewsDir)
+    expect('appPluginsDir' in loadConfig({}, root)).toBe(false)
   })
 })
 

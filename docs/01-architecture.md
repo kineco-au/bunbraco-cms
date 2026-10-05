@@ -62,7 +62,7 @@ One Bun `serve()` with an ordered router:
 
 | Order | Prefix | Handled by |
 | --- | --- | --- |
-| 1 | `/umbraco/backoffice/*`, `/umbraco/login/*`, `/App_Plugins/*` | `backoffice-host` static |
+| 1 | `/umbraco/backoffice/*`, `/umbraco/login/*`, `/packages/*` | `backoffice-host` static |
 | 1 | `…/security/back-office/graphics/*` | `backoffice-host` (not in the contract) |
 | 2 | `/umbraco/management/api/v1/security/back-office/*` | `auth` (not in the contract) |
 | 2 | `/umbraco/management/api/v1/*` | `api-management` |

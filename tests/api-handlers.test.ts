@@ -2,7 +2,7 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { createManagementApiRouter, type Principal } from '@bunbraco/api-management'
-import { createBackOfficePaths } from '@bunbraco/backoffice-host'
+import { createBackOfficePaths, createExtensionRegistry } from '@bunbraco/backoffice-host'
 import { CORE_SECTION_ALIASES, ROOT_ACCESS } from '@bunbraco/core'
 import { CORE_SECTIONS, createDeps, loadConfig } from '@bunbraco/server'
 
@@ -10,7 +10,7 @@ const paths = createBackOfficePaths()
 const deps = createDeps({
   config: loadConfig(),
   paths,
-  appPluginsDir: join(import.meta.dir, '../apps/site/App_Plugins'),
+  extensions: createExtensionRegistry(join(import.meta.dir, '../apps/site')),
 })
 
 const PRINCIPAL: Principal = {

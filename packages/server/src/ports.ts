@@ -16,6 +16,7 @@ import {
   ASSISTANT_MANIFEST_ID,
   type BackOfficePaths,
   collectManifests,
+  type ExtensionRegistry,
   toResponseModels,
 } from '@bunbraco/backoffice-host'
 import {
@@ -47,6 +48,7 @@ import { createFileSystemPort } from './adapters/file-system.ts'
 import { createMediaPort } from './adapters/media.ts'
 import { createMemberGroupPort } from './adapters/member-groups.ts'
 import { createMemberPort } from './adapters/members.ts'
+import { createPackagePort } from './adapters/packages.ts'
 import { createPublicAccessPort } from './adapters/public-access.ts'
 import { createRedirectPort } from './adapters/redirects.ts'
 import { createReferencePort } from './adapters/references.ts'
@@ -104,13 +106,13 @@ function createServerPort(config: BunbracoConfig): ServerPort {
 
 function createManifestPort(
   paths: BackOfficePaths,
-  appPluginsDir: string,
+  extensions: ExtensionRegistry,
   omit: readonly string[],
 ): ManifestPort {
   return {
     list: (visibility) =>
       toResponseModels(
-        collectManifests(paths, appPluginsDir, { omit }).all,
+        collectManifests(paths, extensions.list(), { omit }).all,
         paths.cacheBustHash,
         visibility,
       ),
@@ -279,7 +281,8 @@ function schemaFiles(config: BunbracoConfig): SchemaFiles {
 export interface DepsOptions {
   config: BunbracoConfig
   paths: BackOfficePaths
-  appPluginsDir: string
+  /** The site's installed npm extensions, which contribute their manifests. */
+  extensions: ExtensionRegistry
   /** Omitted only by tests that exercise the contract without a database. */
   db?: Db
   /** Required alongside `db` to serve documents, which invalidate the cache. */
@@ -322,7 +325,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     // no drawer, no button and nothing to load.
     manifests: createManifestPort(
       options.paths,
-      options.appPluginsDir,
+      options.extensions,
       options.config.assistant ? [] : [ASSISTANT_MANIFEST_ID],
     ),
     localization: createLocalizationPort(
@@ -420,6 +423,16 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     deps.redirects = createRedirectPort(options.db, options.cache, {
       isTracking: options.config.trackRedirects,
       onChange: () => options.cache?.invalidate(),
+    })
+    deps.packages = createPackagePort(options.db, {
+      siteName: options.config.siteName,
+      nodeId: options.config.nodeId,
+      marketplaceUrl: options.config.marketplaceUrl,
+      templateFiles: createTemplateFileStore(options.config.viewsDir, options.onViewsChange),
+      mediaStore: mediaFiles.store,
+      partialViews: deps.partialViews,
+      stylesheets: deps.stylesheets,
+      scripts: deps.scripts,
     })
     if (options.cache) {
       const cache = options.cache

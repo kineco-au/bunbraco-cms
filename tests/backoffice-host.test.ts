@@ -258,11 +258,8 @@ describe('static serving', () => {
     expect(serve).toContain("startsWith('browser-site-')")
   })
 
-  test('serves App_Plugins when configured', () => {
-    const match = resolveStaticFile(paths, '/App_Plugins/my-pkg/index.js', {
-      appPluginsDir: '/plugins',
-    })
-    expect(match?.file).toBe('/plugins/my-pkg/index.js')
+  test('no longer serves App_Plugins, which is gone', () => {
+    expect(resolveStaticFile(paths, '/App_Plugins/my-pkg/index.js')).toBeUndefined()
   })
 
   test('refuses to traverse outside the vendored root', () => {

@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/server",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "The bunbraco HTTP server: routing, configuration, media stores and background jobs.",
   "license": "MIT",
   "author": "Kineco",

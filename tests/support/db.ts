@@ -107,6 +107,8 @@ export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
   // 021's column on `server`.
   await db.exec('ALTER TABLE server DROP COLUMN role')
   for (const table of [
+    // 022
+    'created_package',
     'content_transfer_change',
     'content_transfer_run',
     'assistant_change',

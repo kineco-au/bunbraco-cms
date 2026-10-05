@@ -9,7 +9,38 @@
  */
 
 /** Bumped when a change to the shapes below stops an older reader understanding a bundle. */
-export const BUNDLE_FORMAT_VERSION = 1
+export const BUNDLE_FORMAT_VERSION = 2
+
+/**
+ * The version a bundle carrying only content is still written as.
+ *
+ * A content-only bundle is byte-for-byte what version 1 was, so it keeps saying
+ * 1 and an older node can still read it. Only a bundle that carries a section
+ * beyond its content needs a reader that knows about `carries`, and that one
+ * says 2 — which an older node refuses with a message naming the upgrade,
+ * rather than failing an integrity check it cannot explain.
+ */
+export const CONTENT_ONLY_FORMAT_VERSION = 1
+
+/**
+ * The sections a bundle can carry beyond its content, and the directory each
+ * one occupies.
+ *
+ * Logical names, not the destination's directory names: a site may hold its
+ * templates anywhere (`viewsDir`), so the artifact names what a file *is* and
+ * the importer decides where it goes. A bundle written against one site's
+ * layout therefore installs into another's.
+ */
+export const BUNDLE_SECTIONS = {
+  schema: 'schema',
+  views: 'views',
+  partials: 'partials',
+  styles: 'styles',
+  scripts: 'scripts',
+  dictionary: 'dictionary',
+} as const
+
+export type BundleSection = keyof typeof BUNDLE_SECTIONS
 
 /**
  * The kinds that travel. `member` is deliberately absent: members are personal
@@ -112,6 +143,15 @@ export interface BundleSelector {
 export interface BundleManifest {
   formatVersion: number
   id: string
+  /**
+   * What a person calls this bundle — a created package's name, when that is
+   * where it came from.
+   *
+   * It travels with the artifact rather than being supplied at import time, so
+   * a downloaded bundle still knows what it is: two files are otherwise
+   * distinguishable only by filename, which is the first thing to be lost.
+   */
+  label?: string
   createdAt: string
   createdBy: string
   /** `sha256-…` over the node files, so a half-copied bundle is refused rather than imported. */
@@ -122,6 +162,16 @@ export interface BundleManifest {
   counts: Partial<Record<BundleKind, number>>
   dependencies: BundleDependencies
   blobs: BundleBlob[]
+  /**
+   * The files this bundle carries beyond its content and media, by section, in
+   * path order — the structure and the views that make a bundle installable
+   * into a site that has neither.
+   *
+   * A claim the reader checks, exactly as `blobs.included` is: every path named
+   * here has to be present, and the integrity hash covers it. Absent on a
+   * content-only bundle, which is what version 1 always was.
+   */
+  carries?: Partial<Record<BundleSection, string[]>>
 }
 
 /**

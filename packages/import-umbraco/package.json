@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/import-umbraco",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Imports an existing Umbraco site into bunbraco: a compatibility report, then schema files, a content bundle and view stubs.",
   "license": "MIT",
   "author": "Kineco",

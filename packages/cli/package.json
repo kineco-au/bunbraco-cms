@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/cli",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "The bunbraco command line: scaffolding a site, schema, views, domains, content transfer and upgrades.",
   "license": "MIT",
   "author": "Kineco",

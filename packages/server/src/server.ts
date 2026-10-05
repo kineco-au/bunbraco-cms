@@ -21,6 +21,7 @@ import {
 import {
   collectManifests,
   createBackOfficePaths,
+  createExtensionRegistry,
   isSpaRoute,
   renderBackOfficeShell,
   renderLoginShell,
@@ -61,9 +62,11 @@ import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
 import { syncDomainsFile } from './domains.ts'
 import { editorTypeLibs } from './editor-types.ts'
+import { warnAboutAppPlugins } from './extensions-notice.ts'
 import { ImageProcessor, parseImagingQuery } from './imaging.ts'
 import { type BackgroundJobs, createBackgroundJobs } from './jobs.ts'
 import { configureLogging, logger } from './logging.ts'
+import { createMarketplace } from './marketplace.ts'
 import { MediaFileStore } from './media-files.ts'
 import { mediaStoreFromEnvironment } from './media-store.ts'
 import { createMemberAuth, MEMBER_ROUTE_PREFIX } from './member-auth.ts'
@@ -152,7 +155,16 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   const renderLog = logger('render')
   const redirectLog = logger('redirects')
   const domainLog = logger('domains')
-  const APP_PLUGINS_DIR = config.appPluginsDir
+  // Extensions are the site's own npm dependencies (`docs/17-packages.md`).
+  // Uncached in development so an author editing one sees a reload pick it up.
+  const extensions = createExtensionRegistry(config.siteDir, { cache: !config.development })
+  const marketplace = createMarketplace({
+    registry: config.npmRegistry,
+    keyword: config.packageKeyword,
+    marketplaceUrl: config.marketplaceUrl,
+    extensions,
+    siteDir: config.siteDir,
+  })
   const paths = createBackOfficePaths({ backOfficePath: config.backOfficePath })
   // Two questions, not one: what this process answers, and what it is
   // responsible for converging at boot. `all` and `api` are both owners; only
@@ -345,7 +357,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       ...createDeps({
         config,
         paths,
-        appPluginsDir: APP_PLUGINS_DIR,
+        extensions,
         db,
         cache,
         schema,
@@ -436,6 +448,9 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     nodeId: schema.nodeId,
     role: config.role,
   })
+  // App_Plugins is gone (`docs/17-packages.md`). Saying so beats a site whose
+  // extensions silently stopped loading after an upgrade; remove at 1.0.
+  warnAboutAppPlugins(config.siteDir, log)
   const hubPath = SERVER_EVENT_HUB_PATH
   const previewHubPath = PREVIEW_HUB_PATH
 
@@ -618,6 +633,53 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       )
     }
 
+    /**
+     * Non-contract: the Packages section's marketplace, installed list and
+     * install. There is no operation in the contract for any of it — Umbraco's
+     * marketplace is an iframe — so this is ours, and it answers to the
+     * Packages section exactly as the operations beside it would.
+     */
+    if (pathname.startsWith(`${paths.pluginPath}/api/packages/`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'packages')) return new Response('Forbidden', { status: 403 })
+      const action = pathname.slice(`${paths.pluginPath}/api/packages/`.length)
+
+      if (action === 'marketplace' && request.method === 'GET') {
+        return Response.json({
+          url: marketplace.url(),
+          keyword: config.packageKeyword,
+          items: await marketplace.search(url.searchParams.get('q') ?? undefined),
+        })
+      }
+
+      if (action === 'installed' && request.method === 'GET') {
+        return Response.json({ items: marketplace.installed() })
+      }
+
+      if ((action === 'install' || action === 'uninstall') && request.method === 'POST') {
+        const body = (await request.json().catch(() => ({}))) as {
+          name?: unknown
+          version?: unknown
+        }
+        const name = typeof body.name === 'string' ? body.name : ''
+        const version = typeof body.version === 'string' ? body.version : undefined
+        const outcome =
+          action === 'install'
+            ? await marketplace.install(name, version)
+            : await marketplace.uninstall(name)
+        log.info('{user} {action} the package {name}: {outcome}', {
+          user: principal.email,
+          action: action === 'install' ? 'installed' : 'removed',
+          name,
+          outcome: outcome.ok ? 'ok' : outcome.message,
+        })
+        return Response.json(outcome, { status: outcome.ok ? 200 : 400 })
+      }
+
+      return new Response('Not Found', { status: 404 })
+    }
+
     // Non-contract: what the Changes dashboard and the read-only banner read.
     //
     // Two audiences, so two answers. `health` says this node has fallen behind
@@ -646,7 +708,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
 
     const staticMatch = resolveStaticFile(paths, pathname, {
-      appPluginsDir: APP_PLUGINS_DIR,
+      extensions: extensions.list(),
       immutable: config.immutableAssets ?? !config.development,
     })
     if (staticMatch) {
@@ -683,7 +745,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
 
     if (pathname === `${paths.backOfficePath}/login`) {
-      const { importmap } = collectManifests(paths, APP_PLUGINS_DIR)
+      const { importmap } = collectManifests(paths, extensions.list())
       return html(
         renderLoginShell(paths, importmap, {
           defaultUiLanguage: config.defaultUiLanguage,
@@ -703,7 +765,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
 
     if (isSpaRoute(paths.backOfficePath, pathname)) {
-      const { importmap } = collectManifests(paths, APP_PLUGINS_DIR)
+      const { importmap } = collectManifests(paths, extensions.list())
       return html(
         renderBackOfficeShell(paths, importmap, {
           defaultUiLanguage: config.defaultUiLanguage,

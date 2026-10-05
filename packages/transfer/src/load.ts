@@ -10,19 +10,27 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   BUNDLE_FORMAT_VERSION,
+  BUNDLE_SECTIONS,
   type BundleKind,
   type BundleManifest,
   type BundleNode,
   type BundleProblem,
+  type BundleSection,
   type BundleValue,
   type BundleVariant,
   type ContentSet,
 } from './model.ts'
-import { blobPath, bundleIntegrity, MANIFEST_FILE, nodePath } from './write.ts'
+import { blobPath, bundleIntegrity, MANIFEST_FILE, nodePath, sectionOf } from './write.ts'
 
 export interface LoadedBundle {
   set: ContentSet | undefined
   problems: BundleProblem[]
+  /**
+   * The carried section files, by their path inside the bundle, as paths on
+   * disk — the structure and views an install applies. Empty for a
+   * content-only bundle, which is every version 1 bundle.
+   */
+  files: Map<string, string>
   /**
    * The media files the bundle carries, by store key, as paths on disk.
    *
@@ -177,6 +185,7 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
   return {
     formatVersion,
     id: str(raw.id) ?? '',
+    ...(str(raw.label) ? { label: str(raw.label) as string } : {}),
     createdAt: str(raw.createdAt) ?? '',
     createdBy: str(raw.createdBy) ?? '',
     integrity: str(raw.integrity) ?? '',
@@ -236,31 +245,55 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
             : [],
         )
       : [],
+    ...(isRecord(raw.carries) ? { carries: parseCarries(raw.carries) } : {}),
   }
+}
+
+/**
+ * The declared sections, dropping any name this version does not know and any
+ * path that tries to climb out of the bundle — a manifest is a file that
+ * travelled, so what it names is read, never trusted.
+ */
+function parseCarries(raw: Record<string, unknown>): Partial<Record<BundleSection, string[]>> {
+  const out: Partial<Record<BundleSection, string[]>> = {}
+  for (const section of Object.keys(BUNDLE_SECTIONS) as BundleSection[]) {
+    const paths = raw[section]
+    if (!Array.isArray(paths)) continue
+    const safe = paths.flatMap((path) =>
+      typeof path === 'string' && sectionOf(path) === section && !path.split('/').includes('..')
+        ? [path]
+        : [],
+    )
+    if (safe.length > 0) out[section] = safe.sort()
+  }
+  return out
 }
 
 /** Reads a bundle directory. `set` is undefined when it cannot be trusted at all. */
 export function loadBundle(dir: string): LoadedBundle {
   const problems: BundleProblem[] = []
   const blobs = new Map<string, string>()
+  const files = new Map<string, string>()
   const manifestFile = join(dir, MANIFEST_FILE)
   if (!existsSync(manifestFile)) {
     problems.push({ file: MANIFEST_FILE, message: `no bundle at ${dir}` })
-    return { set: undefined, problems, blobs }
+    return { set: undefined, problems, blobs, files }
   }
   const manifest = parseManifest(readFileSync(manifestFile, 'utf8'), problems)
-  if (!manifest) return { set: undefined, problems, blobs }
+  if (!manifest) return { set: undefined, problems, blobs, files }
 
   const nodesDir = join(dir, 'nodes')
-  const files = existsSync(nodesDir)
+  const nodeFiles = existsSync(nodesDir)
     ? readdirSync(nodesDir)
         .filter((name) => name.endsWith('.json'))
         .sort()
     : []
-  const read: Array<{ path: string; text?: string; bytes?: Uint8Array }> = files.map((name) => ({
-    path: `nodes/${name}`,
-    text: readFileSync(join(nodesDir, name), 'utf8'),
-  }))
+  const read: Array<{ path: string; text?: string; bytes?: Uint8Array }> = nodeFiles.map(
+    (name) => ({
+      path: `nodes/${name}`,
+      text: readFileSync(join(nodesDir, name), 'utf8'),
+    }),
+  )
 
   // A blob the manifest says it carries has to be here, and has to be the file
   // the hash was taken over: `included` is a claim, and this is what checks it.
@@ -279,6 +312,23 @@ export function loadBundle(dir: string): LoadedBundle {
     read.push({ path, bytes: new Uint8Array(readFileSync(file)) })
   }
 
+  // Every file the manifest says it carries has to be here, and has to be the
+  // file the hash was taken over — the same rule as a blob's `included`.
+  for (const [, paths] of Object.entries(manifest.carries ?? {})) {
+    for (const path of paths as string[]) {
+      const file = join(dir, path)
+      if (!existsSync(file)) {
+        problems.push({
+          file: path,
+          message: 'the manifest says this file is carried, and it is not',
+        })
+        continue
+      }
+      files.set(path, file)
+      read.push({ path, text: readFileSync(file, 'utf8') })
+    }
+  }
+
   // Before shape: a truncated copy produces confusing field errors otherwise.
   const integrity = bundleIntegrity(read)
   if (manifest.integrity && manifest.integrity !== integrity)
@@ -288,7 +338,9 @@ export function loadBundle(dir: string): LoadedBundle {
     })
 
   const nodes = read.flatMap((file) => {
-    if (file.text === undefined) return []
+    // Only `nodes/` holds nodes. Blobs have no text, and a carried section is a
+    // TOML or TSX file that has no business being parsed as one.
+    if (file.text === undefined || !file.path.startsWith('nodes/')) return []
     const node = parseNode(file.text, file.path, problems)
     if (node && nodePath(node.key) !== file.path)
       problems.push({
@@ -304,5 +356,5 @@ export function loadBundle(dir: string): LoadedBundle {
     seen.add(node.key)
   }
 
-  return { set: { manifest, nodes }, problems, blobs }
+  return { set: { manifest, nodes }, problems, blobs, files }
 }

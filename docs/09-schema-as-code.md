@@ -40,7 +40,7 @@ and where it sits here:
 | Languages | DB: `umbracoLanguage` | **Files** `schema/languages.toml` | 5b |
 | Dictionary | DB: `cmsDictionary`, `cmsLanguageText` | DB | translators work in production, where files are read-only; `bunbraco dictionary export/import` seeds environments — built, `13-content-transfer.md` |
 | Domains and hostnames | DB: `umbracoDomain`, per node | DB | environment-specific — dev and prod differ — so not part of the deploy unit |
-| Backoffice UI strings | Files: the client\'s `assets/lang/*.js`; sites add theirs via `App_Plugins` | Files | client-side only |
+| Backoffice UI strings | Files: the client\'s `assets/lang/*.js`; sites add theirs in an npm extension | Files | client-side only |
 
 ### Security and identity
 
@@ -63,7 +63,7 @@ and where it sits here:
 | Relation types | DB: `umbracoRelationType` | **Files** `schema/relation-types.toml` | |
 | Relations, tags, redirect URLs | DB | DB | generated from content |
 | Webhooks | DB: `umbracoWebhook` plus events, headers, content-type keys | **Files** `schema/webhooks/` | integration is deploy-bound; edited through write-back |
-| Package manifests and extensions | Files: `App_Plugins/*/umbraco-package.json` | Files | already how they are discovered |
+| Package manifests and extensions | Files: a `bunbraco` field in each dependency's `package.json` | Files | already how they are discovered |
 | Created packages | Both: `umbracoCreatedPackageSchema` and an exported zip | DB, exporting to a file | out of scope |
 | Log viewer saved searches | DB: `umbracoLogViewerQuery` | DB | user-created |
 | Health check, imaging, request-handler and content settings | Files: `appsettings.json` | Files `bunbraco.config.ts` | |

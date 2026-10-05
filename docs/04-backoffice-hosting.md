@@ -207,7 +207,7 @@ verifies the invitation and sets the first password
 | `/umbraco/backoffice/<hash>/*` | `packages/backoffice-dist/dist/*` — the `<hash>` segment is stripped |
 | `/umbraco/backoffice/*` | `packages/backoffice-dist/dist/*` |
 | `/umbraco/login/*` | `vendor/login/*` |
-| `/App_Plugins/*` | `apps/site/App_Plugins/*`, `?umb__rnd=` ignored |
+| `/packages/<name>/*` | the installed npm extension's own directory, resolved from the site's `node_modules` ([`17-packages.md`](17-packages.md)) |
 
 `<hash>` is a cache-buster Umbraco derives from the version
 (`UmbracoBackOfficePathGenerator.BackOfficeCacheBustHash`, SHA1 of version +
@@ -262,8 +262,9 @@ Merged from every discovered `umbraco-package.json`:
 1. `packages/backoffice-dist/dist/umbraco-package.json` — the core manifest, ~143 entries
    generated from the client's `package.json` `exports`
    (`@umbraco-cms/backoffice/auth` → `/umbraco/backoffice/packages/core/auth/index.js`)
-2. `apps/site/App_Plugins/*/umbraco-package.json` — one level deep, exactly as
-   `PackageManifestReader.GetAllPackageManifestFiles` scans
+2. each installed npm extension's `bunbraco` field, from the site's own
+   dependencies ([`17-packages.md`](17-packages.md)); asset paths are rewritten
+   to `/packages/<name>/…`
 
 Then `/umbraco/backoffice` is textually replaced with
 `/umbraco/backoffice/<hash>`, mirroring `HtmlHelperBackOfficeExtensions`.
