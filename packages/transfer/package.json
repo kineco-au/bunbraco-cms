@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/transfer",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Content transfer for bunbraco: bundles of content moved between environments.",
   "license": "MIT",
   "author": "Kineco",

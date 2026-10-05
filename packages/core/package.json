@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/core",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Domain model, entity keys and shared contracts for bunbraco. No I/O.",
   "license": "MIT",
   "author": "Kineco",

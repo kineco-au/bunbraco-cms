@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/data",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "SQLite and Postgres storage for bunbraco: schema, migrations and repositories.",
   "license": "MIT",
   "author": "Kineco",

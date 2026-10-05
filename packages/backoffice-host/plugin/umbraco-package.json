@@ -2,7 +2,7 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Bunbraco",
   "id": "Bunbraco.Core",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "allowPublicAccess": false,
   "extensions": [
     {
