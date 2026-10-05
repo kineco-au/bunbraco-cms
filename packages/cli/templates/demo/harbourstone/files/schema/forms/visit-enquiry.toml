@@ -1,0 +1,139 @@
+# A form is structure, so it is a file like the document types beside it and a
+# change to it shows up in a diff (`docs/18-forms.md`). The Contact page points
+# at this one through its `enquiryForm` property, and `Views/contentPage.tsx`
+# renders it with `<Form>`.
+#
+# Submissions land in the Forms section under Entries. `phone` is marked
+# sensitive, so it is redacted for anyone without the sensitive-data permission
+# — in the API response and in the CSV export, not merely in the screen.
+[form]
+key = "7b1f4c20-9a63-4e18-8d25-3c6f5a1e9b04"
+alias = "visitEnquiry"
+name = "Plan a visit"
+store-entries = true
+requires-approval = false
+submit-label = "Send enquiry"
+message-on-submit = "Thank you — we will come back to you within two working days."
+# A field no visitor ever fills, and a floor on how fast the form can come back:
+# between them they stop the bulk of automated submissions without a captcha.
+honeypot = true
+minimum-submit-seconds = 3
+
+[[page]]
+caption = "Your visit"
+
+  [[page.group]]
+  caption = "What you would like to do"
+  columns = 1
+
+    [[page.group.field]]
+    key = "7b1f4c20-0001-4e18-8d25-3c6f5a1e9b04"
+    alias = "visitType"
+    type = "singleChoice"
+    caption = "What are you after?"
+    mandatory = true
+    mandatory-message = "Let us know which of these you want"
+    values = ["Distillery tour", "Tasting flight", "Trade visit"]
+
+    [[page.group.field]]
+    key = "7b1f4c20-0002-4e18-8d25-3c6f5a1e9b04"
+    alias = "company"
+    type = "shortAnswer"
+    caption = "Company"
+    help-text = "Who you buy for, and where"
+    mandatory = true
+    mandatory-message = "We need the company name for a trade visit"
+
+      # A condition may only look backwards, at a field already answered above —
+      # so this one names `visitType` and not something further down the form.
+      # It is evaluated on the server as well as in the browser, and the
+      # server's answer is the one that counts: a mandatory field the condition
+      # hides is not demanded, and a hidden field's value is discarded.
+      [page.group.field.condition]
+      action = "show"
+      match = "all"
+      rule = [{ field = "visitType", operator = "is", value = "Trade visit" }]
+
+    [[page.group.field]]
+    key = "7b1f4c20-0003-4e18-8d25-3c6f5a1e9b04"
+    alias = "preferredDate"
+    type = "date"
+    caption = "Preferred date"
+    help-text = "We run tours Thursday to Sunday"
+    mandatory = true
+
+    [[page.group.field]]
+    key = "7b1f4c20-0004-4e18-8d25-3c6f5a1e9b04"
+    alias = "partySize"
+    type = "number"
+    caption = "How many of you?"
+    mandatory = true
+    min = 1
+    max = 12
+    step = 1
+
+  [[page.group]]
+  caption = "How to reach you"
+  columns = 2
+
+    [[page.group.field]]
+    key = "7b1f4c20-0005-4e18-8d25-3c6f5a1e9b04"
+    alias = "visitorName"
+    type = "shortAnswer"
+    caption = "Your name"
+    mandatory = true
+    autocomplete = "name"
+
+    [[page.group.field]]
+    key = "7b1f4c20-0006-4e18-8d25-3c6f5a1e9b04"
+    alias = "visitorEmail"
+    type = "email"
+    caption = "Email address"
+    mandatory = true
+    mandatory-message = "We need an email address to reply to"
+    autocomplete = "email"
+
+    [[page.group.field]]
+    key = "7b1f4c20-0007-4e18-8d25-3c6f5a1e9b04"
+    alias = "phone"
+    type = "shortAnswer"
+    caption = "Phone number"
+    help-text = "Only if you would rather we rang"
+    sensitive = true
+    autocomplete = "tel"
+
+  [[page.group]]
+  caption = "Anything else"
+  columns = 1
+
+    [[page.group.field]]
+    key = "7b1f4c20-0008-4e18-8d25-3c6f5a1e9b04"
+    alias = "message"
+    type = "longAnswer"
+    caption = "Tell us a little more"
+    placeholder = "Dietary requirements, accessibility, a cask you want to ask about…"
+    rows = 4
+
+    [[page.group.field]]
+    key = "7b1f4c20-0009-4e18-8d25-3c6f5a1e9b04"
+    alias = "consent"
+    type = "dataConsent"
+    caption = "I am happy for Harbourstone to hold these details in order to answer my enquiry."
+    mandatory = true
+    mandatory-message = "We cannot store your enquiry without this"
+
+# Telling somebody about a submission takes an e-mail provider, which this
+# template does not configure — see `docs/14-configuration.md`. With
+# BUNBRACO_EMAIL_* set, uncomment this and the enquiry is mailed on submit; the
+# queue retries, so a provider that is briefly down loses nothing.
+#
+# [[workflow]]
+# key = "7b1f4c20-0010-4e18-8d25-3c6f5a1e9b04"
+# type = "sendEmail"
+# name = "Tell the visitor centre"
+# on = "submit"
+#
+#   [workflow.settings]
+#   to = "visits@harbourstone.example"
+#   reply-to = "{visitorEmail}"
+#   subject = "Visit enquiry: {visitType}"

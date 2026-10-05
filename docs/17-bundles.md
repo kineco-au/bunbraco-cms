@@ -517,7 +517,7 @@ repeat install is not a silent no-op the way re-importing unchanged content is.
 | The two native views | `backoffice-host/plugin/bundles-marketplace.js`, `bundles-installed.js` |
 | The App_Plugins notice | `server/src/extensions-notice.ts` |
 | Server-side bundles | `server/src/bundles.ts`, wired in `server.ts`, `bundles` in `config.ts` |
-| The redirects bundle | `packages/bundle-redirects` — `src/index.ts` and `plugin/` |
+| The redirects bundle | `packages/simple-redirects` — `src/index.ts` and `plugin/` |
 
 Adding the migration needed `bun run release:version 0.5.0` first: `v0.4.0` was
 tagged and `tests/migrations.test.ts` asserts `release <= VERSION`, so a
@@ -573,7 +573,7 @@ the namespace is refused, a bad set fails the boot naming every problem at once,
 handler runs, a handler sees only the capabilities it declared in a frozen
 object, and a throwing handler is a 500 that leaves the other bundles answering.
 
-`tests/bundle-redirects.test.ts` covers the redirects bundle end to end against a
+`tests/simple-redirects.test.ts` covers the redirects bundle end to end against a
 real site, because the only assertion that proves the client, the routes, the
 capability and core's matcher agree is that a rule typed through the API makes a
 visitor get a 301. It also holds the confinement: a configured rule and a tracked
@@ -593,7 +593,7 @@ a site's views cache has to resolve `bunbraco/jsx-runtime` by walking up to a
 Part 2 said a bundle that needs to run in the server process is "a dependency
 plus a deploy" and left it there. This is that, made into something a bundle can
 be written against: `bundles.ts` in `packages/server`, and
-`@bunbraco/bundle-redirects` as the first one.
+`@bunbraco/simple-redirects` as the first one.
 
 ## The objection, and what actually answers it
 
@@ -607,7 +607,7 @@ What answers it is that **nothing here is discovered**. There is no
 only because a site wrote this:
 
 ```ts
-import { redirects } from '@bunbraco/bundle-redirects'
+import { redirects } from '@bunbraco/simple-redirects'
 
 export default defineConfig({
   bundles: [redirects()],
@@ -666,6 +666,35 @@ export interface ServerBundle {
 - **Nothing on a `web` node.** These are backoffice endpoints, so they mount only
   where `servesBackOffice`.
 
+### What a handler knows about the caller
+
+`context.principal` is the authenticated backoffice user, already holding the
+section the bundle declared. Everything a finer check needs is on it:
+
+| Field | What it is |
+| --- | --- |
+| `id`, `email`, `userName`, `name` | who they are |
+| `isAdmin` | the administrator group, which bypasses verb checks everywhere else |
+| `allowedSections` | section aliases, bare or `Umb.Section.*` depending on where they were read |
+| `permissions` | verbs granted globally by their groups |
+| `groupKeys`, `groups` | their groups, and each group's verbs for a per-node check |
+| `startNodes` | where they may work in the document, media and element trees |
+| `languages`, `hasAccessToAllLanguages` | the content languages they may write |
+
+`@bunbraco/server` re-exports `Principal`, `AppAlias`, `hasSection` and
+`hasCultureAccess`, so a bundle needs that one dependency rather than reaching
+into `@bunbraco/api-management` for them:
+
+```ts
+import { hasSection, type Principal } from '@bunbraco/server'
+
+const mayPublish = (principal: Principal) =>
+  principal.isAdmin || principal.permissions.includes('Umb.Document.Publish')
+```
+
+Use `hasSection` rather than comparing the strings: `allowedSections` arrives in
+either spelling, and it normalises both.
+
 ### Deliberately not offered
 
 Migrations, raw SQL, and writing the site's files. A bundle that needs a table of
@@ -677,9 +706,9 @@ A capability is therefore the unit of negotiation. Adding one is a deliberate ac
 in core — which is the point, because it is also the moment somebody decides what
 a third party may touch.
 
-## The first bundle: redirects
+## The first bundle: Simple Redirects
 
-`@bunbraco/bundle-redirects` adds what the Umbraco redirect packages add over
+`@bunbraco/simple-redirects` adds what the Umbraco redirect packages add over
 Umbraco's own Redirect URL Management dashboard: an administrator **creating and
 editing** a rule, rather than only listing and deleting the ones a rename
 recorded.
@@ -736,6 +765,69 @@ compiled when it is saved. The matcher runs it against the path of every request
 that resolved to nothing, so a pattern that throws there would 500 the public
 site rather than the screen that stored it.
 
+### The screen's own view of the user
+
+The client half is an ordinary backoffice extension, so it uses the client's own
+mechanisms — there is nothing bundle-specific here.
+
+**Declaratively**, through `conditions` on the manifest. The extension is simply
+not registered when the condition fails, which is better than a screen that
+renders and then refuses:
+
+| Condition | Gates on |
+| --- | --- |
+| `Umb.Condition.SectionUserPermission` | access to a section (`match` is the section alias) |
+| `Umb.Condition.CurrentUser.IsAdmin` | the administrator group |
+| `Umb.Condition.CurrentUser.GroupId` | membership of a named group |
+
+**Imperatively**, by consuming `UMB_CURRENT_USER_CONTEXT` from
+`@umbraco-cms/backoffice/current-user`. Its members are observables —
+`isAdmin`, `allowedSections`, `permissions`, `fallbackPermissions`,
+`hasAccessToSensitiveData`, `languages`, `hasAccessToAllLanguages`, the start
+nodes — read the way `UmbLitElement` reads any context:
+
+```js
+import { UMB_CURRENT_USER_CONTEXT } from '@umbraco-cms/backoffice/current-user'
+
+this.consumeContext(UMB_CURRENT_USER_CONTEXT, (context) => {
+  this.observe(context?.isAdmin, (isAdmin) => {
+    this._mayEdit = isAdmin === true
+  })
+})
+```
+
+**None of this is a security boundary.** A client-side check decides what to
+draw; the server decides what happens. Every bundle route is gated by the host
+before dispatch, and a bundle that shows a button to the wrong person has a
+cosmetic bug, not a hole.
+
+### Calling an endpoint with the caller's identity
+
+Authentication here is an **httpOnly cookie**, not a bearer token a script can
+read — `UmbAuthContext.getLatestToken()` returns `[redacted]` under cookie auth,
+by its own documentation. So a bundle's client calls its own endpoints as a
+same-origin request and lets the browser carry the session:
+
+```js
+const response = await fetch(`${base()}/rules`, {
+  credentials: 'include',
+  headers: { accept: 'application/json' },
+})
+```
+
+`base()` is read from `<base href>` rather than hard-coded, because the
+backoffice path is configurable (`BUNBRACO_BACKOFFICE_PATH`) and the plugin path
+moves with it — see `plugin/redirects-client.js`.
+
+The identity needs no passing: the cookie is the session, the server resolves it
+to a `Principal`, and the same `Principal` is what reaches the handler. There is
+no way for a client to claim a different one.
+
+For the **Management API**, prefer a vendored repository — `UmbPackageRepository`
+is how `plugin/bundles-created-overview.js` reads created bundles — because it
+carries the auth and the contract types with it. A direct `fetch` works on the
+same `credentials: 'include'` footing.
+
 ### How it is published
 
 It ships in the same release as everything else, at the same version, through
@@ -751,6 +843,21 @@ Two things it needs that an ordinary package does not:
 - **A place in `OPT_IN`.** The packaging suite otherwise requires every published
   package to be a dependency of `bunbraco`, and a bundle is by definition
   something a site chooses.
+
+### A template may wire one
+
+`bunbraco init --template demo/harbourstone` scaffolds a site with this bundle
+already wired, because `template.json` says so:
+
+```json
+"bundles": [{ "package": "@bunbraco/simple-redirects", "import": "redirects" }]
+```
+
+`init` then writes the dependency into the site's `package.json` **and** the
+import and `bundles: [redirects()]` into its `bunbraco.config.ts`. That is the
+same opt-in, not a way around it: the line lands in the site's own committed
+file, where it is visible in the first diff and removable by deleting it. A
+template cannot wire a bundle into a site without the site's code saying so.
 
 ## Out of scope
 

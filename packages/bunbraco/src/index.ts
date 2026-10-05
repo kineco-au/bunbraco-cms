@@ -60,12 +60,13 @@ export type {
 export { Form, formAction, redirect } from '@bunbraco/render'
 export type { Child } from '@bunbraco/render/jsx-runtime'
 export {
+  // What a bundle's server half is written against; see `docs/17-bundles.md`.
+  type AppAlias,
   type AzureMediaStoreOptions,
   type AzureSchemaStoreOptions,
   azureMediaStore,
   azureSchemaStore,
   type BunbracoConfig,
-  // What a bundle's server half is written against; see `docs/17-bundles.md`.
   type BundleCapability,
   type BundleDocuments,
   type BundleHost,
@@ -90,6 +91,7 @@ export {
   type MediaStore,
   mediaStoreFor,
   type PostmarkOptions,
+  type Principal,
   postmarkEmail,
   type ResendOptions,
   resendEmail,

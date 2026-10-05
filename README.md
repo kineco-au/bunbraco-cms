@@ -273,10 +273,19 @@ says why and does not start, rather than serving a site missing the content you
 asked for.
 
 The demo is a fictitious coastal distillery: a range with tasting-note elements, a
-journal, media with crops, and a list view. Its content is regenerated, never
-hand-edited, by `bun run build:template` — which builds a throwaway site from the
-template's own schema files, creates the content through the repositories and
-exports it, so the committed bundle is a real export.
+journal, media with crops, a list view, and a visit-enquiry form on the Contact
+page — a form definition in `schema/forms/`, rendered by `<Form>`, with its
+submissions in the Forms section. Its content is regenerated, never hand-edited,
+by `bun run build:template` — which builds a throwaway site from the template's
+own schema files, creates the content through the repositories and exports it, so
+the committed bundle is a real export, and a rebuild of an unchanged template
+produces an identical one.
+
+A template may also wire a bundle's server half, which the demo does for
+redirects: `template.json` names the package and the factory, and `init` writes
+both the dependency and the `bundles: [redirects()]` line into the site's own
+`bunbraco.config.ts` — visible, and removable, from the first commit
+([`docs/17-bundles.md`](docs/17-bundles.md)).
 
 ### Bring an existing Umbraco site
 
@@ -433,7 +442,7 @@ bunbraco/
 │   ├── transfer/                  # content transfer: the bundle format, canonical writer, reader, exporter
 │   ├── import-umbraco/            # opt-in: an Umbraco backup → a compatibility report, schema files,
 │   │                              #    a content bundle and view stubs; reads a .bacpac without .NET
-│   ├── bundle-redirects/          # opt-in bundle: manage redirects in Settings; the reference example
+│   ├── simple-redirects/          # opt-in bundle: manage redirects in Settings; the reference example
 │   │                              #    of a bundle with a server half (docs/17-bundles.md)
 │   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed
 │   └── render/                    # the JSX→HTML runtime behind TSX templates, published cache (one view per culture),

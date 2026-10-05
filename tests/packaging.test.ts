@@ -22,10 +22,29 @@ const REPOSITORY = 'git+https://github.com/kineco-au/bunbraco-cms.git'
 const packages = publishablePackages()
 
 /** Published, but installed only by a site that wants it. */
-const OPT_IN = new Set(['@bunbraco/import-umbraco', '@bunbraco/bundle-redirects'])
+const OPT_IN = new Set(['@bunbraco/import-umbraco', '@bunbraco/simple-redirects'])
 
 /** Published bundles, which npm has to be able to find by keyword. */
-const BUNDLES = new Set(['@bunbraco/bundle-redirects'])
+const BUNDLES = new Set(['@bunbraco/simple-redirects'])
+
+/** A sibling package in an import or export specifier, subpath and all. */
+const SIBLING_IMPORT = /from '(@bunbraco\/[^']+)'/g
+
+/** The TypeScript a package ships, skipping generated output and vendored dist. */
+function sourceFiles(dir: string): string[] {
+  const out: string[] = []
+  const walk = (current: string) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === 'generated' || entry.name === 'dist')
+        continue
+      const path = join(current, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) out.push(path)
+    }
+  }
+  walk(dir)
+  return out
+}
 
 /** Every path an `exports` entry can point at, flattened. */
 function entryPoints(pkg: (typeof packages)[number]): string[] {
@@ -43,7 +62,6 @@ describe('the published package set', () => {
       '@bunbraco/auth',
       '@bunbraco/backoffice-dist',
       '@bunbraco/backoffice-host',
-      '@bunbraco/bundle-redirects',
       '@bunbraco/cli',
       '@bunbraco/contracts',
       '@bunbraco/core',
@@ -52,6 +70,7 @@ describe('the published package set', () => {
       '@bunbraco/render',
       '@bunbraco/schema',
       '@bunbraco/server',
+      '@bunbraco/simple-redirects',
       '@bunbraco/transfer',
       'bunbraco',
     ])
@@ -175,6 +194,24 @@ describe('each published manifest', () => {
         for (const [name, range] of Object.entries(pkg.manifest.dependencies ?? {}))
           if (name.startsWith('@bunbraco/')) expect(range).toBe('workspace:*')
       })
+
+      test('declares every sibling its source imports', () => {
+        // An undeclared sibling still resolves here, and usually resolves for a
+        // consumer too, because a hoisted `node_modules` happens to carry it.
+        // That is luck, not a dependency: a stricter installer, or a release
+        // that stops depending on the sibling for its own reasons, breaks the
+        // package with nothing in its manifest to explain why.
+        const declared = new Set(Object.keys(pkg.manifest.dependencies ?? {}))
+        const imported = new Set<string>()
+        for (const file of sourceFiles(pkg.dir))
+          for (const match of readFileSync(file, 'utf8').matchAll(SIBLING_IMPORT)) {
+            const [scope, name] = (match[1] as string).split('/')
+            imported.add(`${scope}/${name}`)
+          }
+        for (const name of imported)
+          if (name !== pkg.name)
+            expect([...declared], `${pkg.name} imports ${name}`).toContain(name)
+      })
     })
   }
 })
@@ -217,7 +254,9 @@ describe('the release workflow', () => {
   })
 
   test('triggers only on a v tag, never a branch', () => {
-    expect(workflow).toContain("tags: ['v*']")
+    // Matched loosely on purpose: what matters is the trigger, not whether the
+    // file was last formatted with single or double quotes.
+    expect(workflow).toMatch(/tags:\s*\[\s*['"]v\*['"]\s*\]/)
     expect(workflow).not.toMatch(/^\s+branches:/m)
   })
 

@@ -121,19 +121,19 @@ resolved when the request arrives, so the redirect follows the page when someone
 later renames or moves it, and stops matching if the page is unpublished rather
 than sending visitors to a dead URL.
 
-**Redirects in the backoffice.** `@bunbraco/bundle-redirects` adds a Redirects
+**Redirects in the backoffice.** `@bunbraco/simple-redirects` adds a Redirects
 screen under Settings → Advanced, which is what the third-party Umbraco redirect
 packages add over Umbraco's own dashboard: creating and editing a rule, not only
 listing and deleting the ones a rename recorded. It offers everything the matcher
 supports, and the rules it writes sit between the two above in precedence —
 configured rules first, then these, then tracked ones.
 
-It is opt-in twice over. `bun add @bunbraco/bundle-redirects` puts the screen in
+It is opt-in twice over. `bun add @bunbraco/simple-redirects` puts the screen in
 the backoffice, and the endpoints behind it answer only once the site imports the
 bundle's server half:
 
 ```ts
-import { redirects } from '@bunbraco/bundle-redirects'
+import { redirects } from '@bunbraco/simple-redirects'
 
 export default defineConfig({
   bundles: [redirects()],

@@ -21,6 +21,8 @@
   "include": [
     "packages/*/src/**/*",
     "packages/*/bin/**/*",
+    "packages/cli/templates/*/files/Views/**/*",
+    "packages/cli/templates/*/*/files/Views/**/*",
     "apps/*/**/*",
     "scripts/**/*",
     "tests/**/*"

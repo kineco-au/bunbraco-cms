@@ -33,7 +33,7 @@
  * CMS, because a migration that arrives with a dependency is a schema no
  * `migration_history` can account for.
  */
-import { hasSection, type Principal } from '@bunbraco/api-management'
+import { hasCultureAccess, hasSection, type Principal } from '@bunbraco/api-management'
 import type { AppAlias } from '@bunbraco/core'
 import {
   type Db,
@@ -131,6 +131,25 @@ export interface BundleHost {
 }
 
 export type BundleCapability = keyof BundleHost
+
+/**
+ * Re-exported so a bundle needs one dependency rather than three. `principal`
+ * arrives on every `BundleRequest`, and a bundle that lifts a check out into a
+ * helper has to be able to name its type; `AppAlias` is what `section` takes.
+ */
+export type { AppAlias, Principal }
+
+/**
+ * The two checks a bundle is likely to want beyond the section the host has
+ * already enforced. `hasSection` normalises the alias, which matters because
+ * `allowedSections` arrives either bare or `Umb.Section.*` depending on where it
+ * was read — comparing the strings by hand is the mistake this avoids.
+ *
+ * Anything finer — a permission verb, a start node, a per-node check — is read
+ * off `principal` directly: `isAdmin`, `permissions`, `groupKeys`, `groups`,
+ * `startNodes`, `languages`.
+ */
+export { hasCultureAccess, hasSection }
 
 /** Every capability name, for validating what a bundle asked for. */
 export const BUNDLE_CAPABILITIES: readonly BundleCapability[] = ['redirects', 'documents', 'log']

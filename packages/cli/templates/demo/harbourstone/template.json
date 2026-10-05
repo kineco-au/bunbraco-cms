@@ -1,4 +1,10 @@
 {
   "name": "Harbourstone Distillery",
-  "description": "a coastal distillery: a range with tasting-note elements, a journal, images and a stylesheet"
+  "description": "a coastal distillery: a range with tasting-note elements, a journal, a visit-enquiry form, images and a stylesheet",
+  "bundles": [
+    {
+      "package": "@bunbraco/simple-redirects",
+      "import": "redirects"
+    }
+  ]
 }

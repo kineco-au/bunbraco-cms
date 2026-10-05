@@ -37,6 +37,7 @@
     "@bunbraco/data": "workspace:*",
     "@bunbraco/render": "workspace:*",
     "@bunbraco/schema": "workspace:*",
+    "@bunbraco/transfer": "workspace:*",
     "@logtape/logtape": "^2.3.8"
   }
 }

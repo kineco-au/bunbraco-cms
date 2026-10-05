@@ -9,67 +9,67 @@ name: Release
 # with the tagged commit's message — so a release reads as whatever the last commit
 # happened to say, and two releases are told apart only by date. The tag is the one
 # thing a release is actually about, so it goes in the title.
-run-name: Release ${{ github.ref_name }}
+run-name: release ${{ github.ref_name }}
 
 on:
-  push:
-    tags: ['v*']
+    push:
+        tags: ["v*"]
 
 concurrency:
-  group: release-${{ github.ref }}
+    group: release-${{ github.ref }}
 
 env:
-  BUN_VERSION: '1.4.2'
+    BUN_VERSION: "1.4.2"
 
 jobs:
-  ci:
-    uses: ./.github/workflows/ci.yml
-    # A release always runs the browser suite, whatever the tagged commit says.
-    with:
-      browser_tests: true
-
-  publish:
-    needs: ci
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      # Signs npm provenance from this workflow's identity.
-      id-token: write
-    steps:
-      - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
+    ci:
+        uses: ./.github/workflows/ci.yml
+        # A release always runs the browser suite, whatever the tagged commit says.
         with:
-          bun-version: ${{ env.BUN_VERSION }}
-      # For the npm CLI, which uploads the tarballs Bun packs, and the .npmrc it
-      # authenticates with.
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
+            browser_tests: true
 
-      - run: bun install --frozen-lockfile
+    publish:
+        needs: ci
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            # Signs npm provenance from this workflow's identity.
+            id-token: write
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            # For the npm CLI, which uploads the tarballs Bun packs, and the .npmrc it
+            # authenticates with.
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+                  registry-url: https://registry.npmjs.org
 
-      - name: Check the tag matches the package version
-        run: |
-          version="$(bun --print 'require("./packages/bunbraco/package.json").version')"
-          tag="${GITHUB_REF_NAME#v}"
-          if [ "$version" != "$tag" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match bunbraco@$version" >&2
-            exit 1
-          fi
+            - run: bun install --frozen-lockfile
 
-      - run: bun run generate:types
+            - name: Check the tag matches the package version
+              run: |
+                  version="$(bun --print 'require("./packages/bunbraco/package.json").version')"
+                  tag="${GITHUB_REF_NAME#v}"
+                  if [ "$version" != "$tag" ]; then
+                    echo "Tag $GITHUB_REF_NAME does not match bunbraco@$version" >&2
+                    exit 1
+                  fi
 
-      - uses: actions/cache@v4
-        id: dist
-        with:
-          path: packages/backoffice-dist/dist
-          key: >-
-            backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
-            'packages/backoffice-dist/upstream-static/**') }}
-      - if: steps.dist.outputs.cache-hit != 'true'
-        run: bun run vendor:backoffice
+            - run: bun run generate:types
 
-      - run: bun run release:publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - uses: actions/cache@v4
+              id: dist
+              with:
+                  path: packages/backoffice-dist/dist
+                  key: >-
+                      backoffice-dist-${{ hashFiles('bun.lock', 'scripts/vendor-backoffice.ts',
+                      'packages/backoffice-dist/upstream-static/**') }}
+            - if: steps.dist.outputs.cache-hit != 'true'
+              run: bun run vendor:backoffice
+
+            - run: bun run release:publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

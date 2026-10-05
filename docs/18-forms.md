@@ -98,9 +98,15 @@ on = "submit"
 
   [workflow.settings]
   to = "enquiries@example.com"
+  reply-to = "{email}"
   subject = "Contact form: {enquiryType}"
-  template = "Views/Emails/enquiry.tsx"
 ```
+
+`{alias}` substitutes a submitted value, in `subject`, `body` and `reply-to`
+alike. There is deliberately no `template` setting: a TSX e-mail template is not
+built, and the validator refuses the key rather than accepting one that would
+silently do nothing — so `body`, or the default summary, is what a workflow
+sends today.
 
 `condition` sits on the field, group or page it governs. `workflow.on` is the
 state transition that triggers it, which is what makes an approval flow possible
@@ -313,6 +319,13 @@ export default function Page({ model, submission }) {
 
 `model.value('contactForm')` is a `formPicker` property, and the value converter
 resolves the stored key to the definition — so a view gets the form, not a UUID.
+`value()` is untyped, so a hand-written view casts it (`as SchemaForm | null`);
+`bunbraco generate` is what removes the cast.
+
+The demo template is the worked example:
+`templates/demo/harbourstone/files/schema/forms/visit-enquiry.toml` is pointed at
+by the Contact page's `enquiryForm` property and rendered by
+`Views/contentPage.tsx`.
 
 ### Theming is composition, not directories
 

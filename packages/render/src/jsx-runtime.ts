@@ -68,6 +68,21 @@ export const jsxDEV = jsx
 /** What a view's `.tsx` compiles against: any tag, any attribute, a string out. */
 export declare namespace JSX {
   type Element = string
+  /**
+   * What may stand in a JSX tag position. Without this, TypeScript requires a
+   * component's declared return type to be assignable to `Element` — and
+   * `jsx()` hands back `RawHtml`, so a component that annotates what it really
+   * returns (`<Form>` in `forms.ts`) was rejected as "not a valid JSX element"
+   * while an unannotated one inferred `Element` and passed.
+   *
+   * The props are `never` rather than `ElementProps` so that a component
+   * declaring its own prop type still fits: parameters are contravariant, so
+   * pinning them here would reject every component that takes anything more
+   * specific than `ElementProps` — which is all of them. Props are checked
+   * against the component's own signature regardless; this constrains only what
+   * may stand in the tag position.
+   */
+  type ElementType = string | ((props: never) => Child)
   interface IntrinsicElements {
     [tag: string]: ElementProps
   }

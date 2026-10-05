@@ -58,7 +58,7 @@
     "@bunbraco/auth": "workspace:*",
     "@bunbraco/backoffice-dist": "workspace:*",
     "@bunbraco/backoffice-host": "workspace:*",
-    "@bunbraco/bundle-redirects": "workspace:*",
+    "@bunbraco/simple-redirects": "workspace:*",
     "@bunbraco/cli": "workspace:*",
     "@bunbraco/contracts": "workspace:*",
     "@bunbraco/core": "workspace:*",

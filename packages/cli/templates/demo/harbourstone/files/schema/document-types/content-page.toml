@@ -36,3 +36,14 @@ key = "f3a8a9f6-f841-486b-be9e-038bd15df843"
 alias = "bodyText"
 name = "Body"
 type = "richtext"
+
+# `formPicker` is seeded with the other built-in data types, so a property can
+# use it with no file of its own. The value is a form's UUID from
+# `schema/forms/`, and the value converter hands the view the definition rather
+# than the key — see `Views/contentPage.tsx`.
+[[tab.property]]
+key = "9f2c71b5-5de4-4a6e-9c0a-1b7d84f3a2ce"
+alias = "enquiryForm"
+name = "Enquiry form"
+description = "Shown under the body text. Leave empty for a page that just reads."
+type = "formPicker"

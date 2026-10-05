@@ -8,7 +8,7 @@
     "dev": "bun --watch server.ts"
   },
   "dependencies": {
-    "@bunbraco/bundle-redirects": "workspace:*",
+    "@bunbraco/simple-redirects": "workspace:*",
     "bunbraco": "workspace:*"
   }
 }

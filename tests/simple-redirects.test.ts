@@ -10,10 +10,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { REDIRECTS_BUNDLE_ID, redirects as redirectsBundle } from '@bunbraco/bundle-redirects'
 import { ContentTypeRepository, RedirectRepository, TemplateRepository } from '@bunbraco/data'
 import { redirect } from '@bunbraco/render'
 import type { BunbracoConfig } from '@bunbraco/server'
+import { REDIRECTS_BUNDLE_ID, redirects as redirectsBundle } from '@bunbraco/simple-redirects'
 import { type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -63,7 +63,7 @@ interface Rule {
 }
 
 async function site(config: Partial<BunbracoConfig> = {}) {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bundle-redirects-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'simple-redirects-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
   mkdirSync(join(root, 'Views'), { recursive: true })
@@ -478,7 +478,7 @@ describe('who may use it', () => {
 
 describe('the bundle as a package', () => {
   const manifest = JSON.parse(
-    readFileSync(join(process.cwd(), 'packages/bundle-redirects/package.json'), 'utf8'),
+    readFileSync(join(process.cwd(), 'packages/simple-redirects/package.json'), 'utf8'),
   ) as {
     version: string
     keywords: string[]
@@ -522,7 +522,7 @@ describe('the bundle as a package', () => {
 
 describe('the client half', () => {
   const source = (file: string) =>
-    readFileSync(join(process.cwd(), 'packages/bundle-redirects/plugin', file), 'utf8')
+    readFileSync(join(process.cwd(), 'packages/simple-redirects/plugin', file), 'utf8')
 
   test('calls the path its own bundle id is mounted at', () => {
     expect(source('redirects-client.js')).toContain(`/bunbraco/api/bundle/${REDIRECTS_BUNDLE_ID}`)

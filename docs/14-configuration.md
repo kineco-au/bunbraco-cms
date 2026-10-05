@@ -82,7 +82,7 @@ process without a code change, and the point of the list is that it is a
 reviewable, deployed decision:
 
 ```ts
-import { redirects } from '@bunbraco/bundle-redirects'
+import { redirects } from '@bunbraco/simple-redirects'
 import { defineConfig } from 'bunbraco'
 
 export default defineConfig({

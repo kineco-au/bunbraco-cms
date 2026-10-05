@@ -16,6 +16,7 @@ import {
   type SiteTemplate,
   scaffoldFiles,
 } from '@bunbraco/cli'
+import { allFormFields, type SchemaForm } from '@bunbraco/core'
 import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
 import { loadBundle } from '@bunbraco/transfer'
 
@@ -102,6 +103,88 @@ describe('the starter templates', () => {
       expect(file, blob.key).toBeTruthy()
       expect(readFileSync(file as string).length).toBe(blob.size as number)
     }
+  })
+})
+
+describe('the demo’s form', () => {
+  const template = byId('demo/harbourstone')
+  const forms = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.forms ?? []
+
+  test('is a file in the schema directory, like the types beside it', () => {
+    expect(forms.map((form) => form.alias)).toEqual(['visitEnquiry'])
+    expect(forms[0]?.key).toBeTruthy()
+  })
+
+  test('is pointed at by the page that renders it', () => {
+    // A `formPicker` stores a UUID, so a key that matches no file renders
+    // nothing at all — silently, and only on the page nobody checked.
+    const set = loadBundle(join(template.dir, 'bundle')).set
+    const picked = (set?.nodes ?? []).flatMap((node) =>
+      (node.values ?? [])
+        .filter((value) => value.editor === 'Bunbraco.FormPicker')
+        .map((value) => String(value.value)),
+    )
+    expect(picked).not.toBeEmpty()
+    for (const key of picked) expect(forms.map((form) => form.key)).toContain(key)
+  })
+
+  test('is reachable from a property the content type declares', () => {
+    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.documentTypes
+    const property = types
+      .flatMap((type) => allProperties(type))
+      .find((candidate) => candidate.alias === 'enquiryForm')
+    expect(property?.type).toBe('formPicker')
+  })
+
+  test('is rendered by the view, with the submission passed through', () => {
+    // Without `submission` a refused submission comes back on a bare page
+    // instead of inside the site's own layout, which is the whole point of the
+    // prop being on PageProps.
+    const view = readFileSync(join(template.dir, 'files', 'Views', 'contentPage.tsx'), 'utf8')
+    expect(view).toContain('<Form')
+    expect(view).toContain('submission={submission}')
+  })
+
+  test('collects something, and asks before storing it', () => {
+    const form = forms[0]
+    expect(form?.storeEntries).toBe(true)
+    const fields = allFormFields(form as SchemaForm)
+    expect(fields.some((field) => field.type === 'dataConsent' && field.mandatory)).toBe(true)
+    // The spam guards, which cost a visitor nothing and need no third party.
+    expect(form?.honeypot).toBe(true)
+    expect(form?.minimumSubmitSeconds).toBeGreaterThan(0)
+  })
+})
+
+describe('a template that wires a server bundle', () => {
+  test('adds the dependency and the import that turns it on', () => {
+    const files = scaffoldFiles({ template: byId('demo/harbourstone'), siteName: 'Harbourstone' })
+    const manifest = JSON.parse(
+      files.find((file) => file.path === 'package.json')?.text as string,
+    ) as { dependencies: Record<string, string> }
+    expect(Object.keys(manifest.dependencies)).toContain('@bunbraco/simple-redirects')
+
+    const config = files.find((file) => file.path === 'bunbraco.config.ts')?.text as string
+    expect(config).toContain("import { redirects } from '@bunbraco/simple-redirects'")
+    expect(config).toContain('bundles: [redirects()]')
+    // The site is still named what was asked for, which a template shipping its
+    // own config file would have thrown away.
+    expect(config).toContain("siteName: 'Harbourstone'")
+  })
+
+  test('leaves the config alone for a template that wires none', () => {
+    const config = scaffoldFiles({ template: byId('basic') }).find(
+      (file) => file.path === 'bunbraco.config.ts',
+    )?.text as string
+    expect(config).not.toContain('bundles:')
+    expect(config).toContain("import { defineConfig } from 'bunbraco'")
+  })
+
+  test('ignores a malformed entry rather than scaffolding a broken import', () => {
+    expect(byId('basic').serverBundles).toEqual([])
+    expect(byId('demo/harbourstone').serverBundles).toEqual([
+      { package: '@bunbraco/simple-redirects', import: 'redirects' },
+    ])
   })
 })
 

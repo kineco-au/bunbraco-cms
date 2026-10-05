@@ -48,7 +48,7 @@
       "editor": "Umbraco.MediaPicker3",
       "value": [
         {
-          "key": "463bb542-ccce-4aaf-9dbf-0c21c030952d",
+          "key": "cf779db2-9e78-411e-857d-c1822ae44bb1",
           "mediaKey": "ce973ab0-62cd-40d1-930a-78ee4e467e60",
           "mediaTypeAlias": "Image",
           "crops": [],
@@ -56,8 +56,8 @@
         }
       ],
       "references": [
-        "463bb542-ccce-4aaf-9dbf-0c21c030952d",
-        "ce973ab0-62cd-40d1-930a-78ee4e467e60"
+        "ce973ab0-62cd-40d1-930a-78ee4e467e60",
+        "cf779db2-9e78-411e-857d-c1822ae44bb1"
       ]
     },
     {

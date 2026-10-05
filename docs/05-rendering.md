@@ -255,7 +255,7 @@ published tree.
 
 Matching order within a request is configured rules, in the order the site
 declares them, then the rules an administrator wrote in the backoffice
-(`@bunbraco/bundle-redirects`, [`17-bundles.md`](17-bundles.md)), then tracked
+(`@bunbraco/simple-redirects`, [`17-bundles.md`](17-bundles.md)), then tracked
 rules, newest first. A rule scoped to a hostname is
 tried only against a request that hostname roots, and its pattern is the route
 *below* the rooting document, keyed by that document's key rather than by the

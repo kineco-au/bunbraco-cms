@@ -196,10 +196,29 @@ async function writers(site: Site) {
   return { page, element, image }
 }
 
-/** What an image picker stores: a pick per media node. */
+/**
+ * What an image picker stores: a pick per media node.
+ *
+ * The pick's own key is derived from the media key rather than random, so a
+ * rebuild yields the same bundle — the determinism the node keys above are
+ * fixed for. A random one per build churned every picker on every rebuild,
+ * which buried the change being made in a diff of fresh uuids.
+ */
 const pick = (mediaKey: string) => [
-  { key: crypto.randomUUID(), mediaKey, mediaTypeAlias: 'Image', crops: [], focalPoint: null },
+  { key: pickKey(mediaKey), mediaKey, mediaTypeAlias: 'Image', crops: [], focalPoint: null },
 ]
+
+/** A uuid-shaped digest of the media key: stable, and distinct from it. */
+function pickKey(mediaKey: string): string {
+  const hex = new Bun.CryptoHasher('sha256').update(`pick:${mediaKey}`).digest('hex')
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `8${hex.slice(17, 20)}`,
+    hex.slice(20, 32),
+  ].join('-')
+}
 
 /** What the rich-text editor stores. */
 const richtext = (markup: string) => ({ markup, blocks: null })
@@ -646,6 +665,11 @@ const HARBOURSTONE: Builder = async (site) => {
           '<p>enquiries@harbourstone.example &middot; +44 (0)1234 567890</p>' +
           '<p>Trade and wholesale: ask for Mairi.</p>',
       ),
+      // A `formPicker` stores the form's UUID, which is the `key` in
+      // `files/schema/forms/visit-enquiry.toml`. Written here rather than left
+      // for someone to pick in the backoffice, so the demo arrives with a
+      // working form on the page.
+      enquiryForm: '7b1f4c20-9a63-4e18-8d25-3c6f5a1e9b04',
     },
   })
 }

@@ -3,13 +3,13 @@
   "id": "af030aee-ba70-4bed-8a27-a3806a79100d",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-477f6e770d91cd3c5b878db8321f781a5fadc55feab868507be1e1a25e057075",
+  "integrity": "sha256-3b68578260083d7e6614a2cfec79670925c01ea564725ceafedb88311319cd0e",
   "snapshot": "published",
   "provenance": {
     "siteName": "Harbourstone Distillery",
     "schemaVersion": "1.0.0",
     "schemaRevision": "0",
-    "schemaHash": "495477d29905fb89148690a58c14cd5c89ede3a0f2b98b0893fd245acc7f4d50"
+    "schemaHash": "74956a08cabc0ab6a9d8166fd085560f006ea00ff54d7481d77a3bde609426ab"
   },
   "selector": {
     "roots": [

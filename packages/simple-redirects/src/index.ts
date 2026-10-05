@@ -13,8 +13,7 @@
  * because a site imported `redirects()` into its `bunbraco.config.ts` — see
  * `docs/17-bundles.md` for why that asymmetry is the whole security story.
  */
-import type { AppAlias } from '@bunbraco/core'
-import type { BundleRedirectInput, BundleRequest, ServerBundle } from '@bunbraco/server'
+import type { AppAlias, BundleRedirectInput, BundleRequest, ServerBundle } from '@bunbraco/server'
 
 /** What this bundle asks the host for, and all it can reach. */
 const CAPABILITIES = ['redirects', 'documents', 'log'] as const

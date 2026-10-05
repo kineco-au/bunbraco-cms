@@ -1,4 +1,4 @@
-import { redirects } from '@bunbraco/bundle-redirects'
+import { redirects } from '@bunbraco/simple-redirects'
 import { bedrock, defineConfig } from 'bunbraco'
 
 /** The reference site. Everything unset here comes from the environment or a default. */

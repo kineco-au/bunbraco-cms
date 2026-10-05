@@ -22,6 +22,27 @@ import { VERSION } from '@bunbraco/server'
 /** `templates/`, beside `src/` and `bin/` in the published package. */
 export const TEMPLATES_DIR = join(import.meta.dir, '..', 'templates')
 
+/**
+ * A bundle whose server half a template wires into the site it scaffolds: the
+ * dependency, plus the import and the `bundles` entry in `bunbraco.config.ts`.
+ *
+ * Written into the site's own files rather than hidden anywhere, because that
+ * import is the whole of what lets a bundle answer a request — so it has to be
+ * a line the developer owns from the first commit and can delete
+ * (`docs/17-bundles.md`).
+ */
+export interface TemplateServerBundle {
+  /** The npm package, added to the site's dependencies. */
+  package: string
+  /** The factory it exports, imported by name and called in `bundles`. */
+  import: string
+  /**
+   * The range to depend on. Defaults to this release, which is right for a
+   * bundle that ships with the CMS; a third-party one names its own.
+   */
+  version?: string
+}
+
 export interface SiteTemplate {
   /** `basic`, or `demo/harbourstone` for one of a family. */
   id: string
@@ -30,6 +51,8 @@ export interface SiteTemplate {
   dir: string
   /** `bundles/<slug>` in the new site, when the template ships content. */
   bundle?: string
+  /** Server bundles the scaffolded site runs; empty for most templates. */
+  serverBundles: TemplateServerBundle[]
 }
 
 const MANIFEST = 'template.json'
@@ -44,7 +67,27 @@ function read(dir: string, id: string): SiteTemplate | undefined {
     description: typeof raw.description === 'string' ? raw.description : '',
     dir,
     bundle: existsSync(join(dir, 'bundle')) ? `bundles/${id.replaceAll('/', '-')}` : undefined,
+    serverBundles: readServerBundles(raw.bundles),
   }
+}
+
+/** `bundles` in `template.json`; anything malformed is dropped rather than guessed at. */
+function readServerBundles(raw: unknown): TemplateServerBundle[] {
+  if (!Array.isArray(raw)) return []
+  const out: TemplateServerBundle[] = []
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue
+    const record = entry as Record<string, unknown>
+    const name = typeof record.package === 'string' ? record.package : ''
+    const imported = typeof record.import === 'string' ? record.import : ''
+    if (!name || !imported) continue
+    out.push({
+      package: name,
+      import: imported,
+      ...(typeof record.version === 'string' ? { version: record.version } : {}),
+    })
+  }
+  return out
 }
 
 /** Every template, in id order; a directory without a manifest is a family. */
@@ -130,14 +173,51 @@ function tsconfig(): string {
   )}\n`
 }
 
-function packageJson(options: { name: string; start: string }): string {
+/**
+ * `bunbraco.config.ts`. A template's server bundles are imported by name and
+ * listed in `bundles`, which is the only thing that lets their endpoints
+ * answer — so the scaffolded file carries a note saying so, and deleting the
+ * line is how a site declines one.
+ */
+function config(siteName: string, bundles: readonly TemplateServerBundle[]): string {
+  const imports = bundles
+    .map((bundle) => `import { ${bundle.import} } from ${quote(bundle.package)}\n`)
+    .join('')
+  if (bundles.length === 0)
+    return `import { defineConfig } from 'bunbraco'
+
+export default defineConfig({
+  siteName: ${quote(siteName)},
+})
+`
+  return `${imports}import { defineConfig } from 'bunbraco'
+
+export default defineConfig({
+  siteName: ${quote(siteName)},
+  // Installing a bundle gives you its backoffice screen. This line is what lets
+  // its endpoints answer a request, so remove it to turn one off.
+  bundles: [${bundles.map((bundle) => `${bundle.import}()`).join(', ')}],
+})
+`
+}
+
+function packageJson(options: {
+  name: string
+  start: string
+  bundles: readonly TemplateServerBundle[]
+}): string {
   return `${JSON.stringify(
     {
       name: options.name,
       private: true,
       type: 'module',
       scripts: { start: options.start, dev: 'bun --watch server.ts' },
-      dependencies: { bunbraco: `^${VERSION}` },
+      dependencies: {
+        bunbraco: `^${VERSION}`,
+        ...Object.fromEntries(
+          options.bundles.map((bundle) => [bundle.package, bundle.version ?? `^${VERSION}`]),
+        ),
+      },
       // So the tsconfig written beside this has something to run it, and
       // `bunbraco views check` checks types as well as compiling. The version
       // is the one bunbraco itself is checked with.
@@ -153,6 +233,7 @@ export function scaffoldFiles(options: ScaffoldOptions = {}): ScaffoldFile[] {
   const siteName = options.siteName?.trim() || DEFAULT_SITE_NAME
   const bundle = options.bundle?.path ?? options.template?.bundle
   const bundleFlags = ['--publish', ...(options.bundle?.flags ?? [])].join(' ')
+  const serverBundles = options.template?.serverBundles ?? []
   const files: ScaffoldFile[] = [
     {
       path: 'package.json',
@@ -161,17 +242,10 @@ export function scaffoldFiles(options: ScaffoldOptions = {}): ScaffoldFile[] {
         // The import is a boot step rather than a config setting so that it is
         // visible here, and so that dropping it is editing one line.
         start: bundle ? `bunbraco start --bundle ${bundle} ${bundleFlags}` : 'bunbraco start',
+        bundles: serverBundles,
       }),
     },
-    {
-      path: 'bunbraco.config.ts',
-      text: `import { defineConfig } from 'bunbraco'
-
-export default defineConfig({
-  siteName: ${quote(siteName)},
-})
-`,
-    },
+    { path: 'bunbraco.config.ts', text: config(siteName, serverBundles) },
     {
       path: 'server.ts',
       text: `import { bunbraco } from 'bunbraco'

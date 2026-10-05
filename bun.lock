@@ -51,7 +51,6 @@
         "@bunbraco/auth": "workspace:*",
         "@bunbraco/backoffice-dist": "workspace:*",
         "@bunbraco/backoffice-host": "workspace:*",
-        "@bunbraco/bundle-redirects": "workspace:*",
         "@bunbraco/cli": "workspace:*",
         "@bunbraco/contracts": "workspace:*",
         "@bunbraco/core": "workspace:*",
@@ -60,6 +59,7 @@
         "@bunbraco/render": "workspace:*",
         "@bunbraco/schema": "workspace:*",
         "@bunbraco/server": "workspace:*",
+        "@bunbraco/simple-redirects": "workspace:*",
         "@bunbraco/transfer": "workspace:*",
         "@playwright/test": "^1.63.0",
         "@types/bun": "^1.4.2",
@@ -72,7 +72,7 @@
       "name": "@bunbraco/site",
       "version": "0.0.0",
       "dependencies": {
-        "@bunbraco/bundle-redirects": "workspace:*",
+        "@bunbraco/simple-redirects": "workspace:*",
         "bunbraco": "workspace:*",
       },
     },
@@ -137,13 +137,6 @@
         "@bunbraco/schema": "workspace:*",
         "@bunbraco/server": "workspace:*",
         "@bunbraco/transfer": "workspace:*",
-      },
-    },
-    "packages/bundle-redirects": {
-      "name": "@bunbraco/bundle-redirects",
-      "version": "0.5.0",
-      "dependencies": {
-        "@bunbraco/server": "workspace:*",
       },
     },
     "packages/cli": {
@@ -216,6 +209,13 @@
         "@bunbraco/render": "workspace:*",
         "@bunbraco/schema": "workspace:*",
         "@logtape/logtape": "^2.3.8",
+      },
+    },
+    "packages/simple-redirects": {
+      "name": "@bunbraco/simple-redirects",
+      "version": "0.5.0",
+      "dependencies": {
+        "@bunbraco/server": "workspace:*",
       },
     },
     "packages/transfer": {
@@ -294,8 +294,6 @@
 
     "@bunbraco/backoffice-host": ["@bunbraco/backoffice-host@workspace:packages/backoffice-host"],
 
-    "@bunbraco/bundle-redirects": ["@bunbraco/bundle-redirects@workspace:packages/bundle-redirects"],
-
     "@bunbraco/cli": ["@bunbraco/cli@workspace:packages/cli"],
 
     "@bunbraco/contracts": ["@bunbraco/contracts@workspace:packages/contracts"],
@@ -311,6 +309,8 @@
     "@bunbraco/schema": ["@bunbraco/schema@workspace:packages/schema"],
 
     "@bunbraco/server": ["@bunbraco/server@workspace:packages/server"],
+
+    "@bunbraco/simple-redirects": ["@bunbraco/simple-redirects@workspace:packages/simple-redirects"],
 
     "@bunbraco/site": ["@bunbraco/site@workspace:apps/site"],
 
