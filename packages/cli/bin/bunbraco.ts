@@ -418,6 +418,14 @@ async function status(): Promise<void> {
       `${report.content.lastImport ? `; last import ${report.content.lastImport}` : ''}`,
   )
   line(
+    'email',
+    report.email.available
+      ? (report.email.description ?? 'configured')
+      : report.email.provider === 'log'
+        ? 'console only, nothing is sent'
+        : `none — ${report.email.affects.join(', ')} unavailable`,
+  )
+  line(
     'findings',
     `${report.findings.blocking} blocking, ${report.findings.person} need a person, ` +
       `${report.findings.auto} automatic, ${report.findings.resolved} resolved`,

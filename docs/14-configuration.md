@@ -53,14 +53,110 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Packages section sends someone browsing for extensions                                       |
 | `BUNBRACO_PACKAGE_KEYWORD`                  | `bunbraco-package`                             | the npm keyword a backoffice extension publishes to be discoverable                                    |
 | `BUNBRACO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
+| `BUNBRACO_EMAIL_PROVIDER`                   | `none`                                         | how e-mail is sent: `resend`, `postmark`, `ses`, `custom` or `none` (see [E-mail](#e-mail))            |
+| `BUNBRACO_EMAIL_FROM`                       | —                                              | the sender address; required by every provider, and the provider verifies its domain                   |
+| `BUNBRACO_EMAIL_FROM_NAME`                  | —                                              | the display name beside that address                                                                   |
+| `BUNBRACO_EMAIL_API_KEY`                    | —                                              | the provider's key — Resend's API key, Postmark's server token, a bearer token for `custom`            |
+| `BUNBRACO_EMAIL_URL`                        | the provider's own API                         | the endpoint messages are POSTed to; required for `custom`, an override for the others                 |
+| `BUNBRACO_EMAIL_POSTMARK_STREAM`            | `outbound`                                     | `postmark` only: the message stream to send on                                                         |
+| `BUNBRACO_EMAIL_SES_REGION`                 | `AWS_REGION`                                   | `ses` only: the region to send from                                                                    |
+| `BUNBRACO_EMAIL_SES_ACCESS_KEY_ID`          | `AWS_ACCESS_KEY_ID`                            | `ses` only: overrides the standard AWS variable                                                        |
+| `BUNBRACO_EMAIL_SES_SECRET_ACCESS_KEY`      | `AWS_SECRET_ACCESS_KEY`                        | `ses` only: overrides the standard AWS variable                                                        |
+| `BUNBRACO_EMAIL_SES_CONFIGURATION_SET`      | —                                              | `ses` only: the configuration set that governs sending                                                 |
+| `BUNBRACO_EMAIL_SES_ENDPOINT`               | the regional SES host                          | `ses` only: a VPC endpoint, or a fake in a test                                                        |
 
-Invitations and password resets reach people through `sendUserLink`, a function
-a site sets in `bunbraco.config.ts` (typically handing the link to its mailer).
-Without one, users cannot be invited — the backoffice hides Invite and offers
-Create, which shows a generated first password — and nobody can reset a
-forgotten password by e-mail. In development the links are printed to the
-console instead; `sendUserLink: null` turns that off. `allowPasswordReset: true`
-shows "Forgotten password?" on the sign-in screen.
+## E-mail
+
+Opt-in, and off by default. Nothing is installed, no SMTP is spoken, and a site
+that configures no provider sends no e-mail — which is a supported state, not a
+broken one.
+
+What needs it: inviting backoffice users, resetting a forgotten password, and
+Forms' Send email workflow. Without a provider those are **unavailable rather
+than failing**: the backoffice hides Invite and offers Create (which shows a
+generated first password), the sign-in screen drops "Forgotten password?", and
+`GET /umbraco/bunbraco/api/email` tells a signed-in client why. `bunbraco status`
+has an `email` line, and the boot log says it once.
+
+Set it from the environment, or pass a port as `email` in `bunbraco.config.ts`:
+
+```ts
+import { resendEmail } from 'bunbraco'
+
+export default defineConfig({
+  email: resendEmail({ apiKey: process.env.RESEND_KEY ?? '', from: { email: 'no-reply@example.com', name: 'Example' } }),
+})
+```
+
+Four adapters, all plain `fetch` against a provider's HTTPS API:
+
+| Adapter | Takes | Notes |
+| --- | --- | --- |
+| `resendEmail` | `apiKey`, `from` | Resend verifies the sending domain |
+| `postmarkEmail` | `apiKey` (server token), `from`, `messageStream?` | rejects a send on the wrong stream, so the stream is configurable |
+| `sesEmail` | `region`, `from`, credentials | SES v2, signed with SigV4; attachments become a raw MIME message |
+| `customEmail` | `url`, `from`, `apiKey?`, `headers?` | POSTs this CMS's own JSON to an endpoint the site owns |
+
+### HTTPS is required
+
+Every adapter authenticates with something worth stealing — a bearer token, a
+server token, a SigV4 `Authorization` header — so an `http://` endpoint is
+refused **at construction**, not on the first send. A site that gets it wrong
+fails at boot with the reason; from the environment it is a warning and no
+e-mail, because an opt-in feature must never stop a site booting.
+
+The one exception is loopback: `http://localhost:8025` and the rest of
+`127.0.0.0/8` and `[::1]` are allowed, because a mail relay in a sidecar is a
+real deployment and nothing about it is on a wire. A host that merely looks
+local — a service name inside a cluster, or `localhost.example.com` — still
+crosses a boundary and is held to HTTPS like anything else.
+
+### SES and its signature
+
+SES authenticates with a Signature Version 4 signature rather than a key, so the
+signing is ours (`email-ses.ts`) rather than an SDK's. Hand-rolled signing is
+only defensible against known answers, so it is held against two:
+
+- AWS's **published signing-key derivation example** — the `us-east-1`/`iam`
+  vector from their own documentation
+- **Bun's own SigV4**, which is an independent implementation: `Bun.S3Client.presign`
+  signs a canonical request, and ours must produce the identical signature for
+  the same inputs. This reaches the canonicalisation and the string-to-sign,
+  which a key vector alone does not
+
+Both run on every suite, so a change that breaks the signing fails the build
+rather than failing in production.
+
+Credentials come from the options, else from the variables AWS tools already
+read. **Instance roles are not resolved** — that needs the metadata service — so
+a container wanting SES needs static keys or a session token
+(`AWS_SESSION_TOKEN` is signed in when present).
+
+SES's Simple content carries a subject and a body and nothing else, so a message
+with an attachment is sent as raw MIME: `multipart/mixed`, with a nested
+`multipart/alternative` when there is both text and HTML. Bcc stays out of the
+MIME headers and travels in `Destination`, where it cannot be shown to the other
+recipients.
+
+No SMTP adapter. Outbound 25/587 is blocked on most container hosts, so an SMTP
+client would be protocol risk for a path that often cannot be used; one can be
+added behind the same port if a self-hosted mail server turns out to matter.
+
+`email` has three states: a port sends through it, `undefined` lets the
+environment decide and falls back in development to printing the message on the
+console, and `null` is off outright — console included, so a site that declares
+it has no e-mail behaves the same in every environment.
+
+Sending never throws. A provider that is down, a wrong key and a dead network
+all come back as a failed send with the provider's own message, which is what
+the log records and what an invitation's failure reports.
+
+`sendUserLink` remains, for a site that wants to deliver these two links itself
+rather than through a provider — a function in `bunbraco.config.ts` handed the
+link. It outranks `email`, and `sendUserLink: null` means nobody can be invited
+and no password can be reset whatever else is configured.
+`allowPasswordReset: true` shows "Forgotten password?" on the sign-in screen,
+when a link can actually be delivered.
 
 ## Scripts
 

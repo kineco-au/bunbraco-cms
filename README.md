@@ -106,6 +106,7 @@ the [roadmap](docs/07-roadmap.md).
 | **Content transfer** | Export, check and import content between environments as a bundle of files |
 | **Packages** | Build a bundle from a slice of the site — schema, views, content and media — and install it into another with `bundle install`. Backoffice extensions are npm dependencies in the site's `package.json` |
 | **Storage** | SQLite by default, Postgres as an option. Media on the file system, S3 or Azure |
+| **E-mail** | Opt-in, over a provider's HTTPS API — Resend, Postmark, Amazon SES, or an endpoint of your own. Off by default, and what needs it says so rather than failing |
 | **Umbraco import** | A compatibility report for an existing Umbraco site, then its content types, content and media converted into a new site |
 | **Also** | Redirects that follow a moved page, members and public access, hostname routing, an optional AI assistant, and git integration from the backoffice |
 
@@ -397,6 +398,7 @@ Design documents, in reading order:
 | [15-operations](docs/15-operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions |
 | [16-umbraco-import](docs/16-umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [17-packages](docs/17-packages.md) | created packages, and extensions as npm dependencies instead of App_Plugins |
+| [18-forms](docs/18-forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
 
 ---
 

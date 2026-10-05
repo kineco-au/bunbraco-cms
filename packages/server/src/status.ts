@@ -28,6 +28,7 @@ import {
 } from '@bunbraco/data'
 import { loadSchemaDirectory } from '@bunbraco/schema'
 import { type BunbracoConfig, describeDatabase, VERSION } from './config.ts'
+import { type EmailAvailability, emailAvailability, resolveEmailPort } from './email.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 
 export interface SiteStatus {
@@ -66,6 +67,12 @@ export interface SiteStatus {
    */
   findings: { blocking: number; person: number; auto: number; resolved: number }
   versions: { bunbraco: string; backoffice?: string; bun: string }
+  /**
+   * Whether e-mail can leave this site, and what is unavailable when it cannot.
+   * Not a problem — no e-mail is a valid configuration — so it is reported
+   * rather than counted against the site.
+   */
+  email: EmailAvailability
   /** Anything that would stop this site working, in the order worth fixing. */
   problems: string[]
 }
@@ -136,6 +143,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
     content: { documents: 0, media: 0, elements: 0 },
     findings: { blocking: 0, person: 0, auto: 0, resolved: 0 },
     versions: { bunbraco: VERSION, backoffice: backofficeVersion(), bun: Bun.version },
+    email: emailAvailability(resolveEmailPort(config)),
     problems: [],
   }
 

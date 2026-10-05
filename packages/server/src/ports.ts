@@ -60,6 +60,7 @@ import {
 import { createTemplateFileStore } from './adapters/template-files.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
 import { type BunbracoConfig, type UserLinkSender, VERSION } from './config.ts'
+import { type EmailPort, resolveEmailPort } from './email.ts'
 import { createFileIntake } from './file-intake.ts'
 import { createLogViewerPort } from './log-viewer.ts'
 import { logger } from './logging.ts'
@@ -84,12 +85,14 @@ const CULTURES = [
   { name: 'sv-SE', englishName: 'Swedish (Sweden)' },
 ]
 
-function createServerPort(config: BunbracoConfig): ServerPort {
+function createServerPort(config: BunbracoConfig, canSendUserLinks: boolean): ServerPort {
   return {
     // Phase 6 derives this from migration state; until then the site is always up.
     status: () => ({ serverStatus: 'Run' }),
     configuration: () => ({
-      allowPasswordReset: config.allowPasswordReset,
+      // Reported false when no link could be delivered, so the client does not
+      // offer a reset that goes nowhere. `email.ts` has the reason.
+      allowPasswordReset: config.allowPasswordReset && canSendUserLinks,
       versionCheckPeriod: config.versionCheckPeriod,
       allowLocalLogin: config.allowLocalLogin,
       umbracoCssPath: config.umbracoCssPath,
@@ -240,6 +243,48 @@ function createUserItemPort(db: Db): UserItemPort {
   }
 }
 
+/**
+ * Invitations and password resets through the e-mail port.
+ *
+ * Plain text on purpose: both messages are one sentence and a link, and an HTML
+ * template for them would be a thing to maintain for no gain.
+ *
+ * A delivery failure throws. `sendLink` turns that into `false`, which is how
+ * resending an invitation reports `CannotInvite` instead of claiming it went.
+ */
+const userLinkViaEmail =
+  (port: EmailPort, siteName: string): UserLinkSender =>
+  async ({ kind, to, link, message }) => {
+    const invite = kind === 'invite'
+    const result = await port.send({
+      to: [{ email: to.email, name: to.name }],
+      subject: invite ? `You have been invited to ${siteName}` : `Reset your ${siteName} password`,
+      text: [
+        `Hello ${to.name},`,
+        '',
+        invite
+          ? `You have been invited to the ${siteName} backoffice.`
+          : `Someone asked to reset the password for your ${siteName} account.`,
+        ...(message ? ['', message] : []),
+        '',
+        invite ? 'Accept the invitation:' : 'Reset your password:',
+        link,
+        '',
+        invite
+          ? 'The link expires, so accept it soon.'
+          : 'If this was not you, nothing has changed and you can ignore this message.',
+      ].join('\n'),
+    })
+    if (!result.ok) {
+      logger('users').error('Could not send the {kind} e-mail to {email}: {detail}', {
+        kind,
+        email: to.email,
+        detail: result.error,
+      })
+      throw new Error(result.error)
+    }
+  }
+
 /** Development's stand-in for e-mail: the link a person would have been sent, on the console. */
 const logUserLink: UserLinkSender = async ({ kind, to, link }) => {
   logger('users').info(
@@ -249,6 +294,30 @@ const logUserLink: UserLinkSender = async ({ kind, to, link }) => {
       link,
     },
   )
+}
+
+/**
+ * How a user link is delivered, given the port that is available.
+ *
+ * The console keeps a developer's invitation flow working with nothing
+ * configured — `resolveEmailPort` hands back the log port in development — and
+ * reports as unavailable, so nobody mistakes it for delivery. In production with
+ * no provider there is no sender, and the features that need one say so.
+ */
+export function resolveUserLinkSender(
+  config: Pick<BunbracoConfig, 'sendUserLink' | 'siteName' | 'development' | 'email'>,
+  email: EmailPort | undefined,
+): UserLinkSender | undefined {
+  // An explicit sender wins, and `null` means nobody can be invited and no
+  // password can be reset — the site saying so outranks a configured provider.
+  if (config.sendUserLink !== undefined) return config.sendUserLink ?? undefined
+  // `email: null` is off outright, console included: a site that says it has no
+  // e-mail must behave that way in development too, or the difference between
+  // environments is only discovered in production.
+  if (config.email === null) return undefined
+  if (email?.provider === 'log') return logUserLink
+  if (email) return userLinkViaEmail(email, config.siteName)
+  return config.development ? logUserLink : undefined
 }
 
 /** Where the backoffice writes schema files, and whether it may. */
@@ -293,6 +362,11 @@ export interface DepsOptions {
   /** How oEmbed providers are reached; the global fetch unless a test supplies one. */
   fetch?: typeof fetch
   /**
+   * The resolved e-mail port. Passed in by `createServer`, which resolves it
+   * once, so a misconfigured provider warns on boot rather than on every call.
+   */
+  email?: EmailPort
+  /**
    * A template was written or removed here. The server takes a new snapshot and
    * tells the other nodes to look; without it they keep the view they imported.
    */
@@ -319,8 +393,12 @@ function createTemporaryFilePort(files: MediaFileStore): TemporaryFilePort {
 }
 
 export function createDeps(options: DepsOptions): ManagementApiDeps {
+  // `createServer` resolves the port and passes it in; a test calling this
+  // directly gets the same answer from the same config.
+  const email = options.email ?? resolveEmailPort(options.config)
+  const sendUserLink = resolveUserLinkSender(options.config, email)
   const deps: ManagementApiDeps = {
-    server: createServerPort(options.config),
+    server: createServerPort(options.config, Boolean(sendUserLink)),
     // An unconfigured assistant contributes no extension, so the backoffice has
     // no drawer, no button and nothing to load.
     manifests: createManifestPort(
@@ -359,12 +437,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     const userPorts = createUserPorts(options.db, {
       config: {
         ...options.config,
-        sendUserLink:
-          options.config.sendUserLink === undefined
-            ? options.config.development
-              ? logUserLink
-              : undefined
-            : (options.config.sendUserLink ?? undefined),
+        sendUserLink,
       },
       mediaFiles,
       nodes: createNodeLookup(options.db),

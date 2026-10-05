@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
 import type { RedirectRule, SnapshotLimits } from '@bunbraco/render'
 import type { AssistantConfig } from './assistant.ts'
+import type { EmailPort } from './email.ts'
 import type { GitConfig } from './git-routes.ts'
 import type { MediaStore } from './media-store.ts'
 import type { SchemaStore } from './schema-store.ts'
@@ -187,6 +188,20 @@ export interface BunbracoConfig {
    * are printed to the console instead, unless this is `null`.
    */
   sendUserLink: UserLinkSender | null | undefined
+  /**
+   * How e-mail leaves this site, and the only thing that makes user invitations,
+   * password resets and Forms' Send email workflow available.
+   *
+   * Opt-in, in three states. A port sends through it. `undefined` lets the
+   * environment decide (`BUNBRACO_EMAIL_PROVIDER`, which defaults to no e-mail),
+   * falling back in development to the console so a developer sees the message
+   * without configuring a provider. `null` is off outright, console included.
+   *
+   * Nothing here throws: a site with no provider reports the features as
+   * unavailable, with the reason, rather than failing when someone presses the
+   * button. See `email.ts` and `docs/14-configuration.md`.
+   */
+  email: EmailPort | null | undefined
   /**
    * Whether `POST /umbraco/members/register` accepts a registration. Off by
    * default: an always-open endpoint that creates members is a decision a site
@@ -383,6 +398,7 @@ export function loadConfig(
     usernameIsEmail: Bun.env.BUNBRACO_USERNAME_IS_EMAIL !== 'false',
     applicationUrl: Bun.env.BUNBRACO_APPLICATION_URL ?? '',
     sendUserLink: undefined,
+    email: undefined,
     allowMemberRegistration: Bun.env.BUNBRACO_ALLOW_MEMBER_REGISTRATION === 'true',
     memberRegistrationType:
       Bun.env.BUNBRACO_MEMBER_REGISTRATION_TYPE ?? DEFAULTS.memberRegistrationType,

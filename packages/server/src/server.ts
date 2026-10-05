@@ -62,6 +62,8 @@ import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
 import { syncDomainsFile } from './domains.ts'
 import { editorTypeLibs } from './editor-types.ts'
+import { emailAvailability, resolveEmailPort } from './email.ts'
+import { noticeAboutEmail } from './email-notice.ts'
 import { warnAboutAppPlugins } from './extensions-notice.ts'
 import { ImageProcessor, parseImagingQuery } from './imaging.ts'
 import { type BackgroundJobs, createBackgroundJobs } from './jobs.ts'
@@ -72,7 +74,7 @@ import { mediaStoreFromEnvironment } from './media-store.ts'
 import { createMemberAuth, MEMBER_ROUTE_PREFIX } from './member-auth.ts'
 import { noNodesPage } from './no-nodes.ts'
 import { NotImplementedLog } from './not-implemented.ts'
-import { createDeps } from './ports.ts'
+import { createDeps, resolveUserLinkSender } from './ports.ts'
 import { syncConfiguredRedirects } from './redirects.ts'
 import {
   bootSchema,
@@ -350,6 +352,14 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // The site's config may name a store; without one the environment decides,
   // and that falls back to the media directory on this disk.
   const mediaStore = config.mediaStore ?? (await mediaStoreFromEnvironment(config.mediaDir))
+  // Resolved once: constructing it twice would warn twice about a provider that
+  // is half-configured, and the adapters are cheap but not free of side effects.
+  const email = resolveEmailPort(config)
+  const emailStatus = emailAvailability(email)
+  // Whether an invitation or a reset link can reach anyone at all, which is what
+  // gates the options rather than `emailStatus.available`: development delivers
+  // to the console, and that is a working flow for the person using it.
+  const canSendUserLinks = Boolean(resolveUserLinkSender(config, email))
   const mediaFiles = new MediaFileStore(mediaStore)
   const images = new ImageProcessor(mediaStore)
   const api = createManagementApiRouter({
@@ -362,6 +372,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         cache,
         schema,
         mediaFiles,
+        email,
         // This node looks again at once; the others are told to. The write has
         // already landed wherever `viewsDir` points, so there is nothing to
         // distribute — only the fact that it happened.
@@ -451,6 +462,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // App_Plugins is gone (`docs/17-packages.md`). Saying so beats a site whose
   // extensions silently stopped loading after an upgrade; remove at 1.0.
   warnAboutAppPlugins(config.siteDir, log)
+  noticeAboutEmail(emailStatus, logger('email'), { development: config.development })
   const hubPath = SERVER_EVENT_HUB_PATH
   const previewHubPath = PREVIEW_HUB_PATH
 
@@ -680,6 +692,26 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       return new Response('Not Found', { status: 404 })
     }
 
+    /**
+     * Non-contract: whether this site can send e-mail, and what is unavailable
+     * because it cannot.
+     *
+     * Any signed-in user may ask, because the features it gates are spread
+     * across sections — invitations live in Users, the explanation belongs
+     * wherever someone finds the option missing. The provider's `description`
+     * is deliberately left out: for a custom adapter it is an internal URL.
+     */
+    if (pathname === `${paths.pluginPath}/api/email` && request.method === 'GET') {
+      if (!(await authenticate(request))) return new Response('Unauthorized', { status: 401 })
+      return Response.json({
+        available: emailStatus.available,
+        provider: emailStatus.provider,
+        reason: emailStatus.reason,
+        affects: emailStatus.affects,
+        canSendUserLinks,
+      })
+    }
+
     // Non-contract: what the Changes dashboard and the read-only banner read.
     //
     // Two audiences, so two answers. `health` says this node has fallen behind
@@ -753,7 +785,9 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
           title: config.siteName,
           usernameIsEmail: true,
           allowUserInvite: false,
-          allowPasswordReset: config.allowPasswordReset,
+          // Offering "forgot password" with no way to send the link is a dead
+          // end that looks like a bug; without a sender the option is not there.
+          allowPasswordReset: config.allowPasswordReset && canSendUserLinks,
           disableLocalLogin: !config.allowLocalLogin,
           // Set by the authorize endpoint so sign-in resumes the OAuth flow. Only
           // a path on this site: the login page hands this to the browser once

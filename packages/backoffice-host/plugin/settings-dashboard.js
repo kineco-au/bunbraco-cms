@@ -12,10 +12,61 @@
  */
 // UmbLitElement, not plain LitElement: a dashboard is used as a controller host,
 // and a plain element fails with `controllerHost.provideContext is not a function`.
-import { css, html } from '@umbraco-cms/backoffice/external/lit'
+import { css, html, nothing } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 
+/** Whether this site can send e-mail; the server answers with the reason. */
+const emailStatus = async () => {
+  const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
+  const response = await fetch(`${href.replace(/\/$/, '')}/bunbraco/api/email`, {
+    credentials: 'include',
+    headers: { accept: 'application/json' },
+  })
+  if (!response.ok) throw new Error(`email responded ${response.status}`)
+  return response.json()
+}
+
 export default class BunbracoSettingsDashboardElement extends UmbLitElement {
+  static properties = {
+    _email: { state: true },
+  }
+
+  connectedCallback() {
+    super.connectedCallback()
+    // A failure here leaves the section out rather than the dashboard broken:
+    // this is an explanation, not a control.
+    emailStatus().then(
+      (status) => {
+        this._email = status
+      },
+      () => {},
+    )
+  }
+
+  #email() {
+    const status = this._email
+    if (!status) return nothing
+    if (status.available)
+      return html`
+        <uui-box headline="E-mail">
+          <p>E-mail is sent through <strong>${status.provider}</strong>.</p>
+        </uui-box>
+      `
+    return html`
+      <uui-box headline="E-mail">
+        <p>${status.reason}</p>
+        ${
+          status.affects.length > 0
+            ? html`<p>Until one is configured, these are unavailable:</p>
+                <ul>
+                  ${status.affects.map((feature) => html`<li>${feature}</li>`)}
+                </ul>`
+            : nothing
+        }
+      </uui-box>
+    `
+  }
+
   render() {
     return html`
       <uui-box headline="Settings">
@@ -41,6 +92,7 @@ export default class BunbracoSettingsDashboardElement extends UmbLitElement {
           </a>
         </p>
       </uui-box>
+      ${this.#email()}
     `
   }
 
@@ -57,6 +109,13 @@ export default class BunbracoSettingsDashboardElement extends UmbLitElement {
       display: flex;
       gap: var(--uui-size-space-5, 18px);
       flex-wrap: wrap;
+    }
+    uui-box + uui-box {
+      margin-top: var(--uui-size-layout-1, 24px);
+    }
+    ul {
+      max-width: 60ch;
+      line-height: 1.5;
     }
   `
 }

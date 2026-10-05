@@ -55,7 +55,7 @@ const USER_PROBLEMS: Partial<Record<UserStatus, [number, string, string]>> = {
   CannotInvite: [
     500,
     'Cannot send user invitation',
-    'The site has no way to send e-mail, so users cannot be invited. Create the user instead.',
+    'This site cannot send e-mail, so users cannot be invited. Configure an e-mail provider — BUNBRACO_EMAIL_PROVIDER, or `email` in bunbraco.config.ts — or create the user and give them a password instead.',
   ],
   InvalidPassword: [
     400,

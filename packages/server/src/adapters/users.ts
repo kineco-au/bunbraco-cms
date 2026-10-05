@@ -198,12 +198,19 @@ export function createUserPorts(
       kind === 'invite'
         ? `flow=invite-user&userId=${user.key}&inviteCode=${encodeURIComponent(token)}`
         : `flow=reset-password&userId=${user.key}&resetCode=${encodeURIComponent(token)}`
-    await config.sendUserLink({
-      kind,
-      to: { name: user.name, email: user.email },
-      link: `${config.applicationUrl}${config.backOfficePath}/login?${flow}`,
-      message,
-    })
+    try {
+      await config.sendUserLink({
+        kind,
+        to: { name: user.name, email: user.email },
+        link: `${config.applicationUrl}${config.backOfficePath}/login?${flow}`,
+        message,
+      })
+    } catch {
+      // The provider rejected it or could not be reached. The sender has already
+      // logged why; here it is only the difference between `Success` and
+      // `CannotInvite`, and the saved token stays valid for a resend.
+      return false
+    }
     return true
   }
 
