@@ -15,6 +15,11 @@ import {
   carriedSections,
   carriesSections,
   planSections,
+  promoteBackups,
+  RUN_BACKUP_DIR,
+  replacementsNeedingPermission,
+  restoreSectionFiles,
+  stageBackups,
 } from '@bunbraco/cli'
 import { ContentTypeRepository, DictionaryRepository } from '@bunbraco/data'
 import {
@@ -275,10 +280,154 @@ describe('applying', () => {
     expect(item?.name).toBe('Greeting')
   })
 
+  /**
+   * The files a bundle carries are all editable in the backoffice — a
+   * stylesheet, a template, a document type — and a site need not be a git
+   * checkout, so an overwrite can be unrecoverable. The originals are kept.
+   */
+  test('keeps what it replaced, under the backup directory', async () => {
+    const { h, config, db, root } = await site()
+    const target = join(root, 'css', 'brochure.css')
+    writeFileSync(target, '.brochure { color: blue } /* an editor wrote this */\n')
+
+    const staging = stageBackups(config)
+    const result = await applySections(db, config, await bundleWith(h, SECTIONS()), {
+      backupDir: staging,
+      replaceFiles: true,
+    })
+
+    expect(result.replaced).toContain(target)
+    const kept = join(staging, 'replaced', 'styles/brochure.css')
+    expect(readFileSync(kept, 'utf8')).toContain('an editor wrote this')
+    // And the site now has the bundle's version.
+    expect(readFileSync(target, 'utf8')).toContain('color: red')
+  })
+
+  test('keeps nothing when nothing was replaced', async () => {
+    const { h, config, db } = await site()
+    const staging = stageBackups(config)
+    const result = await applySections(db, config, await bundleWith(h, SECTIONS()), {
+      backupDir: staging,
+    })
+    expect(result.replaced).toEqual([])
+    expect(existsSync(join(staging, 'replaced'))).toBe(false)
+  })
+
   test('creates a directory a section needs but the site has not got', async () => {
     const { h, config, db, root } = await site()
     rmSync(join(root, 'Views', 'Partials'), { recursive: true, force: true })
     await applySections(db, config, await bundleWith(h, SECTIONS()))
     expect(existsSync(join(root, 'Views', 'Partials', 'promo.tsx'))).toBe(true)
+  })
+})
+
+/**
+ * Undoing an install, without assuming the site is a git checkout: the content
+ * comes back through the ledger, and the files come back from the copies the
+ * install kept. `docs/17-packages.md`.
+ */
+/**
+ * The rule that stops an install destroying an editor's work. Its own function
+ * precisely so it can be held to this.
+ */
+describe('permission to replace a file', () => {
+  test('a file that would be replaced needs permission, named', async () => {
+    const { h, config, db, root } = await site()
+    writeFileSync(join(root, 'css', 'brochure.css'), '.brochure { color: blue }\n')
+    const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
+
+    const blocked = replacementsNeedingPermission(plan)
+    expect(blocked.map((f) => f.path)).toEqual(['styles/brochure.css'])
+  })
+
+  test('nothing needs permission on a site that has none of the files', async () => {
+    const { h, config, db } = await site()
+    const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
+    expect(replacementsNeedingPermission(plan)).toEqual([])
+  })
+
+  /** An identical file is not a replacement: applying it changes nothing. */
+  test('an unchanged file needs no permission', async () => {
+    const { h, config, db, root } = await site()
+    writeFileSync(join(root, 'css', 'brochure.css'), '.brochure { color: red }\n')
+    const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
+    expect(replacementsNeedingPermission(plan)).toEqual([])
+  })
+
+  test('granting it clears every one', async () => {
+    const { h, config, db, root } = await site()
+    writeFileSync(join(root, 'css', 'brochure.css'), '.brochure { color: blue }\n')
+    writeFileSync(join(root, 'Views', 'brochure.tsx'), 'different\n')
+    const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
+
+    expect(replacementsNeedingPermission(plan)).toHaveLength(2)
+    expect(replacementsNeedingPermission(plan, { replaceFiles: true })).toEqual([])
+  })
+
+  /** Schema is as editable from the backoffice as a stylesheet is. */
+  test('a schema file the backoffice changed is protected too', async () => {
+    const { h, config, db, root } = await site()
+    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    writeFileSync(
+      join(root, 'schema', 'document-types', 'brochure.toml'),
+      '[document-type]\nalias = "brochure"\nname = "Edited here"\n',
+    )
+    const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
+    expect(replacementsNeedingPermission(plan).map((f) => f.path)).toContain(
+      'schema/document-types/brochure.toml',
+    )
+  })
+})
+
+describe('reverting the files an install wrote', () => {
+  const RUN = 'a1b2c3d4-0000-4000-8000-000000000001'
+
+  test('puts a replaced file back and removes one it created', async () => {
+    const { h, config, db, root } = await site()
+    const replacedTarget = join(root, 'css', 'brochure.css')
+    writeFileSync(replacedTarget, '.brochure { color: blue }\n')
+
+    const staging = stageBackups(config)
+    await applySections(db, config, await bundleWith(h, SECTIONS()), {
+      backupDir: staging,
+      replaceFiles: true,
+    })
+    const createdTarget = join(root, 'Views', 'brochure.tsx')
+    expect(existsSync(createdTarget)).toBe(true)
+
+    const kept = promoteBackups(config, staging, RUN)
+    expect(kept).toBeDefined()
+
+    const restored = restoreSectionFiles(config, RUN)
+    expect(readFileSync(replacedTarget, 'utf8')).toBe('.brochure { color: blue }\n')
+    expect(restored.restored).toContain(replacedTarget)
+    // A file the install created goes away again; nothing else put it there.
+    expect(existsSync(createdTarget)).toBe(false)
+    expect(restored.removed).toContain(createdTarget)
+  })
+
+  test('a run that replaced nothing restores nothing, and does not throw', async () => {
+    const { config } = await site()
+    expect(restoreSectionFiles(config, 'no-such-run')).toEqual({ restored: [], removed: [] })
+  })
+
+  /**
+   * A staging directory is only promoted once the content has imported. One
+   * that holds no record is an apply that wrote nothing, and is cleaned up —
+   * but a directory that does hold one is never discarded, because it has the
+   * only copy of what was replaced.
+   */
+  test('an empty staging directory is cleaned up rather than promoted', async () => {
+    const { config } = await site()
+    const staging = stageBackups(config)
+    expect(promoteBackups(config, staging, RUN)).toBeUndefined()
+    expect(existsSync(staging)).toBe(false)
+  })
+
+  test('the backups sit beside the views cache, not inside it', async () => {
+    // `.bunbraco/views` is rebuilt from Views/ and cleared at boot; these have
+    // to outlive a restart to be worth taking.
+    expect(RUN_BACKUP_DIR).toBe(join('.bunbraco', 'transfer'))
+    expect(RUN_BACKUP_DIR.startsWith(join('.bunbraco', 'views'))).toBe(false)
   })
 })

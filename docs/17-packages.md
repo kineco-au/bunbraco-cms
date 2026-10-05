@@ -375,14 +375,43 @@ database directly. The file is the truth and the database follows it
 database its files do not describe, and what it installed is reviewable in a
 diff afterwards.
 
-### What reverts, and what does not
+### A file this site already has is not replaced without being asked
 
-The content half is recorded as a transfer run, so `content revert <run>` takes
-it back exactly as any import. The **files are not in that ledger**: they are in
-`schema/` and the views directory, where the repository owns them, so git is
-their revert. That split is the schema-as-code rule, not an omission — but it
-does mean "undo this install" is two actions, and the CLI says which files it
-wrote so the second one is possible.
+Every section an install writes is editable **in the backoffice**: a stylesheet
+and a script through the Settings section, a template through the template
+editor, a document type through `createSchemaFileWriter`. So an overwrite does
+not destroy a file that came from a deploy — it destroys whatever somebody last
+saved. And git cannot be assumed to be behind it: `git` is `undefined` by
+default, a feature a site opts into.
+
+So an install is **refused while any file would be replaced**, naming them, and
+`--replace-files` is how someone says yes. On a fresh site every file is a
+create, so the friction appears only where something would be lost. An identical
+file is not a replacement.
+
+### Undoing one
+
+The content half is a transfer run, so `content revert <run>` takes it back as
+any import. The files are not in that ledger — but they are not left to git
+either. Before replacing a file, the install copies the original to
+`.bunbraco/transfer/<runId>/replaced/<bundle path>`, with a record of which
+files it created rather than replaced, and `content revert` puts the replaced
+ones back and removes the created ones.
+
+Two details that make that work:
+
+- The copies are keyed by the file's **bundle** path, not its path on this site,
+  so a revert re-derives the destination through the same section mapping and
+  restores to where the file would go *now*.
+- The run id does not exist until the content has imported, so the backups are
+  staged under `pending-…` and moved once it has. A staging directory that was
+  never promoted is an install whose content was refused after its files landed:
+  it is left alone, because it holds the only copy of what was replaced, and the
+  CLI prints where it is.
+
+`.bunbraco/transfer/` is a sibling of `.bunbraco/views`, never inside it: the
+views cache is rebuilt from `Views/` and cleared at boot, and these have to
+outlive a restart to be worth taking.
 
 ### Known rough edge
 
@@ -402,6 +431,7 @@ repeat install is not a silent no-op the way re-importing unchanged content is.
 | The zip | `server/src/zip.ts` |
 | The format | `transfer/src/model.ts` (`carries`, `label`, sections), `write.ts`, `load.ts` |
 | The installer | `cli/src/operations/sections.ts`, wired into `contentCheck`/`contentImport` |
+| File safety and revert | `replacementsNeedingPermission`, `stageBackups`/`promoteBackups`/`restoreSectionFiles`, same file |
 | Discovery and serving | `backoffice-host/src/extensions.ts`, wired through `static.ts` and `manifests.ts` |
 | The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/bunbraco/api/packages/*` |
 | The two native views | `backoffice-host/plugin/packages-marketplace.js`, `packages-installed.js` |
@@ -435,6 +465,13 @@ cannot be used to read `node_modules`.
 this site's directories, that a plan writes nothing, create vs overwrite vs
 unchanged, the overlay schema check, declining either half, and that applying
 twice converges on one type rather than duplicating it.
+
+It also covers the two rules that keep an install from destroying work — which
+file needs permission before it is replaced (including a schema file the
+backoffice changed, and *not* an identical one), and that a revert puts back what
+was replaced and removes what was created. `replacementsNeedingPermission` is
+its own function rather than a condition inside the importer precisely so it can
+be held to that.
 
 `tests/content-bundle.test.ts` covers the format: a content-only bundle still
 says version 1, a bundle with sections declares them, the integrity hash catches

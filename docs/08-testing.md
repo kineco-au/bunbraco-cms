@@ -752,6 +752,27 @@ Phase 3 and Phase 4 suites exercise the same code path a browser would.
 Because the harness boots a server per test, each one must close its database
 (`afterEach`), or Postgres runs out of client slots.
 
+### Two suites at once
+
+The harness gives each test **process** its own views cache
+(`.bunbraco/views-<pid>`), which is what makes it safe to run a second suite —
+or a single file beside a full run — without the two interfering.
+
+Without it they do, in a way that looks nothing like its cause. The views cache
+is content-addressed, so two processes over the same views compute the same
+generation hash and therefore the same `.partial-<hash>` staging directory; one
+renames it while the other is still writing into it
+(`render/src/snapshots.ts`), and every render in the losing process fails with
+`ENOENT`. The symptom is a scatter of unrelated-looking failures — redirects,
+hostnames, preview, media, value converters — all of which happen to render a
+page.
+
+The path stays **relative**, so it resolves against whichever `siteDir` a test
+configured. That matters as much as the pid: a fixture site with its own
+`siteDir` keeps its own cache, and two fixtures whose views happen to be
+identical do not share a generation that evicting would pull out from under
+either of them.
+
 ## Running the tests
 
 Every test command comes in two forms: on the host, and the same suite inside a

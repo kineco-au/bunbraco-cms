@@ -2,6 +2,8 @@
  * A signed-in server for tests: boots the real app, completes the OAuth flow, and
  * carries cookies so subsequent calls are authenticated.
  */
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { deriveChallenge, generateToken, parseCookies } from '@bunbraco/auth'
 import {
   type BunbracoConfig,
@@ -11,6 +13,30 @@ import {
   type ServerHandle,
 } from '@bunbraco/server'
 import { resetPostgresSchema } from './db.ts'
+
+/**
+ * The views cache, per test process *and* per site.
+ *
+ * Relative on purpose, so `loadConfig` resolves it against whichever `siteDir`
+ * is in play. Both halves matter:
+ *
+ * - **Per site**, which the default `.bunbraco/views` already gave: the cache is
+ *   content-addressed, so two fixture sites whose views happen to be identical
+ *   would otherwise share a generation, and evicting it would pull the files out
+ *   from under whichever server still needed them.
+ * - **Per process**, which it did not: two suites at once — two
+ *   `docker compose run`s, or one file beside a full run — compute the same
+ *   generation hash under the same default site, and one renames
+ *   `.partial-<hash>` while the other is still writing into it
+ *   (`render/src/snapshots.ts`). Every render in the losing process then fails
+ *   with ENOENT.
+ */
+const VIEWS_CACHE = join('.bunbraco', `views-${process.pid}`)
+
+/** The default site's copy; a fixture site's goes with the fixture. */
+process.on('exit', () => {
+  rmSync(join(import.meta.dir, '..', '..', VIEWS_CACHE), { recursive: true, force: true })
+})
 
 export const ORIGIN = 'http://localhost'
 /**
@@ -65,7 +91,7 @@ export interface HarnessOptions {
 
 export async function signedInServer(options: HarnessOptions = {}): Promise<Harness> {
   if (!options.keepDatabase) await resetPostgresSchema()
-  const server = await createServer(loadConfig(options.config))
+  const server = await createServer(loadConfig({ viewsCacheDir: VIEWS_CACHE, ...options.config }))
   return signIn(server, ADMIN)
 }
 

@@ -894,6 +894,14 @@ async function contentRevert(config: BunbracoConfig): Promise<void> {
       process.exit(1)
     }
 
+    // The files an install replaced come back from the run's own copies, not
+    // from git: these files are editable in the backoffice, so a site need not
+    // be a checkout at all.
+    const files = ops.restoreSectionFiles(config, runId)
+    for (const file of files.restored) console.log(`  restored ${relative(cwd, file)}`)
+    for (const file of files.removed)
+      console.log(`  removed  ${relative(cwd, file)}  (created by that run)`)
+
     for (const key of result.restored) console.log(`  restored ${key}`)
     for (const key of result.recycled) console.log(`  recycled ${key}  (created by that run)`)
     for (const entry of result.check.plan.filter((p) => p.action === 'skip'))
@@ -945,6 +953,7 @@ function transferInput(dir: string): ops.TransferInput {
     // content without the structure that came with it.
     withoutSchema: flags.has('--no-schema'),
     withoutFiles: flags.has('--no-files'),
+    replaceFiles: flags.has('--replace-files'),
   }
 }
 
@@ -1020,6 +1029,10 @@ async function contentImport(config: BunbracoConfig): Promise<void> {
           }.`,
       )
       for (const file of result.sections.written) console.error(`    ${relative(cwd, file)}`)
+      if (result.sections.replaced.length > 0)
+        console.error(
+          `  the originals are under ${relative(cwd, join(config.siteDir, ops.RUN_BACKUP_DIR))}`,
+        )
     } else {
       console.error(
         `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
@@ -1036,10 +1049,18 @@ async function contentImport(config: BunbracoConfig): Promise<void> {
   const placed = describePlaced(result.blobs)
   if (placed) console.log(`  blobs    ${placed}`)
   if (result.sections) {
-    console.log(`  files    ${result.sections.written.length} written`)
+    console.log(
+      `  files    ${result.sections.written.length} written` +
+        (result.sections.replaced.length > 0
+          ? `, ${result.sections.replaced.length} replaced`
+          : ''),
+    )
     if (result.sections.schema) console.log(`  schema   ${result.sections.schema.action}`)
     if (result.sections.dictionary)
       console.log(`  dict     ${result.sections.dictionary.imported} imported`)
+    // Named, because this is what makes reverting the install possible.
+    if (result.replacedFilesKept)
+      console.log(`  kept     ${relative(cwd, result.replacedFilesKept)}  (the files it replaced)`)
   }
   if (result.published > 0) console.log(`  published ${result.published} node(s)`)
   for (const failure of result.publishFailures)
@@ -1914,6 +1935,8 @@ function help(): void {
                               failure leaves nothing behind
                               [--publish] [--label <text>] [--backup-taken] + the check flags
                               [--no-schema] [--no-files] decline a section it carries
+                              [--replace-files] allow replacing files this site has;
+                              refused without it, and the originals are kept for a revert
   bundle check <dir>          the same as content check
   bundle install <dir>        the same as content import; a bundle carrying its own
                               schema and views installs into a site that has neither

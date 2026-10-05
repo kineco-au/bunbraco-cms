@@ -15,11 +15,13 @@
  * touched until an apply.
  */
 import {
+  copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -60,7 +62,34 @@ export interface SectionOptions {
   withoutSchema?: boolean
   /** Skip views, partials, styles and scripts. */
   withoutFiles?: boolean
+  /**
+   * Allow replacing files this site already has.
+   *
+   * Off by default, and an install is refused while any file would be
+   * replaced. These files are editable in the backoffice — a stylesheet, a
+   * template, a document type — so overwriting one destroys somebody's work,
+   * and this site may well have no git to recover it from.
+   */
+  replaceFiles?: boolean
 }
+
+/**
+ * Where an install keeps the files it replaced, under the site.
+ *
+ * A sibling of the views cache, not inside it: `.bunbraco/views` is rebuilt
+ * from `Views/` and cleared at boot, and these have to outlive a restart to be
+ * worth taking.
+ */
+export const RUN_BACKUP_DIR = join('.bunbraco', 'transfer')
+
+/** What one install did to the files, so a revert can undo exactly that. */
+interface FileRecord {
+  path: string
+  action: FileAction
+}
+
+const RECORD_FILE = 'files.json'
+const REPLACED_DIR = 'replaced'
 
 /** Where each section lands, from the site's own configuration. */
 function destinationOf(config: BunbracoConfig, section: BundleSection): string | undefined {
@@ -193,6 +222,8 @@ async function checkSchemaOverlay(
 export interface SectionResult {
   /** The files written, by the path they were written to. */
   written: string[]
+  /** Those that replaced something, whose originals were kept. */
+  replaced: string[]
   /** The schema sync's outcome, when the bundle carried schema. */
   schema: { action: string } | undefined
   dictionary: { imported: number; skipped: string[] } | undefined
@@ -210,10 +241,28 @@ export async function applySections(
   db: Db,
   config: BunbracoConfig,
   carried: CarriedSections,
-  options: SectionOptions = {},
+  options: SectionOptions & { backupDir?: string } = {},
 ): Promise<SectionResult> {
   const written: string[] = []
-  const put = (target: string, content: string) => {
+  const replaced: string[] = []
+  const records: FileRecord[] = []
+
+  /**
+   * Writes one file, keeping what was there.
+   *
+   * The original is copied under its *bundle* path rather than its path on this
+   * site, so a revert re-derives the destination through the same mapping — and
+   * restores to where the file would go now, not where it went then.
+   */
+  const put = (target: string, content: string, bundlePath: string) => {
+    const action = actionFor(target, content)
+    if (action === 'overwrite' && options.backupDir) {
+      const keep = join(options.backupDir, REPLACED_DIR, bundlePath)
+      mkdirSync(dirname(keep), { recursive: true })
+      copyFileSync(target, keep)
+      replaced.push(target)
+    }
+    records.push({ path: bundlePath, action })
     mkdirSync(dirname(target), { recursive: true })
     writeFileSync(target, content)
     written.push(target)
@@ -221,7 +270,7 @@ export async function applySections(
 
   const schemaPaths = options.withoutSchema ? [] : (carried.carries.schema ?? [])
   for (const path of schemaPaths)
-    put(join(config.schemaDir, withinSection(path, 'schema')), read(carried, path))
+    put(join(config.schemaDir, withinSection(path, 'schema')), read(carried, path), path)
 
   let schema: { action: string } | undefined
   if (schemaPaths.length > 0) {
@@ -237,7 +286,7 @@ export async function applySections(
       const destination = destinationOf(config, section)
       if (!destination) continue
       for (const path of carried.carries[section] ?? [])
-        put(join(destination, withinSection(path, section)), read(carried, path))
+        put(join(destination, withinSection(path, section)), read(carried, path), path)
     }
   }
 
@@ -250,9 +299,128 @@ export async function applySections(
     }
   }
 
-  return { written, schema, dictionary }
+  // Written last: a record that exists means the files beside it are complete.
+  if (options.backupDir && records.length > 0) {
+    mkdirSync(options.backupDir, { recursive: true })
+    writeFileSync(join(options.backupDir, RECORD_FILE), `${JSON.stringify(records, null, 2)}\n`)
+  }
+
+  return { written, replaced, schema, dictionary }
 }
 
 /** Whether a bundle carries anything beyond its content. */
 export const carriesSections = (carried: CarriedSections): boolean =>
   Object.keys(carried.carries).length > 0
+
+/**
+ * The files an install would replace, and so may not touch without being told
+ * it may.
+ *
+ * Its own function rather than a condition inside the importer, because this is
+ * the rule that stops an install destroying an editor's work: a stylesheet, a
+ * template or a document type changed in the backoffice, on a site that may
+ * have no git behind it. `unchanged` is not a replacement, and a declined
+ * section never reaches the plan.
+ */
+export function replacementsNeedingPermission(
+  plan: SectionPlan,
+  options: SectionOptions = {},
+): SectionFile[] {
+  if (options.replaceFiles) return []
+  return plan.files.filter((file) => file.action === 'overwrite')
+}
+
+/** A staging directory for an install's backups, before the run it belongs to exists. */
+export function stageBackups(config: BunbracoConfig): string {
+  const dir = join(config.siteDir, RUN_BACKUP_DIR, `pending-${Date.now().toString(36)}`)
+  mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+/**
+ * Files an install replaced belong to the run that imported its content, and
+ * the run id only exists once that import has happened — so the backups are
+ * staged first and moved here afterwards.
+ *
+ * A staging directory that is never promoted is an install whose content was
+ * refused after its files had landed. It is left where it is rather than
+ * deleted: it holds the only copy of what was replaced.
+ */
+export function promoteBackups(
+  config: BunbracoConfig,
+  staging: string,
+  runId: string,
+): string | undefined {
+  if (!existsSync(join(staging, RECORD_FILE))) {
+    rmSync(staging, { recursive: true, force: true })
+    return undefined
+  }
+  const target = join(config.siteDir, RUN_BACKUP_DIR, runId)
+  rmSync(target, { recursive: true, force: true })
+  mkdirSync(dirname(target), { recursive: true })
+  renameSync(staging, target)
+  return target
+}
+
+export interface RestoredFiles {
+  /** Files put back to what they were before the install. */
+  restored: string[]
+  /** Files the install created, and which reverting therefore removes. */
+  removed: string[]
+}
+
+/**
+ * Puts back what an install replaced, for a run that is being reverted.
+ *
+ * Undoing an install is one action because of this: the content comes back
+ * through the ledger, and the files come back from here. Nothing depends on the
+ * site being a git checkout — these files are editable in the backoffice, so
+ * assuming a repository would have been assuming somebody else's workflow.
+ */
+export function restoreSectionFiles(config: BunbracoConfig, runId: string): RestoredFiles {
+  const dir = join(config.siteDir, RUN_BACKUP_DIR, runId)
+  const record = join(dir, RECORD_FILE)
+  if (!existsSync(record)) return { restored: [], removed: [] }
+
+  let records: FileRecord[]
+  try {
+    records = JSON.parse(readFileSync(record, 'utf8')) as FileRecord[]
+  } catch {
+    return { restored: [], removed: [] }
+  }
+
+  const restored: string[] = []
+  const removed: string[] = []
+  for (const entry of records) {
+    const section = sectionFor(entry.path)
+    if (!section) continue
+    const destination = destinationOf(config, section)
+    if (!destination) continue
+    const target = join(destination, withinSection(entry.path, section))
+
+    if (entry.action === 'overwrite') {
+      const kept = join(dir, REPLACED_DIR, entry.path)
+      if (!existsSync(kept)) continue
+      mkdirSync(dirname(target), { recursive: true })
+      copyFileSync(kept, target)
+      restored.push(target)
+      continue
+    }
+    // A file the install created: reverting takes it away again. `unchanged`
+    // is left alone — the install did not put it there.
+    if (entry.action === 'create' && existsSync(target)) {
+      rmSync(target, { force: true })
+      removed.push(target)
+    }
+  }
+  return { restored, removed }
+}
+
+/** The section a bundle path belongs to, by its leading directory. */
+function sectionFor(path: string): BundleSection | undefined {
+  if (path === `${BUNDLE_SECTIONS.dictionary}.udt`) return 'dictionary'
+  const top = path.split('/')[0]
+  for (const [section, dir] of Object.entries(BUNDLE_SECTIONS))
+    if (top === dir) return section as BundleSection
+  return undefined
+}

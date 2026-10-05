@@ -53,9 +53,13 @@ import {
   carriedSections,
   carriesSections,
   planSections,
+  promoteBackups,
+  replacementsNeedingPermission,
+  type SectionFile,
   type SectionOptions,
   type SectionPlan,
   type SectionResult,
+  stageBackups,
 } from './sections.ts'
 
 export {
@@ -73,10 +77,16 @@ export {
   carriesSections,
   type FileAction,
   planSections,
+  promoteBackups,
+  type RestoredFiles,
+  RUN_BACKUP_DIR,
+  replacementsNeedingPermission,
+  restoreSectionFiles,
   type SectionFile,
   type SectionOptions,
   type SectionPlan,
   type SectionResult,
+  stageBackups,
 } from './sections.ts'
 export type { BackupResult, WritesPaused }
 
@@ -258,6 +268,8 @@ export interface ContentImportResult {
    * owns them — so a revert takes the content back and git takes the files.
    */
   sections: SectionResult | undefined
+  /** Where the originals of any replaced files were kept, for a revert. */
+  replacedFilesKept?: string | undefined
   /** Undefined when the import was refused; then nothing was written. */
   runId: string | undefined
   check: TransferCheck
@@ -297,23 +309,47 @@ export async function contentImport(
     const plan = carriesSections(carried)
       ? await planSections(db, config, carried, input)
       : undefined
-    if (plan?.schema?.classification === 'breaking')
-      return {
-        bundle: summarise(set),
-        backup,
-        runId: undefined,
-        check: emptyCheck(set.manifest.id),
-        blobs: null,
-        published: 0,
-        publishFailures: [],
-        problems: [
-          'the schema this bundle carries cannot be applied here without data work',
-          ...plan.schema.findings,
-        ],
-        sections: undefined,
-      }
+    const refuse = (problems: string[]): ContentImportResult => ({
+      bundle: summarise(set),
+      backup,
+      runId: undefined,
+      check: emptyCheck(set.manifest.id),
+      blobs: null,
+      published: 0,
+      publishFailures: [],
+      problems,
+      sections: undefined,
+    })
 
-    const sections = plan ? await applySections(db, config, carried, input) : undefined
+    if (plan?.schema?.classification === 'breaking')
+      return refuse([
+        'the schema this bundle carries cannot be applied here without data work',
+        ...plan.schema.findings,
+      ])
+
+    /**
+     * A file this site already has is not replaced without being asked.
+     *
+     * Every section is editable in the backoffice — a stylesheet, a template, a
+     * document type — so an overwrite destroys somebody's work, and the site
+     * may have no git to recover it from. Refused by name, like any other
+     * finding a person has to answer.
+     */
+    const needingPermission = plan ? replacementsNeedingPermission(plan, input) : []
+    if (needingPermission.length > 0)
+      return refuse([
+        `${needingPermission.length} file(s) here would be replaced; pass --replace-files to allow it`,
+        ...needingPermission.map((file: SectionFile) => file.path),
+      ])
+
+    // Staged whenever something *will* be replaced — which is decided by the
+    // plan, not by the permission check: by this point permission has been
+    // given, so the files needing it are exactly the ones to back up.
+    const willReplace = (plan?.files ?? []).some((file) => file.action === 'overwrite')
+    const staging = plan && willReplace ? stageBackups(config) : undefined
+    const sections = plan
+      ? await applySections(db, config, carried, { ...input, backupDir: staging })
+      : undefined
     const result = await importBundle(db, set, {
       ...prepared.options,
       publish: input.publish ?? false,
@@ -333,6 +369,8 @@ export async function contentImport(
       sections,
     }
     if (!result.runId) return outcome
+    // The backups become the run's, so `content revert` can find them.
+    if (staging) outcome.replacedFilesKept = promoteBackups(config, staging, result.runId)
     if (blobs.size > 0) outcome.blobs = await placeBlobs(await mediaStoreFor(config), blobs)
     await recordInLedger(db, {
       name: `content import ${set.manifest.id}`,
