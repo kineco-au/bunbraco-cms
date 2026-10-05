@@ -268,7 +268,7 @@ template is left out, because Umbraco does not serve one either.
 | **WP-I.3** | Schema conversion | **done**; `schema check --static` passes on the output |
 | **WP-I.4** | Content conversion | **done**; the bundle imports whole on SQLite and Postgres |
 | **WP-I.5** | Site data | **partly**: dictionary and hostnames are written as files. Members, users, redirects, protected pages and schedules are **not built** |
-| **WP-I.6** | Views and assets | **done**; every stub passes `views check` |
+| **WP-I.6** | Views and assets | **done**; every stub passes `components check` |
 | **WP-I.7** | Orchestration and URL parity | **done**: the demo store imports with no manual step and every URL it served answers 200 |
 | **WP-I.8** | 15.x and 16.x | **partly**: the two conversions are built and tested against an altered fixture, not a real export |
 

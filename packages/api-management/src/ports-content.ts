@@ -525,3 +525,40 @@ export interface RedirectPort {
   /** Whether renaming a page records a redirect; from the site's config. */
   isTracking(): boolean
 }
+
+/** One filter the template query builder applies, in the contract's vocabulary. */
+export interface TemplateQueryFilter {
+  propertyAlias: string
+  constraintValue: string
+  operator: string
+}
+
+export interface TemplateQuerySort {
+  propertyAlias: string
+  direction: string | null
+}
+
+/** A query the builder describes, normalised out of the wire model. */
+export interface TemplateQueryRequest {
+  /** The document the query starts below, or null for the page being rendered. */
+  rootKey: string | null
+  documentTypeAlias: string | null
+  filters: TemplateQueryFilter[]
+  sort: TemplateQuerySort | null
+  take: number
+}
+
+export interface TemplateQueryItem {
+  icon: string
+  name: string
+}
+
+/**
+ * Runs what the query builder describes, so the count and the sample it shows
+ * are the answer the generated snippet would give.
+ */
+export interface TemplateQueryPort {
+  /** The aliases a query may be narrowed to: the routable document types. */
+  documentTypeAliases(): Promise<string[]>
+  execute(request: TemplateQueryRequest): Promise<{ items: TemplateQueryItem[]; total: number }>
+}

@@ -101,7 +101,9 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Bunbraco.EntryPoint.ClientCredentials',
       'backofficeEntryPoint:Bunbraco.EntryPoint.BundleBuilderLabels',
       // One tree over components/, in place of Templates and Partial Views.
-      'menuItem:Bunbraco.MenuItem.Components',
+      'backofficeEntryPoint:Bunbraco.EntryPoint.ComponentsTree',
+      // The query builder writes TypeScript, so its code block says so.
+      'backofficeEntryPoint:Bunbraco.EntryPoint.QueryBuilder',
     ])
     // The welcome dashboard takes the place of Umbraco's news dashboard through
     // the registry's own `overwrites`, rather than mutating it while rendering.
@@ -121,18 +123,15 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     const created = ours?.extensions.find((e) => e.alias === 'Bunbraco.SectionView.Bundles.Created')
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
-    // Three kinds of extension have no module of their own: a `section`, which
-    // is a route and a label; a `propertyEditorSchema`, which declares a
-    // server-side editor alias and its default UI; and a `menuItem` of kind
-    // `tree`, which is a label over a tree somebody else registered. Everything
-    // else loads one.
+    // Two kinds of extension have no module of their own: a `section`, which is
+    // a route and a label, and a `propertyEditorSchema`, which declares a
+    // server-side editor alias and its default UI. Everything else loads one.
     const moduleless = ours?.extensions.filter((e) => !e.element && !e.js) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
       'Bunbraco.Section.Forms',
       'Bunbraco.FormPicker',
-      'Bunbraco.MenuItem.Components',
     ])
-    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema', 'menuItem'])
+    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema'])
 
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {

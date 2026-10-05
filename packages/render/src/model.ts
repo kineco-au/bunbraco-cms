@@ -229,4 +229,12 @@ export interface Navigation {
   children(content: PublishedContent): PublishedContent[]
   ancestors(content: PublishedContent): PublishedContent[]
   root(): PublishedContent[]
+  /**
+   * Published content by key, in the request's culture.
+   *
+   * The only lookup that does not start from the page being rendered, which is
+   * what a query rooted at a document somebody picked needs — the template
+   * query builder writes `nav.byKey('…')` for exactly that.
+   */
+  byKey(key: string): PublishedContent | undefined
 }

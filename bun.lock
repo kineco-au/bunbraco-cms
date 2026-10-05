@@ -72,7 +72,7 @@
       "name": "@bunbraco/site",
       "version": "0.0.0",
       "dependencies": {
-        "@bunbraco/simple-redirects": "workspace:*",
+        "@bunbraco/simple-redirects": "0.5.1",
         "bunbraco": "workspace:*",
       },
     },
@@ -713,10 +713,34 @@
 
     "@aws-sdk/credential-provider-sso/@aws-sdk/token-providers": ["@aws-sdk/token-providers@3.1138.0", "", { "dependencies": { "@aws-sdk/core": "^3.978.1", "@aws-sdk/nested-clients": "^3.997.46", "@aws-sdk/types": "^3.974.6", "@smithy/core": "^3.35.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-GpyAr0DD63YOEmYFM6Df+gJuIgC92MMTiBK4FTKfxii5MJ9ge20epR7LyroulscYlG89J+ZB2ivFDPjvfQhzdw=="],
 
+    "@bunbraco/site/@bunbraco/simple-redirects": ["@bunbraco/simple-redirects@0.5.1", "", { "dependencies": { "@bunbraco/server": "0.5.1" } }, "sha512-HQxauwaoOWig4B12fFtdxcUqQcFjOHMMAiBMgudOYsuGC7rsfsUs5aA8ts/BSRHtaxtEJOo0w2jWKoidkFjxHA=="],
+
     "monaco-editor/dompurify": ["dompurify@3.4.15", "", { "optionalDependencies": { "@types/trusted-types": "^2.0.7" } }, "sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw=="],
 
     "monaco-editor/marked": ["marked@14.0.0", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-uIj4+faQ+MgHgwUW1l2PsPglZLOLOT1uErt06dAPtx2kjteLAkbsd/0FiYg/MGS+i7ZKLb7w2WClxHkzOOuryQ=="],
 
     "pkg-types/confbox": ["confbox@0.3.1", "", {}, "sha512-cKUSoKa8YxFZZSmraVi7onONx3amu77ngK3kGpsYHDH7drPwCRkQE1RYMPlLRrMtnciRj274XNRxcHxnKmDSnA=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server": ["@bunbraco/server@0.5.1", "", { "dependencies": { "@bunbraco/api-management": "0.5.1", "@bunbraco/assistant": "0.5.1", "@bunbraco/auth": "0.5.1", "@bunbraco/backoffice-host": "0.5.1", "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1", "@bunbraco/render": "0.5.1", "@bunbraco/schema": "0.5.1", "@bunbraco/transfer": "0.5.1", "@logtape/logtape": "^2.3.8" } }, "sha512-VyrRlcHF/6BChZ3fL+UHYEsGXlbCuG/K15Oyb8VlOZvBboVn82ZzayYHB8QEAe6w7by/bazq5s0FjehPqtxsnA=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/api-management": ["@bunbraco/api-management@0.5.1", "", { "dependencies": { "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1" } }, "sha512-XQ9GMfKcR6fZLB3lJgTuJxiJc600RXf5MzP8dEeRLhLjq2YuD49s8tm/A5MX6O7Do4rk18fD8fvoMhmEWqqMvQ=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/assistant": ["@bunbraco/assistant@0.5.1", "", { "dependencies": { "@aws-sdk/client-bedrock-runtime": "^3.1142.0", "@aws-sdk/credential-provider-node": "^3.972.84", "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1", "@bunbraco/schema": "0.5.1", "@smithy/node-http-handler": "^4.12.1", "@smithy/types": "^4.19.0" } }, "sha512-9MDdCEsdH1HSmgOXlX1am7rbgiMVf88ldBFU8zEz3ktYVRkiPBCn+GEaqdcxviQfqZkNLn2vggrEHF5sf9LGAg=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/auth": ["@bunbraco/auth@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-VV0q4Ihxkx1zq09Tw2gMwquHt2M0b7Ogo3atLEDYBrfO45RjU56uW2kGgWZF9YBBy81oMua74hHbGkzwQLuDcg=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/backoffice-host": ["@bunbraco/backoffice-host@0.5.1", "", { "dependencies": { "@bunbraco/backoffice-dist": "18.2.0", "@bunbraco/core": "0.5.1" } }, "sha512-QDD93WYCxZYi+OQtUxUFnoRtHizjsShEGETuCrjIdlrQ23Wk16FeaLZFoLb2vnGLL6e82ow4LP6TM3UHkdtCLw=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/contracts": ["@bunbraco/contracts@0.5.1", "", {}, "sha512-UJPB5H65zSgZ7KVDbMtuN8CmkJwMHBgx68Y08a5rsZz+3jadbuEVhqdVtTATWTMSEwN559daypnF3Z41XQAUdg=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/core": ["@bunbraco/core@0.5.1", "", {}, "sha512-zh1gn9R1D+SZoB27JjgI/oStaIjrXCaG4lV2pI3uw8wc+nOzw0LyS2rddDbCRU8eSuZxpTD9ipvUTCSqigcnqA=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/data": ["@bunbraco/data@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1" } }, "sha512-FL5XwAqkabEmqFt/ZR8i1tmghF02ouWnCmG5eoPlGqJ1CKLL6eWTz0E9B9EWUFB0hsZhq/tsx7DhR6Q3VDzJMA=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/render": ["@bunbraco/render@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1" } }, "sha512-Aj4jsz6Urv1If1oNbQEbwh5krqiS0QPLfzAsJ5Y9mbQ+lp37ymNtrMM7//GedwcjdY/LCVaiZSxq8mYctTZNGQ=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/schema": ["@bunbraco/schema@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-vYFjvXJCKksS28dlTNzinBXcQXW4EX6fjqlgbR9j/JZbn6vzM3oxgYFE5mgIRSGETOzqYyrUesX8sr4rnpsgdg=="],
+
+    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/transfer": ["@bunbraco/transfer@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-j0pNai6xR5yrl/gRfwxX2Ss69Mgm5a4v+s+bLOR3rUzoHjpwEwil2cFHZWvPqwlasda3syjh1HpVlsaTVJ1DLA=="],
   }
 }

@@ -19,6 +19,7 @@ import type {
   RedirectPort,
   ReferencePort,
   TemplatePort,
+  TemplateQueryPort,
 } from './ports-content.ts'
 import type { FileSystemPort, Snippet } from './ports-files.ts'
 import type { LogViewerPort } from './ports-logs.ts'
@@ -212,6 +213,8 @@ export interface ManagementApiDeps {
   logViewer?: LogViewerPort
   modelsBuilder?: ModelsBuilderPort
   publishedCache?: PublishedCachePort
+  /** The template editor's query builder. */
+  templateQuery?: TemplateQueryPort
   memberGroups?: MemberGroupPort
   members?: MemberPort
   publicAccess?: PublicAccessPort

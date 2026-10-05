@@ -26,6 +26,7 @@ import {
   permissionsForPath,
 } from '@bunbraco/core'
 import {
+  ContentTypeRepository,
   type Db,
   LanguageRepository,
   RedirectRepository,
@@ -57,6 +58,7 @@ import {
   type SchemaFileWriter,
 } from './adapters/schema-files.ts'
 import { createTemplateFileStore } from './adapters/template-files.ts'
+import { createTemplateQueryPort } from './adapters/template-query.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
 import { COMPONENT_SNIPPETS } from './component-snippets.ts'
 import { type BunbracoConfig, type UserLinkSender, VERSION } from './config.ts'
@@ -512,6 +514,10 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     })
     if (options.cache) {
       const cache = options.cache
+      deps.templateQuery = createTemplateQueryPort({
+        cache,
+        types: new ContentTypeRepository(options.db),
+      })
       deps.publishedCache = {
         reload: () => cache.invalidate(),
         rebuild: async () => {

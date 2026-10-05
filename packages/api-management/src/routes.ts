@@ -26,6 +26,7 @@ import { registerReferenceHandlers } from './handlers/references.ts'
 import { registerServerHandlers } from './handlers/server.ts'
 import { registerSettingsStubHandlers } from './handlers/settings-stubs.ts'
 import { registerTemplateHandlers } from './handlers/template.ts'
+import { registerTemplateQueryHandlers } from './handlers/template-query.ts'
 import { registerTemporaryFileHandlers } from './handlers/temporary-file.ts'
 import { registerUserHandlers } from './handlers/user.ts'
 import type { ManagementApiDeps } from './ports.ts'
@@ -68,6 +69,7 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     registerContentTypeHandlers(router, deps.memberTypes, 'member', deps.temporaryFiles)
   if (deps.dataTypes) registerDataTypeHandlers(router, deps.dataTypes)
   if (deps.templates) registerTemplateHandlers(router, deps.templates)
+  if (deps.templateQuery) registerTemplateQueryHandlers(router, deps.templateQuery)
   if (deps.documents) registerDocumentHandlers(router, deps.documents, deps.preview)
   if (deps.blueprints) registerDocumentBlueprintHandlers(router, deps.blueprints)
   if (deps.temporaryFiles) registerTemporaryFileHandlers(router, deps.temporaryFiles)

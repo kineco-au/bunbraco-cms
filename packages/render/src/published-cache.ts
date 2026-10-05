@@ -412,6 +412,7 @@ export class PublishedCache {
     const snapshot = await this.snapshot()
     const view = this.#view(snapshot, culture)
     const byId = view?.byId ?? new Map<number, PublishedContent>()
+    const byKey = view?.byKey ?? new Map<string, PublishedContent>()
     const parentIdOf = view?.parentIdOf ?? new Map<number, number>()
     return {
       parent: (content) => {
@@ -432,6 +433,7 @@ export class PublishedCache {
         return found
       },
       root: () => view?.roots ?? [],
+      byKey: (key) => byKey.get(key.toLowerCase()),
     }
   }
 

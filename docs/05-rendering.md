@@ -60,7 +60,7 @@ components/shared/layout.tsx      a component — imported, never routed to
 ### Checking them before a visitor does
 
 A view is compiled when a request renders it, so one that does not compile is a
-500 that waits to be found. `bunbraco views check` brings that forward: every
+500 that waits to be found. `bunbraco components check` brings that forward: every
 `.tsx` under `components/` is transpiled — which gives the line a syntax error is on
 — and then imported, which is what a render does, so an import that does not
 resolve is caught as well. It also reports a template a document type declares
@@ -77,7 +77,7 @@ suspicious one.
 
 A component may only import what the tree contains. A relative import that
 climbs out of `components/` resolves on disk and fails the moment the view is rendered, because
-it is rendered from a snapshot of the tree and nothing above it; `views check`
+it is rendered from a snapshot of the tree and nothing above it; `components check`
 refuses one, where the message can explain itself.
 
 ## A changed view, without a restart
@@ -98,7 +98,7 @@ graph: `homePage.tsx` can be byte-identical while its layout changed. Structure
 is preserved, so relative imports resolve inside the snapshot and no request can
 pair a new template with an old layout.
 
-`componentsDir` stays the truth — the template editor, `listComponents` and `views check`
+`componentsDir` stays the truth — the template editor, `listComponents` and `components check`
 all read it, and a snapshot is only ever an import target. Render errors are
 mapped back through `Renderer.inSource`, so a stack trace names the file somebody
 can open rather than the generation it was imported from.
@@ -552,12 +552,12 @@ codec in `@bunbraco/server` `imaging.ts`.
 
 A view is reached only through a document type's template alias, and it is
 loaded when a request renders it — so a view that does not compile is a 500 that
-waits for a visitor to find it. `views check` is that failure brought forward:
+waits for a visitor to find it. `components check` is that failure brought forward:
 
 ```bash
-bunx bunbraco views check             # compile every view; report a template with no file
-bunx bunbraco views list              # what is in components/, and which type declares each
-bunx bunbraco views new shared/header        # components/shared/header.tsx
+bunx bunbraco components check             # compile every view; report a template with no file
+bunx bunbraco components list              # what is in components/, and which type declares each
+bunx bunbraco components new shared/header        # components/shared/header.tsx
 bunx bunbraco assets list             # the stylesheets and scripts beside them
 bunx bunbraco assets new stylesheet print.css
 ```

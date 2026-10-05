@@ -258,17 +258,16 @@
       "js": "/bunbraco-plugin/branding/bundle-builder-labels.js"
     },
     {
-      "type": "menuItem",
-      "kind": "tree",
-      "alias": "Bunbraco.MenuItem.Components",
-      "name": "Bunbraco Components Menu Item",
-      "weight": 40,
-      "overwrites": ["Umb.MenuItem.PartialView", "Umb.MenuItem.Templates"],
-      "meta": {
-        "label": "Components",
-        "treeAlias": "Umb.Tree.PartialView",
-        "menus": ["Umb.Menu.Templating"]
-      }
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.ComponentsTree",
+      "name": "Bunbraco Components Tree",
+      "js": "/bunbraco-plugin/branding/components-tree.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.QueryBuilder",
+      "name": "Bunbraco Query Builder Language",
+      "js": "/bunbraco-plugin/branding/query-builder.js"
     }
   ]
 }

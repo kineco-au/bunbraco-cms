@@ -276,8 +276,22 @@ test('a component and a folder can both be created from the Components tree', as
   })
   expect(component.status()).toBe(201)
 
-  // And the tree shows the folder it was put in.
+  // And the tree shows the folder it was put in. Scoped to the sidebar: the
+  // workspace footer's breadcrumb names the same folder, so an unscoped match
+  // finds two.
   await page.goto('/bunbraco/section/settings')
+  const tree = page.getByTestId('section-sidebar:Umb.SectionSidebarMenu.Templating')
   await page.getByText('Components', { exact: true }).first().click()
   await expect(page.getByText(`grp${id}`, { exact: true })).toBeVisible()
+
+  // Opening the component leaves its folder open in the tree. The sidebar
+  // expands an item's ancestors by tagging them with the menu item's alias, and
+  // the workspace contexts that do the tagging name Umbraco's alias literally —
+  // so a menu item registered under a *new* alias and overwriting that one
+  // silently collapsed the tree on every selection.
+  await page.getByText(`grp${id}`, { exact: true }).click()
+  await page.getByText(`card${id}.tsx`, { exact: true }).click()
+  await expect(page).toHaveURL(/partial-view/)
+  await expect(tree.getByText(`card${id}.tsx`, { exact: true })).toBeVisible()
+  await expect(tree.getByText(`grp${id}`, { exact: true })).toBeVisible()
 })
