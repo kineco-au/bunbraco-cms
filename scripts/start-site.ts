@@ -8,6 +8,9 @@
  *   bun run site demo/harbourstone --fresh  scrap the site and scaffold it again
  *   bun run site demo/harbourstone --dry-run  say what it would do, start nothing
  *
+ * Ctrl-C ends it, including the container `--docker` runs it in: see
+ * `runToCompletion` for why that needs a handler rather than bun's default.
+ *
  * The site is scaffolded into `sites/<slug>` — gitignored, disposable, and
  * deliberately **not** under `output/`: the compose stack mounts a named volume
  * over `/app/output`, so a site scaffolded there is invisible inside the
@@ -128,11 +131,63 @@ const passThrough = args.filter(
   (arg) => arg.startsWith('--') && !['--docker', '--fresh', '--reuse', '--dry-run'].includes(arg),
 )
 
+/** How long a child gets to stop on its own before Ctrl-C stops meaning please. */
+const GRACE_MS = 10_000
+
+/**
+ * Runs the child to completion, and stays alive long enough to clean up after it.
+ *
+ * Ctrl-C reaches the two branches by quite different routes. Locally the
+ * terminal is in its usual mode, so it raises SIGINT on this process group —
+ * which `Bun.spawn` leaves the child in, so both get it and there is nothing to
+ * forward. Under `--docker`, `docker compose run` holds the terminal in raw
+ * mode and nothing local is signalled at all: the keystroke goes to the
+ * container as a byte, and the container's own terminal raises the SIGINT that
+ * `bunbraco start` handles (see `stopOnSignal` in `packages/cli/bin`).
+ *
+ * Either way the job here is to wait. With no handler, bun's default took this
+ * process down on the first local press and returned the prompt while
+ * `docker compose run` was still stopping its container — and a `compose run`
+ * container whose client has gone keeps the port it published. That is the
+ * orphan that used to have to be chased with `docker:down` by hand.
+ *
+ * So the signal is caught in order to outlive the child's shutdown, after which
+ * `cleanUp` takes away anything that survived it. A second press, or a child
+ * still there after `GRACE_MS`, escalates to SIGKILL.
+ */
+async function runToCompletion(
+  proc: Bun.Subprocess,
+  cleanUp: () => void = () => {},
+): Promise<number> {
+  let presses = 0
+  let forcing: ReturnType<typeof setTimeout> | undefined
+  const onSignal = () => {
+    presses += 1
+    if (presses > 1) {
+      proc.kill('SIGKILL')
+      return
+    }
+    console.log('\n  stopping… (Ctrl-C again to force)')
+    forcing = setTimeout(() => proc.kill('SIGKILL'), GRACE_MS)
+  }
+  process.on('SIGINT', onSignal)
+  process.on('SIGTERM', onSignal)
+  try {
+    const code = await proc.exited
+    if (forcing) clearTimeout(forcing)
+    cleanUp()
+    // A stop that was asked for is not a failure, so this reports success rather
+    // than the 130 a shell gives a SIGINT death. It is only this process's own
+    // code: `bun run site` takes the same SIGINT and reports whatever it makes
+    // of it, so that is what the shell sees when the script is run that way.
+    return presses > 0 ? 0 : code
+  } finally {
+    process.off('SIGINT', onSignal)
+    process.off('SIGTERM', onSignal)
+  }
+}
+
 if (flags.has('--docker')) {
-  // The stack publishes one fixed port, so a clash is reported here with the way
-  // out rather than as a daemon error about endpoint programming. A `compose run`
-  // container orphaned by an abrupt exit is the usual culprit, and `docker:down`
-  // removes it.
   if (relative(ROOT, siteDir).startsWith('..')) {
     console.error(
       `\n${siteDir} is outside the repository, and the container only mounts it at ${CONTAINER_ROOT}.\n` +
@@ -140,11 +195,29 @@ if (flags.has('--docker')) {
     )
     process.exit(1)
   }
+
+  /**
+   * A name of our own, rather than the hash `compose run` would invent. It is
+   * what lets the container be removed by name on the way out, and recognised on
+   * the way in: a leftover from a run that was killed outright is cleared here,
+   * instead of surfacing as the port clash below for someone else to explain.
+   */
+  const containerName = `bunbraco-site-${slug}`
+  const removeContainer = () =>
+    Bun.spawnSync(['docker', 'rm', '--force', containerName], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+    })
+  // `--dry-run` says what it would do and touches nothing, the daemon included.
+  if (!flags.has('--dry-run')) removeContainer()
+
+  // The stack publishes one fixed port, so a clash is reported here with the way
+  // out rather than as a daemon error about endpoint programming. Our own
+  // leftover is already gone, so what is left is something else holding it.
   const port = Number(Bun.env.BUNBRACO_PORT ?? 8080)
   if (await portInUse(port)) {
     console.error(
       `\nPort ${port} is already in use, so the stack cannot publish it.\n` +
-        '  "bun run docker:down" stops the stack and removes any orphaned run container.\n' +
+        '  "bun run docker:down" stops the stack, if that is what has it.\n' +
         '  Otherwise set BUNBRACO_PORT to something else.',
     )
     process.exit(1)
@@ -160,6 +233,8 @@ if (flags.has('--docker')) {
     'compose',
     'run',
     '--rm',
+    '--name',
+    containerName,
     '--service-ports',
     // The dialect is forced to SQLite below, so the stack's Postgres is not
     // wanted and starting it would be pure latency.
@@ -180,7 +255,7 @@ if (flags.has('--docker')) {
   console.log(`\n  ${command.join(' ')}\n`)
   if (flags.has('--dry-run')) process.exit(0)
   const proc = Bun.spawn(command, { cwd: ROOT, stdio: ['inherit', 'inherit', 'inherit'] })
-  process.exit(await proc.exited)
+  process.exit(await runToCompletion(proc, removeContainer))
 }
 
 const command = [
@@ -206,4 +281,6 @@ const proc = Bun.spawn(command, {
     BUNBRACO_LOGS_DIR: join(siteDir, 'logs'),
   },
 })
-process.exit(await proc.exited)
+// Nothing to clean up: the server is this child, and it holds the port only for
+// as long as it runs.
+process.exit(await runToCompletion(proc))

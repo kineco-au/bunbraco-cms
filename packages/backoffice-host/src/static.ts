@@ -7,7 +7,7 @@
  */
 import { join, normalize } from 'node:path'
 import { type InstalledExtension, resolveExtensionFile } from './extensions.ts'
-import { BRANDED_ASSETS } from './graphics.ts'
+import { brandedAsset } from './graphics.ts'
 import type { BackOfficePaths } from './paths.ts'
 import { VENDORED_ASSETS_PATH } from './paths.ts'
 
@@ -46,7 +46,7 @@ export function resolveStaticFile(
   const hashedPrefix = `${paths.assetsPath}/`
   if (pathname.startsWith(hashedPrefix)) {
     const relative = pathname.slice(hashedPrefix.length)
-    const branded = BRANDED_ASSETS[relative]
+    const branded = brandedAsset(relative)
     if (branded) return { file: join(paths.pluginDir, branded), cacheControl: 'no-cache' }
     const file = safeJoin(paths.vendorDir, relative)
     if (!file) return undefined
@@ -63,7 +63,7 @@ export function resolveStaticFile(
     // A stale hash from a previous deploy lands here; serve it, but do not cache.
     const rest = pathname.slice(plainPrefix.length)
     const withoutStaleHash = /^[0-9a-f]{16}\//.test(rest) ? rest.slice(17) : rest
-    const branded = BRANDED_ASSETS[withoutStaleHash]
+    const branded = brandedAsset(withoutStaleHash)
     if (branded) return { file: join(paths.pluginDir, branded), cacheControl: 'no-cache' }
     const file = safeJoin(paths.vendorDir, withoutStaleHash)
     if (!file) return undefined

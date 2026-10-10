@@ -155,6 +155,87 @@ describe('the compose invocation', () => {
   })
 })
 
+describe('Ctrl-C', () => {
+  const script = readFileSync(SCRIPT, 'utf8')
+
+  test('is waited out rather than letting bun’s default end the run', () => {
+    // Without a handler this process died on the first press and returned the
+    // prompt while `docker compose run` was still stopping its container — and a
+    // run container whose client has gone keeps the port it published.
+    expect(script).toContain("process.on('SIGINT'")
+    expect(script).toContain("process.on('SIGTERM'")
+    expect(script).toContain('await proc.exited')
+  })
+
+  test('does not forward the signal, which the process group already carried', () => {
+    // `Bun.spawn` leaves the child in this group, so the terminal delivered the
+    // signal to it too; sending another is the second press, which compose reads
+    // as "stop waiting" rather than "stop the container".
+    const handler = /const onSignal = \(\) => \{[\s\S]*?\n {2}\}/.exec(script)?.[0] ?? ''
+    expect(handler).toBeTruthy()
+    expect(handler).toContain('SIGKILL')
+    // The only signal it sends is the escalation, and only past the first press.
+    expect(handler).not.toMatch(/kill\('SIGINT'\)|kill\('SIGTERM'\)/)
+    expect(handler).toContain('presses > 1')
+  })
+
+  test('escalates, so a child that will not go cannot hold the terminal', () => {
+    expect(script).toContain('GRACE_MS')
+    expect(script).toMatch(/setTimeout\(\(\) => proc\.kill\('SIGKILL'\), GRACE_MS\)/)
+  })
+
+  test('reports a requested stop as success, not as the shell’s 130', () => {
+    expect(script).toContain('return presses > 0 ? 0 : code')
+  })
+
+  test('runs both ways of starting through the same wait', () => {
+    // The local branch has nothing to clean up, but a half-exited parent would
+    // hand the prompt back while the server still held the port.
+    expect(script.match(/runToCompletion\(/g)?.length).toBe(3)
+    expect(script).toContain('runToCompletion(proc, removeContainer)')
+    expect(script).toContain('runToCompletion(proc)')
+  })
+})
+
+describe('the container --docker leaves behind', () => {
+  const script = readFileSync(SCRIPT, 'utf8')
+
+  test('is named by us, so it can be removed by name', () => {
+    // `compose run` would otherwise invent `<project>-cms-run-<hash>`, which
+    // nothing here can predict and so nothing here can clean up.
+    expect(script).toContain("'--name',")
+    // Split so this assertion is not itself a template placeholder.
+    expect(script).toContain('const containerName = `bunbraco-site-')
+    expect(script).toContain('slug}`')
+  })
+
+  test('is removed on the way out, however the run ended', () => {
+    expect(script).toContain("Bun.spawnSync(['docker', 'rm', '--force', containerName]")
+    expect(script).toContain('runToCompletion(proc, removeContainer)')
+  })
+
+  test('is cleared on the way in too, so a killed run self-heals', () => {
+    // This is what used to need `bun run docker:down` by hand: the leftover held
+    // the port and the name, and the next run could only report a clash.
+    const order = script.indexOf("if (!flags.has('--dry-run')) removeContainer()")
+    expect(order).toBeGreaterThan(0)
+    expect(order).toBeLessThan(script.indexOf('await portInUse(port)'))
+  })
+
+  test('is left alone by --dry-run, which touches nothing', () => {
+    const { code, out } = run(['basic', '--docker', '--dry-run'])
+    expect(code).toBe(0)
+    expect(out).toContain('--name')
+    expect(out).toContain('bunbraco-site-basic')
+  })
+
+  test('is removed rather than the whole stack, which may not be ours', () => {
+    // A `compose down` here would also stop a stack someone started separately
+    // with `bun run docker:up`.
+    expect(script).not.toContain("'down'")
+  })
+})
+
 describe('what it runs', () => {
   test('uses the working tree rather than the published packages', () => {
     // No `bun install` in the site: resolution walks up to the repository's own

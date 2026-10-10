@@ -269,6 +269,8 @@ bun run site demo/harbourstone --docker # in the compose stack
 bun run site demo/harbourstone --fresh  # scrap it and scaffold again
 ```
 
+Ctrl-C ends it, the `--docker` container included; press it twice to force.
+
 It scaffolds into `sites/<template>` — gitignored and disposable — and runs the
 **working tree**, not the published packages: nothing is installed into the site,
 so resolution walks up to this repository's `node_modules` where every

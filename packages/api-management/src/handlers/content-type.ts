@@ -493,7 +493,7 @@ export function registerContentTypeHandlers(
         problemDetails({
           title: 'System media types cannot be deleted',
           status: 400,
-          detail: 'Folder, Image and File are part of Umbraco and always present.',
+          detail: 'Folder, Image and File are built in and always present.',
           operationStatus: 'NotAllowed',
         }),
       )

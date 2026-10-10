@@ -23,5 +23,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "se Bunbraco non si sta aprendo, potresti aver bisogno di rimuovere il blocco popup"
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Ricerca nel codice sorgente di Bunbraco",
+    "searchWithinUmbracoSourceCodeOnGithub": "Ricerca nel codice sorgente di Bunbraco su GitHub",
+    "searchUmbracoIssues": "Ricerca tra i problemi di Bunbraco",
+    "searchUmbracoIssuesOnGithub": "Ricerca tra i problemi di Bunbraco su GitHub"
   }
 }

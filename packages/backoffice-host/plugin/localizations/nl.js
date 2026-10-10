@@ -23,5 +23,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "Als Bunbraco niet geopend wordt dan moet je mogelijk popups toestaan voor deze site.\n    "
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Bunbraco broncode doorzoeken",
+    "searchWithinUmbracoSourceCodeOnGithub": "Zoeken in Bunbraco broncode op Github",
+    "searchUmbracoIssues": "Bunbraco Issues doorzoeken",
+    "searchUmbracoIssuesOnGithub": "Bunbraco Issues op Github doorzoeken"
   }
 }

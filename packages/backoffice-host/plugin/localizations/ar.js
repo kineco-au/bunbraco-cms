@@ -30,6 +30,12 @@ export default {
   "dashboard": {
     "nothinghappens": "إذا لم يفتح Bunbraco، قد تحتاج إلى السماح بالنوافذ المنبثقة من هذا الموقع"
   },
+  "logViewer": {
+    "searchUmbracoSource": "البحث في مصدر Bunbraco",
+    "searchWithinUmbracoSourceCodeOnGithub": "البحث ضمن كود مصدر Bunbraco على Github",
+    "searchUmbracoIssues": "البحث في قضايا Bunbraco",
+    "searchUmbracoIssuesOnGithub": "البحث في قضايا Bunbraco على Github"
+  },
   "defaultdialogs": {
     "linkYourConfirm": "أنت على وشك ربط حسابك في Bunbraco وحسابك في {0} وسيتم توجيهك إلى {0} للتأكيد.",
     "unLinkYourConfirm": "أنت على وشك إلغاء ربط حسابك في Bunbraco وحسابك في {0} وسيتم تسجيل خروجك."

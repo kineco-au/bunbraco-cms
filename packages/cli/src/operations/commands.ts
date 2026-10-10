@@ -5,7 +5,7 @@
  * a platform's own tooling — gets the same results as data. One implementation,
  * so the two can never disagree about what an import or an upgrade does.
  */
-import { ObjectTypes } from '@bunbraco/core'
+import { ObjectTypes, ROOT_ACCESS } from '@bunbraco/core'
 import {
   bunbracoPlan,
   connect,
@@ -26,10 +26,14 @@ import {
   type BackupResult,
   type BunbracoConfig,
   backupBefore,
+  bootSchema,
   bootstrapDatabase,
   checkSchemaDirectory,
   componentAliasesIn,
+  createFileIntake,
+  createMediaPort,
   installDatabase,
+  MediaFileStore,
   mediaStoreFor,
   placeBlobs,
   readBlobs,
@@ -610,6 +614,125 @@ export async function upgradeRun(
   } finally {
     await db.close()
   }
+}
+
+export interface MediaAddInput {
+  /** Where the file already is, in this environment's own media store. */
+  key: string
+  /** What the item is called. Defaults to the file name in `key`. */
+  name?: string
+  /** The folder to put it in, by node key. The media root when absent. */
+  parent?: string
+}
+
+export interface MediaAddResult {
+  /** The new media item's node key. */
+  key: string
+  name: string
+  /** The media type it was created as, chosen from the file's extension. */
+  mediaType: string
+}
+
+/**
+ * Registers a file that is already in the store as a media item, so it appears
+ * in the Media section and can be used in content.
+ *
+ * For a host offering an upload without opening the backoffice. The caller puts
+ * the bytes in the store — a presigned upload, typically — and names the key
+ * here, so a large file never travels through whatever asked for this. The
+ * media type is chosen from the extension the same way the backoffice chooses
+ * it, and the file is placed by the CMS in its own layout rather than by the
+ * caller, which is what keeps the store free of files nothing knows about.
+ */
+export async function mediaAdd(
+  config: BunbracoConfig,
+  input: MediaAddInput,
+): Promise<MediaAddResult> {
+  const name = (input.name ?? input.key.split('/').at(-1) ?? '').trim()
+  if (!name) throw new CommandError('A media item needs a name.')
+
+  const store = await mediaStoreFor(config)
+  const found = await store.get(input.key)
+  if (!found) throw new CommandError(`There is nothing at '${input.key}' in the store.`)
+
+  const files = new MediaFileStore(store)
+  const { db } = await bootstrapDatabase(config)
+  // The schema the site is actually on. Without it the port falls back to the
+  // baseline state and the write gate refuses every write, because a server at
+  // an older schema than its database must not write to it.
+  const schema = await bootSchema(db, { ...config, syncSchemaAtBoot: false })
+  const port = createMediaPort(db, files, {
+    nodeState: schema.nodeState,
+    nodeId: schema.nodeId,
+    valueIntake: createFileIntake(files),
+  })
+
+  // The same choice the backoffice makes: a type whose file property allows
+  // this extension, falling back to one that allows anything at all.
+  const extension = name.includes('.') ? (name.split('.').at(-1) as string) : ''
+  const types = await port.typesForExtension(extension)
+  const type = types.find((candidate) => candidate.matched) ?? types[0]
+  if (!type)
+    throw new CommandError(
+      `No media type in this site accepts a '${extension}' file, so it cannot be added.`,
+    )
+
+  // Through the temporary-file path, so the CMS places the file and records the
+  // value exactly as it would for an upload made in the backoffice.
+  const temporaryId = crypto.randomUUID()
+  // A fresh Uint8Array from the store, handed over as a blob part. `bytes()` is
+  // typed over ArrayBufferLike, which a File constructor will not take.
+  const bytes = await found.bytes()
+  await files.saveTemporary(
+    temporaryId,
+    new File([new Blob([bytes as BlobPart], { type: found.contentType })], name),
+  )
+
+  const created = await port.create(
+    {
+      key: crypto.randomUUID(),
+      contentTypeKey: type.key,
+      componentKey: null,
+      parentKey: input.parent ?? null,
+      values: [
+        {
+          alias: 'umbracoFile',
+          culture: null,
+          segment: null,
+          value: { temporaryFileId: temporaryId },
+        },
+      ],
+      variants: [{ culture: null, segment: null, name }],
+    },
+    // The platform acting as itself: no user account, every permission, so the
+    // item is created rather than refused for an actor the site has never seen.
+    // `create` resolves a user id from the key and simply finds none.
+    {
+      id: '',
+      userName: 'operations',
+      name: 'operations',
+      email: '',
+      isAdmin: true,
+      languageIsoCode: undefined,
+      avatarUrls: [],
+      allowedSections: [],
+      permissions: [],
+      groupKeys: [],
+      hasAccessToAllLanguages: true,
+      languages: [],
+      startNodes: { document: ROOT_ACCESS, media: ROOT_ACCESS, element: ROOT_ACCESS },
+      groups: [],
+    },
+  )
+  if (!created.ok) {
+    // Nothing was registered, so the staged copy is litter.
+    await files.deleteTemporary(temporaryId)
+    throw new CommandError(
+      `The media item could not be created: ${created.reason}.`,
+      (created.errors ?? []).map((error) => `${error.alias}: ${error.messages.join('; ')}`),
+    )
+  }
+  return { key: created.key, name, mediaType: type.name }
 }
 
 /** Takes the backup a write would take first: a copy of SQLite, or `BUNBRACO_PG_DUMP` on Postgres. */

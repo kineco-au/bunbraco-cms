@@ -4,10 +4,11 @@
  * binding a port.
  */
 import { afterAll, describe, expect, test } from 'bun:test'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_BACKOFFICE_PATH as BACKOFFICE } from '@bunbraco/core'
 import { createServer } from '@bunbraco/server'
+import { ROOT } from '../scripts/packages.ts'
 
 const server = await createServer()
 const { fetch: handler, paths } = server
@@ -179,4 +180,57 @@ describe.skipIf(!vendored)('vendored assets over HTTP', () => {
     // the import map's entry points and their shared chunks, around 1,900.
     expect(seen.size).toBeGreaterThan(1000)
   }, 60_000)
+})
+
+/**
+ * The other end of booting. These read the CLI rather than send it a signal: the
+ * failure they guard against only appears as PID 1 of a container, where the
+ * kernel drops a signal no handler was registered for — so what matters is that
+ * the handlers exist at all, which outside a container no behaviour reveals.
+ */
+describe('shutting down', () => {
+  const cli = readFileSync(join(ROOT, 'packages/cli/bin/bunbraco.ts'), 'utf8')
+
+  test('handles both signals, because as PID 1 nothing else will', () => {
+    // `bun` is PID 1 under `docker compose run`, and an unhandled SIGINT or
+    // SIGTERM there is discarded rather than fatal: Ctrl-C did nothing at all,
+    // and `docker stop` waited out its grace period and then sent SIGKILL.
+    expect(cli).toContain("for (const signal of ['SIGINT', 'SIGTERM'] as const)")
+    expect(cli).toContain('process.on(signal, () => stop(signal))')
+  })
+
+  test('closes the server rather than only the listener', () => {
+    // `close()` is what stops the job runner, the event hubs, the component
+    // watcher and the poller, and closes the database. Dropping the listener
+    // alone would leave every one of them to die with the process.
+    expect(cli).toContain('await server.close()')
+  })
+
+  test('closes live connections with it, which would otherwise never end', () => {
+    // The live-update sockets are meant to stay open, so a drain that waited for
+    // them would wait for ever.
+    expect(cli).toContain('listening.stop(true)')
+  })
+
+  test('is registered as soon as it listens, leaving no deaf window', () => {
+    const serving = cli.indexOf('Bun.serve(server.serveOptions)')
+    const registered = cli.indexOf('stopOnSignal(listening, server)')
+    expect(serving).toBeGreaterThan(0)
+    expect(registered).toBeGreaterThan(serving)
+    // Before the banner, which is the slow part of coming up.
+    expect(registered).toBeLessThan(cli.indexOf('banner(lines)'))
+  })
+
+  test('gives up rather than hanging, on a second signal or a stuck close', () => {
+    expect(cli).toContain('if (stopping) process.exit(130)')
+    expect(cli).toMatch(/setTimeout\(\(\) => process\.exit\(130\), SHUTDOWN_MS\)\.unref\(\)/)
+  })
+
+  test('the handle it closes really has a close to call', async () => {
+    // A rename upstream would make the assertions above pass and the shutdown
+    // throw, so this is the one that holds them to something real.
+    const fresh = await createServer()
+    expect(typeof fresh.close).toBe('function')
+    await fresh.close()
+  })
 })

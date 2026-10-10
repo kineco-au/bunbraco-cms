@@ -538,4 +538,49 @@ describe('creating a site, end to end through the CLI', () => {
       await site.stop()
     }
   }, 120_000)
+
+  /**
+   * A deploy stops a site by signalling it, and so does Ctrl-C: under
+   * `docker compose run` the keystroke becomes a SIGINT inside the container.
+   * Nothing used to handle either, which as PID 1 of a container meant the
+   * signal was discarded — Ctrl-C did nothing and `docker stop` fell back to
+   * SIGKILL after its grace period. Here the process is not PID 1, so what this
+   * can hold is the half that is still visible: that the signal is handled
+   * rather than merely fatal, and that it is handled quickly.
+   */
+  test('stops on a signal, saying so, well inside the shutdown grace', async () => {
+    const proc = Bun.spawn(['bun', CLI, 'start'], {
+      cwd: siteDir('basic'),
+      env: { ...environment('basic'), NODE_ENV: 'production', PORT: '0' },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    const decoder = new TextDecoder()
+    const reader = (proc.stdout as ReadableStream<Uint8Array>).getReader()
+    let output = ''
+    while (!output.includes('└─')) {
+      const { value, done } = await reader.read()
+      if (done) break
+      output += decoder.decode(value)
+    }
+    expect(output, 'did not come up').toContain('Bunbraco is running')
+
+    const sent = Date.now()
+    proc.kill('SIGTERM')
+    const code = await proc.exited
+    const took = Date.now() - sent
+
+    // Read whatever it managed to say on the way down.
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      output += decoder.decode(value)
+    }
+    // The handler announces itself; the default death would have said nothing.
+    expect(output, output.slice(-400)).toContain('Stopping (SIGTERM)')
+    // A clean stop, not the 128+15 a shell reports for an unhandled SIGTERM.
+    expect(code).toBe(0)
+    // SHUTDOWN_MS is 10s, and this does not go near it.
+    expect(took).toBeLessThan(5_000)
+  }, 120_000)
 })

@@ -49,9 +49,19 @@ function vendoredCultures(): { culture: string; file: string }[] {
   return found
 }
 
+/**
+ * French elides `de` before a vowel, so its dictionaries carry `d'Umbraco`.
+ * Bunbraco opens on a consonant, where the elision is wrong — so the article
+ * comes back rather than being left as `d'Bunbraco`.
+ */
+const ELIDED = /\bd['\u2019](?=Umbraco)/g
+
 export function rebrand(value: string): string | undefined {
   if (!/umbraco/i.test(value) || NAMES_SOMETHING_REAL.test(value)) return undefined
-  return value.replaceAll('Umbraco', 'Bunbraco').replaceAll('umbraco', 'bunbraco')
+  return value
+    .replace(ELIDED, 'de ')
+    .replaceAll('Umbraco', 'Bunbraco')
+    .replaceAll('umbraco', 'bunbraco')
 }
 
 /** The `section.key` pairs the English override curates, flattened. */

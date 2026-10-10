@@ -32,6 +32,12 @@ export default {
   "dashboard": {
     "nothinghappens": "Hvis Bunbraco ikke starter, kan det skyldes at din browser ikke tillader pop-up vinduer\n    "
   },
+  "logViewer": {
+    "searchUmbracoSource": "Søg i Bunbraco kildekoden",
+    "searchWithinUmbracoSourceCodeOnGithub": "Søg i Bunbraco kildekoden på Github",
+    "searchUmbracoIssues": "Søg i Bunbraco issues",
+    "searchUmbracoIssuesOnGithub": "Søg i Bunbraco issues på Github"
+  },
   "defaultdialogs": {
     "linkYourConfirm": "For at linke dine Bunbraco og {0} konti, vil du blive sendt til {0} for at bekræfte.",
     "unLinkYourConfirm": "Du er ved at fjerne linket mellem dine Bunbraco og {0} konti og du vil blive logget ud."

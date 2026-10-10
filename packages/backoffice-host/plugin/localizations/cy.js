@@ -26,5 +26,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "Os nad yw Bunbraco yn agor, efallai byddwch angen galluogi popups o'r safle yma"
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Chwilio'r cod gwreiddiol Bunbraco",
+    "searchWithinUmbracoSourceCodeOnGithub": "Chwilio tu fewn y cod gwreiddiol Bunbraco ar Github",
+    "searchUmbracoIssues": "Chwilio Problemau Bunbraco",
+    "searchUmbracoIssuesOnGithub": "Chwilio Problemau Bunbraco ar Github"
   }
 }

@@ -311,6 +311,17 @@ registry calls mutate it after the fact — and changing the registry once the
 backoffice is rendering makes every open section re-evaluate its extensions,
 which is the failure the TSX entry point documents at the top of `tsx-editors.js`.
 
+The exception is an extension the client *counts* rather than renders. Because
+`overwrites` is resolved by the initializer, `umbExtensionsRegistry.byType()`
+still reports both the replacement and the extension it replaces. Where that
+count is a decision, the manifest has to be gone rather than overwritten:
+`app-auth.controller.js` reads `byType('authProvider')` and skips its sign-in
+screen entirely when exactly one provider is registered, so `branding/sign-in.js`
+unregisters Umbraco's provider and registers ours in its place — an `overwrites`
+manifest would leave two in that list and reinstate a screen signing in does not
+show. `branding/components-tree.js` is the other one, for a different reason it
+documents itself.
+
 ### The view editor's TSX dialect
 
 Umbraco's template and partial view editors are `umb-code-editor` with

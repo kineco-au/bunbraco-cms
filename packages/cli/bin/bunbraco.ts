@@ -157,6 +157,48 @@ function banner(lines: string[]): void {
   console.log(`└─${'─'.repeat(width)}─┘`)
 }
 
+/** How long a shutdown gets before it is abandoned and the process leaves anyway. */
+const SHUTDOWN_MS = 10_000
+
+/**
+ * Stops the site on SIGINT and SIGTERM.
+ *
+ * Without a handler neither signal does anything at all in a container: `bun` is
+ * PID 1 there, and the kernel drops a signal PID 1 has registered no handler
+ * for. That is why Ctrl-C did nothing under `docker compose run` — the keystroke
+ * reaches the container's own terminal, which raises a SIGINT nothing was
+ * listening for — and why `docker stop` sat out its ten-second grace and then
+ * resorted to SIGKILL. Outside a container the default would at least have
+ * killed the process, so this was invisible there.
+ *
+ * `server.close()` is the point of it either way: the job runner, the event
+ * hubs, the component watcher, the poller and the database all get to stop,
+ * rather than being taken away mid-write. Connections are closed with the
+ * listener because the live-update sockets are long-lived, and waiting for a
+ * socket that is meant to stay open would be waiting for ever.
+ *
+ * A second signal, or a close that will not finish, leaves immediately.
+ */
+function stopOnSignal(
+  listening: { stop: (closeActiveConnections?: boolean) => void },
+  server: ServerHandle,
+): void {
+  let stopping = false
+  const stop = (signal: string) => {
+    // 130 is what a shell reports for a SIGINT death, and what this was.
+    if (stopping) process.exit(130)
+    stopping = true
+    console.log(`\nStopping (${signal})…`)
+    setTimeout(() => process.exit(130), SHUTDOWN_MS).unref()
+    void (async () => {
+      listening.stop(true)
+      await server.close()
+      process.exit(0)
+    })()
+  }
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => stop(signal))
+}
+
 async function start(): Promise<void> {
   const config = await siteConfig()
   // Before the migration and the seed, so a clash with the container stack is
@@ -170,6 +212,9 @@ async function start(): Promise<void> {
 
   const lines = ['Bunbraco is running', '']
   const listening = Bun.serve(server.serveOptions)
+  // Registered the moment it is listening, so there is no window in which the
+  // site answers requests and cannot be asked to stop.
+  stopOnSignal(listening, server)
   // What this node actually answers, so a split deployment's banner does not
   // advertise an address that 404s here.
   if (config.role !== 'web')

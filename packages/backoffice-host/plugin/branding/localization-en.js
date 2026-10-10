@@ -96,6 +96,16 @@ export default {
     createPackage: 'Create bundle',
     noPackagesCreated: 'No bundles have been created yet',
   },
+  logViewer: {
+    // The two items `log-viewer-menu.js` keeps and repoints at this project's
+    // repository. The keys stay Umbraco's, as every key here does; only what a
+    // person reads changes, so the generated languages rename the product in
+    // their own wording and keep pointing at the same two items.
+    searchUmbracoSource: 'Search Bunbraco source',
+    searchWithinUmbracoSourceCodeOnGithub: 'Search within Bunbraco source code on GitHub',
+    searchUmbracoIssues: 'Search Bunbraco issues',
+    searchUmbracoIssuesOnGithub: 'Search Bunbraco issues on GitHub',
+  },
   defaultdialogs: {
     linkYourConfirm:
       'You are about to link your Bunbraco and {0} accounts and you will be redirected to {0} to complete the process.',

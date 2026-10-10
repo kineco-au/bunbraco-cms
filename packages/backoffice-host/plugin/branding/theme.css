@@ -88,3 +88,15 @@
   --uui-color-divider-standalone: #efe5db;
   --uui-color-divider-emphasis: #ddcdbe;
 }
+
+/*
+ * The two pink strokes `umb-auth-view` draws across its illustration panel
+ * (`#curve-top`, `#curve-bottom`). They are Umbraco's own flourish and carry no
+ * meaning, so the panel is left to the backdrop alone. Both of these are the
+ * element's own hooks, read off `:host` and so inherited from here — which is
+ * the only way to reach them, the panel being inside a shadow root.
+ */
+:root {
+  --umb-login-curves-display: none;
+  --umb-login-curves-color: transparent;
+}

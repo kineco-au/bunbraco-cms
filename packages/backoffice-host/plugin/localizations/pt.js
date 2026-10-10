@@ -30,6 +30,12 @@ export default {
   "dashboard": {
     "nothinghappens": "Se o Bunbraco não estiver a abrir, poderá ter de permitir popups deste site"
   },
+  "logViewer": {
+    "searchUmbracoSource": "Pesquisar Código Fonte Bunbraco",
+    "searchWithinUmbracoSourceCodeOnGithub": "Pesquisar no código fonte do Bunbraco no GitHub",
+    "searchUmbracoIssues": "Pesquisar Problemas Bunbraco",
+    "searchUmbracoIssuesOnGithub": "Pesquisar Problemas Bunbraco no GitHub"
+  },
   "defaultdialogs": {
     "linkYourConfirm": "Está prestes a ligar as suas contas Bunbraco e {0} e será redirecionado para {0} para confirmar.",
     "unLinkYourConfirm": "Está prestes a desligar as suas contas Bunbraco e {0} e será desconectado."

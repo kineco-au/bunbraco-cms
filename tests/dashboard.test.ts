@@ -71,6 +71,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
           alias: string
           element?: string
           js?: string
+          api?: string
           overwrites?: string[]
         }>
       }>
@@ -104,6 +105,12 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Bunbraco.EntryPoint.ComponentsTree',
       // The query builder writes TypeScript, so its code block says so.
       'backofficeEntryPoint:Bunbraco.EntryPoint.QueryBuilder',
+      // The sign-in button, in place of Umbraco's "Sign in with Umbraco".
+      'backofficeEntryPoint:Bunbraco.EntryPoint.SignIn',
+      // The log message menu, aimed at this project rather than Umbraco's.
+      'backofficeEntryPoint:Bunbraco.EntryPoint.LogViewerMenu',
+      // Keeps the Umbraco mark out of the icon picker.
+      'globalContext:Bunbraco.GlobalContext.Icons',
     ])
     // The welcome dashboard takes the place of Umbraco's news dashboard through
     // the registry's own `overwrites`, rather than mutating it while rendering.
@@ -125,8 +132,9 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
     // Two kinds of extension have no module of their own: a `section`, which is
     // a route and a label, and a `propertyEditorSchema`, which declares a
-    // server-side editor alias and its default UI. Everything else loads one.
-    const moduleless = ours?.extensions.filter((e) => !e.element && !e.js) ?? []
+    // server-side editor alias and its default UI. Everything else loads one,
+    // under `element`, `js`, or — for a context class — `api`.
+    const moduleless = ours?.extensions.filter((e) => !e.element && !e.js && !e.api) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
       'Bunbraco.Section.Forms',
       'Bunbraco.FormPicker',
@@ -135,20 +143,22 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
 
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {
-      const path = (extension.element ?? extension.js) as string | undefined
+      const path = (extension.element ?? extension.js ?? extension.api) as string | undefined
       if (!path) continue
       expect(path.startsWith(`${BACKOFFICE}/bunbraco/`)).toBe(true)
       const response = await h.call(path)
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toContain('javascript')
       // What a module must export follows what kind of extension it is: an element
-      // defines one, an entry point runs `onInit`, and a localization is a
-      // dictionary.
+      // defines one, a context exports the class as `api`, an entry point runs
+      // `onInit`, and a localization is a dictionary.
       const expected = extension.element
         ? 'customElements.define'
-        : extension.type === 'localization'
-          ? 'export default'
-          : 'export const onInit'
+        : extension.api
+          ? ' as api }'
+          : extension.type === 'localization'
+            ? 'export default'
+            : 'export const onInit'
       expect(await response.text(), `${extension.alias} exports ${expected}`).toContain(expected)
     }
     expect((await h.call(`${BACKOFFICE}/bunbraco/report-client.js`)).status).toBe(200)

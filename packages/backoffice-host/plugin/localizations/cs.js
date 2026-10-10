@@ -18,5 +18,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "Jestli se Bunbraco neotevírá, možná budete muset povolit na tomto webu vyskakovací okna"
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Prohledat Bunbraco Source",
+    "searchWithinUmbracoSourceCodeOnGithub": "Vyhledat ve zdrojovém kódu Bunbraco na Github",
+    "searchUmbracoIssues": "Prohledat Bunbraco Issues",
+    "searchUmbracoIssuesOnGithub": "Prohledat Bunbraco Issues na Github"
   }
 }

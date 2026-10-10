@@ -20,5 +20,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "Bunbraco açılmıyorsa, bu siteden pop-up'lara izin vermeniz gerekebilir"
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Bunbraco Kaynağını Ara",
+    "searchWithinUmbracoSourceCodeOnGithub": "Github'da Bunbraco kaynak kodu içinde arama",
+    "searchUmbracoIssues": "Bunbraco Sorunlarını Ara",
+    "searchUmbracoIssuesOnGithub": "Github'da Bunbraco Sorunlarını Ara"
   }
 }

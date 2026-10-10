@@ -10,16 +10,19 @@
  * booting, with nothing in the console to say why.
  */
 import { describe, expect, test } from 'bun:test'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   createBackOfficePaths,
   DEFAULT_SHELL_SETTINGS,
   EXTENSION_KEYWORD,
+  GRAPHICS_PREFIX,
   PLUGIN_PATH_PLACEHOLDER,
   renderBackOfficeShell,
   renderLoginShell,
+  resolveGraphic,
   resolveStaticFile,
+  VENDORED_ASSETS_PATH,
 } from '@bunbraco/backoffice-host'
 import { brandedTitle, brandName } from '../packages/backoffice-host/plugin/branding/branding.js'
 import {
@@ -27,6 +30,11 @@ import {
   REQUIRED_PREFIX,
 } from '../packages/backoffice-host/plugin/branding/client-credentials.js'
 import english from '../packages/backoffice-host/plugin/branding/localization-en.js'
+import {
+  DROPPED,
+  REPOSITORY,
+  rebrandSearchMenu,
+} from '../packages/backoffice-host/plugin/branding/log-viewer-menu.js'
 import {
   isSysinfoClipboardText,
   rebrandSysinfo,
@@ -199,10 +207,17 @@ describe('the logos', () => {
   })
 
   test('cut the same bun silhouette, the backdrop watermark included', async () => {
-    // Four files draw this mark and nothing generates them, so the only thing
+    // Five files draw this mark and nothing generates them, so the only thing
     // stopping the shape drifting in one of them is this comparison.
     const silhouettes = await Promise.all(
-      ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg'].map(async (file) => {
+      [
+        'logo-header.svg',
+        'logo-surface.svg',
+        'favicon.svg',
+        'backdrop.svg',
+        // The registry icon, served in place of Umbraco's roundel.
+        'icon-mark.js',
+      ].map(async (file) => {
         const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
         return [file, /<path d="([^"]+)"/.exec(svg)?.[1]] as const
       }),
@@ -383,7 +398,237 @@ describe('the non-English languages', () => {
     expect(rebrand('Log ind på Umbraco')).toBe('Log ind på Bunbraco')
   })
 
+  test('restores an article the new name can no longer elide', () => {
+    // French elides `de` before a vowel; Bunbraco opens on a consonant, so the
+    // blunt replacement left `d'Bunbraco` where the article belongs.
+    expect(rebrand("Chercher dans le code source d'Umbraco sur Github")).toBe(
+      'Chercher dans le code source de Bunbraco sur Github',
+    )
+  })
+
   test('generates nothing for a language that never names the product', () => {
     expect(brandDictionary({ login: { instruction: 'Conectare' } }, keys)).toBeUndefined()
+  })
+})
+
+describe('the client’s own sign-in screen', () => {
+  const paths = createBackOfficePaths()
+  const signIn = () => Bun.file(`${BRANDING_DIR}/sign-in.js`).text()
+
+  test('offers one button, and it names no product', async () => {
+    // The vendored manifest labels its provider `Umbraco` under the roundel,
+    // which the default button renders through `login_signInWith` as
+    // "Sign in with Umbraco". Ours supplies its own element, so neither the
+    // dictionary template nor an icon gets a say.
+    const source = await signIn()
+    expect(source).toContain("const LABEL = 'Sign in'")
+    expect(source).toContain('elementName: TAG')
+    // The default button is what reads `meta.defaultView.icon`.
+    expect(source).not.toContain('defaultView')
+    // Whatever the label is, it cannot name the product.
+    const label = /const LABEL = '([^']*)'/.exec(source)?.[1] ?? ''
+    expect(/umbraco/i.test(label)).toBe(false)
+  })
+
+  test('replaces the vendored provider rather than overwriting it', async () => {
+    // `app-auth.controller.js` reads `byType('authProvider')` and skips this
+    // screen when exactly one provider is registered — and `byType` does not
+    // apply `overwrites`, which is resolved where an extension is rendered. An
+    // `overwrites` manifest would leave two providers in that list and so add a
+    // screen that signing in does not currently show.
+    const source = await signIn()
+    expect(source).toContain("const VENDORED = 'Umb.AuthProviders.Umbraco'")
+    expect(source).toContain('extensionRegistry.unregister(VENDORED)')
+    // Nothing in the manifest either: the entry point is the whole mechanism.
+    const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
+    const providers = plugin.extensions.filter((e: { type: string }) => e.type === 'authProvider')
+    expect(providers).toEqual([])
+  })
+
+  test('keeps the provider name the server authorizes against', async () => {
+    // Renaming this would take the button to an identity provider the authorize
+    // endpoint does not know, and would stop the view hiding it when local
+    // login is off. Nothing displays it.
+    expect(await signIn()).toContain("forProviderName: 'Umbraco'")
+  })
+
+  test('loses the two curves the view draws across its panel', async () => {
+    // Set on `:root`, which is the only way in: the curves are inside a shadow
+    // root and these are the element's own hooks, read off `:host`.
+    const css = await Bun.file(`${BRANDING_DIR}/theme.css`).text()
+    expect(css).toContain('--umb-login-curves-display: none')
+  })
+
+  test('fills that panel with the backdrop, which nothing used to answer', () => {
+    // Unanswered, the panel was an empty rounded rectangle behind the curves.
+    expect(resolveGraphic(paths, `${GRAPHICS_PREFIX}/login-background`)).toBe(
+      join(paths.pluginDir, 'branding/backdrop.svg'),
+    )
+  })
+
+  test('runs from an entry point, so it is in place before a session times out', async () => {
+    const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
+    const entry = plugin.extensions.find(
+      (e: { alias: string }) => e.alias === 'Bunbraco.EntryPoint.SignIn',
+    )
+    expect(entry?.type).toBe('backofficeEntryPoint')
+    expect(entry?.js).toBe(`${PLUGIN_PATH_PLACEHOLDER}/branding/sign-in.js`)
+  })
+})
+
+describe('the Umbraco mark in the icon registry', () => {
+  const paths = createBackOfficePaths()
+  const VENDORED_ICON = 'packages/core/icon-registry/icons/icon-umbraco.js'
+
+  test('is served as the bun mark, on both prefixes', () => {
+    // The registry is addressed by name and any element may ask for one, so the
+    // glyph behind the name is ours and no path reaches the roundel.
+    for (const prefix of [`${paths.assetsPath}/`, `${VENDORED_ASSETS_PATH}/`]) {
+      expect(resolveStaticFile(paths, `${prefix}${VENDORED_ICON}`)?.file).toBe(
+        join(paths.pluginDir, 'branding/icon-mark.js'),
+      )
+    }
+  })
+
+  test('is matched by shape, because the chunk is named after its contents', () => {
+    // The shells load the *bundled* app, whose icon manifest asks for
+    // `chunks/icon-umbraco-<hash>.js` — so an exact path would be right until
+    // the next re-vendor and then quietly serve the roundel again.
+    const chunk = readdirSync(join(paths.vendorDir, 'chunks')).find((file) =>
+      file.startsWith('icon-umbraco'),
+    )
+    expect(chunk).toBeDefined()
+    expect(resolveStaticFile(paths, `${paths.assetsPath}/chunks/${chunk}`)?.file).toBe(
+      join(paths.pluginDir, 'branding/icon-mark.js'),
+    )
+  })
+
+  test('is the only vendored file still drawing the roundel', async () => {
+    // Nothing else may be left for a path to reach. The `.d.ts` beside the glyph
+    // is a type declaration the browser never asks for.
+    const drawn: string[] = []
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          walk(path)
+        } else if (entry.name.endsWith('.js') && !entry.name.startsWith('icon-umbraco')) {
+          // The roundel's own outline, as `icon-umbraco.js` draws it.
+          if (readFileSync(path, 'utf8').includes('M0 157.74')) drawn.push(path)
+        }
+      }
+    }
+    walk(paths.vendorDir)
+    expect(drawn).toEqual([])
+  })
+
+  test('draws in the consumer’s colour, as every icon in the registry does', async () => {
+    const { default: svg } = await import(join(process.cwd(), BRANDING_DIR, 'icon-mark.js'))
+    expect(svg).toContain('fill="currentColor"')
+    // The root element carries no size of its own: the consumer sets it, which
+    // is why a viewBox is the only geometry on it.
+    const root = /^<svg[^>]*>/.exec(svg)?.[0] ?? ''
+    expect(root).toContain('viewBox="0 0 345 345"')
+    expect(root).not.toMatch(/\s(?:width|height)="/)
+    // `uui-icon` inlines this markup into the page, where the short mask ids the
+    // shells' own marks use would collide with it.
+    expect(svg).not.toMatch(/id="[bgm]"/)
+    expect(svg).toContain('id="bunbraco-icon-mark"')
+  })
+
+  test('is not offered by the icon picker', async () => {
+    // The picker renders `icon.name` into the button's label and title, so the
+    // roundel sat among the document type icons under the name `icon-umbraco`.
+    const source = await Bun.file(`${BRANDING_DIR}/icon-registry.js`).text()
+    expect(source).toContain("new Set(['icon-umbraco'])")
+    // `approvedIcons` is the list the picker reads; `icons` is left whole.
+    expect(source).toContain('this.approvedIcons')
+  })
+
+  test('replaces the icons context, where overwrites is applied', async () => {
+    // Unlike a second `icons` extension, which would win or lose on the order
+    // its module happens to resolve in: the context appends each one as it
+    // loads, and the last append of a name is the one that stands.
+    const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
+    const context = plugin.extensions.find(
+      (e: { alias: string }) => e.alias === 'Bunbraco.GlobalContext.Icons',
+    )
+    expect(context?.type).toBe('globalContext')
+    expect(context?.overwrites).toEqual(['Umb.GlobalContext.Icons'])
+    expect(context?.api).toBe(`${PLUGIN_PATH_PLACEHOLDER}/branding/icon-registry.js`)
+  })
+})
+
+describe('the Log Viewer’s search menu', () => {
+  // The element resolves labels through the dictionary before this sees them.
+  const term = (key: string) => key.replace('logViewer_', '')
+  type MenuItem = { label: string; href: () => string; icon: string }
+  const menu: MenuItem[] = [
+    {
+      label: 'searchWithGoogle',
+      href: () => 'https://www.google.com/search?q=boom',
+      icon: 'icon-google',
+    },
+    {
+      label: 'searchOurUmbraco',
+      href: () => 'https://forum.umbraco.com/search?q=boom',
+      icon: 'icon-umbraco',
+    },
+    {
+      label: 'searchOurUmbracoWithGoogle',
+      href: () => 'https://www.google.com/?q=site:forum.umbraco.com%20boom',
+      icon: 'icon-google',
+    },
+    {
+      label: 'searchUmbracoSource',
+      href: () => 'https://github.com/umbraco/Umbraco-CMS/search?q=Umb.Core',
+      icon: 'icon-github',
+    },
+    {
+      label: 'searchUmbracoIssues',
+      href: () => 'https://github.com/umbraco/Umbraco-CMS/issues?q=Umb.Core',
+      icon: 'icon-github',
+    },
+  ]
+
+  test('drops the two that search a forum this project does not have', () => {
+    expect(
+      rebrandSearchMenu(menu, term, 'Bunbraco.Core').map((item: MenuItem) => item.label),
+    ).toEqual(['searchWithGoogle', 'searchUmbracoSource', 'searchUmbracoIssues'])
+  })
+
+  test('aims the source and issue searches at this repository', () => {
+    // By the SourceContext of the line, which is the whole point of the pair.
+    expect(
+      rebrandSearchMenu(menu, term, 'Bunbraco.Core').map((item: MenuItem) => item.href()),
+    ).toEqual([
+      'https://www.google.com/search?q=boom',
+      `${REPOSITORY}/search?q=Bunbraco.Core`,
+      `${REPOSITORY}/issues?q=Bunbraco.Core`,
+    ])
+  })
+
+  test('leaves no item pointing at Umbraco, nor any under its mark', () => {
+    for (const item of rebrandSearchMenu(menu, term, 'Bunbraco.Core') as MenuItem[]) {
+      expect([item.label, /umbraco/i.test(item.href())]).toEqual([item.label, false])
+      expect([item.label, item.icon]).not.toEqual([item.label, 'icon-umbraco'])
+    }
+  })
+
+  test('passes an item it does not know about through untouched', () => {
+    // Wrapping the method rather than replacing it is what keeps an upstream
+    // addition in the menu instead of silently dropping it.
+    const extra = { label: 'somethingNew', href: () => 'https://example.com', icon: 'icon-search' }
+    expect(rebrandSearchMenu([extra], term, 'Bunbraco.Core')).toEqual([extra])
+  })
+
+  test('names the keys it drops as the dictionary spells them', () => {
+    expect(DROPPED).toEqual(['logViewer_searchOurUmbraco', 'logViewer_searchOurUmbracoWithGoogle'])
+  })
+
+  test('says Bunbraco in the two labels it keeps', () => {
+    const dictionary = english as Record<string, Record<string, string>>
+    expect(dictionary.logViewer?.searchUmbracoSource).toBe('Search Bunbraco source')
+    expect(dictionary.logViewer?.searchUmbracoIssues).toBe('Search Bunbraco issues')
   })
 })

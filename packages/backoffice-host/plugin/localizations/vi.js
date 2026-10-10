@@ -33,6 +33,12 @@ export default {
   "dashboard": {
     "nothinghappens": "Nếu Bunbraco không mở, bạn có thể cần cho phép cửa sổ bật lên từ trang này"
   },
+  "logViewer": {
+    "searchUmbracoSource": "Tìm kiếm mã nguồn Bunbraco",
+    "searchWithinUmbracoSourceCodeOnGithub": "Tìm trong mã nguồn Bunbraco trên GitHub",
+    "searchUmbracoIssues": "Tìm kiếm vấn đề của Bunbraco",
+    "searchUmbracoIssuesOnGithub": "Tìm vấn đề của Bunbraco trên GitHub"
+  },
   "defaultdialogs": {
     "linkYourConfirm": "Bạn sắp liên kết tài khoản Bunbraco và {0} của mình và bạn sẽ được chuyển hướng đến {0} để xác nhận.",
     "unLinkYourConfirm": "Bạn sắp hủy liên kết tài khoản Bunbraco và {0} của mình và bạn sẽ bị đăng xuất."

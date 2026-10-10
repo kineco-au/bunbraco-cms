@@ -23,5 +23,11 @@ export default {
   },
   "dashboard": {
     "nothinghappens": "Ako se Bunbraco ne otvara, možda ćete morati dozvoliti skočne prozore sa ove stranice"
+  },
+  "logViewer": {
+    "searchUmbracoSource": "Pretraži Bunbraco Source",
+    "searchWithinUmbracoSourceCodeOnGithub": "Pretraži Bunbraco source code on Github-u",
+    "searchUmbracoIssues": "Pretraži Bunbraco Issues",
+    "searchUmbracoIssuesOnGithub": "Pretraži Bunbraco Issues na Github-u"
   }
 }

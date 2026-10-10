@@ -80,6 +80,12 @@ not damaging anything:
 - **The site lives in `sites/<template>`**, not `output/`. The compose stack
   mounts `cms_output:/app/output`, which masks the host directory inside the
   container, so a site scaffolded there would be invisible to `--docker`.
+- **Ctrl-C ends the run, the container included.** `--docker` runs the site in a
+  `compose run` container, and such a container keeps the port it published once
+  its client has gone — so the script waits out its child's shutdown rather than
+  dying on the first press, and removes the container by a name it chose itself.
+  A second press forces it. A container left by a run that was killed outright is
+  cleared by the next one, so nothing needs `docker:down` by hand.
   `sites/` is inside the bind mount, matches no workspace glob — so it joins no
   `bun install` — and is gitignored.
 
