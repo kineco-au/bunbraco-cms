@@ -517,6 +517,16 @@ export class ContentTypeRepository {
     return this.byKeys(rows.map((r) => String(r.unique_id)))
   }
 
+  /** Every live type's alias by its key, without loading the types themselves. */
+  async aliasesByKey(): Promise<Map<string, string>> {
+    const rows = await this.#db.query<{ unique_id: string; alias: string }>(
+      `SELECT n.unique_id, ct.alias FROM content_type ct JOIN node n ON n.id = ct.node_id
+       WHERE ct.retired_at IS NULL AND n.node_object_type = ?`,
+      [this.#objectType],
+    )
+    return new Map(rows.map((r) => [normaliseUuid(String(r.unique_id)), String(r.alias)]))
+  }
+
   async move(key: string, parentKey: string | null): Promise<boolean> {
     const node = await this.#nodes.byKey(key)
     if (!node || node.objectType !== this.#objectType) return false

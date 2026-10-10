@@ -21,9 +21,13 @@ afterEach(() => rmSync(SANDBOX, { recursive: true, force: true }))
 
 /** Runs the script without letting it reach the real `sites/` directory. */
 function run(args: string[]) {
+  return runWith(args, {})
+}
+
+function runWith(args: string[], env: Record<string, string>) {
   const proc = Bun.spawnSync(['bun', SCRIPT, ...args], {
     cwd: ROOT,
-    env: { ...process.env, BUNBRACO_SITES_DIR: SANDBOX },
+    env: { ...process.env, BUNBRACO_SITES_DIR: SANDBOX, ...env },
   })
   return {
     code: proc.exitCode,
@@ -227,6 +231,20 @@ describe('the container --docker leaves behind', () => {
     expect(code).toBe(0)
     expect(out).toContain('--name')
     expect(out).toContain('bunbraco-site-basic')
+  })
+
+  test('a dry run reports a port already in use, without failing on it', () => {
+    const holder = Bun.listen({ hostname: '0.0.0.0', port: 0, socket: { data() {} } })
+    try {
+      const { code, out } = runWith(['basic', '--docker', '--dry-run'], {
+        BUNBRACO_PORT: String(holder.port),
+      })
+      expect(code).toBe(0)
+      expect(out).toContain(`Port ${holder.port} is already in use`)
+      expect(out).toContain('bunbraco-site-basic')
+    } finally {
+      holder.stop(true)
+    }
   })
 
   test('is removed rather than the whole stack, which may not be ours', () => {

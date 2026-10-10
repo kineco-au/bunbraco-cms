@@ -69,6 +69,8 @@ export interface PublishedContentSource {
   loadRedirects?(): Promise<RedirectRule[]>
   /** Published library elements, for the pickers that point at them; none when omitted. */
   loadElements?(): Promise<PublishedElementNode[]>
+  /** Document type aliases by key, so a block knows its element type; none when omitted. */
+  loadContentTypeAliases?(): Promise<Map<string, string>>
 }
 
 /**
@@ -124,6 +126,8 @@ export interface CacheSnapshot {
   media: Map<string, PublishedMedia>
   /** Item key (lowercase) → culture (lowercase) → translation. */
   dictionary: Map<string, Map<string, string>>
+  /** Document type key (lowercase) → alias. */
+  contentTypeAliases: Map<string, string>
 }
 
 /** What a request resolved to: the content, and the culture its hostname assigns. */
@@ -165,6 +169,7 @@ const EMPTY: CacheSnapshot = {
   languages: [],
   media: new Map(),
   dictionary: new Map(),
+  contentTypeAliases: new Map(),
 }
 
 const normaliseRoute = (route: string) =>
@@ -373,6 +378,7 @@ export class PublishedCache {
       content: (key) => view?.byKey.get(key.toLowerCase()),
       media: (key) => snapshot.media.get(key.toLowerCase()),
       form: this.#options.form,
+      contentTypeAlias: (key) => snapshot.contentTypeAliases.get(key.toLowerCase()),
       urlOf: (content) => content.url,
       mediaUrlOf: (item) => (item as PublishedMedia).url,
     }
@@ -455,6 +461,12 @@ export class PublishedCache {
     )
     const redirects = (await this.#source.loadRedirects?.()) ?? []
     const elementNodes = (await this.#source.loadElements?.()) ?? []
+    const contentTypeAliases = new Map(
+      [...((await this.#source.loadContentTypeAliases?.()) ?? new Map())].map(([key, alias]) => [
+        key.toLowerCase(),
+        alias,
+      ]),
+    )
     const defaultCulture =
       languages.find((l) => l.isDefault)?.isoCode ?? languages[0]?.isoCode ?? null
     const cultures: Array<string | null> =
@@ -636,6 +648,7 @@ export class PublishedCache {
         // element picking another element resolves too.
         element: (key) => view.elements.get(key.toLowerCase()),
         form: this.#options.form,
+        contentTypeAlias: (key) => contentTypeAliases.get(key.toLowerCase()),
         urlOf: (content) => content.url,
         mediaUrlOf: (item) => item.url,
       }
@@ -687,6 +700,7 @@ export class PublishedCache {
       languages,
       media,
       dictionary,
+      contentTypeAliases,
     }
   }
 }

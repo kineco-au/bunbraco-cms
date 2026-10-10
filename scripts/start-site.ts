@@ -220,7 +220,8 @@ if (flags.has('--docker')) {
         '  "bun run docker:down" stops the stack, if that is what has it.\n' +
         '  Otherwise set BUNBRACO_PORT to something else.',
     )
-    process.exit(1)
+    // A dry run reports the clash a real run would hit, without failing on it
+    if (!flags.has('--dry-run')) process.exit(1)
   }
 
   // `compose run -w` rather than a change to the `cms` service: the stack's

@@ -8,7 +8,9 @@
  * partial view repository's scaffold and the code editor's own language — to
  * write what a bunbraco view is: a default-exported component, with
  * `export const layout = '<alias>'` for its master, and for a partial view the
- * server's `Empty` snippet.
+ * server's `Empty` snippet. Snippets inserted into a view are translated to TSX
+ * (`tsx-snippets.js`), and the inserts that have no TSX equivalent — a partial
+ * view, which needs an import as well as a tag, and Razor's sections — are hidden.
  *
  * The methods are patched on Umbraco's own classes rather than the extensions
  * re-registered: changing the registry once the backoffice is rendering makes
@@ -19,6 +21,7 @@ import { UmbCodeEditorElement } from '@umbraco-cms/backoffice/code-editor'
 import { PartialViewService } from '@umbraco-cms/backoffice/external/backend-api'
 import { UmbPartialViewDetailRepository } from '@umbraco-cms/backoffice/partial-view'
 import { UmbTemplateDetailRepository } from '@umbraco-cms/backoffice/template'
+import { toTsxSnippet } from './tsx-snippets.js'
 
 export const SCAFFOLD = `import type { PageProps } from 'bunbraco'
 
@@ -224,10 +227,65 @@ function teachDialect(editors) {
     created.dispose()
     editor.onDidDispose(() => model.dispose())
   }
+
+  const insert = editors.insert
+  editors.insert = function (text) {
+    return insert.call(this, views.has(this) ? toTsxSnippet(text) : text)
+  }
+}
+
+/**
+ * The template editor's inserts that cannot become TSX. A partial view is an
+ * import as well as a tag, which an insert at the cursor cannot write, and
+ * sections are Razor's way for a layout to take content from a page, where a
+ * TSX layout takes props.
+ */
+async function hideRazorInserts() {
+  const menu = (await customElements.whenDefined('umb-templating-insert-menu')).prototype
+  Object.defineProperty(menu, 'hidePartialViews', {
+    configurable: true,
+    get: () => true,
+    set: () => {},
+  })
+
+  const editor = (await customElements.whenDefined('umb-template-workspace-editor')).prototype
+  const updated = editor.updated
+  editor.updated = function (changed) {
+    updated?.call(this, changed)
+    const sections = this.shadowRoot?.querySelector('#sections-button')
+    if (sections) sections.style.display = 'none'
+  }
+}
+
+/**
+ * The value builder's preview shows the snippet it will insert, so it shows the
+ * TSX one. Its output is still Umbraco's, and is translated on insert with the rest.
+ */
+async function previewFieldsAsTsx() {
+  const modal = (await customElements.whenDefined('umb-templating-page-field-builder-modal'))
+    .prototype
+  const render = modal.render
+  modal.render = function () {
+    const result = render.call(this)
+    if (Array.isArray(result?.values)) result.values = result.values.map(toTsxSnippet)
+    return result
+  }
+  const updated = modal.updated
+  modal.updated = function (changed) {
+    updated?.call(this, changed)
+    const block = this.shadowRoot?.querySelector('umb-code-block')
+    if (block && block.getAttribute('language') !== 'TypeScript') {
+      block.setAttribute('language', 'TypeScript')
+      block.language = 'TypeScript'
+    }
+  }
 }
 
 export const onInit = async () => {
   teachDialect(UmbCodeEditorElement.prototype)
+  // Registered lazily, so these wait for the editor to be opened
+  hideRazorInserts()
+  previewFieldsAsTsx()
 
   const repository = UmbTemplateDetailRepository.prototype
   const createScaffold = repository.createScaffold

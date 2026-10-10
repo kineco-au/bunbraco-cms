@@ -571,6 +571,7 @@ export function createPublishedContentSource(
       }
       return out
     },
+    loadContentTypeAliases: () => new ContentTypeRepository(db).aliasesByKey(),
 
     async loadRedirects() {
       return (await new RedirectRepository(db).all()).map((row) => ({

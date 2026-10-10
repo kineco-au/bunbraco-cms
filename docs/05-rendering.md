@@ -134,6 +134,15 @@ receives from anything else. `GET /template/{id}` answers the master as both
 `layoutTemplate`, which the client reads, and the contract's older
 `masterTemplate`.
 
+The editor's inserts are Razor too, built by functions Umbraco does not export,
+so `tsx-snippets.js` translates their output as it enters a view's editor:
+a value becomes `{model.text('alias', { fallback, default })}`, a dictionary item
+`{dictionary('key')}`, and a query its selection mapped to a list of links. Each
+builder has one fixed output shape, and `tests/tsx-snippets.test.ts` runs the
+vendored builders through the translation, so a change upstream fails a test. The
+two inserts with no TSX equivalent are hidden: a partial view, which needs an
+import as well as a tag, and sections, which a TSX layout replaces with props.
+
 ### Emitting markup
 
 Values escape by default: `renderChild` runs everything but `RawHtml` through
@@ -344,7 +353,7 @@ cache supplies (`@bunbraco/render` `values.ts` and `media.ts`):
 | Multinode Treepicker    | the published pages, in order                                                                               |
 | Element Picker          | `PublishedElement[]`, always a list, dropping any not published in the page's culture                       |
 | Multi URL Picker        | `Link[]`, with page and media URLs resolved                                                                 |
-| Block List / Block Grid | items with `content` and `settings` as `PublishedElement`s (same `value()`); grid items add spans and areas |
+| Block List / Block Grid | items with `content` and `settings` as `PublishedElement`s (same `value()`, and `contentType.alias` names the element type); grid items add spans and areas |
 | Media Picker            | `MediaWithCrops`, one or a list as the data type says; `model.media(alias)` always lists                    |
 | Image Cropper           | `ImageCropperValue` (`src`, `crops`, `focalPoint`, `cropUrl()`)                                             |
 | Rich text               | the markup, with `/{localLink:…}` links resolved (`#` when gone)                                            |

@@ -21,6 +21,8 @@ export interface ValueContext<Content = unknown, Media = unknown> {
   media?(key: string): Media | undefined
   /** A published library element by key; absent until the cache knows them. */
   element?(key: string): PublishedElement | undefined
+  /** A document type's alias by key, which is all a block records of its element type. */
+  contentTypeAlias?(key: string): string | undefined
   /** A content URL, for links. */
   urlOf(content: Content): string
   mediaUrlOf?(media: Media): string
@@ -138,6 +140,7 @@ function elementFrom(data: BlockData | undefined, context?: ValueContext): Publi
     {
       key: data.key,
       contentTypeKey: data.contentTypeKey,
+      contentTypeAlias: context?.contentTypeAlias?.(data.contentTypeKey) ?? null,
       properties: (data.values ?? []).map((v) => ({
         alias: v.alias,
         editorAlias: v.editorAlias ?? '',

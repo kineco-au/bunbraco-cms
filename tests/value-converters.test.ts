@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { keyFromReference } from '@bunbraco/core'
 import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { convertValue, PublishedElement } from '@bunbraco/render'
+import { type BlockGridItem, convertValue, PublishedElement } from '@bunbraco/render'
 import { generateTypes, loadSchemaDirectory } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -118,7 +118,10 @@ type = "featureGrid"
         <section class="block">{b.content.text('headline')} → {b.content.value('target')?.name}</section>
       ))}
       {model.value('grid').map((b) => (
-        <div class="cell" data-span={b.columnSpan}>{b.content.text('headline')}</div>
+        <div class="cell" data-span={b.columnSpan} data-type={b.content.contentType.alias}>
+          {b.content.text('headline')}
+          {b.areas.map((a) => a.items.map((n) => <span class="nested">{n.content.text('headline')}</span>))}
+        </div>
       ))}
     </main>
   )
@@ -207,6 +210,21 @@ const block = (
   }
 }
 
+/** A full-width grid block holding one half-width block in an area. */
+const gridWithArea = (outer: string, inner: string) => {
+  const value = block('Umbraco.BlockGrid', [
+    { headline: outer, columnSpan: 12 },
+    { headline: inner, columnSpan: 6 },
+  ])
+  const [row, cell] = value.layout['Umbraco.BlockGrid'] as Array<Record<string, unknown>>
+  return {
+    ...value,
+    layout: {
+      'Umbraco.BlockGrid': [{ ...row, areas: [{ key: crypto.randomUUID(), items: [cell] }] }],
+    },
+  }
+}
+
 describe('value converters', () => {
   test('references parse from udis and bare keys', () => {
     expect(keyFromReference('umb://document/2ef0a1b2c3d44e5f8a9b0c1d2e3f4a5b')).toBe(
@@ -231,6 +249,26 @@ describe('value converters', () => {
     expect(items[0]?.content).toBeInstanceOf(PublishedElement)
     expect(items[0]?.content.text('headline')).toBe('Hi')
     expect(convertValue('Umbraco.TextBox', 'plain')).toBe('plain')
+  })
+
+  test('a block names its element type when the context knows it', () => {
+    const value = gridWithArea('Row', 'Cell')
+    const context = {
+      content: () => undefined,
+      urlOf: () => '',
+      contentTypeAlias: (key: string) => (key === FEATURE ? 'feature' : undefined),
+    }
+    const [row] = convertValue('Umbraco.BlockGrid', value, context) as BlockGridItem[]
+    expect(row?.content.contentType).toEqual({ key: FEATURE, alias: 'feature' })
+    expect(row?.columnSpan).toBe(12)
+    const nested = row?.areas[0]?.items[0]
+    expect(nested?.content.text('headline')).toBe('Cell')
+    expect(nested?.content.contentType.alias).toBe('feature')
+    expect(nested?.columnSpan).toBe(6)
+
+    // Without one, the key is still there to go on
+    const [bare] = convertValue('Umbraco.BlockGrid', value) as BlockGridItem[]
+    expect(bare?.content.contentType).toEqual({ key: FEATURE, alias: null })
   })
 
   test('a page renders its pickers, links, block list and block grid', async () => {
@@ -265,7 +303,7 @@ describe('value converters', () => {
           { headline: 'First', target: `umb://document/${team.replaceAll('-', '')}` },
           { headline: 'Second' },
         ]),
-        grid: block('Umbraco.BlockGrid', [{ headline: 'Wide', columnSpan: 12 }]),
+        grid: gridWithArea('Wide', 'Inside'),
       },
       home,
     )
@@ -285,7 +323,10 @@ describe('value converters', () => {
     expect(html).toContain('<a href="/about">Relative</a>')
     expect(html).toContain('<section class="block">First → Team</section>')
     expect(html).toContain('<section class="block">Second → </section>')
-    expect(html).toContain('<div class="cell" data-span="12">Wide</div>')
+    // A block knows its element type by alias, and a grid's areas render their own blocks
+    expect(html).toContain(
+      '<div class="cell" data-span="12" data-type="feature">Wide<span class="nested">Inside</span></div>',
+    )
 
     // The editor gets back exactly what it saved
     const saved = await h.json<{ values: Array<{ alias: string; value: unknown }> }>(
