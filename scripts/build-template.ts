@@ -586,8 +586,229 @@ const HARBOURSTONE: Builder = async (site) => {
   })
 }
 
+/** The sample on the developer page, as it would sit in `components/pages/`. */
+const TSX_SAMPLE = `import type { PageProps } from 'bunbraco'
+import { Layout } from '../shared/layout.tsx'
+
+export default function Article({ model, nav }: PageProps) {
+  return (
+    <Layout model={model} nav={nav}>
+      <h1>{model.text('title')}</h1>
+      {model.html('bodyText')}
+    </Layout>
+  )
+}`
+
+const BUNBRACO: Builder = async (site) => {
+  const { page, element } = await writers(site)
+
+  const feature = (key: string, heading: string, detail: string) =>
+    element({ key, type: 'feature', name: heading, values: { heading, detail } })
+  const step = (key: string, heading: string, detail: string, command?: string) =>
+    element({ key, type: 'step', name: heading, values: { heading, detail, command } })
+
+  const reasons = [
+    await feature(
+      'b13339a3-69dd-43a2-a766-9ed92c8e7a28',
+      'No retraining',
+      'Editors work in the back office they already know from Umbraco. The content tree, drafts, scheduling, version history and media library are all where they expect them.',
+    ),
+    await feature(
+      '7a0bca8c-36cf-4602-b204-1b6674d2e1ee',
+      'Lower running costs',
+      'One lightweight process on SQLite or Postgres, hosted on modest Linux infrastructure. No licence fees, and no paid add-ons for essentials like forms.',
+    ),
+    await feature(
+      'e41ed7cc-3023-43a1-93ad-83f1b2ea1559',
+      'Fast by default',
+      'Pages are plain HTML rendered on the server, with no client-side framework to download, so sites load quickly and score well on Core Web Vitals.',
+    ),
+    await feature(
+      '1b966f5b-2fa6-4912-92aa-6390e00ac12e',
+      'Yours to own',
+      'Open source from end to end. Host it wherever you like, keep your content in a standard database, and never depend on a single vendor.',
+    ),
+  ]
+
+  const editorFeatures = [
+    await feature(
+      '5846d97d-b99b-4949-951d-43eda14b73ee',
+      'Drafts, scheduling and version history',
+      'Prepare changes in draft, publish on a schedule, and roll back to any earlier version.',
+    ),
+    await feature(
+      '4d577630-7c9f-46c0-a0d5-f887daef0aa0',
+      'A media library with cropping',
+      'Upload an image once and crop it for every place it appears.',
+    ),
+    await feature(
+      '9ccf8f41-fdb9-4a17-87d2-69835c42d5bd',
+      'Flexible page layouts',
+      'Build pages from blocks your developers design, arranged as lists or grids.',
+    ),
+    await feature(
+      '9249bc6e-4bb3-4161-a538-a7c8008f1c95',
+      'Forms built in',
+      'Design forms in the back office and review every submission in one place.',
+    ),
+    await feature(
+      '28e248bf-609b-4a0e-a2fa-1c2a8cc6846f',
+      'Redirects you manage yourself',
+      'When a page moves, its old address follows it. Add your own redirects without raising a ticket.',
+    ),
+    await feature(
+      '6a683488-cad5-4765-b253-044090a86505',
+      'An AI assistant that asks first',
+      'Optional help building pages and content. It proposes changes for you to review, and it can never publish.',
+    ),
+    await feature(
+      'f6c036de-300b-42d5-aa83-56f60fa26ef2',
+      'Upgrades that keep the site live',
+      'Visitors keep seeing your site while a new version rolls out.',
+    ),
+  ]
+
+  const toolkit = [
+    await feature(
+      '566477d3-97a4-446b-b9f1-d9b0f810caa8',
+      'Your content model in Git',
+      'Document types are readable TOML files you can diff and review, and bunbraco generate turns them into TypeScript types.',
+    ),
+    await feature(
+      '6bd08968-76a1-4f96-a7bf-453bad090fdc',
+      'One runtime',
+      'Bun runs the server, the build and the tests. No Node toolchain and no .NET SDK.',
+    ),
+    await feature(
+      'fe380729-34ae-48f6-848c-ab6e20d20b09',
+      'SQLite or Postgres',
+      'Start on SQLite with nothing to configure, and move to Postgres when you need to.',
+    ),
+    await feature(
+      'eda4ab14-74bf-446d-bb3e-064be4e5913b',
+      'Checks before production',
+      'bunbraco components check compiles every template in CI, so a broken page is caught before a visitor sees it.',
+    ),
+    await feature(
+      'ad985566-f642-413e-83e5-3e9bb4cdf283',
+      'Upgrades you can rehearse',
+      'Check an upgrade before you run it, then roll it out while the old version keeps serving pages.',
+    ),
+    await feature(
+      '9fbf656c-7b94-4f38-9c45-b4a93dea980d',
+      'Content between environments',
+      'Export content as a bundle of files you can review, then import it into staging or production.',
+    ),
+    await feature(
+      '704573e6-9386-4273-b6e8-04110bf6a9eb',
+      'Reusable bundles',
+      'Package schema, templates, content and media together, and install them into another site or publish them to npm.',
+    ),
+  ]
+
+  const steps = [
+    await step(
+      '03ef280b-511e-4778-859b-34e6a48be6f6',
+      'Install Bun',
+      'Bunbraco runs on Bun 1.3 or later. A SQLite site needs nothing else.',
+      'curl -fsSL https://bun.sh/install | bash',
+    ),
+    await step(
+      '6fbd32fd-64ea-4cc1-867d-a453a3fc6d7a',
+      'Create a site',
+      'Scaffold a site in an empty folder. Add --template list to see the starter sites, or --postgres to use Postgres.',
+      'mkdir my-site && cd my-site\nbunx bunbraco init --name "My Site"',
+    ),
+    await step(
+      'c7d11c0f-afa9-4269-9f26-c52e8cb09b0e',
+      'Install and start',
+      'The first start creates the database, then prints the back office address and your sign-in details.',
+      'bun install\nbun start',
+    ),
+    await step(
+      '05b6bdcb-2635-4a84-96e3-aa51980f368a',
+      'Model your content',
+      'Sign in at http://localhost:8080/bunbraco and create your document types. Each one is saved as a TOML file under schema/, ready to commit.',
+    ),
+    await step(
+      'a90cf801-2632-4000-85e6-14056ccacbb4',
+      'Write a template',
+      'Add a component under components/, or create one from the back office. Generate types for your document types to get autocomplete as you write.',
+      'bunx bunbraco components new pages/article\nbunx bunbraco generate',
+    ),
+    await step(
+      '276110ee-fb7c-4e1b-8648-89b8f828e161',
+      'Check before you ship',
+      'Compile every template in CI, so a broken page never reaches a visitor.',
+      'bunx bunbraco components check',
+    ),
+  ]
+
+  const home = await page({
+    key: '1f9d8eb5-4a8d-448d-bedc-a84f33ddab21',
+    type: 'homePage',
+    name: 'Home',
+    values: {
+      title: 'The CMS your editors already know',
+      strapline:
+        'Bunbraco gives your content team the Umbraco editing experience they trust, on an open-source platform that is quicker to build on and cheaper to run.',
+      heroCtaLabel: 'Get started',
+      whyHeading: 'Why teams switch to Bunbraco',
+      whyIntro:
+        'Keep the editing experience your team relies on, without the platform costs and constraints that usually come with it.',
+      reasons,
+      editorsHeading: 'Built for the people who publish',
+      editorsIntro:
+        'Familiar from the first login, with the tools content teams ask for already included.',
+      editorFeatures,
+      migrateHeading: 'Already on Umbraco?',
+      migrateBody: richtext(
+        '<p>The import tool starts with a compatibility report, so you know exactly what will ' +
+          'move across before anything changes. It then brings your content types, content and ' +
+          'media into a new Bunbraco site.</p>' +
+          '<p>Your editors keep working in a back office they already trust.</p>',
+      ),
+      developersHeading: 'Your developers will thank you',
+      developersIntro:
+        'TypeScript templates, a content model kept in Git, and a single runtime that starts in seconds. No .NET, no Razor.',
+      developersCtaLabel: 'Read the developer guide',
+      closingHeading: 'Up and running in minutes',
+      closingBody:
+        'One command creates a site, and the developer guide takes you from there to your first published page.',
+      repositoryUrl: 'https://github.com/kineco-au/bunbraco-cms',
+      installCommand: 'bunx bunbraco init',
+    },
+  })
+
+  await page({
+    key: 'fa2dd680-27ba-4811-8dc2-101cb3813c6d',
+    type: 'developerPage',
+    parent: home,
+    name: 'Developers',
+    values: {
+      eyebrow: 'For developers',
+      title: 'Templates in TSX, schema in Git, one runtime',
+      standfirst:
+        'Bunbraco keeps the back office your editors know and rebuilds everything behind it in TypeScript on Bun. Here is what that means for you, and how to get started.',
+      codeHeading: 'Templates are typed components',
+      codeIntro:
+        'Write pages as React-style TSX components. They render to HTML on the server, with no React runtime and no hydration, and your changes show up without a restart.',
+      codeSample: TSX_SAMPLE,
+      toolkitHeading: 'What you get',
+      toolkit,
+      stepsHeading: 'Get started',
+      steps,
+      nextSteps: richtext(
+        '<p>The README covers configuration, deployment, importing from Umbraco and the rest ' +
+          'of the toolkit in depth.</p>',
+      ),
+    },
+  })
+}
+
 const BUILDERS: Record<string, Builder> = {
   basic: BASIC,
+  'demo/bunbraco': BUNBRACO,
   'demo/harbourstone': HARBOURSTONE,
 }
 
@@ -598,6 +819,7 @@ const BUILDERS: Record<string, Builder> = {
  */
 const BUNDLE_IDS: Record<string, string> = {
   basic: '2de473a2-d391-4161-801e-e34b202759b8',
+  'demo/bunbraco': 'ffc7145b-99fa-48da-9daf-12cd61454a22',
   'demo/harbourstone': 'af030aee-ba70-4bed-8a27-a3806a79100d',
 }
 

@@ -176,56 +176,62 @@ describe('the colour scheme', () => {
 })
 
 describe('the logos', () => {
+  /** The oval bun and the rounded "b" set into it, as every file draws them. */
+  const BUN = '<ellipse cx="100" cy="105" rx="78" ry="58"'
+  const LETTER = /d="(M83 [^"]+)"/
+
   test('carry the brand colours and no trace of the Umbraco-era blue', async () => {
     for (const file of ['logo-header.svg', 'logo-surface.svg', 'favicon.svg']) {
       const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-      expect([file, svg.includes('#3b2412')]).toEqual([file, true])
+      expect([file, svg.includes(`${BUN} fill="#c17a4a"/>`)]).toEqual([file, true])
       // The two blues the marks used before.
       expect([file, /#283a97|#3544b1/i.test(svg)]).toEqual([file, false])
     }
   })
 
-  test('are the one dark mark, on the orange header and on white alike', async () => {
-    // The bun reads on the orange header band and on white, so unlike the two
-    // circles it replaced there is no lighter variant to keep in step.
+  test('set the wordmark in cocoa, which reads on the orange header and on white alike', async () => {
     for (const file of ['logo-header.svg', 'logo-surface.svg']) {
       const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-      expect([file, svg.includes('#e89550')]).toEqual([file, false])
+      expect([file, svg.includes('fill="#3b2412"')]).toEqual([file, true])
       expect([file, svg.includes('aria-label="bunbraco"')]).toEqual([file, true])
     }
   })
 
-  test('the favicon sits on a full-bleed square of the header fill', async () => {
-    // The exception to the rule above: a tab strip gives the mark no ground of
-    // its own, so this one carries the header bar's colour behind it.
+  test('the favicon is the mark alone, on a square that fits the bun', async () => {
     const svg = await Bun.file(`${BRANDING_DIR}/favicon.svg`).text()
-    expect(svg).toContain('viewBox="0 0 345 345"')
-    expect(svg).toContain('<rect width="345" height="345" fill="#e89550"/>')
-    const theme = await Bun.file(`${BRANDING_DIR}/theme.css`).text()
-    expect(theme).toContain('--uui-color-header-surface: var(--bunbraco-orange)')
-    expect(theme).toContain('--bunbraco-orange: #e89550')
+    expect(svg).toContain('viewBox="16 21 168 168"')
+    expect(svg).not.toContain('<text')
   })
 
-  test('cut the same bun silhouette, the backdrop watermark included', async () => {
-    // Five files draw this mark and nothing generates them, so the only thing
+  test('draw the letter as shapes, so no font decides what it looks like', async () => {
+    // A favicon and a currentColor icon cannot rely on a webfont being there.
+    for (const file of ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg']) {
+      const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
+      expect([file, />b<\/text>/.test(svg)]).toEqual([file, false])
+    }
+  })
+
+  test('draw the same bun and letter, the backdrop, icon and site template included', async () => {
+    // Several files draw this mark and nothing generates them, so the only thing
     // stopping the shape drifting in one of them is this comparison.
-    const silhouettes = await Promise.all(
-      [
-        'logo-header.svg',
-        'logo-surface.svg',
-        'favicon.svg',
-        'backdrop.svg',
-        // The registry icon, served in place of Umbraco's roundel.
-        'icon-mark.js',
-      ].map(async (file) => {
-        const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-        return [file, /<path d="([^"]+)"/.exec(svg)?.[1]] as const
+    const files = [
+      'logo-header.svg',
+      'logo-surface.svg',
+      'favicon.svg',
+      'backdrop.svg',
+      // The registry icon, served in place of Umbraco's roundel.
+      'icon-mark.js',
+    ].map((file) => `${BRANDING_DIR}/${file}`)
+    files.push('packages/cli/templates/demo/bunbraco/files/components/shared/logo.tsx')
+    const marks = await Promise.all(
+      files.map(async (file) => {
+        const svg = await Bun.file(file).text()
+        return [file, svg.includes(BUN), LETTER.exec(svg)?.[1]] as const
       }),
     )
-    const bun = silhouettes[0]?.[1]
-    // A flat-bottomed dome, not the circle the mark started as.
-    expect(bun).toMatch(/^M10 243C/)
-    for (const [file, d] of silhouettes) expect([file, d]).toEqual([file, bun])
+    const letter = marks[0]?.[2]
+    expect(letter).toBeTruthy()
+    for (const [file, bun, d] of marks) expect([file, bun, d]).toEqual([file, true, letter])
   })
 })
 
@@ -528,7 +534,7 @@ describe('the Umbraco mark in the icon registry', () => {
     // The root element carries no size of its own: the consumer sets it, which
     // is why a viewBox is the only geometry on it.
     const root = /^<svg[^>]*>/.exec(svg)?.[0] ?? ''
-    expect(root).toContain('viewBox="0 0 345 345"')
+    expect(root).toContain('viewBox="16 21 168 168"')
     expect(root).not.toMatch(/\s(?:width|height)="/)
     // `uui-icon` inlines this markup into the page, where the short mask ids the
     // shells' own marks use would collide with it.

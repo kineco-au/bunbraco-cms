@@ -31,7 +31,7 @@ const byId = (id: string): SiteTemplate => {
 
 describe('the starter templates', () => {
   test('are listed with what they contain, and an unknown one is not invented', () => {
-    expect(templates.map((t) => t.id)).toEqual(['basic', 'demo/harbourstone'])
+    expect(templates.map((t) => t.id)).toEqual(['basic', 'demo/bunbraco', 'demo/harbourstone'])
     for (const template of templates) {
       expect(template.name).not.toBe('')
       expect(template.description).not.toBe('')
@@ -358,5 +358,46 @@ describe('the demo’s typography', () => {
       expect([property, declaration.split(',').length > 2]).toEqual([property, true])
       expect([property, /serif/.test(declaration)]).toEqual([property, true])
     }
+  })
+})
+
+describe('the Bunbraco product site', () => {
+  const template = byId('demo/bunbraco')
+  const components = join(template.dir, 'files', 'components')
+  const nodes = loadBundle(join(template.dir, 'bundle')).set?.nodes ?? []
+  const storedValue = (type: string, alias: string) =>
+    nodes
+      .find((node) => node.contentType.alias === type)
+      ?.values.find((value) => value.property === alias)?.value
+
+  test('points its GitHub links at the project’s repository', () => {
+    const repository = 'https://github.com/kineco-au/bunbraco-cms'
+    expect(storedValue('homePage', 'repositoryUrl')).toBe(repository)
+    // The fallback for a home page that leaves the setting empty.
+    expect(readFileSync(join(components, 'shared', 'site.tsx'), 'utf8')).toContain(
+      `'${repository}'`,
+    )
+  })
+
+  test('ships a TSX sample that is complete, and renders it as text', () => {
+    const sample = String(storedValue('developerPage', 'codeSample'))
+    expect(sample).toContain("import type { PageProps } from 'bunbraco'")
+    expect(sample).toContain("import { Layout } from '../shared/layout.tsx'")
+    // Every tag it opens, it closes.
+    expect(sample.match(/<Layout\b/g)?.length).toBe(sample.match(/<\/Layout>/g)?.length)
+    const view = readFileSync(join(components, 'pages', 'developerPage.tsx'), 'utf8')
+    expect(view).toContain("<code>{model.text('codeSample')}</code>")
+  })
+
+  test('keeps the developer detail off the home page', () => {
+    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.documentTypes
+    const home = types.find((type) => type.alias === 'homePage')
+    const developer = types.find((type) => type.alias === 'developerPage')
+    expect(home?.allowChildren).toEqual(['developerPage'])
+    const homeAliases = home ? allProperties(home).map((p) => p.alias) : []
+    for (const alias of ['codeSample', 'steps', 'toolkit'])
+      expect([alias, homeAliases.includes(alias)]).toEqual([alias, false])
+    const developerAliases = developer ? allProperties(developer).map((p) => p.alias) : []
+    expect(developerAliases).toContain('steps')
   })
 })

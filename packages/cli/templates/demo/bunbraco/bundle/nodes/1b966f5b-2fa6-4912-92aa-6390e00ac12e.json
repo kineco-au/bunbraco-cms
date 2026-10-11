@@ -1,0 +1,35 @@
+{
+  "key": "1b966f5b-2fa6-4912-92aa-6390e00ac12e",
+  "kind": "element",
+  "contentType": {
+    "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
+    "alias": "feature"
+  },
+  "parent": null,
+  "sortOrder": 3,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Yours to own",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Open source from end to end. Host it wherever you like, keep your content in a standard database, and never depend on a single vendor."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Yours to own"
+    }
+  ]
+}

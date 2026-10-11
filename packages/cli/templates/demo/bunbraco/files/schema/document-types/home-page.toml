@@ -1,0 +1,146 @@
+[document-type]
+key = "75b32ec4-62f3-437a-a1a4-b89bb4081245"
+alias = "homePage"
+name = "Home Page"
+description = "The landing page, written for the people who choose a CMS"
+icon = "icon-home"
+allow-at-root = true
+allow-children = ["developerPage"]
+components = ["pages/homePage"]
+default-component = "pages/homePage"
+
+[[tab]]
+name = "Hero"
+
+[[tab.property]]
+key = "c788d2da-5f03-4f2d-898e-53b4fa6df454"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "05605a1b-a8a1-4064-a960-08d0b458c975"
+alias = "strapline"
+name = "Strapline"
+description = "A sentence or two under the heading"
+type = "textarea"
+
+[[tab.property]]
+key = "131f0f6a-5c0c-4622-9f25-996f8c1de7ab"
+alias = "heroCtaLabel"
+name = "Button"
+description = "Jumps to the closing call to action. Leave empty for no button."
+type = "textstring"
+
+[[tab]]
+name = "Why switch"
+
+[[tab.property]]
+key = "c92d2e81-f393-4c67-a149-7f4306307aca"
+alias = "whyHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "dd435a53-df04-4a8f-bc0f-69ca9d5eaada"
+alias = "whyIntro"
+name = "Introduction"
+type = "textarea"
+
+[[tab.property]]
+key = "49ba2dfa-015c-428c-84d6-50d249e56ca4"
+alias = "reasons"
+name = "Reasons"
+description = "Picked from the Library; shown as cards"
+type = "featurePicker"
+
+[[tab]]
+name = "Editors"
+
+[[tab.property]]
+key = "ecf52518-c55d-4218-a710-1609cbdf1dde"
+alias = "editorsHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "5517dc1c-b546-4cea-a9d7-69d5a9be1335"
+alias = "editorsIntro"
+name = "Introduction"
+type = "textarea"
+
+[[tab.property]]
+key = "737f7dea-1859-4b01-a4e5-28b7c76c5841"
+alias = "editorFeatures"
+name = "Features"
+description = "Picked from the Library; shown as a checklist"
+type = "featurePicker"
+
+[[tab.property]]
+key = "a2816b9a-6279-445d-ab87-7942e49b25b6"
+alias = "migrateHeading"
+name = "Migration heading"
+description = "The panel beside the checklist. Leave empty for no panel."
+type = "textstring"
+
+[[tab.property]]
+key = "3d555e0e-a686-4407-a079-c3bbcf08eca6"
+alias = "migrateBody"
+name = "Migration text"
+type = "richtext"
+
+[[tab]]
+name = "Developers"
+
+[[tab.property]]
+key = "ef3904c2-9e27-418e-bcef-6e245bd089de"
+alias = "developersHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "496b2c88-7c89-4b8d-8894-6ceb2f553256"
+alias = "developersIntro"
+name = "Introduction"
+type = "textarea"
+
+[[tab.property]]
+key = "4b62f08e-cff0-4ba2-b755-fbc6ebb4af39"
+alias = "developersCtaLabel"
+name = "Button"
+description = "Links to the developer page. Leave empty for no button."
+type = "textstring"
+
+[[tab]]
+name = "Get started"
+
+[[tab.property]]
+key = "5e856c15-f509-4a51-802a-eef789788e75"
+alias = "closingHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "1770c342-9b99-4c44-a434-272df07b9515"
+alias = "closingBody"
+name = "Text"
+type = "textarea"
+
+[[tab]]
+name = "Site"
+
+[[tab.property]]
+key = "aff40dd6-4511-489d-872f-b6d182b68d1c"
+alias = "repositoryUrl"
+name = "Source code link"
+description = "Where the GitHub links in the header and on every page point"
+type = "textstring"
+
+[[tab.property]]
+key = "2b6beb0e-5b0c-4699-b406-6b34e9b07cb4"
+alias = "installCommand"
+name = "Install command"
+description = "The one command shown in the closing call to action"
+type = "textstring"

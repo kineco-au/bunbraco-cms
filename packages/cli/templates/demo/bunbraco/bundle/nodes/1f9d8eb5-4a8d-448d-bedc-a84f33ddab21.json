@@ -1,0 +1,178 @@
+{
+  "key": "1f9d8eb5-4a8d-448d-bedc-a84f33ddab21",
+  "kind": "document",
+  "contentType": {
+    "key": "75b32ec4-62f3-437a-a1a4-b89bb4081245",
+    "alias": "homePage"
+  },
+  "parent": null,
+  "sortOrder": 0,
+  "template": "pages/homePage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Home",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "closingBody",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "One command creates a site, and the developer guide takes you from there to your first published page."
+    },
+    {
+      "property": "closingHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Up and running in minutes"
+    },
+    {
+      "property": "developersCtaLabel",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Read the developer guide"
+    },
+    {
+      "property": "developersHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Your developers will thank you"
+    },
+    {
+      "property": "developersIntro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "TypeScript templates, a content model kept in Git, and a single runtime that starts in seconds. No .NET, no Razor."
+    },
+    {
+      "property": "editorFeatures",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "5846d97d-b99b-4949-951d-43eda14b73ee",
+        "4d577630-7c9f-46c0-a0d5-f887daef0aa0",
+        "9ccf8f41-fdb9-4a17-87d2-69835c42d5bd",
+        "9249bc6e-4bb3-4161-a538-a7c8008f1c95",
+        "28e248bf-609b-4a0e-a2fa-1c2a8cc6846f",
+        "6a683488-cad5-4765-b253-044090a86505",
+        "f6c036de-300b-42d5-aa83-56f60fa26ef2"
+      ],
+      "references": [
+        "28e248bf-609b-4a0e-a2fa-1c2a8cc6846f",
+        "4d577630-7c9f-46c0-a0d5-f887daef0aa0",
+        "5846d97d-b99b-4949-951d-43eda14b73ee",
+        "6a683488-cad5-4765-b253-044090a86505",
+        "9249bc6e-4bb3-4161-a538-a7c8008f1c95",
+        "9ccf8f41-fdb9-4a17-87d2-69835c42d5bd",
+        "f6c036de-300b-42d5-aa83-56f60fa26ef2"
+      ]
+    },
+    {
+      "property": "editorsHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Built for the people who publish"
+    },
+    {
+      "property": "editorsIntro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Familiar from the first login, with the tools content teams ask for already included."
+    },
+    {
+      "property": "heroCtaLabel",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Get started"
+    },
+    {
+      "property": "installCommand",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "bunx bunbraco init"
+    },
+    {
+      "property": "migrateBody",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>The import tool starts with a compatibility report, so you know exactly what will move across before anything changes. It then brings your content types, content and media into a new Bunbraco site.</p><p>Your editors keep working in a back office they already trust.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "migrateHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Already on Umbraco?"
+    },
+    {
+      "property": "reasons",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.ElementPicker",
+      "value": [
+        "b13339a3-69dd-43a2-a766-9ed92c8e7a28",
+        "7a0bca8c-36cf-4602-b204-1b6674d2e1ee",
+        "e41ed7cc-3023-43a1-93ad-83f1b2ea1559",
+        "1b966f5b-2fa6-4912-92aa-6390e00ac12e"
+      ],
+      "references": [
+        "1b966f5b-2fa6-4912-92aa-6390e00ac12e",
+        "7a0bca8c-36cf-4602-b204-1b6674d2e1ee",
+        "b13339a3-69dd-43a2-a766-9ed92c8e7a28",
+        "e41ed7cc-3023-43a1-93ad-83f1b2ea1559"
+      ]
+    },
+    {
+      "property": "repositoryUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/bunbraco-cms"
+    },
+    {
+      "property": "strapline",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Bunbraco gives your content team the Umbraco editing experience they trust, on an open-source platform that is quicker to build on and cheaper to run."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "The CMS your editors already know"
+    },
+    {
+      "property": "whyHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Why teams switch to Bunbraco"
+    },
+    {
+      "property": "whyIntro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Keep the editing experience your team relies on, without the platform costs and constraints that usually come with it."
+    }
+  ]
+}

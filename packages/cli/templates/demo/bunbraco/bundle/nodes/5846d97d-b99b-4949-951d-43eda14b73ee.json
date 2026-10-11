@@ -1,0 +1,35 @@
+{
+  "key": "5846d97d-b99b-4949-951d-43eda14b73ee",
+  "kind": "element",
+  "contentType": {
+    "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
+    "alias": "feature"
+  },
+  "parent": null,
+  "sortOrder": 4,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Drafts, scheduling and version history",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Prepare changes in draft, publish on a schedule, and roll back to any earlier version."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Drafts, scheduling and version history"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "key": "03ef280b-511e-4778-859b-34e6a48be6f6",
+  "kind": "element",
+  "contentType": {
+    "key": "bd46f89c-5685-4048-adb7-b4bd40b65c8a",
+    "alias": "step"
+  },
+  "parent": null,
+  "sortOrder": 18,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Install Bun",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "command",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "curl -fsSL https://bun.sh/install | bash"
+    },
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Bunbraco runs on Bun 1.3 or later. A SQLite site needs nothing else."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Install Bun"
+    }
+  ]
+}

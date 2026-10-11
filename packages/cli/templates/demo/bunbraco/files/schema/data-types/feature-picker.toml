@@ -1,0 +1,9 @@
+# Element pickers narrowed to one element type each, so the picker offers only
+# what the property can render.
+[data-type]
+key = "d9672117-62c4-4cf8-bc07-0064a0397439"
+alias = "featurePicker"
+name = "Feature Picker"
+editor = "Umbraco.ElementPicker"
+editor-ui = "Umb.PropertyEditorUi.ElementPicker"
+config = { allowedContentTypes = "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4" }

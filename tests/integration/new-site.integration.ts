@@ -37,6 +37,7 @@ describe('creating a site, end to end through the CLI', () => {
   const scaffolded: Record<string, Run> = {}
   let bare: Serving
   let demo: Serving
+  let product: Serving
 
   const siteDir = (name: string) => join(dir, name)
 
@@ -167,11 +168,20 @@ describe('creating a site, end to end through the CLI', () => {
       'demo/harbourstone',
     )
     expect(demoInit.code, demoInit.out).toBe(0)
+    const productInit = await scaffold(
+      'product',
+      '--name',
+      'Bunbraco',
+      '--template',
+      'demo/bunbraco',
+    )
+    expect(productInit.code, productInit.out).toBe(0)
     const postgresInit = await scaffold('postgres', '--name', 'Postgres Site', '--postgres')
     expect(postgresInit.code, postgresInit.out).toBe(0)
 
     bare = await serve('bare')
     demo = await serve('demo', '--bundle', 'bundles/demo-harbourstone', '--publish')
+    product = await serve('product', '--bundle', 'bundles/demo-bunbraco', '--publish')
   }, 240_000)
 
   afterAll(async () => {
@@ -287,6 +297,45 @@ describe('creating a site, end to end through the CLI', () => {
     expect(html).toContain('The everyday dram from the shore')
     // Elements picked on the home page, not only on a bottling.
     expect(html).toContain('First season on this rock')
+  })
+
+  test('the product site keeps its home page for the business case', async () => {
+    const html = await page(product, '/')
+    expect(html).toContain('The CMS your editors already know')
+    expect(html).toContain('Why teams switch to Bunbraco')
+    expect(html).toContain('Already on Umbraco?')
+    // The developer detail is a link away, not on this page.
+    expect(html).toContain('href="/developers"')
+    expect(html).not.toContain('class="steps"')
+    expect(html).not.toContain('import type { PageProps }')
+  })
+
+  test('the product site links to the project’s own repository', async () => {
+    for (const path of ['/', '/developers']) {
+      const html = await page(product, path)
+      const links = new Set(
+        [...html.matchAll(/href="(https:\/\/github\.com[^"]*)"/g)].map((m) => m[1]),
+      )
+      expect([path, [...links]]).toEqual([path, ['https://github.com/kineco-au/bunbraco-cms']])
+    }
+  })
+
+  test('its developer page shows the TSX sample as written, and the steps in order', async () => {
+    const html = await page(product, '/developers')
+    // Escaped, so the tags in the sample are text on the page, not elements.
+    expect(html).toContain('&lt;Layout model={model} nav={nav}&gt;')
+    expect(html).toContain('&lt;/Layout&gt;')
+    expect(html).not.toContain('<Layout')
+    const steps = [...html.matchAll(/<li><h3>([^<]+)<\/h3>/g)].map((m) => m[1])
+    expect(steps).toEqual([
+      'Install Bun',
+      'Create a site',
+      'Install and start',
+      'Model your content',
+      'Write a template',
+      'Check before you ship',
+    ])
+    expect(html).toContain('bunx bunbraco init --name &quot;My Site&quot;')
   })
 
   test('its elements travel too: a bottling renders the tasting notes it picked', async () => {

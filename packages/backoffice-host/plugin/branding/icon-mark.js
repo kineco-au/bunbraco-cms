@@ -12,4 +12,4 @@
  * markup into the page, where a bare `id="b"` would collide with the marks in
  * the shells.
  */
-export default `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 345 345"><defs><mask id="bunbraco-icon-mark"><rect width="345" height="345" fill="#fff"/><rect x="114" y="92" width="30" height="166" rx="15" fill="#000"/><circle cx="184" cy="206" r="42" fill="none" stroke="#000" stroke-width="30"/></mask></defs><path d="M10 243C10 134 83 55 172.5 55C262 55 335 134 335 243C335 272 313 290 283 290L62 290C32 290 10 272 10 243Z" mask="url(#bunbraco-icon-mark)"/></svg>`
+export default `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="16 21 168 168"><defs><mask id="bunbraco-icon-mark"><rect x="16" y="21" width="168" height="168" fill="#fff"/><path d="M83 87V135M88 120a15 15 0 1 0 30 0a15 15 0 1 0-30 0" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round"/></mask></defs><ellipse cx="100" cy="105" rx="78" ry="58" mask="url(#bunbraco-icon-mark)"/></svg>`

@@ -1,0 +1,23 @@
+# Reused across both pages: the reasons to switch, the editor checklist and the
+# developer toolkit are all a heading and a line under it.
+[document-type]
+key = "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4"
+alias = "feature"
+name = "Feature"
+description = "A short heading and a sentence or two under it"
+icon = "icon-check"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "58756550-6f5d-4301-947c-c26c99813b62"
+alias = "heading"
+name = "Heading"
+type = "textstring"
+mandatory = true
+
+[[property]]
+key = "58d565b7-9152-48f2-9066-0cc8618b1ff0"
+alias = "detail"
+name = "Detail"
+type = "textarea"

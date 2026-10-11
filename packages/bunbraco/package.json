@@ -1,6 +1,6 @@
 {
   "name": "bunbraco",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "bunbraco": {
     "migrations": "compatible"
   },
@@ -32,6 +32,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./branding": "./src/branding.ts",
     "./jsx-runtime": "./src/jsx-runtime.ts",
     "./jsx-dev-runtime": "./src/jsx-runtime.ts"
   },

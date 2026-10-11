@@ -1,0 +1,35 @@
+{
+  "key": "4d577630-7c9f-46c0-a0d5-f887daef0aa0",
+  "kind": "element",
+  "contentType": {
+    "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
+    "alias": "feature"
+  },
+  "parent": null,
+  "sortOrder": 5,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "A media library with cropping",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Upload an image once and crop it for every place it appears."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "A media library with cropping"
+    }
+  ]
+}

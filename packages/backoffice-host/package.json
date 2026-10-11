@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/backoffice-host",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Serves the Umbraco backoffice SPA: shell HTML, import map and package manifests.",
   "license": "MIT",
   "author": "Kineco",
@@ -18,7 +18,8 @@
   },
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./branding": "./src/branding.ts"
   },
   "files": [
     "assets",
