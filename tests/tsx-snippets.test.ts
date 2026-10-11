@@ -5,13 +5,26 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { queryExpression } from '../packages/api-management/src/handlers/template-query.ts'
-import {
+import { toTsxSnippet } from '../packages/backoffice-host/plugin/tsx-snippets.js'
+
+/**
+ * Umbraco's builders, loaded by a computed path: the vendored back office is
+ * built, not checked in, so the typecheck cannot resolve a static import of it.
+ */
+interface UmbracoSnippets {
+  getInsertDictionarySnippet(nodeName: string): string
+  getInsertPartialSnippet(nodeName: string): string
+  getQuerySnippet(queryExpression: string): string
+  getUmbracoFieldSnippet(field: string, defaultValue?: string | null, recursive?: boolean): string
+}
+
+const UMBRACO_SNIPPETS = '../packages/backoffice-dist/dist/packages/templating/utils/index.js'
+const {
   getInsertDictionarySnippet,
   getInsertPartialSnippet,
   getQuerySnippet,
   getUmbracoFieldSnippet,
-} from '../packages/backoffice-dist/dist/packages/templating/utils/index.js'
-import { toTsxSnippet } from '../packages/backoffice-host/plugin/tsx-snippets.js'
+}: UmbracoSnippets = await import(UMBRACO_SNIPPETS)
 
 const source = (path: string) => Bun.file(`packages/backoffice-host/${path}`).text()
 
