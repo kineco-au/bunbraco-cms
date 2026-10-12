@@ -418,6 +418,30 @@ Docker is never blocked — but a skip is not a pass.
 [`docs/08-testing.md`](docs/08-testing.md) has the layers, the containers and the
 browser suite.
 
+### Publishing the product site
+
+The Bunbraco product site is the `demo/bunbraco` template, and it runs on the
+hosted platform as an ordinary tenant — so a release republishes its content the
+way a customer's own CI would:
+
+```bash
+bun run brochureware:publish --dry-run    # what it would send, and where
+bun run brochureware:publish              # upload, publish, wait
+```
+
+What is sent is the committed bundle under
+`packages/cli/templates/demo/bunbraco/bundle`, never a scaffolded site: `sites/`
+is gitignored and disposable. The archive is deterministic, so unchanged content
+produces the same bytes and the same hash.
+
+The `brochureware` job in `.github/workflows/release.yml` runs it after the
+registry publish, and only when the repository variable `BROCHUREWARE_PUBLISH`
+is `enabled` — gated on a variable rather than on a secret being absent, because
+a rotated token would otherwise skip silently. It publishes to **preview**;
+production is promoted by hand once somebody has looked at it. It needs
+`BUNBRACO_PLATFORM_URL`, `_ORGANISATION`, `_SITE` and `_PREVIEW` as variables and
+`BUNBRACO_PLATFORM_TOKEN` as a secret, which is a `deploy`-scoped platform token.
+
 ---
 
 ## Documentation

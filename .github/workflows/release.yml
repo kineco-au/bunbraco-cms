@@ -73,3 +73,42 @@ jobs:
             - run: bun run release:publish
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    # Our own product site runs on the platform as an ordinary tenant, so a
+    # release republishes its content the way a customer's CI would (`115` in
+    # bunbraco-enterprise). It publishes to **preview**; production is promoted
+    # by hand once somebody has looked at it.
+    #
+    # Gated on a repository variable rather than on a secret being absent: a
+    # rotated or deleted secret is indistinguishable from "not set up yet", and
+    # a publish that quietly stops happening is the thing this job exists to
+    # prevent. Off, it skips and says so. On, any failure fails the release.
+    brochureware:
+        needs: publish
+        if: vars.BROCHUREWARE_PUBLISH == 'enabled'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+
+            - name: Publish the product site to preview
+              run: bun run brochureware:publish
+              env:
+                  BUNBRACO_PLATFORM_URL: ${{ vars.BUNBRACO_PLATFORM_URL }}
+                  BUNBRACO_PLATFORM_TOKEN: ${{ secrets.BUNBRACO_PLATFORM_TOKEN }}
+                  BUNBRACO_PLATFORM_ORGANISATION: ${{ vars.BUNBRACO_PLATFORM_ORGANISATION }}
+                  BUNBRACO_PLATFORM_SITE: ${{ vars.BUNBRACO_PLATFORM_SITE }}
+                  BUNBRACO_PLATFORM_ENVIRONMENT: ${{ vars.BUNBRACO_PLATFORM_PREVIEW }}
+
+            - name: Say that production is still waiting
+              run: |
+                  {
+                    echo "### Product site"
+                    echo
+                    echo "Published to **preview**. Promote it to production once it looks right."
+                  } >> "$GITHUB_STEP_SUMMARY"

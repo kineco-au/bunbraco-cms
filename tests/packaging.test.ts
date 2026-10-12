@@ -274,6 +274,44 @@ describe('the release workflow', () => {
   })
 })
 
+describe('republishing the product site', () => {
+  const workflow = readFileSync(join(ROOT, '.github/workflows/release.yml'), 'utf8')
+  const job = workflow.slice(workflow.indexOf('brochureware:'))
+
+  test('runs after the registry publish, not beside it', () => {
+    // A site republished from a release that then failed to publish would be
+    // running content for a version nobody can install.
+    expect(job).toMatch(/needs:\s*publish/)
+    expect(job).toContain('bun run brochureware:publish')
+  })
+
+  test('is gated on a variable, so a lost secret cannot look like "not set up yet"', () => {
+    // Keyed off secret-absence instead, a rotated or deleted token would skip
+    // silently and the site would quietly stop being republished — which is the
+    // chore this job exists to remove.
+    expect(job).toMatch(/if:\s*vars\.BROCHUREWARE_PUBLISH == 'enabled'/)
+    expect(job).not.toMatch(/if:.*secrets\./)
+  })
+
+  test('carries the token as a secret and nothing else as one', () => {
+    // Repository variables are readable by anyone who can see the repository, so
+    // the deploy token is the one value that cannot be one.
+    expect(job).toMatch(
+      /BUNBRACO_PLATFORM_TOKEN:\s*\$\{\{\s*secrets\.BUNBRACO_PLATFORM_TOKEN\s*\}\}/,
+    )
+    expect(job).not.toMatch(/vars\.BUNBRACO_PLATFORM_TOKEN/)
+  })
+
+  test('publishes to preview, never straight to production', () => {
+    // Decided deliberately: the live marketing site is promoted by hand once
+    // somebody has looked at it.
+    expect(job).toMatch(
+      /BUNBRACO_PLATFORM_ENVIRONMENT:\s*\$\{\{\s*vars\.BUNBRACO_PLATFORM_PREVIEW\s*\}\}/,
+    )
+    expect(job).not.toMatch(/BUNBRACO_PLATFORM_PRODUCTION/)
+  })
+})
+
 describe('every image a template redistributes', () => {
   /** The binaries under a template's bundle, which ship inside `@bunbraco/cli`. */
   const images = (dir: string): string[] =>
