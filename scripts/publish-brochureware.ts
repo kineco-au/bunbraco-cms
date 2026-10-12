@@ -187,12 +187,13 @@ export function settled(state: string): boolean {
 }
 
 export class PublishError extends Error {
+  /** `status` is 0 for a failure the platform reported rather than refused. */
   constructor(
     readonly step: string,
     readonly status: number,
     readonly detail: string,
   ) {
-    super(`${step} failed with ${status}: ${detail}`)
+    super(status ? `${step} failed with ${status}: ${detail}` : `${step} failed: ${detail}`)
   }
 }
 
