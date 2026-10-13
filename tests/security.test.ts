@@ -10,9 +10,9 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { authorize, type NodeLookup, type Principal, sectionsOf } from '@bunbraco/api-management'
 import { AuthService, type AuthStore, hashPassword } from '@bunbraco/auth'
 import { listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
-import { localReturnUrl } from '@bunbraco/core'
-import { loadConfig } from '@bunbraco/server'
-import { BACKOFFICE, type Harness, signedInServer, signInAsGroup } from './support/harness.ts'
+import { localReturnUrl, sectionKey, toSectionAliases } from '@bunbraco/core'
+import { loadConfig, type ServerBundle } from '@bunbraco/server'
+import { BACKOFFICE, type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
 afterEach(async () => {
@@ -139,6 +139,73 @@ describe('the media collection', () => {
   test('sections are read the same way wherever they came from', () => {
     const bare = { ...principal(), allowedSections: ['media', 'Umb.Section.Settings'] }
     expect([...sectionsOf(bare)].sort()).toEqual(['media', 'settings'])
+  })
+
+  test('a core section compares as its stored alias whichever name it arrived under', () => {
+    // Forms is the core section whose manifest alias is not `Umb.`-prefixed, so
+    // stripping the prefix was never enough to match it.
+    expect(sectionKey('Bunbraco.Section.Forms')).toBe('forms')
+    expect(sectionKey('forms')).toBe('forms')
+    expect(sectionKey('Umb.Section.Content')).toBe('content')
+    expect(sectionKey('Acme.Section.Design')).toBe('acme.section.design')
+  })
+
+  test('a section an extension registers survives sign-in; a bare unknown alias does not', () => {
+    // Umbraco seeds `forms` with no section behind it, which is the case the drop
+    // exists for. An extension's section is stored as its manifest alias and has
+    // a manifest to render it, so it must come through.
+    expect(toSectionAliases(['content', 'Acme.Section.Design', 'nothing', 'content'])).toEqual([
+      'Umb.Section.Content',
+      'Acme.Section.Design',
+    ])
+  })
+})
+
+describe('a section an extension registers', () => {
+  const SECTION = 'Acme.Section.Design'
+  const bundle: ServerBundle = {
+    id: 'acme',
+    name: 'Acme',
+    section: SECTION,
+    capabilities: [],
+    routes: [{ method: 'GET', path: '', handler: () => Response.json({ ok: true }) }],
+  }
+
+  test('can be granted to a group, reaches the signed-in user, and opens the bundle', async () => {
+    const h = await site({ bundles: [bundle] })
+    const created = await h.post(`${V1}/user-group`, {
+      name: 'Designers',
+      alias: 'designers',
+      sections: [SECTION, 'Umb.Section.Content'],
+      languages: [],
+      hasAccessToAllLanguages: true,
+      documentRootAccess: true,
+      documentStartNode: null,
+      mediaRootAccess: true,
+      mediaStartNode: null,
+      elementRootAccess: false,
+      elementStartNode: null,
+      fallbackPermissions: [],
+      permissions: [],
+    })
+    expect(created.status).toBe(201)
+    const key = created.headers.get('umb-generated-resource') as string
+
+    // The grant is stored and read back as the alias the backoffice sent.
+    const group = await h.json<{ sections: string[] }>(`${V1}/user-group/${key}`)
+    expect(group.sections.sort()).toEqual([SECTION, 'Umb.Section.Content'])
+
+    // The signed-in user holds it, which is what makes the backoffice show the tab.
+    const designer = await signInAsGroup(h, 'designers')
+    open.push(designer)
+    const me = await designer.json<{ allowedSections: string[] }>(`${V1}/user/current`)
+    expect(me.allowedSections).toContain(SECTION)
+
+    // A bundle gated on it answers them and refuses the administrator, who was
+    // never granted it: core sections do not imply an extension's.
+    const route = `${BACKOFFICE}/bunbraco/api/bundle/acme`
+    expect((await designer.call(route)).status).toBe(200)
+    expect((await h.call(route)).status).toBe(403)
   })
 })
 

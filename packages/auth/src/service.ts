@@ -2,7 +2,7 @@
  * The OAuth 2.0 authorization server, shaped to what the Umbraco backoffice
  * actually sends. See docs/04-backoffice-hosting.md for the wire contract.
  */
-import { type SectionAlias, toSectionAliases } from '@bunbraco/core'
+import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@bunbraco/core'
 import { hashPassword, passwordConfigJson, verifyPassword } from './password.ts'
 import { type CodeChallengeMethod, generateToken, verifyChallenge } from './pkce.ts'
 import type { AuthStore, UserRow } from './store.ts'
@@ -75,7 +75,7 @@ export type TokenResult =
 export interface ResolvedIdentity {
   user: UserRow
   sessionId: string
-  allowedSections: SectionAlias[]
+  allowedSections: Array<SectionAlias | ExtensionSectionAlias>
   groupKeys: string[]
   isAdmin: boolean
   hasAccessToAllLanguages: boolean

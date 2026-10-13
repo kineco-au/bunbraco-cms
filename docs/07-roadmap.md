@@ -1135,6 +1135,7 @@ most of the remaining gap used to sit.
 | 2FA | endpoints answer "no provider"; the login path exists but is unreachable | Umbraco ships app-authenticator 2FA for both users and members. |
 | Webhooks | 1 of 8 | No events → HTTP, no delivery log. |
 | Delivery API | not started; no `packages/api-delivery` | The whole headless read API, API-key auth and the `Api` member kind. Outside the 513 because it is a separate contract, so coverage does not show it. The largest absence for anyone wanting headless. |
+| Who published a bundle | integrity only; `bun add` verifies the registry's hash and nothing names the publisher | A runtime install runs third-party JavaScript in the backoffice with the user's session. The registry already serves a provenance attestation for packages built in public CI, and nothing here reads it. WP-6.13. |
 
 **Diagnostics and tooling**, none of which a visitor sees: health checks,
 telemetry, profiling, `server/troubleshooting` and `server/upgrade-check` (0 of
@@ -1196,6 +1197,109 @@ assigned to an application appears as a member of the mapped group without
 signing in, and unassigning them revokes access to a protected page.
 
 Not before WP-6.8: provisioning needs something to provision.
+
+### WP-6.13 — Trusting a bundle (should-have, after 5a)
+
+**What an install trusts today.** `17-bundles.md`, "Runtime install": `bun add`
+in the site directory, which verifies the tarball against the registry's
+sha512 integrity. That proves the bytes match what the registry holds and says
+nothing about who published them. The marketplace lists a package only when
+the `bunbraco-bundle` keyword *and* a real `bunbraco` field agree, which stops
+a squatter and does nothing against a package that declares a real extension
+with bad intent. Bun refuses lifecycle scripts outside `trustedDependencies`,
+so an install cannot run code in the server process; a server half is wired by
+a committed import and never discovered. What remains is the exposure the docs
+already state plainly: a runtime install runs third-party JavaScript in the
+backoffice origin with the signed-in user's session, able to call the
+Management API as that user, and the only gate is who may install.
+
+**Three ways to say more were weighed.** A signing scheme of our own — a
+signature in the `bunbraco` field over the tarball hash, countersigned by a
+bunbraco key — would reinvent Sigstore's key management and revocation, and is
+rejected. The other two are this work package, in order.
+
+#### 6.13a — Provenance: where the code came from
+
+A package published with `npm publish --provenance` from GitHub Actions or
+GitLab CI carries a Sigstore attestation tying the exact tarball to a source
+repository, a commit and the workflow that built it. The registry records it on
+the version's `dist.attestations` and serves the bundle from
+`/-/npm/v1/attestations/<name>@<version>`; `npm audit signatures` is the
+reference verifier. Bun does not check it. The CMS can, with the `sigstore`
+library against the public Sigstore trust root, and then show the one thing an
+administrator can act on: *built from `github.com/org/repo` at `abc1234`*.
+
+**Shape.**
+
+- The listing marks a version whose packument carries `dist.attestations` as
+  *attested*, from the packument alone, so the list costs no extra calls. The
+  badge names the source repository only once verified, never before.
+- An install of an attested version fetches the attestation and verifies it
+  **before** `bun add` runs, pinned to the exact version it verified so the two
+  cannot disagree about which tarball was checked. A failed verification is a
+  refused install with a readable reason — never a 500, never a silent
+  fall-through to an unverified install. The verified repository and commit
+  join the install response beside the dependency line it already carries.
+- A `marketplace.require` setting, `'none' | 'provenance'`, default `'none'`.
+  Under `'provenance'` an unattested version is refused with a message saying
+  the site requires provenance and what the publisher must do. The Installed
+  view shows each dependency's attestation state, so an administrator can see
+  what a stricter setting would refuse; a `workspace:` dependency is shown as
+  linked, not as unattested, because it never came from a registry.
+- The verifier is tested against a recorded attestation and a recorded trust
+  root, so the suite needs no network. An unreachable attestation endpoint is a
+  specific error, as the unreachable registry already is.
+
+**What the badge must not claim.** Provenance ties bytes to a build. It does
+not review the source, and the wording is *built from*, never *verified* or
+*safe*. The `sigstore` dependency is pure JavaScript and lands in
+`@bunbraco/server` only.
+
+**Exit:** against a recorded registry, an attested package installs and the
+response names its repository; a tampered attestation refuses the install with
+a reason; with `require: 'provenance'` an unattested package is refused and the
+Installed view says which dependencies would be.
+
+Two things to confirm before starting, written here as assumptions: that Bun
+performs no provenance check of its own, and that `sigstore` ships a
+TUF-refreshed trust root that the tests can pin.
+
+#### 6.13b — Reviewed publishers: who bunbraco has looked at
+
+Provenance cannot say whether the repository it names is one anyone should
+trust. That is a human statement, and the precedent is Umbraco's marketplace,
+which marks packages from a maintained list rather than anything
+cryptographic.
+
+**Shape.**
+
+- One JSON document at a bunbraco-controlled URL, configurable with a default,
+  naming *publishers* rather than packages: an npm scope or user name, the
+  source repositories that belong to them, the date reviewed and a line on what
+  the review covered. Fetched when the marketplace opens and cached for the
+  session; an unreachable list is an empty list with a log line, never a
+  failed marketplace.
+- A listing is *reviewed by bunbraco* when its publisher is on the list and,
+  where 6.13a verified an attestation, the attested repository is one the list
+  names for them. When the two disagree the badge is withheld and the log says
+  why.
+- `marketplace.require` gains `'reviewed'` and `'either'`, with the same
+  refusal pattern and the same Installed view.
+- The list's format is documented beside `17-bundles.md` — its shape, how a
+  publisher asks to be reviewed, what a review covers, and that a revocation
+  is a dated entry the marketplace honours from that date. The list itself is
+  not in this repository.
+- The badge names the date of review, so a review from two years ago on a
+  package with forty releases since still reads as the true statement it is.
+
+**Exit:** against a recorded list, a package from a listed publisher shows the
+badge with its date; one whose attestation names a repository the list does
+not give that publisher does not; with `require: 'either'` a self-attested
+build from a reviewed publisher and an attested build from an unreviewed one
+both install, and an unattested package from nobody known is refused.
+
+Populating the list is an operations task, not this work package, and starts
+with the bundles this repository ships itself.
 
 ### WP-6.12 — Import an existing Umbraco site — **built for schema, content and views**
 

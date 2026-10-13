@@ -92,6 +92,7 @@ export {
   type BundleRedirectRule,
   type BundleRedirects,
   type BundleRequest,
+  type BundleSection,
   type CustomEmailOptions,
   createServer,
   customEmail,

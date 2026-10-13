@@ -13,6 +13,7 @@ import {
   hasPathAccess,
   permissionsForPath,
   type StartNodes,
+  sectionKey,
 } from '@bunbraco/core'
 import type { Principal } from './router.ts'
 
@@ -30,21 +31,20 @@ export const LOCAL_LOGIN_OPERATIONS: ReadonlySet<string> = new Set([
 /**
  * The sections a caller holds, normalised the one way.
  *
- * Aliases arrive either bare or as `Umb.Section.*` depending on where they were
+ * Aliases arrive either bare or as manifest aliases depending on where they were
  * read, so every check goes through this rather than comparing what it was given.
  */
 export const sectionsOf = (principal: Principal): Set<string> =>
-  new Set(
-    principal.allowedSections.map((alias) => alias.replace(/^Umb\.Section\./, '').toLowerCase()),
-  )
+  new Set(principal.allowedSections.map(sectionKey))
 
 /**
- * Whether a caller holds a section. For the routes outside the contract — the
- * plugin endpoints — which have no operation for `authorize` to look up but must
- * answer to the same rule as the operations they stand next to.
+ * Whether a caller holds a section, named in either vocabulary. For the routes
+ * outside the contract — the plugin endpoints — which have no operation for
+ * `authorize` to look up but must answer to the same rule as the operations they
+ * stand next to.
  */
 export const hasSection = (principal: Principal, section: string): boolean =>
-  sectionsOf(principal).has(section.toLowerCase())
+  sectionsOf(principal).has(sectionKey(section))
 
 /** A node's ancestor keys then its own, root first, and whether it is in the recycle bin. */
 export interface NodeChain {

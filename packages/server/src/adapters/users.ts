@@ -35,6 +35,7 @@ import {
   permissionsForPath,
   type StartNodes,
   sectionAppAlias,
+  sectionKey,
   sectionName,
 } from '@bunbraco/core'
 import {
@@ -782,10 +783,12 @@ function createUserGroupPort(
       return 'CanNotUpdateAliasIsSystemUserGroup'
     const clash = await groups.byAlias(input.alias)
     if (clash && clash.key !== existing?.key) return 'DuplicateAlias'
-    if (!principal.allowedSections.includes('Umb.Section.Users')) return 'Unauthorized'
+    const mine = new Set(principal.allowedSections.map(sectionKey))
+    if (!mine.has('users')) return 'Unauthorized'
     if (!principal.isAdmin) {
-      const mine = new Set(principal.allowedSections)
-      if (!input.sections.every((s) => mine.has(s))) return 'Unauthorized'
+      // A grant is compared by section, not by spelling, so a group may hold an
+      // extension's section only if the caller holds it too.
+      if (!input.sections.every((s) => mine.has(sectionKey(s)))) return 'Unauthorized'
       for (const [tree, key] of [
         ['document', input.documentStartNode],
         ['media', input.mediaStartNode],

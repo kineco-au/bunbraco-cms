@@ -34,7 +34,12 @@
  * `migration_history` can account for.
  */
 import { hasCultureAccess, hasSection, type Principal } from '@bunbraco/api-management'
-import type { AppAlias } from '@bunbraco/core'
+import {
+  type AppAlias,
+  type ExtensionSectionAlias,
+  isExtensionSectionAlias,
+  SECTION_ALIASES,
+} from '@bunbraco/core'
 import {
   type Db,
   type RedirectMatchKind,
@@ -133,17 +138,26 @@ export interface BundleHost {
 export type BundleCapability = keyof BundleHost
 
 /**
+ * The section a bundle gates its routes on: a core section by its application
+ * alias, or a section the bundle's own manifests register by its manifest alias.
+ * An extension's section needs nothing from the server beyond this — the
+ * backoffice shows it to whoever's group was granted it, and the grant is stored
+ * as the alias itself.
+ */
+export type BundleSection = AppAlias | ExtensionSectionAlias
+
+/**
  * Re-exported so a bundle needs one dependency rather than three. `principal`
  * arrives on every `BundleRequest`, and a bundle that lifts a check out into a
- * helper has to be able to name its type; `AppAlias` is what `section` takes.
+ * helper has to be able to name its type; `BundleSection` is what `section` takes.
  */
-export type { AppAlias, Principal }
+export type { AppAlias, ExtensionSectionAlias, Principal }
 
 /**
  * The two checks a bundle is likely to want beyond the section the host has
  * already enforced. `hasSection` normalises the alias, which matters because
- * `allowedSections` arrives either bare or `Umb.Section.*` depending on where it
- * was read — comparing the strings by hand is the mistake this avoids.
+ * `allowedSections` arrives either bare or as a manifest alias depending on where
+ * it was read — comparing the strings by hand is the mistake this avoids.
  *
  * Anything finer — a permission verb, a start node, a per-node check — is read
  * off `principal` directly: `isAdmin`, `permissions`, `groupKeys`, `groups`,
@@ -178,10 +192,10 @@ export interface ServerBundle<C extends BundleCapability = BundleCapability> {
   /** What the boot log and an error message call it. */
   name: string
   /**
-   * The section a caller must have access to, as an application alias. Every
-   * route is gated on it; there is no per-route override and no public route.
+   * The section a caller must have access to. Every route is gated on it; there
+   * is no per-route override and no public route.
    */
-  section: AppAlias
+  section: BundleSection
   capabilities: readonly C[]
   routes: readonly ServerBundleRoute<C>[]
 }
@@ -190,7 +204,7 @@ export interface ServerBundle<C extends BundleCapability = BundleCapability> {
 export interface MountedBundle {
   id: string
   name: string
-  section: AppAlias
+  section: BundleSection
   capabilities: readonly BundleCapability[]
   /** `<backoffice>/bunbraco/api/bundle/<id>`. */
   prefix: string
@@ -215,6 +229,10 @@ export function validateServerBundles(bundles: readonly ServerBundle[]): string[
     else if (seen.has(bundle.id)) problems.push(`Two bundles claim the id "${bundle.id}".`)
     else seen.add(bundle.id)
     if (!bundle.name) problems.push(`Bundle "${label}" has no name.`)
+    if (!(bundle.section in SECTION_ALIASES) && !isExtensionSectionAlias(bundle.section))
+      problems.push(
+        `Bundle "${label}" is gated on the section "${bundle.section}", which is neither a core section nor a manifest alias of the form Vendor.Section.Name.`,
+      )
     for (const capability of bundle.capabilities)
       if (!BUNDLE_CAPABILITIES.includes(capability))
         problems.push(

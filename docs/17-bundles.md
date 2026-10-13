@@ -418,6 +418,11 @@ Supply chain: the install runs third-party JS in the backoffice origin with the
 user's session. It is gated on the same permission as the Bundles section, the
 resolved version is recorded, and nothing is fetched outside the registry.
 
+That is the whole of what an install trusts today: the registry's integrity
+hash and the permission to install. Saying who published a package — the
+registry's provenance attestation, and a list of publishers bunbraco has
+reviewed — is WP-6.13 in `07-roadmap.md`.
+
 ---
 
 ## Installing one
@@ -644,11 +649,14 @@ A narrow interface, not the server:
 export interface ServerBundle {
   id: string              // URL segment and log name
   name: string
-  section: AppAlias       // what a caller must have access to
+  section: BundleSection  // what a caller must have access to
   capabilities: readonly BundleCapability[]
   routes: readonly ServerBundleRoute[]
 }
 ```
+
+`section` is a core section by its application alias (`settings`, `content`) or
+a section of the bundle's own by its manifest alias (`Acme.Section.Design`).
 
 - **Its own namespace.** Routes mount at
   `<backoffice>/bunbraco/api/bundle/<id>/`. The id is lowercase letters, digits
@@ -684,7 +692,7 @@ section the bundle declared. Everything a finer check needs is on it:
 | `startNodes` | where they may work in the document, media and element trees |
 | `languages`, `hasAccessToAllLanguages` | the content languages they may write |
 
-`@bunbraco/server` re-exports `Principal`, `AppAlias`, `hasSection` and
+`@bunbraco/server` re-exports `Principal`, `AppAlias`, `BundleSection`, `hasSection` and
 `hasCultureAccess`, so a bundle needs that one dependency rather than reaching
 into `@bunbraco/api-management` for them:
 
@@ -697,6 +705,26 @@ const mayPublish = (principal: Principal) =>
 
 Use `hasSection` rather than comparing the strings: `allowedSections` arrives in
 either spelling, and it normalises both.
+
+### A section of its own
+
+A bundle that wants a top-level tab beside Content and Settings declares a
+`section` manifest in its `bunbraco` field like any other extension, and gates
+its server half on the same alias. Nothing else is registered: the backoffice
+lists a section whose alias the signed-in user holds, and a user group is
+granted the section by that alias. The server stores the alias as it was sent
+and hands it back at sign-in, where a core section is translated from its
+stored application alias and an extension's passes through
+(`core/src/sections.ts`). What is still dropped is a bare application alias
+with no section behind it, which Umbraco seeds for `forms` and which the
+translation exists to hide.
+
+Every section check goes through `sectionKey`, which reads a core section by
+its stored alias and an extension's by its manifest alias, so a bundle's
+`hasSection(principal, 'Acme.Section.Design')` and the host's gate on
+`section` agree with the grant. `tests/security.test.ts` grants an extension's
+section to a group, signs in as a member, and reaches a bundle gated on it; the
+administrator, who was never granted it, is refused.
 
 ### Deliberately not offered
 

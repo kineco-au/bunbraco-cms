@@ -103,6 +103,19 @@ describe('what a bundle may declare', () => {
     expect(problems.join('\n')).toContain('Two bundles claim the id "demo"')
   })
 
+  test('accepts a core section or a section the bundle’s own manifests register', () => {
+    expect(validateServerBundles([simple({ section: 'content' })])).toEqual([])
+    expect(validateServerBundles([simple({ section: 'Acme.Section.Design' })])).toEqual([])
+  })
+
+  test('refuses a section that is neither, so a typo cannot gate a route on nothing', () => {
+    for (const section of ['Design', 'design', '', 'Acme Section', '.Section.Design'])
+      expect(
+        validateServerBundles([simple({ section: section as ServerBundle['section'] })]),
+        section,
+      ).not.toBeEmpty()
+  })
+
   test('refuses a capability no host offers', () => {
     const problems = validateServerBundles([
       simple({ capabilities: ['filesystem'] as unknown as ServerBundle['capabilities'] }),
@@ -287,6 +300,15 @@ describe('authorisation, which belongs to the host', () => {
       ['c/1', 'DELETE'],
     ] as const)
       expect((await call(bundles, `${BASE}demo/${path}`, { method }, editor))?.status).toBe(403)
+  })
+
+  test('gates on a section an extension registered, which nobody holds by default', async () => {
+    const bundles = mount([simple({ section: 'Acme.Section.Design' })])
+    // Admin holds Settings and Content; the extension's section is a grant of
+    // its own, not something the core sections imply.
+    expect((await call(bundles, `${BASE}demo/things`))?.status).toBe(403)
+    const designer = { ...editor, allowedSections: ['Acme.Section.Design'] }
+    expect((await call(bundles, `${BASE}demo/things`, {}, designer))?.status).toBe(200)
   })
 
   test('honours a bundle that chose a different section', async () => {
