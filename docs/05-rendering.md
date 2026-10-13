@@ -272,6 +272,36 @@ the *current request's* culture value, resolved from a per-request variation
 context. Reproducing this is what makes variant templates readable; without it
 every call site has to thread a culture through.
 
+### Typed pages
+
+`bunbraco generate` writes `schema/content-types.d.ts`, an interface per document
+type with every property it carries, compositions included, the built-in
+`seoFields` among them. Naming one in `PageProps` types the page:
+
+```tsx
+import type { PageProps } from 'bunbraco'
+import type { HomePage } from '../schema/content-types'
+
+export default function Home({ model }: PageProps<HomePage>) {
+  const title = model.value('title')   // string, because the type makes it mandatory
+  return <h1>{model.text('titel')}</h1> // a compile error: HomePage has no 'titel'
+}
+```
+
+`value()` returns the property's type, and `value()`, `text()`, `html()`,
+`media()`, `hasValue()` and `getProperty()` accept only the type's aliases. A
+property that is not mandatory is typed as possibly undefined, though a missing
+value reads as `null` at run time, so test it for being empty rather than for
+`undefined`.
+
+Without a type argument, `PageProps` and `PublishedContent` take any alias and
+`value()` returns `unknown`, as before. A typed page still fits anywhere a page is
+accepted, such as `nav.children(model)`, `<SeoHead {...props} />` or a component's
+own `page: PublishedContent` prop. The import is type-only and erased when the
+component is compiled, so reaching outside `components/` for it is allowed. Run
+`generate` again after changing a type; the interfaces are not updated on their
+own.
+
 ### Value conversion
 
 Umbraco converts in three memoised stages (source → intermediate → object),

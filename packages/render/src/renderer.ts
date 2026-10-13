@@ -23,7 +23,8 @@ export interface ComponentModule {
   layout?: string
 }
 
-export interface LayoutProps extends PageProps {
+// biome-ignore lint/suspicious/noExplicitAny: an untyped page, as `PageProps` defaults to.
+export interface LayoutProps<Properties = any> extends PageProps<Properties> {
   children: RawHtml
 }
 

@@ -580,9 +580,9 @@ output is a diffable text file that developers review like any other change.
   leaves its stored values in place until a cleanup job runs, so it can be
   reverted.
 - **Generated TypeScript types fall out for free.** The files are already the
-  definition; `bunbraco generate` emits `schema/generated/content-types.d.ts` so
-  a template can be typed as `PageProps<HomePage>`. This replaces the ModelsBuilder
-  idea from `06-features.md`.
+  definition; `bunbraco generate` emits `schema/content-types.d.ts` so a template
+  can be typed as `PageProps<HomePage>` (see "Typed pages" in `05-rendering.md`).
+  This replaces the ModelsBuilder idea from `06-features.md`.
 - **A framework upgrade that changes the vocabulary rewrites the files.** Because
   we own the canonical writer, `bunbraco upgrade schema` can migrate every file
   to the new vocabulary, and the result is a reviewable commit.

@@ -90,12 +90,22 @@ Types. In development, saving it there writes the same file.
 
 `schema new` wrote a starter `components/eventsPage.tsx`. A component is a
 function from the page's props to markup. `model` is the page being rendered, and
-`model.text('alias')` reads a property as text. Here it is replaced with one that
-renders inside a shared layout and fetches the events:
+`model.text('alias')` reads a property as text.
+
+First generate the types, so the component can name the page's properties and
+have the compiler check them:
+
+```bash
+bunx bunbraco generate   # schema/content-types.d.ts: an interface per document type
+```
+
+Then replace the starter with one that renders inside a shared layout and
+fetches the events:
 
 ```tsx
 // components/eventsPage.tsx
 import type { PageProps } from 'bunbraco'
+import type { EventsPage as Page } from '../schema/content-types'
 import { Layout } from './shared/layout.tsx'
 
 interface UpcomingEvent {
@@ -140,7 +150,7 @@ async function EventList({ feedUrl, signal }: { feedUrl: string; signal: AbortSi
   )
 }
 
-export default function EventsPage(props: PageProps) {
+export default function EventsPage(props: PageProps<Page>) {
   const { model, signal } = props
   return (
     <Layout {...props}>
@@ -173,9 +183,14 @@ export function Layout({ model, children }: PageProps & { children?: Child }) {
 
 Some things to know:
 
+- **`PageProps<Page>` types the page.** `model.text('feedUrl')` is checked
+  against the type, so a misspelt alias is a compile error. Run `generate` again
+  after changing the type.
 - **Only a component a type names is a page.** Anything else under
-  `components/`, like `shared/layout.tsx`, is reached only by an `import`, and only
-  from inside `components/`. Create one with `bunx bunbraco components new shared/layout`.
+  `components/`, like `shared/layout.tsx`, is reached only by an `import`. Create
+  one with `bunx bunbraco components new shared/layout`. A component may import
+  code only from inside `components/`; a type-only import such as the generated
+  types is the exception, because it is gone once the component is compiled.
 - **A component may be `async`.** `EventsPage` itself is synchronous: `EventList`
   is async, and the page waits for it before it is sent. Async components side
   by side start together.
@@ -196,11 +211,12 @@ Some things to know:
 ```bash
 bunx bunbraco schema check --static   # the files parse and agree with each other
 bunx bunbraco components check        # every component compiles and imports; every named one exists
-bunx bunbraco generate                # schema/content-types.d.ts: an interface per type
 ```
 
 `components check` imports every component, so a broken import shows up here
-rather than when a visitor opens the page.
+rather than when a visitor opens the page. When the site has `typescript`
+installed it also type-checks them, which is where `PageProps<Page>` catches a
+wrong alias.
 
 ## 4. The content
 

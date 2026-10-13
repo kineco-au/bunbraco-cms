@@ -39,6 +39,7 @@ const HOME = `[document-type]
 alias = "homePage"
 name = "Home Page"
 allow-at-root = true
+compositions = ["seoFields"]
 
 [[property]]
 alias = "title"
@@ -224,6 +225,59 @@ export default function Template({ model }: PageProps) {
 }
 `),
     ).toEqual([])
+  })
+
+  test('types a page by its generated interface, built-in compositions included', async () => {
+    expect(
+      await typecheck(`import { type PageProps, type PublishedContent, SeoHead } from 'bunbraco'
+import type { HomePage } from '../schema/content-types'
+
+function Crumb({ page }: { page: PublishedContent }) {
+  const untyped: unknown = page.value('anything')
+  return <span>{page.name}{untyped ? '' : ''}</span>
+}
+
+export default function Template(props: PageProps<HomePage>) {
+  const { model, nav } = props
+  const title: string | undefined = model.value('title')
+  const hidden: boolean | undefined = model.value('seoNoindex')
+  return (
+    <html>
+      <head><SeoHead {...props} /></head>
+      <body>
+        <h1>{title ?? model.name}</h1>
+        <Crumb page={model} />
+        {hidden ? null : nav.children(model).map((child) => <a href={child.url}>{child.name}</a>)}
+      </body>
+    </html>
+  )
+}
+`),
+    ).toEqual([])
+  })
+
+  test('and refuses a property the type does not have, or the wrong type for one', async () => {
+    const errors = await typecheck(`import type { PageProps } from 'bunbraco'
+import type { HomePage } from '../schema/content-types'
+
+export function Untyped({ model }: PageProps) {
+  const still: number = model.value('anything')
+  return <p>{still}</p>
+}
+
+export default function Template({ model }: PageProps<HomePage>) {
+  const count: number = model.value('title')
+  return <h1>{model.text('titel')}</h1>
+}
+`)
+    expect(errors.join('\n')).toContain(
+      `Argument of type '"titel"' is not assignable to parameter of type`,
+    )
+    expect(errors.join('\n')).toContain(
+      "Type 'string | undefined' is not assignable to type 'number'",
+    )
+    // An untyped page still reads as unknown, not any.
+    expect(errors.join('\n')).toContain("Type 'unknown' is not assignable to type 'number'")
   })
 
   test('and reports a real mistake, rather than passing everything', async () => {

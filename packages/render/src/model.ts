@@ -22,6 +22,14 @@ export interface ValueOptions {
   default?: unknown
 }
 
+/** The property aliases a page's interface names; any string for an untyped page. */
+export type AliasOf<Properties> = keyof Properties & string
+
+/** A property's type from the page's interface; `unknown` for an untyped page. */
+export type ValueOf<Properties, Alias extends keyof Properties> = 0 extends 1 & Properties
+  ? unknown
+  : Properties[Alias]
+
 export interface PublishedProperty {
   alias: string
   editorAlias: string
@@ -53,7 +61,18 @@ export interface PublishedContentInit {
   languageFallback?: string[]
 }
 
-export class PublishedContent {
+/**
+ * A published page. `Properties` is the page's interface from `bunbraco generate`;
+ * given one, `value()` and its siblings accept only that type's aliases and
+ * `value()` returns the property's type. Without one, any alias is accepted and
+ * `value()` returns `unknown`.
+ *
+ * The default is `any` rather than an index type so that a typed page fits
+ * wherever a plain `PublishedContent` is accepted: `nav.children(model)`, a
+ * component's own props.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: the default that lets every typed page in; see above.
+export class PublishedContent<Properties = any> {
   readonly key: string
   readonly id: number
   readonly name: string
@@ -94,7 +113,7 @@ export class PublishedContent {
 
   /** False when the page is marked `umbracoNaviHide`, so menus leave it out. */
   get isVisible(): boolean {
-    const hidden = this.value(NAVI_HIDE_ALIAS)
+    const hidden = this.#read(NAVI_HIDE_ALIAS, {})
     return !(hidden === true || hidden === 1 || hidden === '1' || hidden === 'true')
   }
 
@@ -119,8 +138,8 @@ export class PublishedContent {
   }
 
   /** A Media Picker's picks as a list, whether the picker allows one or many. */
-  media(alias: string, options: ValueOptions = {}): MediaWithCrops[] {
-    const value = this.value(alias, options)
+  media(alias: AliasOf<Properties>, options: ValueOptions = {}): MediaWithCrops[] {
+    const value = this.#read(alias, options)
     if (Array.isArray(value))
       return value.filter((v): v is MediaWithCrops => v instanceof MediaWithCrops)
     return value instanceof MediaWithCrops ? [value] : []
@@ -132,11 +151,11 @@ export class PublishedContent {
     return this
   }
 
-  getProperty(alias: string): PublishedProperty | undefined {
+  getProperty(alias: AliasOf<Properties>): PublishedProperty | undefined {
     return this.properties.find((property) => property.alias === alias)
   }
 
-  hasValue(alias: string, options: ValueOptions = {}): boolean {
+  hasValue(alias: AliasOf<Properties>, options: ValueOptions = {}): boolean {
     const found = this.#find(alias, options)
     return found !== undefined && found.value !== null && found.value !== ''
   }
@@ -145,7 +164,14 @@ export class PublishedContent {
    * Resolves a property value: exact match first, then the fallback strategy,
    * then the raw value regardless of culture — the same order Umbraco uses.
    */
-  value(alias: string, options: ValueOptions = {}): unknown {
+  value<Alias extends AliasOf<Properties>>(
+    alias: Alias,
+    options: ValueOptions = {},
+  ): ValueOf<Properties, Alias> {
+    return this.#read(alias, options) as ValueOf<Properties, Alias>
+  }
+
+  #read(alias: string, options: ValueOptions): unknown {
     const exact = this.#find(alias, options)
     if (exact && exact.value !== null && exact.value !== '') return this.#convert(exact)
 
@@ -161,7 +187,7 @@ export class PublishedContent {
       }
       case 'ancestors': {
         for (const ancestor of this.#ancestors) {
-          const found = ancestor.value(alias, { ...options, fallback: 'none' })
+          const found = ancestor.#read(alias, { ...options, fallback: 'none' })
           if (found !== null && found !== undefined && found !== '') return found
         }
         break
@@ -175,13 +201,13 @@ export class PublishedContent {
   }
 
   /** `value()` coerced to a string, for direct use in markup. */
-  text(alias: string, options: ValueOptions = {}): string {
-    const value = this.value(alias, options)
+  text(alias: AliasOf<Properties>, options: ValueOptions = {}): string {
+    const value = this.#read(alias, options)
     return value === null || value === undefined ? '' : String(value)
   }
 
   /** A rich-text value, marked so the renderer does not escape it. */
-  html(alias: string, options: ValueOptions = {}): RawHtml {
+  html(alias: AliasOf<Properties>, options: ValueOptions = {}): RawHtml {
     return new RawHtml(this.text(alias, options))
   }
 
@@ -215,8 +241,13 @@ export interface RequestMember {
 }
 
 /** What a template receives. */
-export interface PageProps {
-  model: PublishedContent
+/**
+ * What a template receives. Name the page's interface from `bunbraco generate`
+ * to have its properties checked: `PageProps<HomePage>`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: an untyped page, as `PublishedContent` defaults to.
+export interface PageProps<Properties = any> {
+  model: PublishedContent<Properties>
   /** Navigation, kept out of the model exactly as Umbraco does. */
   nav: Navigation
   culture: string | null

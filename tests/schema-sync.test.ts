@@ -409,6 +409,20 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     expect(types).toContain('"summary"?: string')
     expect(types).toContain('"article": Article')
   })
+
+  test('generate includes what a built-in composition adds, though it has no file', () => {
+    const dir = schemaDir('1.0.0', {
+      'document-types/article.toml': ARTICLE(SUMMARY).replace(
+        'alias = "article"',
+        'alias = "article"\ncompositions = ["seoFields"]',
+      ),
+    })
+    const types = generateTypes(loadSchemaDirectory(dir).set)
+    const article = types.slice(types.indexOf('export interface Article {'))
+    expect(article).toContain('"seoTitle"?: string')
+    expect(article).toContain('"seoNoindex"?: boolean')
+    expect(article).toContain('"summary"?: string')
+  })
 })
 
 describe(`schema contract steps (${dialectUnderTest})`, () => {

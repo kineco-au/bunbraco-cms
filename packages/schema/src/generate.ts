@@ -3,7 +3,8 @@
  * view can name a property and have the compiler check it. Umbraco's
  * ModelsBuilder, minus the DLL.
  */
-import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
+import { SYSTEM_DOCUMENT_TYPES } from '@bunbraco/data'
+import { BUILTIN_DATA_TYPES, builtInDocumentTypeSchema, storageTypeFor } from './builtin.ts'
 import { allProperties, type SchemaDocumentType, type SchemaSet } from './model.ts'
 
 function pascal(alias: string): string {
@@ -100,7 +101,11 @@ function effectiveProperties(set: SchemaSet, type: SchemaDocumentType, seen = ne
   seen.add(type.alias)
   const out = [...allProperties(type)]
   for (const alias of type.compositions) {
-    const composed = set.documentTypes.find((t) => t.alias === alias)
+    // A built-in type such as `seoFields` has no file until a site extends it.
+    const shipped = SYSTEM_DOCUMENT_TYPES.find((t) => t.alias === alias)
+    const composed =
+      set.documentTypes.find((t) => t.alias === alias) ??
+      (shipped ? builtInDocumentTypeSchema(shipped) : undefined)
     if (composed) out.push(...effectiveProperties(set, composed, seen))
   }
   return out
