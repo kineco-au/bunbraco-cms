@@ -33,6 +33,7 @@ import {
   DataTypeRepository,
   type Db,
   FolderRepository,
+  Locks,
   type NodeRepository,
   type NodeRow,
 } from '@bunbraco/data'
@@ -129,6 +130,24 @@ export function createSettingsTree(
   }
 }
 
+/**
+ * Runs a port's schema-changing methods under the schema lock, so a change and
+ * the files it rewrites land together before the schema watcher reads them.
+ */
+export function underSchemaLock<P extends object>(
+  db: Db,
+  port: P,
+  methods: readonly (keyof P)[],
+): P {
+  const locked = { ...port }
+  for (const name of methods) {
+    const method = port[name] as (...args: unknown[]) => Promise<unknown>
+    locked[name] = ((...args: unknown[]) =>
+      db.locks.withLock(Locks.Schema, () => method(...args))) as P[typeof name]
+  }
+  return locked
+}
+
 export function createFolderPort(
   folders: FolderRepository,
   tree: ReturnType<typeof createSettingsTree>,
@@ -207,298 +226,308 @@ export function createContentTypePort(
     return items
   }
 
-  return {
-    byKey: (key) => repo.byKey(key),
-    byKeys: (keys) => repo.byKeys(keys),
+  return underSchemaLock(
+    db,
+    {
+      byKey: (key) => repo.byKey(key),
+      byKeys: (keys) => repo.byKeys(keys),
 
-    async create(aggregate, principal: Principal) {
-      if (await repo.aliasExists(aggregate.alias)) {
-        return { ok: false as const, reason: `The alias '${aggregate.alias}' is already in use.` }
-      }
-      const refused = files?.refuse(aggregate)
-      if (refused) return refused
-      // A new type can only be additive, and the version moves before the write so
-      // the file that lands carries the version it belongs to.
-      await files?.bumpVersion('additive')
-      await repo.save(aggregate)
-      await files?.write(aggregate)
-      void principal
-      return { ok: true as const }
-    },
-
-    async update(key, aggregate, principal: Principal) {
-      if (await repo.aliasExists(aggregate.alias, key)) {
-        return { ok: false as const, reason: `The alias '${aggregate.alias}' is already in use.` }
-      }
-      const refused = files?.refuse(aggregate)
-      if (refused) return refused
-      const before = await repo.byKey(key)
-      // Classified here, while the database still holds the old type: once it is
-      // saved there is nothing left to compare it with.
-      if (files)
-        await files.bumpVersion(await classifyTypeChange(db, before, { ...aggregate, key }))
-      // The editor does not send tree placement; keep what the type has.
-      await repo.save({ ...aggregate, key, parentKey: before?.parentKey ?? aggregate.parentKey })
-      await files?.write({ ...aggregate, key }, before?.alias)
-      void principal
-      return { ok: true as const }
-    },
-
-    async remove(key) {
-      const before = await repo.byKey(key)
-      const removed = await repo.delete(key)
-      if (removed && before) await files?.remove(before.alias)
-      return removed
-    },
-
-    allowedAtRoot: (paging) => repo.allowedAtRoot(paging.skip, paging.take),
-    allowedInLibrary: (paging) => repo.allowedInLibrary(paging.skip, paging.take),
-    allowedChildren: (key, paging) => repo.allowedChildren(key, paging.skip, paging.take),
-    search: (query, options) => repo.search(query, options),
-    compositionReferences: (key) => repo.compositionReferences(key),
-    allowedParents: (key) => repo.allowedParents(key),
-
-    async availableCompositions(request) {
-      const available = await repo.availableCompositions(request)
-      const out: Array<{
-        type: ContentTypeAggregate
-        folderPath: string[]
-        isCompatible: boolean
-      }> = []
-      for (const a of available) out.push({ ...a, folderPath: await folders.pathOf(a.type.key) })
-      return out
-    },
-
-    async move(key, parentKey) {
-      const moved = await repo.move(key, parentKey)
-      if (moved) await rewrite()
-      return moved
-    },
-
-    async copy(key, parentKey) {
-      const copy = await repo.copy(key, parentKey)
-      if (copy) await files?.write(copy)
-      return copy
-    },
-
-    async createTemplate(key, template, principal: Principal) {
-      const aggregate = await repo.byKey(key)
-      if (!aggregate) {
-        const failure: PortFailure = {
-          ok: false,
-          reason: 'The document type could not be found.',
-          status: 404,
+      async create(aggregate, principal: Principal) {
+        if (await repo.aliasExists(aggregate.alias)) {
+          return { ok: false as const, reason: `The alias '${aggregate.alias}' is already in use.` }
         }
-        return failure
-      }
-      const refused = files?.refuse(aggregate)
-      if (refused) return refused
-      const alias = template.alias || aggregate.alias
-      const name = template.name || aggregate.name
-      const saved =
-        (await templates.byAlias(alias)) ??
-        (await templates.save({
-          key: crypto.randomUUID(),
-          name,
-          alias,
-          content: scaffoldTemplate(name, alias),
-        }))
-      const allowed = aggregate.allowedComponentKeys.includes(saved.key)
-        ? aggregate.allowedComponentKeys
-        : [...aggregate.allowedComponentKeys, saved.key]
-      const updated: ContentTypeAggregate = {
-        ...aggregate,
-        allowedComponentKeys: allowed,
-        defaultComponentKey:
-          template.isDefault || !aggregate.defaultComponentKey
-            ? saved.key
-            : aggregate.defaultComponentKey,
-      }
-      await repo.save(updated)
-      await files?.write(updated)
-      void principal
-      return { ok: true as const, key: saved.key }
-    },
+        const refused = files?.refuse(aggregate)
+        if (refused) return refused
+        // A new type can only be additive, and the version moves before the write so
+        // the file that lands carries the version it belongs to.
+        await files?.bumpVersion('additive')
+        await repo.save(aggregate)
+        await files?.write(aggregate)
+        void principal
+        return { ok: true as const }
+      },
 
-    async exportUdt(key) {
-      const aggregate = await repo.byKey(key)
-      if (!aggregate) return undefined
-      const aliases = new Map<string, string>()
-      for (const reference of [
-        ...aggregate.compositions.map((c) => c.contentTypeKey),
-        ...aggregate.allowedContentTypes.map((a) => a.contentTypeKey),
-      ]) {
-        const other = await repo.byKey(reference)
-        if (other) aliases.set(reference, other.alias)
-      }
-      const componentAliases = new Map<string, string>()
-      for (const componentKey of [
-        ...aggregate.allowedComponentKeys,
-        ...(aggregate.defaultComponentKey ? [aggregate.defaultComponentKey] : []),
-      ]) {
-        const template = await templates.byKey(componentKey)
-        if (template) componentAliases.set(componentKey, template.alias)
-      }
-      return writeContentTypeUdt(aggregate, kind, {
-        aliasOf: (k: string) => aliases.get(k),
-        templateAliasOf: (k: string) => componentAliases.get(k),
-      })
-    },
-
-    async importUdt(xml, targetKey) {
-      const parsed = readContentTypeUdt(xml)
-      if (!parsed) return { status: 'invalid', reason: 'The file is not a content type export.' }
-      if (parsed.kind !== kind)
-        return { status: 'mismatch', reason: `The file describes a ${parsed.kind} type.` }
-
-      const existing = targetKey ? await repo.byKey(targetKey) : undefined
-      if (targetKey && !existing) return { status: 'not-found' }
-      if (existing && parsed.alias !== existing.alias)
-        return {
-          status: 'mismatch',
-          reason: `The file describes '${parsed.alias}', not '${existing.alias}'.`,
+      async update(key, aggregate, principal: Principal) {
+        if (await repo.aliasExists(aggregate.alias, key)) {
+          return { ok: false as const, reason: `The alias '${aggregate.alias}' is already in use.` }
         }
+        const refused = files?.refuse(aggregate)
+        if (refused) return refused
+        const before = await repo.byKey(key)
+        // Classified here, while the database still holds the old type: once it is
+        // saved there is nothing left to compare it with.
+        if (files)
+          await files.bumpVersion(await classifyTypeChange(db, before, { ...aggregate, key }))
+        // The editor does not send tree placement; keep what the type has.
+        await repo.save({ ...aggregate, key, parentKey: before?.parentKey ?? aggregate.parentKey })
+        await files?.write({ ...aggregate, key }, before?.alias)
+        void principal
+        return { ok: true as const }
+      },
 
-      const dataTypes = new DataTypeRepository(db)
-      // Creating from a file exported elsewhere: its container and property keys
-      // still belong to that type, so a new type mints its own. An update keeps
-      // them, because the alias guard above proved the file describes this type.
-      const reuseKeys = existing !== undefined
-      const containers = parsed.containers.map((container: (typeof parsed.containers)[number]) => ({
-        key: (reuseKeys && container.key) || crypto.randomUUID(),
-        name: container.name,
-        alias: container.alias,
-        type: container.type,
-        sortOrder: container.sortOrder,
-        parentKey: null,
-      }))
-      const byAlias = new Map(
-        containers.map((container: { alias: string; key: string }) => [
-          container.alias,
-          container.key,
-        ]),
-      )
+      async remove(key) {
+        const before = await repo.byKey(key)
+        const removed = await repo.delete(key)
+        if (removed && before) await files?.remove(before.alias)
+        return removed
+      },
 
-      const properties = []
-      for (const property of parsed.properties) {
-        if (!property.dataTypeKey)
-          return { status: 'invalid', reason: `'${property.alias}' names no data type.` }
-        if (!(await dataTypes.byKey(property.dataTypeKey)))
-          return {
-            status: 'invalid',
-            reason: `The data type for '${property.alias}' is not on this site.`,
+      allowedAtRoot: (paging) => repo.allowedAtRoot(paging.skip, paging.take),
+      allowedInLibrary: (paging) => repo.allowedInLibrary(paging.skip, paging.take),
+      allowedChildren: (key, paging) => repo.allowedChildren(key, paging.skip, paging.take),
+      search: (query, options) => repo.search(query, options),
+      compositionReferences: (key) => repo.compositionReferences(key),
+      allowedParents: (key) => repo.allowedParents(key),
+
+      async availableCompositions(request) {
+        const available = await repo.availableCompositions(request)
+        const out: Array<{
+          type: ContentTypeAggregate
+          folderPath: string[]
+          isCompatible: boolean
+        }> = []
+        for (const a of available) out.push({ ...a, folderPath: await folders.pathOf(a.type.key) })
+        return out
+      },
+
+      async move(key, parentKey) {
+        const moved = await repo.move(key, parentKey)
+        if (moved) await rewrite()
+        return moved
+      },
+
+      async copy(key, parentKey) {
+        const copy = await repo.copy(key, parentKey)
+        if (copy) await files?.write(copy)
+        return copy
+      },
+
+      async createTemplate(key, template, principal: Principal) {
+        const aggregate = await repo.byKey(key)
+        if (!aggregate) {
+          const failure: PortFailure = {
+            ok: false,
+            reason: 'The document type could not be found.',
+            status: 404,
           }
-        properties.push({
-          key: (reuseKeys && property.key) || crypto.randomUUID(),
-          alias: property.alias,
-          name: property.name,
-          description: property.description,
-          dataTypeKey: property.dataTypeKey,
-          containerKey: property.tabAlias ? (byAlias.get(property.tabAlias) ?? null) : null,
-          sortOrder: property.sortOrder,
-          variesByCulture: property.variesByCulture,
-          variesBySegment: property.variesBySegment,
-          mandatory: property.mandatory,
-          mandatoryMessage: property.mandatoryMessage,
-          regEx: property.regEx,
-          regExMessage: property.regExMessage,
-          labelOnTop: property.labelOnTop,
+          return failure
+        }
+        const refused = files?.refuse(aggregate)
+        if (refused) return refused
+        const alias = template.alias || aggregate.alias
+        const name = template.name || aggregate.name
+        const saved =
+          (await templates.byAlias(alias)) ??
+          (await templates.save({
+            key: crypto.randomUUID(),
+            name,
+            alias,
+            content: scaffoldTemplate(name, alias),
+          }))
+        const allowed = aggregate.allowedComponentKeys.includes(saved.key)
+          ? aggregate.allowedComponentKeys
+          : [...aggregate.allowedComponentKeys, saved.key]
+        const updated: ContentTypeAggregate = {
+          ...aggregate,
+          allowedComponentKeys: allowed,
+          defaultComponentKey:
+            template.isDefault || !aggregate.defaultComponentKey
+              ? saved.key
+              : aggregate.defaultComponentKey,
+        }
+        await repo.save(updated)
+        await files?.write(updated)
+        void principal
+        return { ok: true as const, key: saved.key }
+      },
+
+      async exportUdt(key) {
+        const aggregate = await repo.byKey(key)
+        if (!aggregate) return undefined
+        const aliases = new Map<string, string>()
+        for (const reference of [
+          ...aggregate.compositions.map((c) => c.contentTypeKey),
+          ...aggregate.allowedContentTypes.map((a) => a.contentTypeKey),
+        ]) {
+          const other = await repo.byKey(reference)
+          if (other) aliases.set(reference, other.alias)
+        }
+        const componentAliases = new Map<string, string>()
+        for (const componentKey of [
+          ...aggregate.allowedComponentKeys,
+          ...(aggregate.defaultComponentKey ? [aggregate.defaultComponentKey] : []),
+        ]) {
+          const template = await templates.byKey(componentKey)
+          if (template) componentAliases.set(componentKey, template.alias)
+        }
+        return writeContentTypeUdt(aggregate, kind, {
+          aliasOf: (k: string) => aliases.get(k),
+          templateAliasOf: (k: string) => componentAliases.get(k),
         })
-      }
+      },
 
-      const keyFor = async (alias: string) => (await repo.byAlias(alias))?.key
-      const compositions = []
-      for (const alias of parsed.compositionAliases) {
-        const found = await keyFor(alias)
-        if (found)
-          compositions.push({ contentTypeKey: found, compositionType: 'Composition' as const })
-      }
-      const allowed = []
-      for (const [index, alias] of parsed.allowedAliases.entries()) {
-        const found = await keyFor(alias)
-        if (found) allowed.push({ contentTypeKey: found, sortOrder: index })
-      }
-      const componentKeys = []
-      for (const alias of parsed.componentAliases) {
-        const template = await templates.byAlias(alias)
-        if (template) componentKeys.push(template.key)
-      }
-      const defaultComponent = parsed.defaultTemplateAlias
-        ? ((await templates.byAlias(parsed.defaultTemplateAlias))?.key ?? null)
-        : null
+      async importUdt(xml, targetKey) {
+        const parsed = readContentTypeUdt(xml)
+        if (!parsed) return { status: 'invalid', reason: 'The file is not a content type export.' }
+        if (parsed.kind !== kind)
+          return { status: 'mismatch', reason: `The file describes a ${parsed.kind} type.` }
 
-      const aggregate: ContentTypeAggregate = {
-        ...(existing ?? {
-          collectionKey: null,
-          cleanup: {
-            preventCleanup: false,
-            keepAllVersionsNewerThanDays: null,
-            keepLatestVersionPerDayForDays: null,
-          },
-          parentKey: null,
-        }),
-        key: existing?.key ?? crypto.randomUUID(),
-        alias: parsed.alias,
-        name: parsed.name,
-        description: parsed.description,
-        icon: parsed.icon ?? 'icon-document',
-        allowedAsRoot: parsed.allowedAsRoot,
-        isElement: parsed.isElement,
-        allowedInLibrary: parsed.allowedInLibrary,
-        variesByCulture: parsed.variesByCulture,
-        variesBySegment: parsed.variesBySegment,
-        properties,
-        containers,
-        compositions,
-        allowedContentTypes: allowed,
-        allowedComponentKeys: componentKeys,
-        defaultComponentKey: defaultComponent,
-      } as ContentTypeAggregate
+        const existing = targetKey ? await repo.byKey(targetKey) : undefined
+        if (targetKey && !existing) return { status: 'not-found' }
+        if (existing && parsed.alias !== existing.alias)
+          return {
+            status: 'mismatch',
+            reason: `The file describes '${parsed.alias}', not '${existing.alias}'.`,
+          }
 
-      if (!existing && (await repo.aliasExists(aggregate.alias)))
-        return { status: 'invalid', reason: `The alias '${aggregate.alias}' is already in use.` }
-      await repo.save(aggregate)
-      await files?.write(aggregate)
-      return { status: 'ok', key: aggregate.key }
+        const dataTypes = new DataTypeRepository(db)
+        // Creating from a file exported elsewhere: its container and property keys
+        // still belong to that type, so a new type mints its own. An update keeps
+        // them, because the alias guard above proved the file describes this type.
+        const reuseKeys = existing !== undefined
+        const containers = parsed.containers.map(
+          (container: (typeof parsed.containers)[number]) => ({
+            key: (reuseKeys && container.key) || crypto.randomUUID(),
+            name: container.name,
+            alias: container.alias,
+            type: container.type,
+            sortOrder: container.sortOrder,
+            parentKey: null,
+          }),
+        )
+        const byAlias = new Map(
+          containers.map((container: { alias: string; key: string }) => [
+            container.alias,
+            container.key,
+          ]),
+        )
+
+        const properties = []
+        for (const property of parsed.properties) {
+          if (!property.dataTypeKey)
+            return { status: 'invalid', reason: `'${property.alias}' names no data type.` }
+          if (!(await dataTypes.byKey(property.dataTypeKey)))
+            return {
+              status: 'invalid',
+              reason: `The data type for '${property.alias}' is not on this site.`,
+            }
+          properties.push({
+            key: (reuseKeys && property.key) || crypto.randomUUID(),
+            alias: property.alias,
+            name: property.name,
+            description: property.description,
+            dataTypeKey: property.dataTypeKey,
+            containerKey: property.tabAlias ? (byAlias.get(property.tabAlias) ?? null) : null,
+            sortOrder: property.sortOrder,
+            variesByCulture: property.variesByCulture,
+            variesBySegment: property.variesBySegment,
+            mandatory: property.mandatory,
+            mandatoryMessage: property.mandatoryMessage,
+            regEx: property.regEx,
+            regExMessage: property.regExMessage,
+            labelOnTop: property.labelOnTop,
+          })
+        }
+
+        const keyFor = async (alias: string) => (await repo.byAlias(alias))?.key
+        const compositions = []
+        for (const alias of parsed.compositionAliases) {
+          const found = await keyFor(alias)
+          if (found)
+            compositions.push({ contentTypeKey: found, compositionType: 'Composition' as const })
+        }
+        const allowed = []
+        for (const [index, alias] of parsed.allowedAliases.entries()) {
+          const found = await keyFor(alias)
+          if (found) allowed.push({ contentTypeKey: found, sortOrder: index })
+        }
+        const componentKeys = []
+        for (const alias of parsed.componentAliases) {
+          const template = await templates.byAlias(alias)
+          if (template) componentKeys.push(template.key)
+        }
+        const defaultComponent = parsed.defaultTemplateAlias
+          ? ((await templates.byAlias(parsed.defaultTemplateAlias))?.key ?? null)
+          : null
+
+        const aggregate: ContentTypeAggregate = {
+          ...(existing ?? {
+            collectionKey: null,
+            cleanup: {
+              preventCleanup: false,
+              keepAllVersionsNewerThanDays: null,
+              keepLatestVersionPerDayForDays: null,
+            },
+            parentKey: null,
+          }),
+          key: existing?.key ?? crypto.randomUUID(),
+          alias: parsed.alias,
+          name: parsed.name,
+          description: parsed.description,
+          icon: parsed.icon ?? 'icon-document',
+          allowedAsRoot: parsed.allowedAsRoot,
+          isElement: parsed.isElement,
+          allowedInLibrary: parsed.allowedInLibrary,
+          variesByCulture: parsed.variesByCulture,
+          variesBySegment: parsed.variesBySegment,
+          properties,
+          containers,
+          compositions,
+          allowedContentTypes: allowed,
+          allowedComponentKeys: componentKeys,
+          defaultComponentKey: defaultComponent,
+        } as ContentTypeAggregate
+
+        if (!existing && (await repo.aliasExists(aggregate.alias)))
+          return { status: 'invalid', reason: `The alias '${aggregate.alias}' is already in use.` }
+        await repo.save(aggregate)
+        await files?.write(aggregate)
+        return { status: 'ok', key: aggregate.key }
+      },
+
+      async jsonSchema(key) {
+        const aggregate = await repo.byKey(key)
+        if (!aggregate) return undefined
+        const dataTypes = new DataTypeRepository(db)
+        const properties = []
+        for (const property of aggregate.properties) {
+          const dataType = await dataTypes.byKey(property.dataTypeKey)
+          properties.push({
+            alias: property.alias,
+            name: property.name,
+            description: property.description,
+            mandatory: property.mandatory,
+            storage: dataType?.dbType ?? 'Ntext',
+          })
+        }
+        return contentTypeJsonSchema(aggregate, properties)
+      },
+
+      folders: underSchemaLock(db, createFolderPort(folders, tree, rewrite), [
+        'createFolder',
+        'renameFolder',
+        'deleteFolder',
+      ]),
+      treeRoot: tree.treeRoot,
+      treeChildren: tree.treeChildren,
+
+      async root(paging: SkipTake): Promise<Page<TreeItem>> {
+        const page = await nodes.roots(objectType, paging.skip, paging.take)
+        return { total: page.total, items: await shape(page.items) }
+      },
+
+      async children(parentKey: string, paging: SkipTake): Promise<Page<TreeItem>> {
+        const parent = await nodes.byKey(parentKey)
+        if (!parent) return { total: 0, items: [] }
+        const page = await nodes.children(parent.id, objectType, paging.skip, paging.take)
+        return { total: page.total, items: await shape(page.items) }
+      },
+
+      ancestors: tree.ancestors,
+      items: tree.items,
     },
-
-    async jsonSchema(key) {
-      const aggregate = await repo.byKey(key)
-      if (!aggregate) return undefined
-      const dataTypes = new DataTypeRepository(db)
-      const properties = []
-      for (const property of aggregate.properties) {
-        const dataType = await dataTypes.byKey(property.dataTypeKey)
-        properties.push({
-          alias: property.alias,
-          name: property.name,
-          description: property.description,
-          mandatory: property.mandatory,
-          storage: dataType?.dbType ?? 'Ntext',
-        })
-      }
-      return contentTypeJsonSchema(aggregate, properties)
-    },
-
-    folders: createFolderPort(folders, tree, rewrite),
-    treeRoot: tree.treeRoot,
-    treeChildren: tree.treeChildren,
-
-    async root(paging: SkipTake): Promise<Page<TreeItem>> {
-      const page = await nodes.roots(objectType, paging.skip, paging.take)
-      return { total: page.total, items: await shape(page.items) }
-    },
-
-    async children(parentKey: string, paging: SkipTake): Promise<Page<TreeItem>> {
-      const parent = await nodes.byKey(parentKey)
-      if (!parent) return { total: 0, items: [] }
-      const page = await nodes.children(parent.id, objectType, paging.skip, paging.take)
-      return { total: page.total, items: await shape(page.items) }
-    },
-
-    ancestors: tree.ancestors,
-    items: tree.items,
-  }
+    ['create', 'update', 'remove', 'move', 'copy', 'createTemplate', 'importUdt'],
+  )
 }
 
 export function createDataTypePort(db: Db, schemaFiles?: SchemaFiles): DataTypePort {
@@ -532,61 +561,69 @@ export function createDataTypePort(db: Db, schemaFiles?: SchemaFiles): DataTypeP
     return { ...model, alias }
   }
 
-  return {
-    byKey: (key) => repo.byKey(key),
-    byKeys: (keys) => repo.byKeys(keys),
-    async valueSchema(key) {
-      const model = await repo.byKey(key)
-      if (!model) return undefined
-      return {
-        valueTypeName: valueTypeName(model.dbType),
-        jsonSchema: schemaForStorage(model.dbType),
-      }
-    },
-    async save(model: DataTypeModel) {
-      const saved = await repo.save(await withAlias(model))
-      await files?.writeDataType(saved)
-    },
-    async remove(key) {
-      const before = await repo.byKey(key)
-      if (!before) return false
-      if ((await repo.referencedBy(key)).length > 0) return 'in-use'
-      const removed = await repo.delete(key)
-      if (removed && before.alias) await files?.removeDataType(before.alias)
-      return removed
-    },
-    filter: (criteria, paging) => repo.filter(criteria, paging),
-    search: (query, paging) => repo.filter({ name: query }, paging),
-    referencedBy: (key) => repo.referencedBy(key),
-    async move(key, parentKey) {
-      const moved = await repo.move(key, parentKey)
-      if (moved) await rewrite()
-      return moved
-    },
-    async copy(key, parentKey) {
-      const copy = await repo.copy(key, parentKey)
-      if (!copy) return undefined
-      const aliased = await repo.save(await withAlias(copy))
-      await files?.writeDataType(aliased)
-      return aliased
-    },
-    folders: createFolderPort(folders, tree, rewrite),
-    treeRoot: tree.treeRoot,
-    treeChildren: tree.treeChildren,
+  return underSchemaLock(
+    db,
+    {
+      byKey: (key) => repo.byKey(key),
+      byKeys: (keys) => repo.byKeys(keys),
+      async valueSchema(key) {
+        const model = await repo.byKey(key)
+        if (!model) return undefined
+        return {
+          valueTypeName: valueTypeName(model.dbType),
+          jsonSchema: schemaForStorage(model.dbType),
+        }
+      },
+      async save(model: DataTypeModel) {
+        const saved = await repo.save(await withAlias(model))
+        await files?.writeDataType(saved)
+      },
+      async remove(key) {
+        const before = await repo.byKey(key)
+        if (!before) return false
+        if ((await repo.referencedBy(key)).length > 0) return 'in-use'
+        const removed = await repo.delete(key)
+        if (removed && before.alias) await files?.removeDataType(before.alias)
+        return removed
+      },
+      filter: (criteria, paging) => repo.filter(criteria, paging),
+      search: (query, paging) => repo.filter({ name: query }, paging),
+      referencedBy: (key) => repo.referencedBy(key),
+      async move(key, parentKey) {
+        const moved = await repo.move(key, parentKey)
+        if (moved) await rewrite()
+        return moved
+      },
+      async copy(key, parentKey) {
+        const copy = await repo.copy(key, parentKey)
+        if (!copy) return undefined
+        const aliased = await repo.save(await withAlias(copy))
+        await files?.writeDataType(aliased)
+        return aliased
+      },
+      folders: underSchemaLock(db, createFolderPort(folders, tree, rewrite), [
+        'createFolder',
+        'renameFolder',
+        'deleteFolder',
+      ]),
+      treeRoot: tree.treeRoot,
+      treeChildren: tree.treeChildren,
 
-    async root(paging) {
-      const page = await nodes.roots(objectType, paging.skip, paging.take)
-      return { total: page.total, items: await shape(page.items) }
+      async root(paging) {
+        const page = await nodes.roots(objectType, paging.skip, paging.take)
+        return { total: page.total, items: await shape(page.items) }
+      },
+      async children(parentKey, paging) {
+        const parent = await nodes.byKey(parentKey)
+        if (!parent) return { total: 0, items: [] }
+        const page = await nodes.children(parent.id, objectType, paging.skip, paging.take)
+        return { total: page.total, items: await shape(page.items) }
+      },
+      ancestors: tree.ancestors,
+      items: tree.items,
     },
-    async children(parentKey, paging) {
-      const parent = await nodes.byKey(parentKey)
-      if (!parent) return { total: 0, items: [] }
-      const page = await nodes.children(parent.id, objectType, paging.skip, paging.take)
-      return { total: page.total, items: await shape(page.items) }
-    },
-    ancestors: tree.ancestors,
-    items: tree.items,
-  }
+    ['save', 'remove', 'move', 'copy'],
+  )
 }
 
 function toIdentifier(value: string): string {

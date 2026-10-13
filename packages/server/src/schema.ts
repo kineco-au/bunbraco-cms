@@ -16,6 +16,7 @@ import {
   ensureSystemMediaTypes,
   ensureSystemMemberTypes,
   type Finding,
+  Locks,
   latestCacheInstructionId,
   latestLedgerId,
   type NodeSchemaState,
@@ -117,23 +118,27 @@ export async function syncSchemaDirectory(
   node: { nodeId: string; version?: string; revision: string },
   options: Partial<SyncOptions> = {},
 ): Promise<SyncReport> {
-  const loaded = loadSchemaDirectory(config.schemaDir)
-  const report = await syncSchema(
-    db,
-    loaded,
-    { nodeId: node.nodeId, version: loaded.set.version, revision: node.revision },
-    { ...syncOptionsFor(config), ...options },
-  )
-  if (
-    report.action === 'applied' &&
-    config.schemaWritable &&
-    report.assignedKeys.length > 0 &&
-    report.state
-  ) {
-    writeKeysBack(loaded, report.assignedKeys)
-    await updateSchemaStateHash(db, report.state.id, hashSchemaSet(loaded.set))
-  }
-  return report
+  // The files are read under the lock the backoffice's schema writes hold, so a
+  // sync never applies a snapshot that a later backoffice change has overtaken.
+  return db.locks.withLock(Locks.Schema, async () => {
+    const loaded = loadSchemaDirectory(config.schemaDir)
+    const report = await syncSchema(
+      db,
+      loaded,
+      { nodeId: node.nodeId, version: loaded.set.version, revision: node.revision },
+      { ...syncOptionsFor(config), ...options },
+    )
+    if (
+      report.action === 'applied' &&
+      config.schemaWritable &&
+      report.assignedKeys.length > 0 &&
+      report.state
+    ) {
+      writeKeysBack(loaded, report.assignedKeys)
+      await updateSchemaStateHash(db, report.state.id, hashSchemaSet(loaded.set))
+    }
+    return report
+  })
 }
 
 export async function bootSchema(db: Db, config: BunbracoConfig): Promise<SchemaBoot> {

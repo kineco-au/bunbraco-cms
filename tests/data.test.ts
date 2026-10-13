@@ -188,6 +188,39 @@ describe(`database (${dialectUnderTest})`, () => {
     }
   })
 
+  test('the lock is re-entrant within one chain, and only while it is held', async () => {
+    if (!available) return
+    const db = await freshDb()
+    try {
+      const order: string[] = []
+      let resume!: () => void
+      const resumed = new Promise<void>((resolve) => {
+        resume = resolve
+      })
+      let leftBehind: Promise<void> | undefined
+      await db.locks.withLock(Locks.Schema, async () => {
+        await db.locks.withLock(Locks.Schema, async () => {
+          order.push('nested')
+        })
+        leftBehind = resumed.then(() =>
+          db.locks.withLock(Locks.Schema, async () => {
+            order.push('left behind')
+          }),
+        )
+      })
+      // Work the holder started runs after it released: it queues like anyone else.
+      await db.locks.withLock(Locks.Schema, async () => {
+        resume()
+        await Bun.sleep(20)
+        order.push('next holder')
+      })
+      await leftBehind
+      expect(order).toEqual(['nested', 'next holder', 'left behind'])
+    } finally {
+      await db.close()
+    }
+  })
+
   test('the lock abstraction serialises concurrent writers', async () => {
     if (!available) return
     const db = await freshDb()

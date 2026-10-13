@@ -3,6 +3,7 @@
  * lock id; SQLite has a single writer, so an in-process queue is both sufficient
  * and necessary, while Postgres uses advisory locks.
  */
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Db } from './database.ts'
 
 /** Mirrors Umbraco's Constants.Locks. */
@@ -29,10 +30,39 @@ export interface LockManager {
   withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T>
 }
 
+/**
+ * The locks the current async chain holds. A holder is emptied on release, so
+ * work the holder left running in the background does not inherit the lock.
+ */
+const held = new AsyncLocalStorage<Set<LockId>>()
+
+/** Runs `fn` directly when this chain already holds `id`; otherwise takes it. */
+async function reentrant<T>(
+  id: LockId,
+  fn: () => Promise<T>,
+  acquire: (run: () => Promise<T>) => Promise<T>,
+): Promise<T> {
+  const current = held.getStore()
+  if (current?.has(id)) return fn()
+  return acquire(async () => {
+    const holding = new Set(current)
+    holding.add(id)
+    try {
+      return await held.run(holding, fn)
+    } finally {
+      holding.clear()
+    }
+  })
+}
+
 class SqliteLockManager implements LockManager {
   #queues = new Map<number, Promise<unknown>>()
 
-  async withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
+  withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
+    return reentrant(id, fn, (run) => this.#acquire(id, run))
+  }
+
+  async #acquire<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
     const previous = this.#queues.get(id) ?? Promise.resolve()
     let release!: () => void
     const gate = new Promise<void>((resolve) => {
@@ -58,11 +88,13 @@ class PostgresLockManager implements LockManager {
     this.#db = db
   }
 
-  async withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
-    return this.#db.transaction(async (tx) => {
-      await tx.exec('SELECT pg_advisory_xact_lock(?)', [id])
-      return fn()
-    })
+  withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
+    return reentrant(id, fn, (run) =>
+      this.#db.transaction(async (tx) => {
+        await tx.exec('SELECT pg_advisory_xact_lock(?)', [id])
+        return run()
+      }),
+    )
   }
 }
 

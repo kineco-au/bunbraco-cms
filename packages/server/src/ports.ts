@@ -41,6 +41,7 @@ import {
   createContentTypePort,
   createDataTypePort,
   createTemplatePort,
+  underSchemaLock,
 } from './adapters/content.ts'
 import { createDictionaryPort } from './adapters/dictionary.ts'
 import { createDocumentPort } from './adapters/documents.ts'
@@ -134,7 +135,7 @@ function createLocalizationPort(db: Db | undefined, files?: SchemaFileWriter): L
       fallbackIsoCode: null,
     },
   ]
-  return {
+  const port: LocalizationPort = {
     cultures: () => CULTURES,
     allLanguages: async () =>
       repo
@@ -175,6 +176,7 @@ function createLocalizationPort(db: Db | undefined, files?: SchemaFileWriter): L
       return result
     },
   }
+  return db ? underSchemaLock(db, port, ['saveLanguage', 'deleteLanguage']) : port
 }
 
 function createCurrentUserPort(

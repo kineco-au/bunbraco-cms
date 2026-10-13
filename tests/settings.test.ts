@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SYSTEM_DOCUMENT_TYPE_KEYS } from '@bunbraco/core'
-import { SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
+import { Locks, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
 import { parseDataType, parseDocumentType } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -300,6 +300,35 @@ describe('WP-6.2 document types', () => {
     expect((await h.del(`${V1}/document-type/folder/${folderKey}`)).status).toBe(400)
     expect((await h.del(`${V1}/document-type/folder/${subKey}`)).status).toBe(200)
     expect((await h.del(`${V1}/document-type/folder/${folderKey}`)).status).toBe(200)
+  })
+
+  test('a folder change waits for the schema lock, so the watcher never syncs files it overtakes', async () => {
+    const { h } = await site()
+    const folder = await h.post(`${V1}/document-type/folder`, { name: 'Pages', parent: null })
+    const folderKey = folder.headers.get('umb-generated-resource') as string
+    // Held from a chain of its own, as the schema watcher's sync would hold it
+    let release!: () => void
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let entered!: () => void
+    const holding = new Promise<void>((resolve) => {
+      entered = resolve
+    })
+    const sync = h.server.db.locks.withLock(Locks.Schema, async () => {
+      entered()
+      await released
+    })
+    await holding
+    const renamed = h.put(`${V1}/document-type/folder/${folderKey}`, { name: 'Articles' })
+    await Bun.sleep(100)
+    const during = await h.json<{ name: string }>(`${V1}/document-type/folder/${folderKey}`)
+    expect(during.name).toBe('Pages')
+    release()
+    await sync
+    expect((await renamed).status).toBe(200)
+    const after = await h.json<{ name: string }>(`${V1}/document-type/folder/${folderKey}`)
+    expect(after.name).toBe('Articles')
   })
 
   test('a folder in the file is created by the sync', async () => {
