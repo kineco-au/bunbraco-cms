@@ -6,6 +6,12 @@
  * separated with hyphens.
  */
 export const URL_NAME_ALIAS = 'umbracoUrlName'
+/** Extra comma-separated addresses a page also answers on. */
+export const URL_ALIAS_ALIAS = 'umbracoUrlAlias'
+/** A content picker: visiting the page sends the visitor to the picked one. */
+export const REDIRECT_ALIAS = 'umbracoRedirect'
+/** Hides a page from navigation built with `visibleOnly`. */
+export const NAVI_HIDE_ALIAS = 'umbracoNaviHide'
 
 export function toUrlSegment(value: string): string {
   return value

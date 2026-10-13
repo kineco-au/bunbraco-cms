@@ -4,6 +4,7 @@ alias = "developerPage"
 name = "Developer Page"
 description = "What developers get, with a code sample and getting-started steps"
 icon = "icon-code"
+compositions = ["seoFields"]
 components = ["pages/developerPage"]
 default-component = "pages/developerPage"
 

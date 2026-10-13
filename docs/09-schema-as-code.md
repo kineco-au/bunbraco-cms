@@ -306,6 +306,11 @@ one, and export writes that file only once the type differs from what ships.
 **Video, Audio, Article and Vector Graphics** are ordinary site files —
 `bunbraco init` writes them — which a site may change or delete.
 
+**Search & sharing** (`seoFields`) is the one system *document* type, a
+composition a site opts into with `compositions = ["seoFields"]`. A site may
+extend it with fields of its own, but not remove, re-alias or retype the ones it
+ships with ([`19-seo.md`](19-seo.md)).
+
 A tab is `[[tab]]` with `name` and optional `alias`. A **group** inside a tab is
 `[[tab.group]]` with its own `[[tab.group.property]]` entries — the one place a
 third level exists, and only for types that use Umbraco's tab-within-group

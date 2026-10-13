@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { SYSTEM_DOCUMENT_TYPE_KEYS } from '@bunbraco/core'
 import { SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
 import { parseDataType, parseDocumentType } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -102,7 +103,7 @@ describe('WP-6.2 document types', () => {
 
     const seo = await createType(
       h,
-      documentType('seoFields', {
+      documentType('metaFields', {
         isElement: true,
         properties: [property('metaTitle', 'Meta title', TEXTSTRING)],
       }),
@@ -151,7 +152,7 @@ describe('WP-6.2 document types', () => {
     const { h } = await site()
     const seo = await createType(
       h,
-      documentType('seoFields', {
+      documentType('metaFields', {
         isElement: true,
         properties: [property('metaTitle', 'Meta title', TEXTSTRING)],
       }),
@@ -183,8 +184,11 @@ describe('WP-6.2 document types', () => {
         currentCompositeIds: [seo],
       }),
     })
-    // itself never; the type that composes it never (none here); types with compositions never
-    expect(forPage.map((c) => c.id).sort()).toEqual([nav, plain, seo].sort())
+    // itself never; the type that composes it never (none here); types with compositions never.
+    // The shipped Search & sharing type is always on offer.
+    expect(forPage.map((c) => c.id).sort()).toEqual(
+      [nav, plain, seo, SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields].sort(),
+    )
     expect(forPage.find((c) => c.id === nav)?.isCompatible).toBe(false)
     expect(forPage.find((c) => c.id === seo)?.isCompatible).toBe(true)
     // seo may not compose the page that composes it, and an element type sees only element types
@@ -226,8 +230,10 @@ describe('WP-6.2 document types', () => {
     const root = await h.json<{
       items: Array<{ id: string; isFolder: boolean; hasChildren: boolean }>
     }>(`${V1}/tree/document-type/root?skip=0&take=10`)
+    // The folder, the type at root, and the shipped Search & sharing type.
     expect(root.items.map((i) => [i.isFolder, i.hasChildren])).toEqual([
       [true, true],
+      [false, false],
       [false, false],
     ])
     const onlyFolders = await h.json<{ items: Array<{ id: string }> }>(
@@ -245,7 +251,11 @@ describe('WP-6.2 document types', () => {
     const siblings = await h.json<{ items: Array<{ id: string }>; totalBefore: number }>(
       `${V1}/tree/document-type/siblings?target=${other}&before=5&after=5`,
     )
-    expect(siblings.items.map((i) => i.id)).toEqual([folderKey, other])
+    expect(siblings.items.map((i) => i.id)).toEqual([
+      folderKey,
+      other,
+      SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields,
+    ])
 
     // The file carries the folder path, and the composition picker shows it
     const file = parseDocumentType(
@@ -300,7 +310,10 @@ describe('WP-6.2 document types', () => {
     const root = await h.json<{ items: Array<{ name: string; isFolder: boolean }> }>(
       `${V1}/tree/document-type/root?skip=0&take=10`,
     )
-    expect(root.items).toMatchObject([{ name: 'Content', isFolder: true }])
+    expect(root.items).toMatchObject([
+      { name: 'Content', isFolder: true },
+      { name: 'Search & sharing', isFolder: false },
+    ])
     const ancestors = await h.json<Array<{ name: string }>>(
       `${V1}/tree/document-type/ancestors?descendantId=0b1c8e3a-5555-4a5b-9c1d-000000000001`,
     )

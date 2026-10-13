@@ -6,6 +6,7 @@ description = "The landing page, written for the people who choose a CMS"
 icon = "icon-home"
 allow-at-root = true
 allow-children = ["developerPage"]
+compositions = ["seoFields"]
 components = ["pages/homePage"]
 default-component = "pages/homePage"
 

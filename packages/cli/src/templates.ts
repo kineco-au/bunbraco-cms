@@ -173,6 +173,11 @@ function tsconfig(): string {
   )}\n`
 }
 
+/** Search & sharing defaults, commented out: editors can also set them in Settings. */
+const SEO_EXAMPLE = `  // Search & sharing defaults; each can also be set in Settings, which wins.
+  // seo: { titleSuffix: ' | My site', notFoundPage: '<page key>', indexable: true },
+`
+
 /**
  * `bunbraco.config.ts`. A template's server bundles are imported by name and
  * listed in `bundles`, which is the only thing that lets their endpoints
@@ -188,7 +193,7 @@ function config(siteName: string, bundles: readonly TemplateServerBundle[]): str
 
 export default defineConfig({
   siteName: ${quote(siteName)},
-})
+${SEO_EXAMPLE}})
 `
   return `${imports}import { defineConfig } from 'bunbraco'
 
@@ -197,7 +202,7 @@ export default defineConfig({
   // Installing a bundle gives you its backoffice screen. This line is what lets
   // its endpoints answer a request, so remove it to turn one off.
   bundles: [${bundles.map((bundle) => `${bundle.import}()`).join(', ')}],
-})
+${SEO_EXAMPLE}})
 `
 }
 

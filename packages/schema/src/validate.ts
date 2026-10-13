@@ -3,7 +3,13 @@
  * a person fixing a schema wants the full list.
  */
 import { SYSTEM_MEDIA_TYPES, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import { BUILTIN_DATA_TYPE_ALIASES, SYSTEM_MEDIA_TYPE_ALIASES } from './builtin.ts'
+import {
+  BUILTIN_DATA_TYPE_ALIASES,
+  checkSystemDocumentTypeFile,
+  declaredProperties,
+  SYSTEM_DOCUMENT_TYPE_ALIASES,
+  SYSTEM_MEDIA_TYPE_ALIASES,
+} from './builtin.ts'
 import {
   allProperties,
   type SchemaDocumentType,
@@ -143,13 +149,31 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
     // so a duplicate alias (already reported) cannot shadow the real definition.
     const byAlias = new Map<string, SchemaDocumentType>()
     for (const t of types) if (!byAlias.has(t.alias)) byAlias.set(t.alias, t)
-    // System media types exist whether or not a file defines them.
+    // System types exist whether or not a file defines them.
     const known = (alias: string) =>
-      byAlias.has(alias) || (dir === 'media-types' && SYSTEM_MEDIA_TYPE_ALIASES.has(alias))
+      byAlias.has(alias) ||
+      (dir === 'media-types' && SYSTEM_MEDIA_TYPE_ALIASES.has(alias)) ||
+      (dir === 'document-types' && SYSTEM_DOCUMENT_TYPE_ALIASES.has(alias))
     for (const t of types) {
       const file = `schema/${dir}/${t.alias}`
-      for (const c of t.compositions)
+      if (dir === 'document-types')
+        for (const message of checkSystemDocumentTypeFile(t)) add(file, header, message)
+      for (const c of t.compositions) {
         if (!known(c)) add(file, `${header}.compositions`, `unknown type "${c}"`)
+        // Values are stored by the property's own variance, so a culture-varying
+        // field on a type that does not vary would split one page's value by language.
+        const composed = byAlias.get(c)
+        if (
+          composed &&
+          !t.variesByCulture &&
+          declaredProperties(composed).some((p) => p.variesByCulture)
+        )
+          add(
+            file,
+            `${header}.compositions`,
+            `"${c}" has fields that vary by culture, so this type must vary by culture too`,
+          )
+      }
       for (const c of t.allowChildren)
         if (!known(c)) add(file, `${header}.allow-children`, `unknown type "${c}"`)
       if (t.collection && !dataTypeAliases.has(t.collection))

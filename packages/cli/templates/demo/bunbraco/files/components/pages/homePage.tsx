@@ -4,10 +4,11 @@ import { Layout } from '../shared/layout.tsx'
 import { Logo } from '../shared/logo.tsx'
 import { developerPage, elementsOf, repositoryUrl } from '../shared/site.tsx'
 
-export default function HomePage({ model, nav }: PageProps) {
+export default function HomePage(props: PageProps) {
+  const { model, nav } = props
   const developers = developerPage(nav)
   return (
-    <Layout model={model} nav={nav}>
+    <Layout {...props}>
       <section class="hero">
         <div class="container">
           <Logo size="large" />

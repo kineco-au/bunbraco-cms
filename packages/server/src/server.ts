@@ -113,6 +113,7 @@ import {
   watchSchema,
 } from './schema.ts'
 import { materialiseSchema, publishSchema, type SchemaStore } from './schema-store.ts'
+import { createSeoHost, originOf } from './seo.ts'
 import {
   combineHubs,
   createServerEventHub,
@@ -415,6 +416,42 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     nodeId: schema.nodeId,
   })
 
+  /** A document's latest saved version, as preview shows it, in the published tree's context. */
+  async function draftModel(key: string, requested: string | null) {
+    const draft = await loadDraftNode(db, key, {
+      nodeState: schema.nodeState,
+      nodeId: schema.nodeId,
+    })
+    if (!draft) return undefined
+    const snapshot = await cache.snapshot()
+    const culture =
+      requested ||
+      (draft.cultures.length > 0 ? (snapshot.defaultCulture ?? draft.cultures[0]) : null) ||
+      null
+    const published = await cache.byKey(key, culture)
+    const content = contentForNode(
+      draft,
+      published?.url ?? `/${draft.key}`,
+      culture,
+      snapshot.languages,
+    ).withValueContext(await cache.valueContext(culture))
+    return {
+      content,
+      contentTypeAlias: draft.contentTypeAlias,
+      published: Boolean(published),
+      culture,
+    }
+  }
+
+  const seo = createSeoHost({
+    db,
+    config,
+    cache,
+    isProtected: async (content) => (await members.decide(content, undefined)).status !== 'allowed',
+    draft: draftModel,
+  })
+  const seoPath = `${paths.pluginPath}/api/seo`
+
   const notImplementedLog = logger('not-implemented')
   const notImplemented = new NotImplementedLog((line, entry) => {
     // The console line is the development aid; the file keeps it for the log viewer
@@ -657,6 +694,10 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         ? submitFormRoute(request, pathname)
         : new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST' } })
 
+    // Not on an `api` node, which serves no public site to describe.
+    if ((pathname === '/sitemap.xml' || pathname === '/robots.txt') && config.role !== 'api')
+      return pathname === '/sitemap.xml' ? seo.sitemap(request, url.host) : seo.robots(request)
+
     if (pathname.startsWith('/media/')) return serveMedia(pathname, url.searchParams)
     if (pathname.startsWith('/css/')) return serveSiteFile(config.stylesheetsDir, pathname, '.css')
     if (pathname.startsWith('/scripts/')) return serveSiteFile(config.scriptsDir, pathname, '.js')
@@ -692,6 +733,14 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     // Settings and not merely signed in, because the diff is the schema's full
     // text and a commit pushes it under this site's credentials — the same
     // authority `authorization.ts` demands for changing a type in the first place.
+    // Non-contract: search and sharing settings (Settings) and a page's preview (any editor).
+    if (pathname.startsWith(`${seoPath}/`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      const response = await seo.handle(request, pathname.slice(seoPath.length), principal)
+      if (response) return response
+    }
+
     if (git && pathname.startsWith(`${gitPath}/`)) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
@@ -1223,27 +1272,14 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     )
     const key = byKey?.[1] ?? (await cache.resolve(host, pathname))?.content.key
     if (!key) return undefined
-    const draft = await loadDraftNode(db, key, {
-      nodeState: schema.nodeState,
-      nodeId: schema.nodeId,
-    })
+    const draft = await draftModel(key, new URL(request.url).searchParams.get('culture'))
     if (!draft) return undefined
-    const url = new URL(request.url)
-    const snapshot = await cache.snapshot()
-    const culture =
-      url.searchParams.get('culture') ||
-      (draft.cultures.length > 0 ? (snapshot.defaultCulture ?? draft.cultures[0]) : null) ||
-      null
-    const published = await cache.byKey(key, culture)
-    return renderer.renderModel(
-      contentForNode(
-        draft,
-        published?.url ?? `/${draft.key}`,
-        culture,
-        snapshot.languages,
-      ).withValueContext(await cache.valueContext(culture)),
-      culture,
-    )
+    return renderer.renderModel(draft.content, draft.culture, await pageRequest(request))
+  }
+
+  /** What every rendered page is told about the request and the site's search defaults. */
+  async function pageRequest(request: Request) {
+    return { origin: originOf(request, config), url: request.url, seo: await seo.siteDefaults() }
   }
 
   /**
@@ -1362,6 +1398,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
         member,
         submission,
         access: (content) => members.decide(content, member),
+        ...(await pageRequest(request)),
       }))
     const cleared: Record<string, string> = cookie
       ? { 'set-cookie': expireCookie(FORM_FLASH_COOKIE, config.secureCookies) }
@@ -1370,6 +1407,12 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       case 'ok':
         return new Response(result.html, {
           headers: { 'content-type': 'text/html; charset=utf-8', ...cleared },
+        })
+      case 'redirect':
+        // Umbraco's `umbracoRedirect` answers 302: the page may stop redirecting.
+        return new Response(null, {
+          status: 302,
+          headers: { location: withQuery(result.location, request.url), ...cleared },
         })
       case 'noTemplate':
         // Content exists but renders nothing, which Umbraco also treats as a 404.
@@ -1417,12 +1460,44 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
             noNodesPage({ siteName: config.siteName, backOfficePath: config.backOfficePath }),
             { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } },
           )
+        const page = await renderNotFoundPage(request, pathname, host, member)
+        if (page) return page
         return new Response('Not Found', {
           status: 404,
           headers: { 'content-type': 'text/plain; charset=utf-8' },
         })
       }
     }
+  }
+
+  /**
+   * The page chosen to answer an address nothing else does, with status 404. A
+   * page that fails to render leaves the plain answer rather than a second error.
+   */
+  async function renderNotFoundPage(
+    request: Request,
+    pathname: string,
+    host: string,
+    member: Awaited<ReturnType<typeof members.resolve>>,
+  ): Promise<Response | undefined> {
+    const found = await seo.notFound(host, pathname)
+    if (!found) return undefined
+    const result = await renderer.renderModel(found.content, found.culture, {
+      member,
+      ...(await pageRequest(request)),
+    })
+    if (result.status !== 'ok') {
+      if (result.status === 'error')
+        renderLog.error('Template error while rendering the not-found page {name}: {detail}', {
+          name: found.content.name,
+          detail: renderer.inSource(result.error.stack ?? result.error.message),
+        })
+      return undefined
+    }
+    return new Response(result.html, {
+      status: 404,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    })
   }
 
   return {

@@ -345,7 +345,11 @@ describe('document types', () => {
       total: number
       items: Array<{ name: string; icon: string; hasChildren: boolean }>
     }>(`${V1}/tree/document-type/root?skip=0&take=100`)
-    expect(tree.items.map((i) => i.name).sort()).toEqual(['Home Page', 'Text Page'])
+    expect(tree.items.map((i) => i.name).sort()).toEqual([
+      'Home Page',
+      'Search & sharing',
+      'Text Page',
+    ])
     expect(tree.items.find((i) => i.name === 'Home Page')?.icon).toBe('icon-home')
     expect(tree.items.every((i) => i.hasChildren === false)).toBe(true)
 

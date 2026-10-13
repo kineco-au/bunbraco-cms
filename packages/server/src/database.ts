@@ -10,6 +10,7 @@ import {
   connect,
   type Db,
   ensureBuiltInDataTypes,
+  ensureSystemDocumentTypes,
   ensureSystemMediaTypes,
   ensureSystemMemberTypes,
   INITIAL_STATE,
@@ -102,6 +103,7 @@ export async function installDatabase(db: Db, config: BunbracoConfig): Promise<s
   await ensureBuiltInDataTypes(db)
   await ensureSystemMediaTypes(db)
   await ensureSystemMemberTypes(db)
+  await ensureSystemDocumentTypes(db)
 
   return seeded && !config.adminPassword ? password : undefined
 }

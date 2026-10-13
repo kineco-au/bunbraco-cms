@@ -132,6 +132,32 @@ describe('manifests', () => {
     expect(serialised).not.toContain(PLUGIN_PATH_PLACEHOLDER)
     expect(serialised).toContain('/admin/bunbraco/branding/branding.js')
   })
+
+  test('registers Search & sharing: the Settings screen, the page view and the type note', () => {
+    const seo = collectManifests(createBackOfficePaths({ backOfficePath: '/umbraco' })).all.find(
+      (m) => m.id === 'Bunbraco.Seo',
+    )
+    const extensions = (seo?.extensions ?? []) as Array<{
+      type: string
+      element: string
+      conditions?: Array<{ alias: string; match: string }>
+    }>
+    expect(extensions.map((e) => e.type)).toEqual([
+      'dashboard',
+      'workspaceView',
+      'workspaceFooterApp',
+    ])
+    expect(extensions.map((e) => e.element)).toEqual([
+      '/umbraco/bunbraco/seo/dashboard.js',
+      '/umbraco/bunbraco/seo/document-view.js',
+      '/umbraco/bunbraco/seo/type-hint.js',
+    ])
+    // Only on pages whose type includes the fields, by composition or directly.
+    expect(extensions[1]?.conditions).toContainEqual({
+      alias: 'Umb.Condition.WorkspaceContentTypeAlias',
+      match: 'seoFields',
+    })
+  })
 })
 
 describe('shell', () => {

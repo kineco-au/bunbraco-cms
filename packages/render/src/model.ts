@@ -9,6 +9,8 @@
 import type { FormSubmissionState } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
 import { MediaWithCrops } from './media.ts'
+import type { SeoSiteDefaults } from './seo.ts'
+import { NAVI_HIDE_ALIAS } from './url-segment.ts'
 import { convertValue, type ValueContext } from './values.ts'
 
 export type FallbackStrategy = 'none' | 'defaultValue' | 'language' | 'ancestors'
@@ -88,6 +90,12 @@ export class PublishedContent {
     this.properties = init.properties
     this.#culture = init.variationCulture
     this.#fallbackChain = init.languageFallback ?? []
+  }
+
+  /** False when the page is marked `umbracoNaviHide`, so menus leave it out. */
+  get isVisible(): boolean {
+    const hidden = this.value(NAVI_HIDE_ALIAS)
+    return !(hidden === true || hidden === 1 || hidden === '1' || hidden === 'true')
   }
 
   /** The culture in scope: the request's for content that varies by culture, else null. */
@@ -222,13 +230,32 @@ export interface PageProps {
    * page's own layout rather than on a bare error page.
    */
   submission: FormSubmissionState | undefined
+  /** The address requested, and the scheme and host it came in on. */
+  request: { origin: string; url: string }
+  urls: {
+    /** A page's address with scheme and host; undefined for one with no address here. */
+    absolute(content: PublishedContent): string | undefined
+    /** A page's address in each language it is published in. */
+    alternates(content: PublishedContent): Array<{
+      culture: string | null
+      url: string
+      isDefault: boolean
+    }>
+  }
+  /** Site-wide search and sharing values, for `<SeoHead>`. */
+  seo: SeoSiteDefaults
+}
+
+export interface NavigationOptions {
+  /** Leave out pages marked `umbracoNaviHide`. */
+  visibleOnly?: boolean
 }
 
 export interface Navigation {
   parent(content: PublishedContent): PublishedContent | undefined
-  children(content: PublishedContent): PublishedContent[]
+  children(content: PublishedContent, options?: NavigationOptions): PublishedContent[]
   ancestors(content: PublishedContent): PublishedContent[]
-  root(): PublishedContent[]
+  root(options?: NavigationOptions): PublishedContent[]
   /**
    * Published content by key, in the request's culture.
    *

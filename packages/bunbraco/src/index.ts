@@ -55,9 +55,12 @@ export type {
   RedirectRule,
   RedirectTo,
   RequestMember,
+  SeoHeadProps,
+  SeoOverrides,
+  SeoSiteDefaults,
   TypedElement,
 } from '@bunbraco/render'
-export { Form, formAction, redirect } from '@bunbraco/render'
+export { Form, formAction, redirect, SeoHead } from '@bunbraco/render'
 export type { Child } from '@bunbraco/render/jsx-runtime'
 export {
   // What a bundle's server half is written against; see `docs/17-bundles.md`.

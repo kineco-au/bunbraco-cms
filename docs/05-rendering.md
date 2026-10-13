@@ -242,7 +242,8 @@ Mirrors `PublishedRouter` → `UmbracoRouteValuesFactory`:
 1. **Resolve the domain** for the request URI → sets the request's domain and culture
 2. **Run content finders in order** until one sets content:
    by page-id query → by URL → by key/id path → by URL alias → by redirect →
-   last chance: the configured 404
+   last chance: the configured 404. A page with `umbracoRedirect` answers 302 to
+   the page it picks instead of rendering ([`19-seo.md`](19-seo.md))
 3. **Pick the template** → look for a route hijack: a controller whose name equals
    `content.contentType.alias` (Umbraco's "route hijacking"). In our stack the
    equivalent is an optional `apps/site/Controllers/{alias}.ts` exporting a
@@ -264,6 +265,11 @@ The decision itself is the server's, not the renderer's: `Renderer.render` takes
 an optional `access(content)` hook and a `member`, so the policy lives where the
 database is and the renderer keeps knowing only about templates and layouts.
 Preview is exempt — only a signed-in editor reaches it.
+
+URL aliases (`umbracoUrlAlias`) are claimed in the published cache after every
+real route, so an alias can never take an address a page answers on. The
+configured 404 is the not-found page chosen in Search & sharing, rendered with
+status 404 once the redirect lookup below has also found nothing.
 
 ### Redirects, at step 2's end
 

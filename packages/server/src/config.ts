@@ -230,6 +230,12 @@ export interface BunbracoConfig {
    */
   trackRedirects: boolean
   /**
+   * Search and sharing defaults: `/robots.txt`, `/sitemap.xml`, the site-wide
+   * values `<SeoHead>` falls back to, and the page shown for an address nothing
+   * answers on. Every field may also be set in the backoffice, which wins.
+   */
+  seo: SeoConfig
+  /**
    * Bundles whose server half this site runs, each the result of calling the
    * factory its package exports. Imported and listed here by hand on purpose:
    * installing a bundle never makes its server code run, so the only way code
@@ -317,6 +323,31 @@ function roleFromEnvironment(value: string | undefined): ServerRole {
   if (value === undefined || value === '') return 'all'
   assertRole(value)
   return value
+}
+
+/** Which page answers an address nothing else does, optionally for one hostname or language. */
+export interface NotFoundRule {
+  /** The page's key. */
+  document: string
+  host?: string
+  culture?: string
+}
+
+export interface SeoConfig {
+  /** Serve `/sitemap.xml`. Default true; BUNBRACO_SITEMAP. */
+  sitemap?: boolean
+  /** False keeps search engines out entirely — a staging site. Default true; BUNBRACO_INDEXABLE. */
+  indexable?: boolean
+  /** The rules in `/robots.txt`; the sitemap's address is added to them. */
+  robotsTxt?: string
+  /** `og:site_name`; the site's name when unset. */
+  siteName?: string
+  /** Added to every page title, such as ` | Acme`. */
+  titleSuffix?: string
+  /** Shown when a page without its own image is shared: an address, or a media item's key. */
+  defaultImage?: string
+  /** A page key, or rules choosing one per hostname or language. */
+  notFoundPage?: string | NotFoundRule[]
 }
 
 /** A site's config file exports `defineConfig({...})`; unset keys come from the environment. */
@@ -425,6 +456,10 @@ export function loadConfig(
     ),
     redirects: [],
     trackRedirects: Bun.env.BUNBRACO_TRACK_REDIRECTS !== 'false',
+    seo: stripUndefined({
+      sitemap: envFlag(Bun.env.BUNBRACO_SITEMAP),
+      indexable: envFlag(Bun.env.BUNBRACO_INDEXABLE),
+    }),
     // No environment variable: a bundle is an import, which is code.
     bundles: [],
     marketplaceUrl: Bun.env.BUNBRACO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
@@ -434,6 +469,8 @@ export function loadConfig(
     assistant: undefined,
   }
   const merged: BunbracoConfig = { ...fromEnv, ...stripUndefined(overrides) }
+  // Field by field, so a site setting its title suffix keeps the environment's switches.
+  merged.seo = { ...fromEnv.seo, ...stripUndefined(overrides.seo ?? {}) }
   // A schema store makes backoffice writes durable, so it carries writability with
   // it — that is the point of configuring one. An explicit setting still wins.
   if (
@@ -463,6 +500,11 @@ export function loadConfig(
   // the same terms as one in the environment.
   assertRole(merged.role)
   return merged
+}
+
+/** `true`/`false` from the environment; undefined when unset, so a default applies. */
+function envFlag(value: string | undefined): boolean | undefined {
+  return value === undefined ? undefined : value !== 'false'
 }
 
 const LOG_LEVELS = ['trace', 'debug', 'info', 'warning', 'error', 'fatal'] as const

@@ -105,7 +105,8 @@ applies the layout chain declared in the file.
 Not implemented: `validate` endpoints and the JSON-path `errors` shape, move/copy/
 sort, the recycle-bin endpoints (`move-to-recycle-bin` works; restore and empty do
 not), scheduled publishing, publish-with-descendants, preview, segments, and the
-`umbracoUrlAlias` and domain/culture routing paths. Culture variants are stored
+domain/culture routing paths. (`umbracoUrlAlias` has since been built; see
+[`19-seo.md`](19-seo.md).) Culture variants are stored
 and returned but only exercised invariantly.
 
 ## Phase 5 — Foundations for the split

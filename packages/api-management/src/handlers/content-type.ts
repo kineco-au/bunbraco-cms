@@ -6,12 +6,15 @@ import type { ResponseOf } from '@bunbraco/contracts'
 import {
   type ContentTypeAggregate,
   invalidSkipTake,
+  isSystemContentType,
+  isSystemDocumentType,
   isSystemMediaType,
   notFound,
   parseSkipTake,
   pendingLabel,
   problemDetails,
   problemResponse,
+  systemFieldViolation,
   type TreeItem,
 } from '@bunbraco/core'
 import type { ContentTypeKind, ContentTypePort, FolderPort, SkipTake } from '../ports-content.ts'
@@ -457,17 +460,29 @@ export function registerContentTypeHandlers(
       return problemResponse(notFound(`The ${noun} could not be found`))
     }
     const body = (await ctx.request.json()) as Record<string, unknown>
-    if (kind === 'media' && isSystemMediaType(key) && body.alias !== existing.alias)
+    if (kind !== 'member' && isSystemContentType(kind, key) && body.alias !== existing.alias)
       return problemResponse(
         problemDetails({
-          title: 'The alias of a system media type cannot be changed',
+          title: `The alias of a built-in ${noun} cannot be changed`,
           status: 400,
+          operationStatus: 'NotAllowed',
+        }),
+      )
+    const aggregate = fromDocumentTypeRequest(key, body, kind)
+    const violation =
+      kind === 'document' ? systemFieldViolation(key, aggregate.properties) : undefined
+    if (violation)
+      return problemResponse(
+        problemDetails({
+          title: `Could not save the ${noun}`,
+          status: 400,
+          detail: violation,
           operationStatus: 'NotAllowed',
         }),
       )
     const result = await port.update(
       key,
-      fromDocumentTypeRequest(key, body, kind),
+      aggregate,
       ctx.principal as NonNullable<typeof ctx.principal>,
     )
     if (!result.ok) {
@@ -488,6 +503,15 @@ export function registerContentTypeHandlers(
   })
 
   handle(`Delete${T}ById`, async (ctx) => {
+    if (kind === 'document' && isSystemDocumentType(ctx.params.id as string))
+      return problemResponse(
+        problemDetails({
+          title: 'This document type cannot be deleted',
+          status: 400,
+          detail: 'It is provided by Bunbraco and always present.',
+          operationStatus: 'NotAllowed',
+        }),
+      )
     if (kind === 'media' && isSystemMediaType(ctx.params.id as string))
       return problemResponse(
         problemDetails({

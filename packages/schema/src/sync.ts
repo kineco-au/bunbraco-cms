@@ -22,11 +22,12 @@ import {
   makeStateCurrent,
   type NodeSchemaState,
   type SchemaStateRow,
+  SYSTEM_DOCUMENT_TYPES,
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
   updateSchemaStateHash,
 } from '@bunbraco/data'
-import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
+import { BUILTIN_DATA_TYPES, storageTypeFor, systemPropertyKeys } from './builtin.ts'
 import { hashSchemaSet, type LoadedSchema } from './load.ts'
 import {
   allProperties,
@@ -313,11 +314,12 @@ export async function syncSchema(
         ]
         // Umbraco's fixed keys for the built-in media types' groups, so a site's
         // video.toml keeps the key Umbraco gave its "Video" group.
-        const fixedGroupKeys = new Map(
-          BUILT_IN_MEDIA_TYPES.flatMap((t) =>
+        const fixedGroupKeys = new Map([
+          ...BUILT_IN_MEDIA_TYPES.flatMap((t) =>
             t.group ? [[`${t.alias}|${t.group.name}`, t.group.key] as const] : [],
           ),
-        )
+          ...SYSTEM_DOCUMENT_TYPES.map((t) => [`${t.alias}|${t.tab.name}`, t.tab.key] as const),
+        ])
         for (const kind of kinds) {
           // ---- types: resolve keys, then save in composition order, twice
           // (allowed children may reference types created later in the order)
@@ -326,7 +328,7 @@ export async function syncSchema(
               ? SYSTEM_MEDIA_TYPES.map((t) => [t.alias, t.key])
               : kind.name === 'member'
                 ? [[SYSTEM_MEMBER_TYPE.alias, SYSTEM_MEMBER_TYPE.key]]
-                : [],
+                : SYSTEM_DOCUMENT_TYPES.map((t) => [t.alias, t.key]),
           )
           const aggregates: Array<{
             file: string
@@ -338,12 +340,19 @@ export async function syncSchema(
             const existing = t.key
               ? await kind.repo.byKey(t.key)
               : await kind.repo.byAlias(t.alias, { includeRetired: true })
-            const key = t.key ?? existing?.key ?? crypto.randomUUID()
+            const shippedKey =
+              kind.name === 'document'
+                ? SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === t.alias)?.key
+                : undefined
+            const key = t.key ?? existing?.key ?? shippedKey ?? crypto.randomUUID()
             if (!t.key && !existing)
               report.assignedKeys.push({ file, typeAlias: t.alias, key, revived: false })
             typeKeyByAlias.set(t.alias, key)
             const retired = existing ? await kind.repo.retiredProperties(existing.key) : []
             const liveByAlias = new Map((existing?.properties ?? []).map((p) => [p.alias, p]))
+            const shippedPropertyKeys: ReadonlyMap<string, string> = shippedKey
+              ? systemPropertyKeys(t.alias)
+              : new Map()
 
             const containers: ContentTypeAggregate['containers'] = []
             const properties: PropertyTypeModel[] = []
@@ -357,7 +366,8 @@ export async function syncSchema(
               if (!key) {
                 const live = liveByAlias.get(p.alias)
                 const back = retired.find((r) => r.alias === p.alias)
-                key = live?.key ?? back?.key ?? crypto.randomUUID()
+                key =
+                  live?.key ?? back?.key ?? shippedPropertyKeys.get(p.alias) ?? crypto.randomUUID()
                 revived = !live && back !== undefined
                 if (!live)
                   report.assignedKeys.push({
@@ -546,6 +556,7 @@ export async function syncSchema(
             // Shipped with the framework: present whether or not a file defines it.
             if (SYSTEM_MEDIA_TYPES.some((t) => t.key === key)) continue
             if (key === SYSTEM_MEMBER_TYPE.key) continue
+            if (SYSTEM_DOCUMENT_TYPES.some((t) => t.key === key)) continue
             if (status === 'prepared') {
               report.deferred.push(`${row.alias} (retire type)`)
               continue

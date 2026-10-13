@@ -70,6 +70,8 @@ tail of 1–3 each.
 - TSX template execution with an Umbraco-shaped model: `value()`, `children`,
   `ancestors`, `parent`, culture fallback
 - Preview (render drafts for an authenticated editor); `NotFound`, `NoNodes`, maintenance pages
+- Search & sharing: the `seoFields` composition, `<SeoHead>`, `/sitemap.xml`, `/robots.txt`,
+  a chosen not-found page, `umbracoRedirect` and `umbracoNaviHide` ([`19-seo.md`](19-seo.md))
 
 ### Media & media types
 - Media type CRUD; media tree and collection; temporary-file upload → media creation

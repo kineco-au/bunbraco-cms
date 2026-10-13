@@ -16,7 +16,13 @@ import type { SchemaForm } from '@bunbraco/core'
 import { PublishedMedia } from './media.ts'
 import { type Navigation, PublishedContent, type PublishedProperty } from './model.ts'
 import { matchRedirect, type RedirectRule } from './redirects.ts'
-import { joinPath, URL_NAME_ALIAS, urlSegmentFor } from './url-segment.ts'
+import {
+  joinPath,
+  REDIRECT_ALIAS,
+  URL_ALIAS_ALIAS,
+  URL_NAME_ALIAS,
+  urlSegmentFor,
+} from './url-segment.ts'
 import { PublishedElement, type ValueContext } from './values.ts'
 
 export interface PublishedNode {
@@ -134,6 +140,8 @@ export interface CacheSnapshot {
 export interface ResolvedRequest {
   content: PublishedContent
   culture: string | null
+  /** Where `umbracoRedirect` sends the visitor instead, when the page sets it. */
+  redirect?: string
 }
 
 /**
@@ -274,6 +282,26 @@ export class PublishedCache {
   }
 
   async resolve(host: string, pathname: string): Promise<ResolvedRequest | undefined> {
+    const found = await this.#resolve(host, pathname)
+    if (!found) return undefined
+    const target = found.content.value(REDIRECT_ALIAS)
+    if (
+      target instanceof PublishedContent &&
+      target.url !== '#' &&
+      target.key !== found.content.key
+    )
+      return { ...found, redirect: target.url }
+    return found
+  }
+
+  /** The culture a request's hostname assigns, or the default; what a 404 renders in. */
+  async cultureFor(host: string, pathname: string): Promise<string | null> {
+    const snapshot = await this.snapshot()
+    const best = this.#domainFor(snapshot, host, normaliseRoute(pathname))
+    return best?.domain.isoCode ?? snapshot.defaultCulture
+  }
+
+  async #resolve(host: string, pathname: string): Promise<ResolvedRequest | undefined> {
     const snapshot = await this.snapshot()
     const route = normaliseRoute(pathname)
     const best = this.#domainFor(snapshot, host, route)
@@ -395,17 +423,7 @@ export class PublishedCache {
    * for invariant content on a site without cultures in play.
    */
   async urls(key: string): Promise<Array<{ culture: string | null; url: string }>> {
-    const snapshot = await this.snapshot()
-    const out: Array<{ culture: string | null; url: string }> = []
-    let invariant: PublishedContent | undefined
-    for (const view of snapshot.views.values()) {
-      const content = view.byKey.get(key.toLowerCase())
-      if (!content) continue
-      if (content.cultures.length === 0) invariant ??= content
-      else out.push({ culture: view.culture, url: content.url })
-    }
-    if (out.length === 0 && invariant) return [{ culture: null, url: invariant.url }]
-    return out
+    return urlsIn(await this.snapshot(), key).map(({ culture, url }) => ({ culture, url }))
   }
 
   /** A dictionary item's translation in `culture`, then its fallback languages; '' when none. */
@@ -425,7 +443,10 @@ export class PublishedCache {
         const parentId = parentIdOf.get(content.id)
         return parentId === undefined ? undefined : byId.get(parentId)
       },
-      children: (content) => view?.childrenOf.get(content.id) ?? [],
+      children: (content, options) => {
+        const children = view?.childrenOf.get(content.id) ?? []
+        return options?.visibleOnly ? children.filter((c) => c.isVisible) : children
+      },
       ancestors: (content) => {
         const found: PublishedContent[] = []
         let current = content
@@ -438,7 +459,10 @@ export class PublishedCache {
         }
         return found
       },
-      root: () => view?.roots ?? [],
+      root: (options) => {
+        const roots = view?.roots ?? []
+        return options?.visibleOnly ? roots.filter((c) => c.isVisible) : roots
+      },
       byKey: (key) => byKey.get(key.toLowerCase()),
     }
   }
@@ -501,6 +525,11 @@ export class PublishedCache {
       const key = nodeById.get(nodeId)?.key
       if (key) domainRoots.set(nodeId, key.toLowerCase())
     }
+
+    // `umbracoUrlAlias` routes, claimed only once every real route has been, so an
+    // alias can never take an address a page already answers on.
+    const aliasClaims: Array<{ content: PublishedContent; route: string; domainKeys: string[] }> =
+      []
 
     for (const culture of cultures) {
       const inCulture = (node: PublishedNode) =>
@@ -607,6 +636,16 @@ export class PublishedCache {
         })
         view.byId.set(node.id, content)
         view.byKey.set(node.key.toLowerCase(), content)
+        for (const alias of urlAliasesOf(node, culture)) {
+          const domainKeys = domainRoute
+            ? (domainsOf.get(domainRoute.domain.nodeId) ?? [])
+                .filter((d) =>
+                  d.isoCode === null ? isDefault : viewKey(d.isoCode) === viewKey(culture),
+                )
+                .map((d) => `${d.domainName}:${alias}`)
+            : []
+          aliasClaims.push({ content, route: isDefault ? alias : '', domainKeys })
+        }
         routeKeys.set(
           routeKeyId(culture, node.id),
           domainRoute
@@ -688,6 +727,12 @@ export class PublishedCache {
       views.set(viewKey(culture), view)
     }
 
+    for (const claim of aliasClaims) {
+      if (claim.route && !byRoute.has(claim.route)) byRoute.set(claim.route, claim.content)
+      for (const key of claim.domainKeys)
+        if (!byDomainRoute.has(key)) byDomainRoute.set(key, claim.content)
+    }
+
     return {
       views,
       defaultCulture,
@@ -703,6 +748,54 @@ export class PublishedCache {
       contentTypeAliases,
     }
   }
+}
+
+/**
+ * A document's address in each culture it is published in, or its one address
+ * when it does not vary; `isDefault` marks the default language's.
+ */
+export function urlsIn(
+  snapshot: CacheSnapshot,
+  key: string,
+): Array<{ culture: string | null; url: string; isDefault: boolean }> {
+  const out: Array<{ culture: string | null; url: string; isDefault: boolean }> = []
+  let invariant: PublishedContent | undefined
+  for (const view of snapshot.views.values()) {
+    const content = view.byKey.get(key.toLowerCase())
+    if (!content) continue
+    if (content.cultures.length === 0) invariant ??= content
+    else
+      out.push({
+        culture: view.culture,
+        url: content.url,
+        isDefault: viewKey(view.culture) === viewKey(snapshot.defaultCulture),
+      })
+  }
+  if (out.length === 0 && invariant) return [{ culture: null, url: invariant.url, isDefault: true }]
+  return out
+}
+
+/** A property's raw value in a culture: the culture's own first, then the invariant one. */
+function rawValueIn(node: PublishedNode, alias: string, culture: string | null): unknown {
+  return (
+    node.properties.find(
+      (p) => p.alias === alias && p.culture && viewKey(p.culture) === viewKey(culture),
+    ) ?? node.properties.find((p) => p.alias === alias && p.culture === null)
+  )?.value
+}
+
+/**
+ * The extra addresses `umbracoUrlAlias` gives a page: comma-separated, each
+ * relative to the site root or to the hostname that roots the page.
+ */
+function urlAliasesOf(node: PublishedNode, culture: string | null): string[] {
+  const value = rawValueIn(node, URL_ALIAS_ALIAS, culture)
+  if (typeof value !== 'string') return []
+  return value
+    .split(',')
+    .map((alias) => alias.trim())
+    .filter((alias) => alias.length > 0)
+    .map((alias) => normaliseRoute(alias.startsWith('/') ? alias : `/${alias}`).toLowerCase())
 }
 
 /** The content below `content` in one culture's view, breadth first. */

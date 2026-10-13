@@ -50,6 +50,8 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_MEMBER_SESSION_MINUTES`           | `20160` (14 days)                              | how long a member's sign-in is good for                                                                |
 | `BUNBRACO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
 | `BUNBRACO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
+| `BUNBRACO_INDEXABLE`                        | `true`                                         | `false` keeps search engines out: `Disallow: /`, no sitemap, `noindex` on every page (staging)        |
+| `BUNBRACO_SITEMAP`                          | `true`                                         | whether `/sitemap.xml` is served                                                                       |
 | `BUNBRACO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Bundles section sends someone browsing for bundles                                       |
 | `BUNBRACO_PACKAGE_KEYWORD`                  | `bunbraco-bundle`                             | the npm keyword a bundle publishes to be discoverable                                    |
 | `BUNBRACO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
@@ -104,6 +106,11 @@ is code rather than a value:
 | `assistant` | the AI helper; enabling it takes a provider ([`11-assistant.md`](11-assistant.md)) |
 | `redirects` | rules built with `redirect()`, synced into the database at boot ([`05-rendering.md`](05-rendering.md)) |
 | `bundles` | the server halves of the bundles this site runs ([`17-bundles.md`](17-bundles.md)) |
+
+`seo` sits between the two: its two switches have environment variables above,
+and the rest — robots rules, site name, title suffix, sharing image, not-found
+page — are set in `bunbraco.config.ts` or in Settings → Search & sharing, which
+wins field by field ([`19-seo.md`](19-seo.md)).
 
 `bundles` has no environment variable deliberately, and the absence is tested. A
 variable naming a package would be a way to start third-party code in the server

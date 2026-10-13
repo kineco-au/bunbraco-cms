@@ -1,0 +1,61 @@
+{
+  "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
+  "name": "Bunbraco Search & sharing",
+  "id": "Bunbraco.Seo",
+  "version": "0.6.2",
+  "allowPublicAccess": false,
+  "extensions": [
+    {
+      "type": "dashboard",
+      "alias": "Bunbraco.Dashboard.Seo",
+      "name": "Bunbraco Search & Sharing Dashboard",
+      "element": "/bunbraco-plugin/seo/dashboard.js",
+      "weight": 10,
+      "meta": {
+        "label": "Search & sharing",
+        "pathname": "search-and-sharing"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
+      "type": "workspaceView",
+      "alias": "Bunbraco.WorkspaceView.Document.Seo",
+      "name": "Bunbraco Search & Sharing Preview",
+      "element": "/bunbraco-plugin/seo/document-view.js",
+      "weight": 90,
+      "meta": {
+        "label": "Search & sharing",
+        "pathname": "search-and-sharing",
+        "icon": "icon-search"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.WorkspaceAlias",
+          "match": "Umb.Workspace.Document"
+        },
+        {
+          "alias": "Umb.Condition.WorkspaceContentTypeAlias",
+          "match": "seoFields"
+        }
+      ]
+    },
+    {
+      "type": "workspaceFooterApp",
+      "alias": "Bunbraco.WorkspaceFooterApp.SeoFieldsHint",
+      "name": "Bunbraco Search & Sharing Type Hint",
+      "element": "/bunbraco-plugin/seo/type-hint.js",
+      "weight": 900,
+      "conditions": [
+        {
+          "alias": "Umb.Condition.WorkspaceAlias",
+          "match": "Umb.Workspace.DocumentType"
+        }
+      ]
+    }
+  ]
+}

@@ -1,12 +1,14 @@
-import type { PageProps } from 'bunbraco'
+import { type PageProps, SeoHead } from 'bunbraco'
 
-export default function HomePage({ model }: PageProps) {
+export default function HomePage(props: PageProps) {
+  const { model } = props
   return (
     <html lang="en">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>{model.text('title')}</title>
+        {/* The title, description and sharing tags, from the page's Search & sharing tab. */}
+        <SeoHead {...props} title={model.text('title')} />
       </head>
       <body>
         <main>

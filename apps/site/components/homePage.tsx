@@ -1,11 +1,15 @@
-import type { PageProps, PublishedElement } from 'bunbraco'
+import { type PageProps, type PublishedElement, SeoHead } from 'bunbraco'
 
-export default function HomePage({ model }: PageProps) {
+export default function HomePage(props: PageProps) {
+  const { model } = props
   // An element picker always yields a list, as Umbraco's converter does, even
   // where the data type allows a single pick.
   const quotes = (model.value('quotes') ?? []) as PublishedElement[]
   return (
     <html lang="en">
+      <head>
+        <SeoHead {...props} />
+      </head>
       <body>
         <main>
           <h1>{model.text('title')}</h1>

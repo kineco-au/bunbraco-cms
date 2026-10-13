@@ -229,7 +229,8 @@ describe('media types', () => {
     const media = await create(h, mediaType('asset'))
     expect((await h.call(`${V1}/document-type/${media}`)).status).toBe(404)
     const docTree = await h.json<{ total: number }>(`${V1}/tree/document-type/root?skip=0&take=10`)
-    expect(docTree.total).toBe(0)
+    // Only the shipped Search & sharing type.
+    expect(docTree.total).toBe(1)
     // Umbraco's content_type alias is unique across both kinds
     const clash = await h.post(`${V1}/document-type`, {
       ...mediaType('asset'),

@@ -110,6 +110,110 @@ export function isSystemMemberType(key: string): boolean {
   return key.toLowerCase() === SYSTEM_MEMBER_TYPE_KEY
 }
 
+/**
+ * Document types this CMS ships: always present, not deletable, alias fixed. A
+ * site may add fields to one, but not remove or change the ones it ships with.
+ */
+export const SYSTEM_DOCUMENT_TYPE_KEYS: Readonly<Record<'SeoFields', string>> = {
+  SeoFields: '5e0f1c2a-7b3d-4c8e-9a61-0d2b4f6e8a13',
+}
+
+export function isSystemDocumentType(key: string): boolean {
+  return Object.values(SYSTEM_DOCUMENT_TYPE_KEYS).includes(key.toLowerCase())
+}
+
+export function isSystemContentType(kind: 'document' | 'media' | 'member', key: string): boolean {
+  if (kind === 'media') return isSystemMediaType(key)
+  if (kind === 'member') return isSystemMemberType(key)
+  return isSystemDocumentType(key)
+}
+
+/** A field a system document type ships with, which a site may not remove or change. */
+export interface SystemPropertyModel {
+  key: string
+  alias: string
+  name: string
+  description: string
+  dataTypeKey: string
+}
+
+/**
+ * The "Search & sharing" composition's own fields. Invariant as shipped: the data
+ * layer does not mask a property's variance by the composing type's, so a site
+ * that wants per-language values turns variance on in its own file.
+ */
+export const SEO_FIELDS_PROPERTIES: readonly SystemPropertyModel[] = [
+  {
+    key: '8d1f3a52-6c0e-4b7a-9e24-1a5c7d9f0b31',
+    alias: 'seoTitle',
+    name: 'Search title',
+    description: 'Shown in search results and browser tabs. Leave empty to use the page name.',
+    dataTypeKey: '0cc0eba1-9960-42c9-bf9b-60e150b429ae',
+  },
+  {
+    key: '2b7e9c41-0d5f-4a63-8b18-6e4c2a0f7d52',
+    alias: 'seoDescription',
+    name: 'Search description',
+    description: 'A sentence or two shown under the title in search results and when shared.',
+    dataTypeKey: 'c6bac0dd-4ab9-45b1-8e30-e4b619ee5da3',
+  },
+  {
+    key: 'f4a60d83-9e2b-4c15-a7d0-3b8e1f5c9a64',
+    alias: 'seoImage',
+    name: 'Sharing image',
+    description: 'Shown when the page is shared. Leave empty to use the site image.',
+    dataTypeKey: 'ad9f0cf2-bda2-45d5-9ea1-a63cfc873fd3',
+  },
+  {
+    key: '6c3b8e14-2f7a-4d90-b5e1-9a0d4c7f2e75',
+    alias: 'seoCanonical',
+    name: 'Preferred address',
+    description:
+      'Only when the same content lives at another address search engines should use instead.',
+    dataTypeKey: '0cc0eba1-9960-42c9-bf9b-60e150b429ae',
+  },
+  {
+    key: '0e9d5a27-4b1c-4f86-8c32-7d6f0a3e1b86',
+    alias: 'seoNoindex',
+    name: 'Hide from search engines',
+    description: 'Asks search engines to leave this page out of their results.',
+    dataTypeKey: '92897bc6-a5f3-4ffe-ae27-f2e7e33dda49',
+  },
+  {
+    key: 'a7f2c6e9-8d4b-4e31-b0a5-2c9e6f1d3a97',
+    alias: 'seoSitemapHide',
+    name: 'Hide from sitemap',
+    description: 'Leaves this page out of the list of pages offered to search engines.',
+    dataTypeKey: '92897bc6-a5f3-4ffe-ae27-f2e7e33dda49',
+  },
+]
+
+/** The fields a system document type ships with, by the type's key. */
+export function systemDocumentTypeProperties(key: string): readonly SystemPropertyModel[] {
+  return key.toLowerCase() === SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields ? SEO_FIELDS_PROPERTIES : []
+}
+
+/**
+ * Why a change to a system document type's fields is refused, or undefined when
+ * it keeps every shipped field's key, alias and data type. Fields may be added,
+ * relabelled, moved, and switched to vary by culture.
+ */
+export function systemFieldViolation(
+  key: string,
+  properties: ReadonlyArray<{ key: string; alias: string; dataTypeKey: string }>,
+): string | undefined {
+  for (const shipped of systemDocumentTypeProperties(key)) {
+    const found = properties.find((p) => p.key.toLowerCase() === shipped.key)
+    if (
+      !found ||
+      found.alias !== shipped.alias ||
+      found.dataTypeKey.toLowerCase() !== shipped.dataTypeKey
+    )
+      return `The '${shipped.name}' field is provided by Bunbraco and cannot be removed or changed. You can add your own fields beside it.`
+  }
+  return undefined
+}
+
 /** How the editor labels a pending element. */
 export function pendingLabel(until: { version: string }): string {
   return `goes live in ${until.version}`

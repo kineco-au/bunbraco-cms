@@ -3,10 +3,11 @@ import { FeatureCards } from '../shared/features.tsx'
 import { Layout } from '../shared/layout.tsx'
 import { elementsOf, repositoryUrl } from '../shared/site.tsx'
 
-export default function DeveloperPage({ model, nav }: PageProps) {
+export default function DeveloperPage(props: PageProps) {
+  const { model, nav } = props
   const steps = elementsOf(model, 'steps')
   return (
-    <Layout model={model} nav={nav}>
+    <Layout {...props}>
       <header class="page-header">
         <div class="container narrow">
           {model.hasValue('eyebrow') ? <p class="eyebrow">{model.text('eyebrow')}</p> : null}

@@ -13,7 +13,8 @@ import type { FormSubmissionState } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
 import type { PageProps, PublishedContent, RequestMember } from './model.ts'
-import { type PublishedCache, translate } from './published-cache.ts'
+import { type PublishedCache, translate, urlsIn } from './published-cache.ts'
+import { absoluteUrl, type SeoSiteDefaults } from './seo.ts'
 import type { ViewSnapshots } from './snapshots.ts'
 
 export interface ComponentModule {
@@ -42,6 +43,8 @@ export interface RenderOptions {
 export type RenderResult =
   | { status: 'ok'; html: string; content: PublishedContent }
   | { status: 'notFound' }
+  /** The page names another to send its visitors to (`umbracoRedirect`). */
+  | { status: 'redirect'; location: string; content: PublishedContent }
   | { status: 'noTemplate'; content: PublishedContent }
   | { status: 'error'; error: Error; content: PublishedContent }
 
@@ -69,6 +72,12 @@ export interface RenderRequest {
    * layout it was rendered in.
    */
   submission?: FormSubmissionState
+  /** Scheme and host the visitor used, for absolute addresses; `http://localhost` when absent. */
+  origin?: string
+  /** The address requested, as the visitor sent it. */
+  url?: string
+  /** Site-wide search and sharing values. */
+  seo?: SeoSiteDefaults
 }
 
 /**
@@ -166,6 +175,8 @@ export class Renderer {
     const resolved = await this.#cache.resolve(host, route)
     if (!resolved) return { status: 'notFound' }
     const { culture } = resolved
+    if (resolved.redirect)
+      return { status: 'redirect', location: resolved.redirect, content: resolved.content }
     const permitted = await this.#permitted(resolved.content, culture, request)
     if (!permitted) return { status: 'notFound' }
     const content = permitted
@@ -233,6 +244,7 @@ export class Renderer {
     const nav = await this.#cache.navigation(culture)
     const snapshot = await this.#cache.snapshot()
     const dictionary = (key: string) => translate(snapshot, key, culture)
+    const origin = (request.origin ?? 'http://localhost').replace(/\/$/, '')
     const props: PageProps = {
       model: content,
       nav,
@@ -240,6 +252,12 @@ export class Renderer {
       dictionary,
       member: request.member,
       submission: request.submission,
+      request: { origin, url: request.url ?? `${origin}/` },
+      urls: {
+        absolute: (target) => absoluteUrl(target.url, origin),
+        alternates: (target) => urlsIn(snapshot, target.key),
+      },
+      seo: request.seo ?? { siteName: '', indexable: true },
     }
 
     let currentAlias: string | undefined = alias

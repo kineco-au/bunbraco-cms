@@ -18,9 +18,10 @@ import {
   type Db,
   FolderRepository,
   LanguageRepository,
+  SYSTEM_DOCUMENT_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@bunbraco/data'
-import { BUILTIN_DATA_TYPES, builtInMediaTypeSchema } from './builtin.ts'
+import { BUILTIN_DATA_TYPES, builtInDocumentTypeSchema, builtInMediaTypeSchema } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
 import type {
   SchemaDataType,
@@ -275,6 +276,13 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
     const type = toSchemaDocumentType(a, ctx)
     const folder = await folderOf(typeFolders, a.key)
     if (folder) type.folder = folder
+    // A system type needs a file only once a site has extended it.
+    const shipped = SYSTEM_DOCUMENT_TYPES.find((t) => t.key === a.key)
+    if (
+      shipped &&
+      writeDocumentType(type) === writeDocumentType(builtInDocumentTypeSchema(shipped))
+    )
+      continue
     documentTypes.push(type)
   }
   const mediaTypeFolders = new FolderRepository(

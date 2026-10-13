@@ -5,10 +5,12 @@
 import {
   ALL_SEEDED_DATA_TYPES,
   BUILT_IN_MEDIA_TYPES,
+  type BuiltInDocumentType,
   type BuiltInMediaType,
+  SYSTEM_DOCUMENT_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@bunbraco/data'
-import type { SchemaDataType, SchemaDocumentType } from './model.ts'
+import type { SchemaDataType, SchemaDocumentType, SchemaProperty } from './model.ts'
 import { fileNameFor, writeMediaType } from './write.ts'
 
 /** Every seeded data type, in the file vocabulary; the seed is the one definition. */
@@ -73,6 +75,102 @@ export function builtInMediaTypeSchema(
       },
     ]
   return type
+}
+
+/** Document types the framework ships: always present, never deleted, alias fixed. */
+export const SYSTEM_DOCUMENT_TYPE_ALIASES: ReadonlySet<string> = new Set(
+  SYSTEM_DOCUMENT_TYPES.map((t) => t.alias),
+)
+
+const dataTypeAliasOf = (key: string): string => {
+  const found = ALL_SEEDED_DATA_TYPES.find((d) => d.key === key)
+  if (!found) throw new Error(`system document types reference unknown data type "${key}"`)
+  return found.alias
+}
+
+/** A system document type in the file vocabulary: what export compares a site's copy against. */
+export function builtInDocumentTypeSchema(def: BuiltInDocumentType): SchemaDocumentType {
+  return {
+    key: def.key,
+    alias: def.alias,
+    name: def.name,
+    description: def.description,
+    icon: def.icon,
+    allowAtRoot: false,
+    isElement: false,
+    allowInLibrary: false,
+    variesByCulture: false,
+    variesBySegment: false,
+    compositions: [],
+    allowChildren: [],
+    components: [],
+    cleanup: { prevent: false },
+    properties: [],
+    tabs: [
+      {
+        name: def.tab.name,
+        alias: def.tab.alias,
+        groups: [],
+        properties: def.properties.map((p) => ({
+          key: p.key,
+          alias: p.alias,
+          name: p.name,
+          description: p.description,
+          type: dataTypeAliasOf(p.dataTypeKey),
+          mandatory: false,
+          variesByCulture: false,
+          variesBySegment: false,
+          labelOnTop: false,
+        })),
+      },
+    ],
+  }
+}
+
+/** Every property a type file declares, wherever it sits. */
+export function declaredProperties(t: SchemaDocumentType): SchemaProperty[] {
+  return [
+    ...t.properties,
+    ...(t.groups ?? []).flatMap((g) => g.properties),
+    ...t.tabs.flatMap((tab) => [...tab.properties, ...tab.groups.flatMap((g) => g.properties)]),
+  ]
+}
+
+/**
+ * What is wrong with a site's file for a system document type: it may add
+ * fields, relabel and move them, and vary them by culture, but every shipped
+ * field keeps its key, alias and data type.
+ */
+export function checkSystemDocumentTypeFile(t: SchemaDocumentType): string[] {
+  const def = SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === t.alias)
+  if (!def) return []
+  const findings: string[] = []
+  if (t.key && t.key.toLowerCase() !== def.key)
+    findings.push(`"${t.alias}" is provided by Bunbraco; its key must be ${def.key}`)
+  if (t.isElement)
+    findings.push(`"${t.alias}" is provided by Bunbraco and cannot be an element type`)
+  const declared = declaredProperties(t)
+  for (const shipped of def.properties) {
+    const found = declared.find((p) => p.alias === shipped.alias)
+    const type = dataTypeAliasOf(shipped.dataTypeKey)
+    if (!found)
+      findings.push(`the "${shipped.alias}" field is provided by Bunbraco and cannot be removed`)
+    else if (found.type !== type)
+      findings.push(
+        `the "${shipped.alias}" field is provided by Bunbraco; its type must stay "${type}"`,
+      )
+    else if (found.key && found.key.toLowerCase() !== shipped.key)
+      findings.push(
+        `the "${shipped.alias}" field is provided by Bunbraco; its key must be ${shipped.key}`,
+      )
+  }
+  return findings
+}
+
+/** A system document type's shipped property keys by alias, for a file that omits them. */
+export function systemPropertyKeys(alias: string): ReadonlyMap<string, string> {
+  const def = SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === alias)
+  return new Map((def?.properties ?? []).map((p) => [p.alias, p.key]))
 }
 
 export function storageTypeFor(
