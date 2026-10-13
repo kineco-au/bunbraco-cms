@@ -584,6 +584,15 @@ bunx bunbraco upgrade ledger                # migration_history
 bunx bunbraco schema purge --older-than 90  # delete long-retired properties and their values
 ```
 
+Templates are type-checked tag by tag in releases after 0.7.0: each tag's
+attributes are checked, and a JSX expression is typed as markup rather than text
+(`05-rendering.md`, "Types").
+Nothing renders differently, but `bunbraco components check` and the view editor
+may report a misspelt attribute, a value of the wrong type, an event handler, or
+a component annotated as returning `string`. Fix the views, or set
+`"jsxImportSource": "bunbraco/loose"` in the site's `tsconfig.json` to check them
+as before while they are fixed.
+
 Migration 020 renames API users' client IDs from `umbraco-back-office-<name>` to
 `bunbraco-back-office-<name>`. Secrets are untouched, so an integration keeps
 its secret and needs only its client ID updated — but it will get
@@ -593,7 +602,8 @@ unchanged; see `docs/04-backoffice-hosting.md`.
 ## Templates
 
 A template is a `.tsx` file in the site's `components/`, executed by Bun with
-`jsxImportSource: "bunbraco"` (the `init` scaffold sets it). There is no virtual
+`jsxImportSource: "bunbraco"` (the `init` scaffold sets it), or
+`"bunbraco/loose"`, the same runtime with attributes left unchecked. There is no virtual
 DOM: the JSX runtime renders straight to an HTML string. A page names its layout in the file rather than the database — the same
 choice Umbraco makes, which parses `Layout = "…"` back out of the Razor source:
 

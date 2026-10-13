@@ -14,7 +14,7 @@ import { readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { EDITOR_CONTENT_TYPES, editorTypeLibs } from '@bunbraco/server'
+import { EDITOR_CONTENT_TYPES, editorTypeLibs, siteJsxImportSource } from '@bunbraco/server'
 import { type Harness, signedInServer } from './support/harness.ts'
 
 const EDITOR_TYPES = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/editor-types`
@@ -73,7 +73,7 @@ const source = (file: string) => Bun.file(`packages/backoffice-host/${file}`).te
  * Run through bun rather than the `tsc` shim, which wants a node on the PATH
  * that the test image does not have.
  */
-async function typecheck(view: string): Promise<string[]> {
+async function typecheck(view: string, jsxImportSource = 'bunbraco'): Promise<string[]> {
   const root = mkdtempSync(join(process.cwd(), 'output', 'editor-tsc-'))
   dirs.push(root)
   const libs = await editorTypeLibs({ schemaDir: schemaFiles() })
@@ -87,7 +87,7 @@ async function typecheck(view: string): Promise<string[]> {
         module: 'ESNext',
         moduleResolution: 'bundler',
         jsx: 'react-jsx',
-        jsxImportSource: 'bunbraco',
+        jsxImportSource,
         allowImportingTsExtensions: true,
         noEmit: true,
         strict: true,
@@ -143,14 +143,17 @@ describe('the declarations the view editor checks a view against', () => {
     const { libs } = await h.json<{ libs: Lib[] }>(EDITOR_TYPES)
     const served = libs
       .filter((lib) => lib.path.startsWith('file:///node_modules/bunbraco/'))
-      .map((lib) => lib.path.split('/').pop())
+      .map((lib) => lib.path.slice('file:///node_modules/bunbraco/'.length))
       .sort()
 
     const dir = dirname(fileURLToPath(import.meta.resolve('@bunbraco/render')))
-    const onDisk = (await readdir(dir)).filter((name) => name.endsWith('.ts')).sort()
+    const onDisk = (await readdir(dir, { recursive: true }))
+      .filter((name) => name.endsWith('.ts'))
+      .sort()
 
     expect(served).toEqual(onDisk)
     expect(onDisk).toContain('model.ts')
+    expect(onDisk).toContain('loose/jsx-runtime.ts')
   })
 
   test('leave the generated types out when the schema does not generate', async () => {
@@ -161,6 +164,51 @@ describe('the declarations the view editor checks a view against', () => {
     })
     expect(libs.some((lib) => lib.path === EDITOR_CONTENT_TYPES)).toBe(false)
     expect(libs.some((lib) => lib.path.endsWith('/model.ts'))).toBe(true)
+  })
+
+  test('include React’s DOM types and the CSS types beneath them, which the sources import', async () => {
+    const { h } = await site()
+    const { libs } = await h.json<{ libs: Lib[] }>(EDITOR_TYPES)
+    const at = (path: string) => libs.find((lib) => lib.path === path)?.content
+    expect(at('file:///node_modules/@types/react/index.d.ts')).toContain(
+      'interface IntrinsicElements',
+    )
+    expect(at('file:///node_modules/@types/react/global.d.ts')).toBeDefined()
+    expect(at('file:///node_modules/csstype/index.d.ts')).toContain('StandardLonghandProperties')
+  })
+
+  test('say which JSX mode the site chose, as its tsconfig does', async () => {
+    const { h } = await site()
+    expect((await h.json<{ jsxImportSource: string }>(EDITOR_TYPES)).jsxImportSource).toBe(
+      'bunbraco',
+    )
+    const siteDir = mkdtempSync(join(process.cwd(), 'output', 'editor-jsx-'))
+    dirs.push(siteDir)
+    expect(siteJsxImportSource(siteDir)).toBe('bunbraco')
+    writeFileSync(
+      join(siteDir, 'tsconfig.json'),
+      '{\n  // upgrading\n  "compilerOptions": { "jsxImportSource": "bunbraco/loose" }\n}\n',
+    )
+    expect(siteJsxImportSource(siteDir)).toBe('bunbraco/loose')
+    // Anything this package does not serve is checked as the default.
+    writeFileSync(
+      join(siteDir, 'tsconfig.json'),
+      '{ "compilerOptions": { "jsxImportSource": "react" } }',
+    )
+    expect(siteJsxImportSource(siteDir)).toBe('bunbraco')
+  })
+
+  test('are fetched again only when they have changed', async () => {
+    const { h } = await site()
+    const first = await h.call(EDITOR_TYPES)
+    const etag = first.headers.get('etag') as string
+    expect(first.headers.get('cache-control')).toBe('private, no-cache')
+    expect(etag).toMatch(/^"\w+"$/)
+    const again = await h.call(EDITOR_TYPES, { headers: { 'if-none-match': etag } })
+    expect(again.status).toBe(304)
+    expect(await again.text()).toBe('')
+    const stale = await h.call(EDITOR_TYPES, { headers: { 'if-none-match': '"other"' } })
+    expect(stale.status).toBe(200)
   })
 
   test('need a session, and only answer a GET', async () => {
@@ -193,7 +241,10 @@ describe('the editor configuration', () => {
     expect(tsconfig.jsx).toBe('react-jsx')
     expect(editors).toContain('jsx: JsxEmit.ReactJSX')
     expect(tsconfig.jsxImportSource).toBe('bunbraco')
-    expect(editors).toContain("jsxImportSource: 'bunbraco'")
+    // The mode comes from the server, which reads the site's tsconfig; checked as
+    // the default when it does not say.
+    expect(editors).toMatch(/\n\s+jsxImportSource,\n/)
+    expect(editors).toContain(": 'bunbraco'")
     expect(tsconfig.strict).toBe(true)
     expect(editors).toContain('strict: true')
     expect(tsconfig.allowImportingTsExtensions).toBe(true)
@@ -278,6 +329,93 @@ export default function Template({ model }: PageProps<HomePage>) {
     )
     // An untyped page still reads as unknown, not any.
     expect(errors.join('\n')).toContain("Type 'unknown' is not assignable to type 'number'")
+  })
+
+  test('checks each tag’s attributes, and accepts how HTML spells them', async () => {
+    expect(
+      await typecheck(`import type { Child } from 'bunbraco'
+
+declare module 'bunbraco' {
+  interface ExtraAttributes {
+    popoverx?: 'auto' | 'manual'
+  }
+}
+
+export default function Template() {
+  return (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+      </head>
+      <body class="page" data-open={false} aria-hidden={true} hx-get="/more">
+        <label for="q">Search</label>
+        <input id="q" tabindex={1} readonly maxLength={20} value={null} />
+        <my-widget any-attribute="x" />
+        <div style={{ marginTop: 4, '--gap': 2, color: null }} popoverx="auto" />
+        <select multiple value={['a']}>
+          <option value="a">A</option>
+        </select>
+        <p>{Promise.resolve('later') as Child}</p>
+      </body>
+    </html>
+  )
+}
+`),
+    ).toEqual([])
+  })
+
+  test('and reports a misspelt attribute, a wrong value, a handler, or text methods on markup', async () => {
+    const errors = (
+      await typecheck(`export const a = <a herf="/x">x</a>
+export const b = <input tabIndex="first" />
+export const c = <div style={{ colour: 'red' }} />
+export const d = <button type="button" onClick={() => {}}>Go</button>
+export const e = (<b>x</b>).toUpperCase()
+`)
+    ).join('\n')
+    expect(errors).toContain("Type '{ herf: string; children: string; }' is not assignable")
+    expect(errors).toContain("Type 'string' is not assignable to type 'number'")
+    expect(errors).toContain("'colour' does not exist in type 'CSSProperties'")
+    expect(errors).toContain("Type '() => void' is not assignable to type 'never'")
+    expect(errors).toContain("Property 'toUpperCase' does not exist on type 'Html'")
+  })
+
+  test('in loose mode, accepts any attribute, as before', async () => {
+    expect(
+      await typecheck(
+        `export default function Template() {
+  const text: string = <b>bold</b>
+  return <a herf="/x" tabIndex="first">{text}</a>
+}
+`,
+        'bunbraco/loose',
+      ),
+    ).toEqual([])
+  })
+
+  test('types usePage() by the page’s interface, and a Provider’s children as a function', async () => {
+    const errors = (
+      await typecheck(`import { createContext, usePage, useContext } from 'bunbraco'
+import type { HomePage } from '../schema/content-types'
+
+const Theme = createContext('light')
+
+function Heading() {
+  const title: string | undefined = usePage<HomePage>().model.value('title')
+  return <h1 class={useContext(Theme)}>{title}</h1>
+}
+
+export const fine = <Theme.Provider value="dark">{() => <Heading />}</Theme.Provider>
+export const plain = <Theme.Provider value="dark"><Heading /></Theme.Provider>
+export const wrong = <Theme value={3}>{() => <Heading />}</Theme>
+export const typo = () => usePage<HomePage>().model.text('titel')
+`)
+    ).join('\n')
+    expect(errors).toContain("Type 'Html' is not assignable to type '() => Child'")
+    expect(errors).toContain("Type 'number' is not assignable to type 'string'")
+    expect(errors).toContain(`Argument of type '"titel"' is not assignable`)
+    // Those three, and nothing from the lines written as intended.
+    expect(errors.split('\n')).toHaveLength(3)
   })
 
   test('and reports a real mistake, rather than passing everything', async () => {

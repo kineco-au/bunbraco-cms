@@ -20,7 +20,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./jsx-runtime": "./src/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/jsx-runtime.ts"
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./loose/jsx-runtime": "./src/loose/jsx-runtime.ts",
+    "./loose/jsx-dev-runtime": "./src/loose/jsx-runtime.ts"
   },
   "files": [
     "src",
@@ -30,6 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@bunbraco/core": "workspace:*"
+    "@bunbraco/core": "workspace:*",
+    "@types/react": "^19.3.0"
   }
 }

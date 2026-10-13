@@ -4,11 +4,14 @@
  *
  * Nothing here is generated from the types: `@bunbraco/render` ships its own
  * sources, and those sources are what `bunbraco` re-exports to a view, so they
- * are served as they are and cannot drift. The one generated file is the
- * schema's `content-types.d.ts`, read fresh on every request so a document type
- * added a minute ago is already in the editor.
+ * are served as they are and cannot drift — with React's DOM types and the CSS
+ * types under them, which the sources import for each tag's attributes. The one
+ * generated file is the schema's `content-types.d.ts`, read fresh on every
+ * request so a document type added a minute ago is already in the editor.
  */
+import { existsSync, readFileSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { intendedTypes } from './models-builder.ts'
@@ -33,21 +36,65 @@ const MODULE_DIR = 'file:///node_modules/bunbraco'
  */
 export const EDITOR_CONTENT_TYPES = 'file:///schema/content-types.d.ts'
 
+/** Where the render sources' `import type … from 'react'` lands, by TypeScript's `@types` lookup. */
+const REACT_TYPES_DIR = 'file:///node_modules/@types/react'
+/** Where React's own `import … from 'csstype'` lands. */
+const CSSTYPE_DIR = 'file:///node_modules/csstype'
+
+/** The JSX modes a site may choose, by the `jsxImportSource` that selects each. */
+export const JSX_IMPORT_SOURCES = ['bunbraco', 'bunbraco/loose'] as const
+export type JsxImportSource = (typeof JSX_IMPORT_SOURCES)[number]
+
 let cached: Promise<EditorTypeLib[]> | undefined
 
-/** `@bunbraco/render`'s sources, read from the installed package. */
+/** `@bunbraco/render`'s sources, read from the installed package, and the type packages they import. */
 function moduleLibs(): Promise<EditorTypeLib[]> {
   cached ??= (async () => {
     const dir = dirname(fileURLToPath(import.meta.resolve('@bunbraco/render')))
-    const names = (await readdir(dir)).filter((name) => name.endsWith('.ts')).sort()
-    return await Promise.all(
-      names.map(async (name) => ({
-        path: `${MODULE_DIR}/${name}`,
-        content: await readFile(join(dir, name), 'utf8'),
-      })),
+    const sources = async (folder: string) =>
+      Promise.all(
+        (await readdir(join(dir, folder)))
+          .filter((name) => name.endsWith('.ts'))
+          .sort()
+          .map(async (name) => ({
+            path: `${MODULE_DIR}/${folder ? `${folder}/` : ''}${name}`,
+            content: await readFile(join(dir, folder, name), 'utf8'),
+          })),
+      )
+    // Resolved from the render package, as its own `import type` resolves them.
+    const reactDir = dirname(
+      createRequire(join(dir, 'index.ts')).resolve('@types/react/package.json'),
     )
+    const cssDir = dirname(
+      createRequire(join(reactDir, 'index.d.ts')).resolve('csstype/package.json'),
+    )
+    const declaration = async (from: string, name: string, to: string) => ({
+      path: `${to}/${name}`,
+      content: await readFile(join(from, name), 'utf8'),
+    })
+    return [
+      ...(await sources('')),
+      ...(await sources('loose')),
+      await declaration(reactDir, 'index.d.ts', REACT_TYPES_DIR),
+      await declaration(reactDir, 'global.d.ts', REACT_TYPES_DIR),
+      await declaration(cssDir, 'index.d.ts', CSSTYPE_DIR),
+    ]
   })()
   return cached
+}
+
+/**
+ * The JSX mode the site's `tsconfig.json` chooses, so the editor checks a view
+ * as `tsc` would. Read leniently, since a tsconfig may carry comments; anything
+ * other than a mode this package serves is the default.
+ */
+export function siteJsxImportSource(siteDir: string): JsxImportSource {
+  const file = join(siteDir, 'tsconfig.json')
+  if (!existsSync(file)) return 'bunbraco'
+  const found = /"jsxImportSource"\s*:\s*"([^"]+)"/.exec(readFileSync(file, 'utf8'))?.[1]
+  return (JSX_IMPORT_SOURCES as readonly string[]).includes(found ?? '')
+    ? (found as JsxImportSource)
+    : 'bunbraco'
 }
 
 export async function editorTypeLibs(options: { schemaDir: string }): Promise<EditorTypeLib[]> {

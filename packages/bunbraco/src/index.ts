@@ -41,6 +41,8 @@ export type {
   BlockGridArea,
   BlockGridItem,
   BlockItem,
+  CSSProperties,
+  ExtraAttributes,
   FormFieldComponents,
   FormFieldRenderer,
   FormFieldRenderProps,
@@ -60,7 +62,18 @@ export type {
   SeoSiteDefaults,
   TypedElement,
 } from '@bunbraco/render'
-export { Form, formAction, redirect, SeoHead } from '@bunbraco/render'
+export {
+  type Context,
+  createContext,
+  Form,
+  formAction,
+  type ProviderProps,
+  redirect,
+  SeoHead,
+  useContext,
+  useId,
+  usePage,
+} from '@bunbraco/render'
 export type { Child } from '@bunbraco/render/jsx-runtime'
 export {
   // What a bundle's server half is written against; see `docs/17-bundles.md`.

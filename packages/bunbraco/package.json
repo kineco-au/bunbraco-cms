@@ -34,7 +34,9 @@
     ".": "./src/index.ts",
     "./branding": "./src/branding.ts",
     "./jsx-runtime": "./src/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/jsx-runtime.ts"
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./loose/jsx-runtime": "./src/loose/jsx-runtime.ts",
+    "./loose/jsx-dev-runtime": "./src/loose/jsx-runtime.ts"
   },
   "bin": {
     "bunbraco": "./bin/bunbraco.ts"

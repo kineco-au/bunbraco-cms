@@ -70,7 +70,7 @@ import { type BunbracoConfig, loadConfig, type ServerRole, VERSION } from './con
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
 import { syncDomainsFile } from './domains.ts'
-import { editorTypeLibs } from './editor-types.ts'
+import { editorTypeLibs, siteJsxImportSource } from './editor-types.ts'
 import { emailAvailability, resolveEmailPort } from './email.ts'
 import { noticeAboutEmail } from './email-notice.ts'
 import { warnAboutAppPlugins } from './extensions-notice.ts'
@@ -799,12 +799,21 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
       if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
-      return Response.json(
-        { libs: await editorTypeLibs({ schemaDir: config.schemaDir }) },
-        // The generated types follow the schema, which a colleague may have
-        // changed since this tab was opened.
-        { headers: { 'cache-control': 'no-store' } },
-      )
+      const body = JSON.stringify({
+        libs: await editorTypeLibs({ schemaDir: config.schemaDir }),
+        jsxImportSource: siteJsxImportSource(config.siteDir),
+      })
+      // Revalidated on every open rather than kept: the generated types follow
+      // the schema, which a colleague may have changed since this tab was
+      // opened. The tag spares the megabyte of React and CSS types when nothing
+      // has.
+      const etag = `"${Bun.hash(body).toString(36)}"`
+      const headers = { 'cache-control': 'private, no-cache', etag }
+      if (request.headers.get('if-none-match') === etag)
+        return new Response(null, { status: 304, headers })
+      return new Response(body, {
+        headers: { ...headers, 'content-type': 'application/json' },
+      })
     }
 
     /**

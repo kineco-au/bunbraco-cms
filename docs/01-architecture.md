@@ -38,7 +38,10 @@ which is what makes the packages consumable outside this repo.
   write: it is handed a function that issues Management API calls, so every read
   it makes is authorised as the signed-in user and it has no path of its own to
   the database
-- `render` depends on `core` and a content source interface; it never queries drafts
+- `render` depends on `core` and a content source interface; it never queries drafts.
+  It also depends on `@types/react`, for types only: each tag's attributes are
+  React's, adapted (`jsx-attributes.ts`), and nothing of React runs. A site
+  installs it with `bunbraco`, and the view editor is served it (with `csstype`)
 - `transfer` depends on `core` and `data`, mirroring `schema`: it owns the bundle
   format and reads content through the repositories rather than any SQL of its own
 - `import-umbraco` depends on `schema`, `transfer`, `core` and `data` for the

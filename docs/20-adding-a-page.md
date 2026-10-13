@@ -204,7 +204,8 @@ Some things to know:
 - **Text is escaped.** `{event.title}` cannot inject markup. Rich text is stored as
   HTML, so `intro` is written out with `setInnerHTML` and `dangerously: true`.
   [`05-rendering.md`](05-rendering.md) has the rest of the model API, layouts and
-  async components.
+  async components, and [`21-writing-components.md`](21-writing-components.md)
+  has examples of everything a component can do.
 
 ## 3. Check it
 

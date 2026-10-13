@@ -10,6 +10,7 @@ import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { FormSubmissionState } from '@bunbraco/core'
+import { renderScope } from './context.ts'
 import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
 import type { PageProps, PublishedContent, RequestMember } from './model.ts'
@@ -54,6 +55,15 @@ export type RenderResult =
   | { status: 'error'; error: Error; content: PublishedContent }
 
 const MAX_LAYOUT_DEPTH = 10
+
+/**
+ * A whole document gets `<!DOCTYPE html>`, which JSX has no way to write and
+ * without which a browser renders in quirks mode. A page that writes its own,
+ * or renders something other than a document, is left as it is.
+ */
+export function withDoctype(html: string): string {
+  return /^\s*<html[\s>]/i.test(html) ? `<!DOCTYPE html>${html}` : html
+}
 /** Umbraco's own guard against a login page that is itself protected. */
 const MAX_ACCESS_SUBSTITUTIONS = 8
 
@@ -311,6 +321,15 @@ export class Renderer {
       signal,
     }
 
+    // Inside the page's scope, so any component can ask for it with `usePage()`.
+    return renderScope(props, () => this.#renderLayouts(alias, props, rendering))
+  }
+
+  async #renderLayouts(
+    alias: string,
+    props: PageProps,
+    rendering: { alias: string },
+  ): Promise<string | undefined> {
     let currentAlias: string | undefined = alias
     let body: RawHtml | undefined
     let depth = 0
@@ -320,7 +339,7 @@ export class Renderer {
     while (currentAlias && depth < MAX_LAYOUT_DEPTH) {
       rendering.alias = currentAlias
       const module = await this.#load(currentAlias)
-      if (!module) return depth === 0 ? undefined : body?.value
+      if (!module) return depth === 0 || body === undefined ? undefined : withDoctype(body.value)
       const rendered =
         body === undefined
           ? module.default(props)
@@ -334,7 +353,7 @@ export class Renderer {
         `Layout chain for '${alias}' is longer than ${MAX_LAYOUT_DEPTH}; is it a cycle?`,
       )
     }
-    return body?.value
+    return body === undefined ? undefined : withDoctype(body.value)
   }
 
   async #load(alias: string): Promise<ComponentModule | undefined> {

@@ -97,7 +97,7 @@ function pluginApi() {
   return `${href.replace(/\/$/, '')}/bunbraco/api`
 }
 
-/** What the server checks a view against, or nothing if it will not say. */
+/** What the server checks a view against, and in which JSX mode; no libs if it will not say. */
 async function typeLibs() {
   try {
     const response = await fetch(`${pluginApi()}/editor-types`, {
@@ -106,14 +106,18 @@ async function typeLibs() {
     })
     if (!response.ok) throw new Error(`the server answered ${response.status}`)
     const body = await response.json()
-    return Array.isArray(body?.libs) ? body.libs : []
+    return {
+      libs: Array.isArray(body?.libs) ? body.libs : [],
+      jsxImportSource:
+        typeof body?.jsxImportSource === 'string' ? body.jsxImportSource : 'bunbraco',
+    }
   } catch (error) {
     // Said out loud, because the consequence is not obvious: with no types,
     // `bunbraco` does not resolve, so there is no `JSX.IntrinsicElements` and
     // TypeScript underlines every tag in the view. Type checking is turned off
     // below rather than left to report that.
     console.error('Bunbraco could not fetch the types for the view editor', error)
-    return []
+    return { libs: [], jsxImportSource: 'bunbraco' }
   }
 }
 
@@ -124,10 +128,10 @@ let loaded
  * whether the dialect is usable.
  *
  * Done on the first view to open rather than at boot, because monaco is several
- * megabytes and most sessions never open one. The types are fetched every time
+ * megabytes and most sessions never open one. The types are asked for every time
  * instead of once, so a document type a colleague added is in this editor as
- * soon as the view is reopened; they are small, and the endpoint says
- * `no-store` for the same reason.
+ * soon as the view is reopened; the endpoint tags them, so the browser fetches
+ * them again only when they have changed.
  */
 async function configureTsx() {
   let monaco
@@ -141,22 +145,23 @@ async function configureTsx() {
     const ts = monaco.typescript ?? monaco.languages?.typescript
     if (!ts) throw new Error('monaco exposes no TypeScript service')
     const { JsxEmit, ModuleKind, ScriptTarget, typescriptDefaults } = ts
+    const { libs, jsxImportSource } = await typeLibs()
     // The site's `apps/site/tsconfig.json`, so that what the editor underlines
-    // is what `tsc` would report and nothing else.
+    // is what `tsc` would report and nothing else — down to the JSX mode the
+    // site chose, `bunbraco` or `bunbraco/loose`.
     typescriptDefaults.setCompilerOptions({
       allowNonTsExtensions: true,
       target: ScriptTarget.ESNext,
       module: ModuleKind.ESNext,
       moduleResolution: BUNDLER,
       jsx: JsxEmit.ReactJSX,
-      jsxImportSource: 'bunbraco',
+      jsxImportSource,
       allowImportingTsExtensions: true,
       noEmit: true,
       strict: true,
     })
     // Replaced wholesale rather than added one at a time, so a refresh cannot
     // leave a stale copy of the generated types behind.
-    const libs = await typeLibs()
     typescriptDefaults.setExtraLibs(
       libs.map((lib) => ({ filePath: lib.path, content: lib.content })),
     )

@@ -167,6 +167,149 @@ value, so forgetting it fails closed. The attribute never appears in the output,
 a void element has no content to set, so it is ignored there. Pinned by
 `tests/documents.test.ts` "setInnerHTML emits markup verbatim only when told to".
 
+React's `dangerouslySetInnerHTML={{ __html }}` is accepted too, and means what it
+means in React: verbatim. It exists so markup pasted from a React codebase works;
+`setInnerHTML` stays the one to reach for. Either refuses to be combined with
+children, or with the other.
+
+### Coming from React
+
+[`21-writing-components.md`](21-writing-components.md) has a worked example of
+each of these.
+
+Templates are JSX, but they render once, on the server, to a string, through
+Bunbraco's own runtime rather than React. What a React author writes mostly works:
+
+| Written as in React | Here |
+| --- | --- |
+| `className`, `htmlFor`, `httpEquiv`, `acceptCharset` | `class`, `for`, `http-equiv`, `accept-charset` |
+| SVG `strokeWidth`, `fillRule`, `xlinkHref`, … | `stroke-width`, `fill-rule`, `xlink:href`, … |
+| `tabIndex`, `readOnly`, `maxLength`, … | written as given: HTML attribute names ignore case |
+| `style={{ marginTop: 4, zIndex: 2 }}` | `style="margin-top:4px;z-index:2"`: `px` where React adds it, custom properties as written |
+| `aria-hidden={true}`, `data-open={false}` | `"true"` and `"false"`; `aria-*`, `data-*`, `draggable`, `spellCheck`, `contentEditable` |
+| `disabled={true}`, `required={false}` | present, or absent |
+| `key`, `ref` | dropped |
+| `<input defaultValue defaultChecked>` | `value`, `checked` |
+| `<textarea value>` | the escaped text inside it |
+| `<select value>` (a list for `multiple`) | `selected` on the matching options, through an `<optgroup>` too |
+| `dangerouslySetInnerHTML` | verbatim, as above |
+| `<html>` at the top of a page | preceded by `<!DOCTYPE html>`, which JSX cannot write |
+
+What fails, and why, rather than writing something wrong:
+
+- **An event handler, or any function, as an attribute.** A page is static HTML
+  and nothing can run the function. Interactive code is a separate script: render
+  an element for it to mount on and load the script from `/scripts/`. A React
+  element rendered in a template is refused for the same reason.
+- **An attribute name that is not one**, so the keys of an object spread into an
+  element cannot inject markup.
+- **An object, function or symbol as a child**, or an object with no text of its
+  own as an attribute. React refuses these too; printed, they would be
+  `[object Object]`.
+- **A `<select value>` none of whose visible options has.** Options are built
+  before the select that holds them, so the select can mark only the ones written
+  directly inside it (or inside an `<optgroup>`). One inside a fragment, or
+  returned from a component, is already written by then: put `selected` on it.
+
+Context and `useId` work, with one difference (see "Context" below). There are
+no other hooks, no `Suspense` and no error boundaries, and React component
+libraries do not run here, since they need React itself. Pinned by
+`tests/jsx-attributes.test.tsx`.
+
+#### Types
+
+Each tag's attributes are type-checked, in `tsc`, `bunbraco components check` and
+the backoffice's view editor alike. They are React's (from `@types/react`, a
+type-only dependency), adapted to this runtime in `jsx-attributes.ts`:
+
+- the HTML spellings are accepted beside React's: `class`, `for`, and every
+  attribute in lower case (`charset`, `tabindex`, `datetime`)
+- `children` may be async; a `style` object is checked against every CSS
+  property (`csstype`), and takes custom properties (`--gap`)
+- any attribute may be `null`, which leaves it out, and is what `model.value()`
+  returns for an empty property
+- an event handler is a type error, as it is an error when rendered
+- a hyphenated attribute (`data-*`, `aria-*`, `hx-get`) and any attribute on a
+  custom element (`<my-widget>`) are not checked, as TypeScript never checks them
+
+A JSX expression is typed as what it is, `RawHtml` or a promise of it, so calling
+a string method on markup is caught rather than failing when the page renders.
+
+An attribute the types do not know yet is declared once for the site:
+
+```ts
+// components/attributes.d.ts
+declare module 'bunbraco' {
+  interface ExtraAttributes {
+    popover?: 'auto' | 'manual'
+  }
+}
+```
+
+or spread from an object, whose extra properties are not checked:
+`<div {...{ popover: 'auto' }} />`.
+
+A site that is upgrading and has views these types flag can switch them off with
+`"jsxImportSource": "bunbraco/loose"` in its `tsconfig.json`: any attribute on any
+tag, and a JSX expression typed as text, as before. What renders is identical,
+and the view editor follows the site's choice. Pinned by
+`tests/editor-types.test.ts`.
+
+### Context
+
+Any component can read the page being rendered, without it being passed down:
+
+```tsx
+import { usePage } from 'bunbraco'
+import type { HomePage } from '../schema/content-types'
+
+function Breadcrumbs() {
+  const { model, nav } = usePage<HomePage>()
+  return (
+    <nav>
+      {nav.ancestors(model).map((page) => <a href={page.url}>{page.name}</a>)}
+    </nav>
+  )
+}
+```
+
+`usePage()` returns what the template was given (`model`, `nav`, `culture`,
+`dictionary`, `member`, `request`, `urls`, `seo`, `signal`), in layouts too. A
+template's own values are handed down the same way:
+
+```tsx
+import { createContext, useContext } from 'bunbraco'
+
+const Theme = createContext('light')
+
+<Theme.Provider value="dark">
+  {() => <Sidebar />}
+</Theme.Provider>
+
+// in Sidebar, however deep:
+const theme = useContext(Theme)
+```
+
+**The provider takes its children as a function.** React builds a description
+of the tree and renders it afterwards, so a provider runs before what is inside
+it. This runtime renders as it goes, and JavaScript evaluates arguments first:
+written plainly, `<Sidebar />` would render before the provider had set its
+value. The function holds it back until then. Plain children are a type error,
+and throw when rendered rather than silently reading the default. React 19's
+`<Theme value="dark">` works too, under the same rule.
+
+`useId()` gives an id unique within the render (`:b0:`, `:b1:`, …), for tying a
+`<label>` to its input or `aria-describedby` to its text.
+
+These are not hooks in React's sense: they can be called anywhere while a page
+renders, conditionally or after an `await`. The values live in storage scoped to
+the render (`AsyncLocalStorage`), which follows every call and `await` within it,
+so two requests rendering at once each see their own page. Outside a render (at
+the top of a module, or later in a timer) `usePage()` and `useId()` throw;
+`useContext()` returns the default. A layout cannot provide a context to the
+page inside it, because the page has already rendered by the time its layout
+runs. Pinned by `tests/context.test.tsx`.
+
 ### Async components
 
 A template, a layout or any component it renders may be `async`, so a page can

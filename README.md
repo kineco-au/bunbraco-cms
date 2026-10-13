@@ -471,6 +471,7 @@ Design documents, in reading order:
 | [18-forms](docs/18-forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
 | [19-seo](docs/19-seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
 | [20-adding-a-page](docs/20-adding-a-page.md) | a walkthrough: the document type, its component (with an async example), the content, shipping it |
+| [21-writing-components](docs/21-writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |
 
 ---
 
@@ -514,7 +515,8 @@ bunbraco/
 │   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed
 │   └── render/                    # the JSX→HTML runtime behind TSX templates, published cache (one view per culture),
 │                                  #    URL and hostname routing, language fallback, the dictionary,
-│                                  #    value converters (pickers, links, blocks, media and crops), <SeoHead> and the sitemap
+│                                  #    value converters (pickers, links, blocks, media and crops), <SeoHead> and the sitemap;
+│                                  #    each tag's attributes typed from @types/react, a type-only dependency
 ├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, components/, schema/
 ├── scripts/                       # vendoring, module-graph check, coverage, versioning and publishing
 ├── .github/workflows/             # ci.yml on every push to main; release.yml on a v* tag

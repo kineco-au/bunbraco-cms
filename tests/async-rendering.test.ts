@@ -196,7 +196,7 @@ export default async function Home({ model }) {
     const response = await h.server.fetch(new Request(`${ORIGIN}/`))
     expect(response.status).toBe(200)
     expect(await response.text()).toBe(
-      '<html><head><title>Site</title></head><body><h1>Hello</h1><aside>aside</aside></body></html>',
+      '<!DOCTYPE html><html><head><title>Site</title></head><body><h1>Hello</h1><aside>aside</aside></body></html>',
     )
   })
 
