@@ -396,8 +396,8 @@ export function registerContentTypeHandlers(
 ): void {
   const T = ({ document: 'DocumentType', media: 'MediaType', member: 'MemberType' } as const)[kind]
   const segment = { document: 'document-type', media: 'media-type', member: 'member-type' }[kind]
-  const noun = { document: 'document type', media: 'media type', member: 'member type' }[kind]
-  const title = { document: 'Document Type', media: 'Media Type', member: 'Member Type' }[kind]
+  const noun = { document: 'content type', media: 'media type', member: 'member type' }[kind]
+  const title = { document: 'Content Type', media: 'Media Type', member: 'Member Type' }[kind]
   // Registers only what this kind's contract has (member types: no allowed children, …).
   const handle = (operationId: string, handler: Parameters<ManagementApiRouter['handle']>[1]) => {
     if (router.operations.some((o) => o.operationId === operationId))
@@ -506,7 +506,7 @@ export function registerContentTypeHandlers(
     if (kind === 'document' && isSystemDocumentType(ctx.params.id as string))
       return problemResponse(
         problemDetails({
-          title: 'This document type cannot be deleted',
+          title: 'This content type cannot be deleted',
           status: 400,
           detail: 'It is provided by Bunbraco and always present.',
           operationStatus: 'NotAllowed',

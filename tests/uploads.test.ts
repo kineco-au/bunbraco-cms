@@ -105,7 +105,7 @@ describe('the media file store', () => {
   })
 })
 
-const TYPE_TOML = `[document-type]
+const TYPE_TOML = `[content-type]
 alias = "download"
 name = "Download"
 allow-at-root = true
@@ -130,10 +130,10 @@ const VIEW = `export default function Download({ model }) {
 
 async function site() {
   const root = tempDir('uploads-site-')
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'download.toml'), TYPE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'download.toml'), TYPE_TOML)
   writeFileSync(join(root, 'components', 'download.tsx'), VIEW)
   const h = await signedInServer({
     config: {

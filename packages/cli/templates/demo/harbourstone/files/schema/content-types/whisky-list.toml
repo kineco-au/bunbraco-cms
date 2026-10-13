@@ -1,6 +1,6 @@
 # `collection` gives the backoffice a list view of the children instead of a
 # tree branch, which is what a range of bottlings wants.
-[document-type]
+[content-type]
 key = "57a5b3bd-c465-4509-9833-e20a06f28717"
 alias = "whiskyList"
 name = "Whisky List"

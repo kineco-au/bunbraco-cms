@@ -71,17 +71,17 @@ describe('writeZip', () => {
   test('round-trips several entries, directories included', () => {
     const archive = writeZip([
       { path: 'bundle.json', bytes: text('{"formatVersion":1}') },
-      { path: 'schema/document-types/home.toml', bytes: text('[document-type]\nalias = "home"\n') },
+      { path: 'schema/content-types/home.toml', bytes: text('[content-type]\nalias = "home"\n') },
       { path: 'files/components/Home.tsx', bytes: text('export default () => <h1>Home</h1>\n') },
     ])
 
     const entries = readZip(archive)
     expect(entries.map((e) => e.path)).toEqual([
       'bundle.json',
-      'schema/document-types/home.toml',
+      'schema/content-types/home.toml',
       'files/components/Home.tsx',
     ])
-    expect(decode(entries[1]?.bytes as Uint8Array)).toBe('[document-type]\nalias = "home"\n')
+    expect(decode(entries[1]?.bytes as Uint8Array)).toBe('[content-type]\nalias = "home"\n')
   })
 
   test('stores an empty entry rather than deflating it', () => {

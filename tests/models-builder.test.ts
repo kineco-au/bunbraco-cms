@@ -21,7 +21,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 key = "0b1c8e3a-1111-4a5b-9c1d-000000000001"
 alias = "article"
 name = "Article"
@@ -38,9 +38,9 @@ function schemaDir(article = ARTICLE): string {
   const root = mkdtempSync(join(process.cwd(), 'output', 'models-'))
   dirs.push(root)
   const dir = join(root, 'schema')
-  mkdirSync(join(dir, 'document-types'), { recursive: true })
+  mkdirSync(join(dir, 'content-types'), { recursive: true })
   writeFileSync(join(dir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(dir, 'document-types', 'article.toml'), article)
+  writeFileSync(join(dir, 'content-types', 'article.toml'), article)
   return dir
 }
 
@@ -70,7 +70,7 @@ describe('the generated models', () => {
     expect(await port.status()).toBe('Current')
 
     writeFileSync(
-      join(dir, 'document-types', 'article.toml'),
+      join(dir, 'content-types', 'article.toml'),
       `${ARTICLE}
 [[property]]
 key = "0b1c8e3a-3333-4a5b-9c1d-000000000003"
@@ -88,7 +88,7 @@ type = "textarea"
   })
 
   test('report Unknown, not a guess, when the schema will not generate', async () => {
-    const dir = schemaDir('[document-type]\nalias = "broken"\n')
+    const dir = schemaDir('[content-type]\nalias = "broken"\n')
     const port = createModelsBuilderPort({ schemaDir: dir })
 
     expect(await compareModels(dir)).toBeUndefined()
@@ -103,12 +103,12 @@ type = "textarea"
   })
 
   test('a build that succeeds clears the error a previous one recorded', async () => {
-    const dir = schemaDir('[document-type]\nalias = "broken"\n')
+    const dir = schemaDir('[content-type]\nalias = "broken"\n')
     const port = createModelsBuilderPort({ schemaDir: dir })
     await port.build()
     expect((await port.info()).lastError).toBeTruthy()
 
-    writeFileSync(join(dir, 'document-types', 'article.toml'), ARTICLE)
+    writeFileSync(join(dir, 'content-types', 'article.toml'), ARTICLE)
     expect(await port.build()).toEqual({ ok: true })
     expect((await port.info()).lastError).toBeNull()
   })

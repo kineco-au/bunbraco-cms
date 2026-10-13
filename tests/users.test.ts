@@ -21,7 +21,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const TYPE_TOML = `[document-type]
+const TYPE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -59,10 +59,10 @@ interface UserBody {
 async function site(config: Record<string, unknown> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'users-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), 'export default () => <main />\n')
   const h = await signedInServer({
     config: {

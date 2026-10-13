@@ -40,11 +40,11 @@ const temp = (name: string) => {
 /** A store backed by a directory, which is what the file-system media store is. */
 const storeIn = (dir: string): SchemaStore => schemaStoreOver(fileSystemMediaStore(dir))
 
-const HOME = `[document-type]
+const HOME = `[content-type]
 alias = "homePage"
 name = "Home Page"
 `
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 alias = "article"
 name = "Article"
 `
@@ -53,31 +53,31 @@ describe('materialising a store', () => {
   test('copies every schema file into the directory the loader reads', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(remote, 'document-types'), { recursive: true })
+    mkdirSync(join(remote, 'content-types'), { recursive: true })
     writeFileSync(join(remote, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(remote, 'document-types', 'home-page.toml'), HOME)
+    writeFileSync(join(remote, 'content-types', 'home-page.toml'), HOME)
 
     const keys = await materialiseSchema(storeIn(remote), local)
 
-    expect(keys.sort()).toEqual(['document-types/home-page.toml', 'schema.toml'])
-    expect(readFileSync(join(local, 'document-types', 'home-page.toml'), 'utf8')).toBe(HOME)
+    expect(keys.sort()).toEqual(['content-types/home-page.toml', 'schema.toml'])
+    expect(readFileSync(join(local, 'content-types', 'home-page.toml'), 'utf8')).toBe(HOME)
   })
 
   test('is a mirror: a type deleted from the store is deleted from a stale cache', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(remote, 'document-types'), { recursive: true })
-    writeFileSync(join(remote, 'document-types', 'home-page.toml'), HOME)
-    writeFileSync(join(remote, 'document-types', 'article.toml'), ARTICLE)
+    mkdirSync(join(remote, 'content-types'), { recursive: true })
+    writeFileSync(join(remote, 'content-types', 'home-page.toml'), HOME)
+    writeFileSync(join(remote, 'content-types', 'article.toml'), ARTICLE)
     await materialiseSchema(storeIn(remote), local)
-    expect(existsSync(join(local, 'document-types', 'article.toml'))).toBe(true)
+    expect(existsSync(join(local, 'content-types', 'article.toml'))).toBe(true)
 
     // Somebody removes the type; this node restarts with yesterday's cache.
-    rmSync(join(remote, 'document-types', 'article.toml'))
+    rmSync(join(remote, 'content-types', 'article.toml'))
     await materialiseSchema(storeIn(remote), local)
 
-    expect(existsSync(join(local, 'document-types', 'article.toml'))).toBe(false)
-    expect(existsSync(join(local, 'document-types', 'home-page.toml'))).toBe(true)
+    expect(existsSync(join(local, 'content-types', 'article.toml'))).toBe(false)
+    expect(existsSync(join(local, 'content-types', 'home-page.toml'))).toBe(true)
   })
 
   test('ignores anything in the bucket that is not schema', async () => {
@@ -101,53 +101,53 @@ describe('publishing back', () => {
   test('sends what the node wrote, so it outlives the container', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(local, 'document-types'), { recursive: true })
-    writeFileSync(join(local, 'document-types', 'home-page.toml'), HOME)
+    mkdirSync(join(local, 'content-types'), { recursive: true })
+    writeFileSync(join(local, 'content-types', 'home-page.toml'), HOME)
 
     const report = await publishSchema(storeIn(remote), local)
 
-    expect(report.written).toEqual(['document-types/home-page.toml'])
-    expect(readFileSync(join(remote, 'document-types', 'home-page.toml'), 'utf8')).toBe(HOME)
+    expect(report.written).toEqual(['content-types/home-page.toml'])
+    expect(readFileSync(join(remote, 'content-types', 'home-page.toml'), 'utf8')).toBe(HOME)
   })
 
   test('skips files that have not changed, so a rewrite of everything is cheap', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(local, 'document-types'), { recursive: true })
-    writeFileSync(join(local, 'document-types', 'home-page.toml'), HOME)
+    mkdirSync(join(local, 'content-types'), { recursive: true })
+    writeFileSync(join(local, 'content-types', 'home-page.toml'), HOME)
     const store = storeIn(remote)
     await publishSchema(store, local)
 
     // `rewriteAll` rewrites every file after a move; nothing should be re-sent.
     expect(await publishSchema(store, local)).toEqual({ written: [], removed: [] })
 
-    writeFileSync(join(local, 'document-types', 'home-page.toml'), `${HOME}icon = "icon-home"\n`)
-    expect((await publishSchema(store, local)).written).toEqual(['document-types/home-page.toml'])
+    writeFileSync(join(local, 'content-types', 'home-page.toml'), `${HOME}icon = "icon-home"\n`)
+    expect((await publishSchema(store, local)).written).toEqual(['content-types/home-page.toml'])
   })
 
   test('removes from the store what the node deleted', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(local, 'document-types'), { recursive: true })
-    writeFileSync(join(local, 'document-types', 'home-page.toml'), HOME)
-    writeFileSync(join(local, 'document-types', 'article.toml'), ARTICLE)
+    mkdirSync(join(local, 'content-types'), { recursive: true })
+    writeFileSync(join(local, 'content-types', 'home-page.toml'), HOME)
+    writeFileSync(join(local, 'content-types', 'article.toml'), ARTICLE)
     const store = storeIn(remote)
     await publishSchema(store, local)
 
-    rmSync(join(local, 'document-types', 'article.toml'))
+    rmSync(join(local, 'content-types', 'article.toml'))
     const report = await publishSchema(store, local)
 
-    expect(report.removed).toEqual(['document-types/article.toml'])
-    expect(await store.list()).toEqual(['document-types/home-page.toml'])
+    expect(report.removed).toEqual(['content-types/article.toml'])
+    expect(await store.list()).toEqual(['content-types/home-page.toml'])
   })
 
   test('a round trip leaves both sides identical', async () => {
     const remote = temp('store')
     const local = temp('cache')
-    mkdirSync(join(local, 'document-types'), { recursive: true })
+    mkdirSync(join(local, 'content-types'), { recursive: true })
     writeFileSync(join(local, 'schema.toml'), '[schema]\nversion = "2.1.0"\n')
-    writeFileSync(join(local, 'document-types', 'home-page.toml'), HOME)
-    writeFileSync(join(local, 'document-types', 'article.toml'), ARTICLE)
+    writeFileSync(join(local, 'content-types', 'home-page.toml'), HOME)
+    writeFileSync(join(local, 'content-types', 'article.toml'), ARTICLE)
     const store = storeIn(remote)
     await publishSchema(store, local)
 
@@ -156,8 +156,8 @@ describe('publishing back', () => {
 
     for (const key of [
       'schema.toml',
-      'document-types/home-page.toml',
-      'document-types/article.toml',
+      'content-types/home-page.toml',
+      'content-types/article.toml',
     ]) {
       expect(readFileSync(join(elsewhere, ...key.split('/')), 'utf8')).toBe(
         readFileSync(join(local, ...key.split('/')), 'utf8'),
@@ -194,9 +194,9 @@ describe('a node backed by a store', () => {
 
   test('loads its schema from the store, and publishes a change back for other nodes', async () => {
     const remote = temp('store')
-    mkdirSync(join(remote, 'document-types'), { recursive: true })
+    mkdirSync(join(remote, 'content-types'), { recursive: true })
     writeFileSync(join(remote, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(remote, 'document-types', 'home-page.toml'), HOME)
+    writeFileSync(join(remote, 'content-types', 'home-page.toml'), HOME)
 
     const h = await signedInServer({
       config: { schemaStore: storeIn(remote), schemaCacheDir: temp('cache') },
@@ -212,11 +212,11 @@ describe('a node backed by a store', () => {
 
     // The new type is in the store, so the next node to boot has it.
     const store = storeIn(remote)
-    expect(await store.list()).toContain('document-types/landing-page.toml')
+    expect(await store.list()).toContain('content-types/landing-page.toml')
 
     const elsewhere = temp('other-node')
     await materialiseSchema(store, elsewhere)
-    const carried = readFileSync(join(elsewhere, 'document-types', 'landing-page.toml'), 'utf8')
+    const carried = readFileSync(join(elsewhere, 'content-types', 'landing-page.toml'), 'utf8')
     expect(carried).toContain('alias = "landingPage"')
   })
 
@@ -224,9 +224,9 @@ describe('a node backed by a store', () => {
     // The refusal is about a schema directory this environment does not own, so
     // there has to be one for it to be refused over.
     const schemaDir = temp('schema')
-    mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+    mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
     writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), HOME)
+    writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
 
     const h = await signedInServer({ config: { schemaDir, schemaWritable: false } })
     open.push(h)

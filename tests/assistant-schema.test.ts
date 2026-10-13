@@ -67,7 +67,7 @@ function programmable() {
   }
 }
 
-const HOME = `[document-type]
+const HOME = `[content-type]
 alias = "homePage"
 name = "Home Page"
 allow-at-root = true
@@ -76,9 +76,9 @@ allow-at-root = true
 async function site() {
   const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'assistant-schema-'))
   dirs.push(schemaDir)
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), HOME)
+  writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
 
   const model = programmable()
   const h = await signedInServer({
@@ -100,7 +100,7 @@ interface ChangesetJson {
 }
 const review = (h: Harness) => h.json<ChangesetJson[]>(`${ASSISTANT}/changesets`)
 
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
@@ -121,7 +121,7 @@ describe('proposing a type as TOML', () => {
     const response = await chat(h, 'what does the home page look like?')
     const answer = (await response.json()) as { history: unknown[] }
     const seen = JSON.stringify(answer.history)
-    expect(seen).toContain('schema/document-types/home-page.toml')
+    expect(seen).toContain('schema/content-types/home-page.toml')
     expect(seen).toContain('alias = \\"homePage\\"')
   })
 
@@ -138,19 +138,19 @@ describe('proposing a type as TOML', () => {
     const change = (await review(h))[0]?.changes[0]
     expect(change).toMatchObject({ kind: 'document-type-create', status: 'proposed' })
     // Nothing yet: no file, nothing in the database.
-    expect(existsSync(join(schemaDir, 'document-types', 'article.toml'))).toBe(false)
+    expect(existsSync(join(schemaDir, 'content-types', 'article.toml'))).toBe(false)
     expect(await new ContentTypeRepository(h.server.db).byAlias('article')).toBeUndefined()
 
     expect((await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})).status).toBe(200)
 
-    const written = readFileSync(join(schemaDir, 'document-types', 'article.toml'), 'utf8')
+    const written = readFileSync(join(schemaDir, 'content-types', 'article.toml'), 'utf8')
     expect(written).toContain('alias = "article"')
     expect(await new ContentTypeRepository(h.server.db).byAlias('article')).toBeDefined()
   })
 
   test('the file is written canonically, not as the model happened to format it', async () => {
     const { h, model, schemaDir } = await site()
-    const untidy = '[document-type]\n\n\nname   =   "Article"\nalias="article"\n'
+    const untidy = '[content-type]\n\n\nname   =   "Article"\nalias="article"\n'
     model.program(
       uses({
         name: 'propose_document_type',
@@ -161,9 +161,9 @@ describe('proposing a type as TOML', () => {
     const change = (await review(h))[0]?.changes[0]
     expect((await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})).status).toBe(200)
 
-    const written = readFileSync(join(schemaDir, 'document-types', 'article.toml'), 'utf8')
+    const written = readFileSync(join(schemaDir, 'content-types', 'article.toml'), 'utf8')
     // One layout, one key order: what the backoffice itself would write.
-    expect(written.startsWith('[document-type]\n')).toBe(true)
+    expect(written.startsWith('[content-type]\n')).toBe(true)
     expect(written).not.toContain('name   =')
   })
 
@@ -248,7 +248,7 @@ describe('proposing a type as TOML', () => {
     const change = (await review(h))[0]?.changes[0]
 
     writeFileSync(
-      join(schemaDir, 'document-types', 'home-page.toml'),
+      join(schemaDir, 'content-types', 'home-page.toml'),
       HOME.replace('Home Page', 'Somebody Else'),
     )
     const shown = await h.json<{ stale: boolean }>(`${ASSISTANT}/changes/${change?.key}/diff`)
@@ -306,9 +306,9 @@ describe('who may apply a type proposal', () => {
   test('a read-only schema directory refuses it, naming source control', async () => {
     const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'assistant-readonly-'))
     dirs.push(schemaDir)
-    mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+    mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
     writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), HOME)
+    writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
 
     const model = programmable()
     const h = await signedInServer({
@@ -327,6 +327,6 @@ describe('who may apply a type proposal', () => {
     const refused = await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})
     expect(refused.status).toBe(409)
     expect(await refused.text()).toContain('source control')
-    expect(existsSync(join(schemaDir, 'document-types', 'article.toml'))).toBe(false)
+    expect(existsSync(join(schemaDir, 'content-types', 'article.toml'))).toBe(false)
   })
 })

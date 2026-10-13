@@ -27,7 +27,7 @@ const FEATURE = '5b1c9c1e-0d4b-4c35-9d0c-6f2a1e2b3c4d'
 
 const files: Record<string, string> = {
   'schema/schema.toml': '[schema]\nversion = "1.0.0"\n',
-  'schema/document-types/feature.toml': `[document-type]
+  'schema/content-types/feature.toml': `[content-type]
 key = "${FEATURE}"
 alias = "feature"
 name = "Feature"
@@ -74,7 +74,7 @@ name = "Related pages"
 editor = "Umbraco.MultiNodeTreePicker"
 editor-ui = "Umb.PropertyEditorUi.ContentPicker"
 `,
-  'schema/document-types/page.toml': `[document-type]
+  'schema/content-types/page.toml': `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true

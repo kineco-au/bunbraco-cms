@@ -19,7 +19,7 @@ import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const DOCUMENTS = [ObjectTypes.Document]
 
-const PAGE_TOML = `[document-type]
+const PAGE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -41,10 +41,10 @@ const VIEW = `export default function Page({ model }) {
 /** A site whose only document type nests under itself, so paths have depth. */
 export function pageSite(): { schemaDir: string; componentsDir: string; root: string } {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-ref-'))
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), PAGE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   return { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), root }
 }

@@ -90,7 +90,7 @@ function memoryMediaStore(options: { publicUrlPrefix?: string } = {}): MediaStor
   return store
 }
 
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
@@ -106,10 +106,10 @@ const VIEW = `export default function Article({ model }) {
 /** A site whose media lives in the store given. */
 async function site(store: MediaStore) {
   const root = tempDir('media-store-site-')
-  for (const dir of ['schema/document-types', 'schema/media-types', 'components'])
+  for (const dir of ['schema/content-types', 'schema/media-types', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE)
+  writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), ARTICLE)
   writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
   const h = await signedInServer({
     config: {

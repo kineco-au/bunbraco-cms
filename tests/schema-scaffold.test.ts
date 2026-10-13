@@ -67,7 +67,7 @@ describe('scaffolding a type', () => {
 
   test('the file it writes parses back to the same type, and validates', () => {
     const type = newType({ alias: 'article', allowAtRoot: true, tab: 'Content' }, keys())
-    const parsed = parseDocumentType('schema/document-types/article.toml', writeDocumentType(type))
+    const parsed = parseDocumentType('schema/content-types/article.toml', writeDocumentType(type))
     expect(parsed.problems).toEqual([])
     // The parser fills every optional key in, so the shapes differ where the
     // values do not; what matters is that nothing was lost or invented.

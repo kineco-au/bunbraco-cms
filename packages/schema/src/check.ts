@@ -230,7 +230,7 @@ export async function runCheck(
       subjectName: String(row.alias),
       propertyAlias: null,
       culture: null,
-      message: `document type "${row.alias}" was removed from schema/ but ${count} document(s) of it exist`,
+      message: `content type "${row.alias}" was removed from schema/ but ${count} document(s) of it exist`,
       link: null,
     })
   }

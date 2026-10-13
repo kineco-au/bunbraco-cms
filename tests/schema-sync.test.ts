@@ -62,7 +62,7 @@ async function prepared(): Promise<Db> {
 function schemaDir(version: string, files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'bunbraco-sync-'))
   dirs.push(dir)
-  mkdirSync(join(dir, 'document-types'), { recursive: true })
+  mkdirSync(join(dir, 'content-types'), { recursive: true })
   mkdirSync(join(dir, 'data-types'), { recursive: true })
   writeFileSync(join(dir, 'schema.toml'), `[schema]\nversion = "${version}"\n`)
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source)
@@ -70,7 +70,7 @@ function schemaDir(version: string, files: Record<string, string>): string {
 }
 
 const ARTICLE = (extra = '') => `
-[document-type]
+[content-type]
 alias = "article"
 name = "Article"
 icon = "icon-article"
@@ -120,7 +120,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
   test('applies a fresh schema: types, properties, languages, and a new schema_state', async () => {
     const db = await prepared()
     const dir = schemaDir('1.0.0', {
-      'document-types/article.toml': ARTICLE(SUMMARY),
+      'content-types/article.toml': ARTICLE(SUMMARY),
       'languages.toml': `[[language]]\niso = "en-US"\nname = "English"\ndefault = true\n\n[[language]]\niso = "da-DK"\nname = "Danish"\nfallback = "en-US"\n`,
     })
     const report = await sync(db, dir)
@@ -146,7 +146,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('the same files a second time change nothing', async () => {
     const db = await prepared()
-    const dir = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE() })
+    const dir = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE() })
     const first = await sync(db, dir)
     const second = await sync(db, dir)
     expect(second.action).toBe('skipped-same')
@@ -155,13 +155,13 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('older files skip: the node runs in compatibility mode', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('2.0.0', { 'document-types/article.toml': ARTICLE() }), {
+    await sync(db, schemaDir('2.0.0', { 'content-types/article.toml': ARTICLE() }), {
       ...NODE,
       version: '2.0.0',
     })
     const older = await sync(
       db,
-      schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) }),
+      schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) }),
     )
     expect(older.action).toBe('skipped-older')
     expect(older.reason).toContain('compatibility mode')
@@ -172,8 +172,8 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('a changed schema without a version bump applies in development and refuses in production', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('1.0.0', { 'document-types/article.toml': KEYED() }))
-    const changed = schemaDir('1.0.0', { 'document-types/article.toml': KEYED(SUMMARY_KEYED) })
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': KEYED() }))
+    const changed = schemaDir('1.0.0', { 'content-types/article.toml': KEYED(SUMMARY_KEYED) })
 
     const refused = await sync(db, changed, NODE, prod)
     expect(refused.action).toBe('refused')
@@ -186,10 +186,10 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('a newer revision at the same version applies in production', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('1.0.0', { 'document-types/article.toml': KEYED() }), NODE, prod)
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': KEYED() }), NODE, prod)
     const report = await sync(
       db,
-      schemaDir('1.0.0', { 'document-types/article.toml': KEYED(SUMMARY_KEYED) }),
+      schemaDir('1.0.0', { 'content-types/article.toml': KEYED(SUMMARY_KEYED) }),
       { ...NODE, revision: '2' },
       prod,
     )
@@ -203,7 +203,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
     const report = await sync(
       db,
       schemaDir('1.0.0', {
-        'document-types/article.toml': ARTICLE().replace('textstring', 'nope'),
+        'content-types/article.toml': ARTICLE().replace('textstring', 'nope'),
       }),
     )
     expect(report.action).toBe('refused')
@@ -213,7 +213,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('removing a property retires it; values survive; adding it back revives the same key', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) }))
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) }))
     const types = new ContentTypeRepository(db)
     const typeKey = (await types.byAlias('article'))?.key as string
     const summaryKey = (await types.byAlias('article'))?.properties.find(
@@ -236,7 +236,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
     const removed = await sync(
       db,
-      schemaDir('1.0.1', { 'document-types/article.toml': ARTICLE() }),
+      schemaDir('1.0.1', { 'content-types/article.toml': ARTICLE() }),
       {
         ...NODE,
         version: '1.0.1',
@@ -255,7 +255,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
     const revived = await sync(
       db,
-      schemaDir('1.0.2', { 'document-types/article.toml': ARTICLE(SUMMARY) }),
+      schemaDir('1.0.2', { 'content-types/article.toml': ARTICLE(SUMMARY) }),
       { ...NODE, version: '1.0.2' },
     )
     expect(revived.action).toBe('applied')
@@ -272,7 +272,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
 
   test('deleting a type file refuses while documents of it exist, and retires it when forced', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE() }))
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE() }))
     const typeKey = (await new ContentTypeRepository(db).byAlias('article'))?.key as string
     await new DocumentRepository(db, { nodeState: NODE }).create({
       key: crypto.randomUUID(),
@@ -305,7 +305,7 @@ describe(`schema sync (${dialectUnderTest})`, () => {
     const db = await prepared()
     const dir = schemaDir('1.0.0', {
       'data-types/big-text.toml': `[data-type]\nalias = "bigText"\nname = "Big text"\neditor = "Umbraco.TextArea"\n\n[data-type.config]\nmaxChars = 500\n`,
-      'document-types/article.toml': ARTICLE(SUMMARY.replace('textarea', 'bigText')),
+      'content-types/article.toml': ARTICLE(SUMMARY.replace('textarea', 'bigText')),
     })
     const report = await sync(db, dir)
     expect(report.action).toBe('applied')
@@ -319,11 +319,11 @@ describe(`schema sync (${dialectUnderTest})`, () => {
   test('compositions and allowed children resolve across files in any order', async () => {
     const db = await prepared()
     const dir = schemaDir('1.0.0', {
-      'document-types/article.toml': ARTICLE('').replace(
+      'content-types/article.toml': ARTICLE('').replace(
         'allow-at-root = true',
         'allow-at-root = true\ncompositions = ["seo"]\nallow-children = ["article"]',
       ),
-      'document-types/seo.toml': `[document-type]\nalias = "seo"\nname = "SEO"\nicon = "icon-search"\nis-element = true\n\n[[property]]\nalias = "metaTitle"\nname = "Meta title"\ntype = "textstring"\n`,
+      'content-types/seo.toml': `[content-type]\nalias = "seo"\nname = "SEO"\nicon = "icon-search"\nis-element = true\n\n[[property]]\nalias = "metaTitle"\nname = "Meta title"\ntype = "textstring"\n`,
     })
     const report = await sync(db, dir)
     expect(report.action).toBe('applied')
@@ -343,7 +343,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     const before = await currentSchemaState(db)
     const report = await sync(
       db,
-      schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) }),
+      schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) }),
       NODE,
       {
         ...dev,
@@ -358,7 +358,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
 
   test('production refuses files without keys, and accepts them once written back', async () => {
     const db = await prepared()
-    const dir = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) })
+    const dir = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) })
     const refused = await sync(db, dir, NODE, prod)
     expect(refused.action).toBe('refused')
     expect(refused.reason).toContain('article.title')
@@ -366,7 +366,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     const loaded = loadSchemaDirectory(dir)
     const applied = await syncSchema(db, loaded, NODE, dev)
     const written = writeKeysBack(loaded, applied.assignedKeys)
-    expect(written).toEqual([join(dir, 'document-types', 'article.toml')])
+    expect(written).toEqual([join(dir, 'content-types', 'article.toml')])
     const again = loadSchemaDirectory(dir)
     expect(again.problems).toEqual([])
     expect(again.set.documentTypes[0]?.key).toBeDefined()
@@ -382,7 +382,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     const db = await prepared()
     const dir = schemaDir('1.0.0', {
       'data-types/big-text.toml': `[data-type]\nalias = "bigText"\nname = "Big text"\neditor = "Umbraco.TextArea"\n\n[data-type.config]\nmaxChars = 500\n`,
-      'document-types/article.toml': ARTICLE(SUMMARY.replace('textarea', 'bigText')),
+      'content-types/article.toml': ARTICLE(SUMMARY.replace('textarea', 'bigText')),
       'languages.toml': `[[language]]\niso = "en-US"\nname = "English"\ndefault = true\nmandatory = true\n`,
     })
     const loaded = loadSchemaDirectory(dir)
@@ -396,8 +396,8 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     const out = mkdtempSync(join(tmpdir(), 'bunbraco-export-'))
     dirs.push(out)
     writeSchemaFiles(out, exported)
-    expect(readFileSync(join(out, 'document-types', 'article.toml'), 'utf8')).toBe(
-      readFileSync(join(dir, 'document-types', 'article.toml'), 'utf8'),
+    expect(readFileSync(join(out, 'content-types', 'article.toml'), 'utf8')).toBe(
+      readFileSync(join(dir, 'content-types', 'article.toml'), 'utf8'),
     )
     expect(readFileSync(join(out, 'data-types', 'big-text.toml'), 'utf8')).toBe(
       readFileSync(join(dir, 'data-types', 'big-text.toml'), 'utf8'),
@@ -408,11 +408,13 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     expect(types).toContain('"title": string')
     expect(types).toContain('"summary"?: string')
     expect(types).toContain('"article": Article')
+    expect(types).toContain('export interface ContentTypeProperties {')
+    expect(types).toContain('export type ContentTypeAlias = keyof ContentTypeProperties')
   })
 
   test('generate includes what a built-in composition adds, though it has no file', () => {
     const dir = schemaDir('1.0.0', {
-      'document-types/article.toml': ARTICLE(SUMMARY).replace(
+      'content-types/article.toml': ARTICLE(SUMMARY).replace(
         'alias = "article"',
         'alias = "article"\ncompositions = ["seoFields"]',
       ),
@@ -428,7 +430,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
 describe(`schema contract steps (${dialectUnderTest})`, () => {
   test('purge deletes properties retired long enough ago, with their values, and nothing else', async () => {
     const db = await prepared()
-    await sync(db, schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) }))
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) }))
     const types = new ContentTypeRepository(db)
     const typeKey = (await types.byAlias('article'))?.key as string
     const docs = new DocumentRepository(db, { nodeState: { version: '1.0.0', revision: '1' } })
@@ -444,7 +446,7 @@ describe(`schema contract steps (${dialectUnderTest})`, () => {
       ],
       userId: 1,
     })
-    await sync(db, schemaDir('1.0.1', { 'document-types/article.toml': ARTICLE() }), {
+    await sync(db, schemaDir('1.0.1', { 'content-types/article.toml': ARTICLE() }), {
       ...NODE,
       version: '1.0.1',
     })
@@ -463,7 +465,7 @@ describe(`schema contract steps (${dialectUnderTest})`, () => {
     // Re-adding the alias now creates a fresh property: revival has nothing to revive
     const back = await sync(
       db,
-      schemaDir('1.0.2', { 'document-types/article.toml': ARTICLE(SUMMARY) }),
+      schemaDir('1.0.2', { 'content-types/article.toml': ARTICLE(SUMMARY) }),
       {
         ...NODE,
         version: '1.0.2',

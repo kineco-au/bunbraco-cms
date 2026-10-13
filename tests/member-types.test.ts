@@ -26,7 +26,7 @@ const TEXTSTRING = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
 async function site(files: Record<string, string> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'member-types-'))
   dirs.push(root)
-  for (const dir of ['document-types', 'member-types'])
+  for (const dir of ['content-types', 'member-types'])
     mkdirSync(join(root, 'schema', dir), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
@@ -248,7 +248,7 @@ describe('member types', () => {
     ).toEqual([expect.stringContaining('unknown key')])
     const onDocument = parseDocumentType(
       'page',
-      '[document-type]\nalias = "page"\nname = "Page"\n\n[[property]]\nalias = "t"\nname = "T"\ntype = "textstring"\nsensitive = true\n',
+      '[content-type]\nalias = "page"\nname = "Page"\n\n[[property]]\nalias = "t"\nname = "T"\ntype = "textstring"\nsensitive = true\n',
     )
     expect(onDocument.problems).toEqual([])
     const problems = validateSchemaSet({

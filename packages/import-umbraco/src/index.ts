@@ -177,7 +177,7 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
     out.push({ path: 'schema/schema.toml', text: writeSchemaVersion(schema.set.version) })
     for (const type of schema.set.documentTypes)
       out.push({
-        path: `schema/document-types/${fileNameFor(type.alias)}`,
+        path: `schema/content-types/${fileNameFor(type.alias)}`,
         text: writeDocumentType(type),
       })
     for (const type of schema.set.mediaTypes ?? [])

@@ -72,7 +72,7 @@ const TYPE = {
 async function site() {
   const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'schema-version-'))
   dirs.push(schemaDir)
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   const h = await signedInServer({ config: { schemaDir, schemaWritable: true } })
   open.push(h)

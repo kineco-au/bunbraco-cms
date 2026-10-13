@@ -71,7 +71,7 @@ test('a template added to a document type is still shown after save', async ({ p
   await expect(chip).toBeVisible()
 
   await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByText('Document Type saved').first()).toBeVisible()
+  await expect(page.getByText('Content Type saved').first()).toBeVisible()
   // The editor re-reads the saved type; the server's change event must have
   // dropped the client's cached copy, or it redraws the old one
   await expect(chip).toBeVisible()

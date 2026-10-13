@@ -30,7 +30,7 @@ import type {
   SchemaProperty,
   SchemaSet,
 } from './model.ts'
-import { typeFileKey } from './model.ts'
+import { TYPE_KIND_FILES, typeFileKey } from './model.ts'
 import type { AssignedKey } from './sync.ts'
 import {
   fileNameFor,
@@ -346,7 +346,7 @@ export function writeSchemaFiles(schemaDir: string, set: SchemaSet): string[] {
   }
   put('schema.toml', writeSchemaVersion(set.version))
   for (const t of set.documentTypes)
-    put(join('document-types', fileNameFor(t.alias)), writeDocumentType(t))
+    put(join(TYPE_KIND_FILES.document.dir, fileNameFor(t.alias)), writeDocumentType(t))
   for (const t of set.mediaTypes ?? [])
     put(join('media-types', fileNameFor(t.alias)), writeMediaType(t))
   for (const t of set.memberTypes ?? [])

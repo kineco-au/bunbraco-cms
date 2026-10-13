@@ -265,6 +265,12 @@
     },
     {
       "type": "backofficeEntryPoint",
+      "alias": "Bunbraco.EntryPoint.ContentTypeLabels",
+      "name": "Bunbraco Content Type Labels",
+      "js": "/bunbraco-plugin/branding/content-type-labels.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
       "alias": "Bunbraco.EntryPoint.QueryBuilder",
       "name": "Bunbraco Query Builder Language",
       "js": "/bunbraco-plugin/branding/query-builder.js"

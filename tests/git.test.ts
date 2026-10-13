@@ -29,8 +29,8 @@ afterEach(async () => {
 
 const GIT = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/git`
 
-const HOME = '[document-type]\nalias = "homePage"\nname = "Home Page"\n'
-const ARTICLE = '[document-type]\nalias = "article"\nname = "Article"\n'
+const HOME = '[content-type]\nalias = "homePage"\nname = "Home Page"\n'
+const ARTICLE = '[content-type]\nalias = "article"\nname = "Article"\n'
 
 describe('the diff', () => {
   const file = (path: string, contents: string): RepositoryFile => ({ path, contents })
@@ -86,9 +86,9 @@ function fakeProvider(initial: Record<string, string> = {}): GitProvider & {
 async function site(provider?: GitProvider, pullRequest?: boolean) {
   const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'git-'))
   dirs.push(schemaDir)
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), HOME)
+  writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
 
   const h = await signedInServer({
     config: {
@@ -104,7 +104,7 @@ describe('from the backoffice', () => {
   test('shows what the repository is missing', async () => {
     const provider = fakeProvider({ 'schema/schema.toml': '[schema]\nversion = "1.0.0"\n' })
     const { h, schemaDir } = await site(provider)
-    writeFileSync(join(schemaDir, 'document-types', 'article.toml'), ARTICLE)
+    writeFileSync(join(schemaDir, 'content-types', 'article.toml'), ARTICLE)
 
     const diff = await h.json<{
       branch: string
@@ -114,8 +114,8 @@ describe('from the backoffice', () => {
     expect(diff.branch).toBe('main')
     expect(diff.head).toBe('abc1234')
     expect(diff.changes).toEqual([
-      expect.objectContaining({ path: 'schema/document-types/article.toml', status: 'added' }),
-      expect.objectContaining({ path: 'schema/document-types/home-page.toml', status: 'added' }),
+      expect.objectContaining({ path: 'schema/content-types/article.toml', status: 'added' }),
+      expect.objectContaining({ path: 'schema/content-types/home-page.toml', status: 'added' }),
     ])
   })
 
@@ -129,10 +129,10 @@ describe('from the backoffice', () => {
 
     expect(provider.commits).toHaveLength(1)
     expect(provider.commits[0]?.message).toBe('Add the Article type')
-    expect(provider.commits[0]?.pullRequest?.body).toContain('schema/document-types/home-page.toml')
+    expect(provider.commits[0]?.pullRequest?.body).toContain('schema/content-types/home-page.toml')
     // The whole prefix is replaced, so the repository now matches the site.
     expect([...provider.tree.keys()].sort()).toEqual([
-      'schema/document-types/home-page.toml',
+      'schema/content-types/home-page.toml',
       'schema/schema.toml',
     ])
   })

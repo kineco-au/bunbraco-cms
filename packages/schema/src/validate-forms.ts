@@ -249,7 +249,7 @@ const WORKFLOW_SETTINGS: Record<string, { required: string[]; optional: string[]
     optional: ['cc', 'bcc', 'reply-to', 'from', 'body', 'attach-uploads'],
   },
   saveAsContent: {
-    required: ['document-type', 'parent'],
+    required: ['content-type', 'parent'],
     optional: ['publish', 'name-field', 'map'],
   },
   sendToUrl: { required: ['url'], optional: ['method', 'headers', 'include-standard-fields'] },
@@ -298,13 +298,13 @@ function validateWorkflows(
         add(file, `${path}.settings.method`, "expected 'POST' or 'PUT'")
     }
     if (workflow.type === 'saveAsContent') {
-      const alias = workflow.settings['document-type']
+      const alias = workflow.settings['content-type']
       if (
         options.documentTypeAliases &&
         typeof alias === 'string' &&
         !options.documentTypeAliases.has(alias)
       )
-        add(file, `${path}.settings.document-type`, `unknown document type "${alias}"`)
+        add(file, `${path}.settings.content-type`, `unknown content type "${alias}"`)
       validateFieldMap(form, workflow.settings.map, file, `${path}.settings.map`, add)
       const nameField = workflow.settings['name-field']
       if (typeof nameField === 'string' && !hasField(form, nameField))

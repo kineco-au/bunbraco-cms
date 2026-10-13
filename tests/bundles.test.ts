@@ -316,7 +316,7 @@ describe('the download', () => {
       await create({ name: 'Schema only', documentTypes: [type.id] }),
     )
     expect([...entries.keys()]).toContain('schema/schema.toml')
-    const file = [...entries.keys()].find((path) => path.startsWith('schema/document-types/'))
+    const file = [...entries.keys()].find((path) => path.startsWith('schema/content-types/'))
     if (!file) throw new Error(`no document type in ${[...entries.keys()].join(', ')}`)
     expect(text(entries, file)).toContain(`alias = "${type.alias}"`)
   })
@@ -328,7 +328,7 @@ describe('the download', () => {
       h,
       await create({ name: 'By alias', documentTypes: [type.alias] }),
     )
-    expect([...entries.keys()]).toContain('schema/document-types/by-alias.toml')
+    expect([...entries.keys()]).toContain('schema/content-types/by-alias.toml')
   })
 
   test('leaves out a type that was not picked', async () => {
@@ -339,7 +339,7 @@ describe('the download', () => {
       h,
       await create({ name: 'One type', documentTypes: [wanted.id] }),
     )
-    const files = [...entries.keys()].filter((path) => path.startsWith('schema/document-types/'))
+    const files = [...entries.keys()].filter((path) => path.startsWith('schema/content-types/'))
     expect(files).toHaveLength(1)
     expect(text(entries, files[0] as string)).toContain('alias = "wanted"')
   })
@@ -360,9 +360,7 @@ describe('the download', () => {
     const files = [...entries.keys()].filter((path) => path.startsWith('schema/data-types/'))
     expect(files).toHaveLength(1)
     expect(text(entries, files[0] as string)).toContain('Umbraco.TextArea')
-    expect([...entries.keys()].some((path) => path.startsWith('schema/document-types/'))).toBe(
-      false,
-    )
+    expect([...entries.keys()].some((path) => path.startsWith('schema/content-types/'))).toBe(false)
   })
 
   /**

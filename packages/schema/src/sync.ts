@@ -284,7 +284,7 @@ export async function syncSchema(
             types: set.documentTypes,
             repo: types,
             folders: typeFolders,
-            noun: 'document type',
+            noun: 'content type',
             items: 'document(s)',
           },
           {

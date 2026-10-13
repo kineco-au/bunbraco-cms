@@ -9,7 +9,7 @@ This walks through all three for an events page: a title, an introduction, and a
 list of upcoming events fetched from another service while the page renders.
 
 ```
-schema/document-types/events-page.toml   the document type
+schema/content-types/events-page.toml   the document type
 components/eventsPage.tsx                the page component
 components/shared/layout.tsx             the layout it renders inside
 ```
@@ -20,7 +20,7 @@ components/shared/layout.tsx             the layout it renders inside
 component it points at:
 
 ```bash
-bunx bunbraco schema new document-type eventsPage --name "Events Page" --icon icon-calendar
+bunx bunbraco schema new content-type eventsPage --name "Events Page" --icon icon-calendar
 bunx bunbraco schema add-property eventsPage intro --name "Introduction" --type richtext
 bunx bunbraco schema add-property eventsPage feedUrl --name "Events feed URL" --type textstring --mandatory
 ```
@@ -31,10 +31,10 @@ type by alias; the built-in ones include `textstring`, `textarea`, `richtext`,
 can add its own under `schema/data-types/`. `schema add-property --dry-run` prints
 the file instead of writing it.
 
-The result is `schema/document-types/events-page.toml`:
+The result is `schema/content-types/events-page.toml`:
 
 ```toml
-[document-type]
+[content-type]
 key = "6670caff-52e7-4807-9e28-532f2e5542ae"
 alias = "eventsPage"
 name = "Events Page"
@@ -74,7 +74,7 @@ mandatory = true
 it. Add it to the parent's `allow-children`, here the home page's:
 
 ```toml
-# schema/document-types/home-page.toml
+# schema/content-types/home-page.toml
 allow-children = ["contentPage", "eventsPage"]
 ```
 

@@ -30,8 +30,8 @@ const LANGUAGE = {
 const KIND_LABEL = {
   document: 'Page',
   'document-create': 'New page',
-  'document-type': 'Document type',
-  'document-type-create': 'New document type',
+  'document-type': 'Content type',
+  'document-type-create': 'New content type',
   'data-type': 'Data type',
   'data-type-create': 'New data type',
   template: 'Template',

@@ -47,7 +47,7 @@ export default function ChildPage({ model, nav }) {
 }
 `
 
-const HOME_PAGE_TOML = `[document-type]
+const HOME_PAGE_TOML = `[content-type]
 alias = "homePage"
 name = "Home Page"
 icon = "icon-home"
@@ -74,11 +74,11 @@ type = "textarea"
 async function scaffold(options: { view?: string; toml?: string } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(
-    join(root, 'schema', 'document-types', 'home-page.toml'),
+    join(root, 'schema', 'content-types', 'home-page.toml'),
     options.toml ?? HOME_PAGE_TOML,
   )
   writeFileSync(join(root, 'components', 'homePage.tsx'), options.view ?? VIEW)
@@ -613,7 +613,7 @@ describe('rendering', () => {
  * not — configuration, validate, save-and-publish, the published read, the
  * tree's ancestors/siblings/search, and the recycle bin it always renders.
  */
-const STRICT_TOML = `[document-type]
+const STRICT_TOML = `[content-type]
 alias = "homePage"
 name = "Home Page"
 icon = "icon-home"
@@ -645,10 +645,10 @@ type = "textarea"
 async function strictScaffold() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'home-page.toml'), STRICT_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'home-page.toml'), STRICT_TOML)
   writeFileSync(join(root, 'components', 'homePage.tsx'), VIEW)
   const h = await signedInServer({
     config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },

@@ -238,7 +238,7 @@ describe('what init writes', () => {
     const paths = files.map((f) => f.path)
 
     expect(paths).toContain('components/pages/homePage.tsx')
-    expect(paths).toContain('schema/document-types/home-page.toml')
+    expect(paths).toContain('schema/content-types/home-page.toml')
     expect(paths).toContain('css/site.css')
     expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/nodes/'))).toBe(true)
     expect(paths).toContain('bundles/demo-harbourstone/bundle.json')

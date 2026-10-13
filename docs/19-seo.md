@@ -28,7 +28,7 @@ meta. Redirect management is the `simple-redirects` bundle
 A site opts a type in by composing it:
 
 ```toml
-[document-type]
+[content-type]
 alias = "contentPage"
 compositions = ["seoFields"]
 ```
@@ -39,7 +39,7 @@ shipped with the CMS, ensured at every boot by its fixed key, exempt from schema
 retirement, not deletable, alias fixed.
 
 Unlike them, a site may **extend** it. Adding a field in the backoffice writes
-`schema/document-types/seo-fields.toml`, and a hand-written file with the same
+`schema/content-types/seo-fields.toml`, and a hand-written file with the same
 alias and key does the same. What a site may not do is remove, re-alias or
 retype a field the CMS ships with — `<SeoHead>` and the sitemap read those by
 alias. The validator refuses such a file and names the field; the Management API

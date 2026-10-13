@@ -28,7 +28,7 @@ const TEXTSTRING = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
 async function site(files: Record<string, string> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'settings-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'schema', 'data-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
@@ -260,7 +260,7 @@ describe('WP-6.2 document types', () => {
     // The file carries the folder path, and the composition picker shows it
     const file = parseDocumentType(
       'blog-post',
-      readFileSync(join(schemaDir, 'document-types', 'blog-post.toml'), 'utf8'),
+      readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
     )
     expect(file.value?.folder).toBe('Pages/Blog')
     const available = await h.json<Array<{ id: string; folderPath: string[] }>>(
@@ -285,7 +285,7 @@ describe('WP-6.2 document types', () => {
     expect(
       parseDocumentType(
         'x',
-        readFileSync(join(schemaDir, 'document-types', 'blog-post.toml'), 'utf8'),
+        readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
       ).value?.folder,
     ).toBe('Pages/Articles')
     // Move the type to the root: the key goes away
@@ -293,7 +293,7 @@ describe('WP-6.2 document types', () => {
     expect(
       parseDocumentType(
         'x',
-        readFileSync(join(schemaDir, 'document-types', 'blog-post.toml'), 'utf8'),
+        readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
       ).value?.folder,
     ).toBeUndefined()
     // A folder with something in it refuses to go; empty, it goes
@@ -333,8 +333,8 @@ describe('WP-6.2 document types', () => {
 
   test('a folder in the file is created by the sync', async () => {
     const { h } = await site({
-      'schema/document-types/news.toml':
-        '[document-type]\nkey = "0b1c8e3a-5555-4a5b-9c1d-000000000001"\nalias = "news"\nname = "News"\nfolder = "Content/Editorial"\n\n[[property]]\nkey = "0b1c8e3a-5555-4a5b-9c1d-000000000002"\nalias = "title"\nname = "Title"\ntype = "textstring"\n',
+      'schema/content-types/news.toml':
+        '[content-type]\nkey = "0b1c8e3a-5555-4a5b-9c1d-000000000001"\nalias = "news"\nname = "News"\nfolder = "Content/Editorial"\n\n[[property]]\nkey = "0b1c8e3a-5555-4a5b-9c1d-000000000002"\nalias = "title"\nname = "Title"\ntype = "textstring"\n',
     })
     const root = await h.json<{ items: Array<{ name: string; isFolder: boolean }> }>(
       `${V1}/tree/document-type/root?skip=0&take=10`,
@@ -365,7 +365,7 @@ describe('WP-6.2 document types', () => {
     }>(`${V1}/document-type/${copyKey}`)
     expect(copy).toMatchObject({ alias: 'articleCopy', name: 'Article (copy)' })
     expect(copy.properties[0]?.alias).toBe('title')
-    expect(existsSync(join(schemaDir, 'document-types', 'article-copy.toml'))).toBe(true)
+    expect(existsSync(join(schemaDir, 'content-types', 'article-copy.toml'))).toBe(true)
 
     const template = await h.post(`${V1}/document-type/${key}/template`, {
       alias: 'article',
@@ -383,7 +383,7 @@ describe('WP-6.2 document types', () => {
     }>(`${V1}/document-type/${key}`)
     expect(type.allowedTemplates).toEqual([{ id: componentKey }])
     expect(type.defaultTemplate).toEqual({ id: componentKey })
-    expect(readFileSync(join(schemaDir, 'document-types', 'article.toml'), 'utf8')).toContain(
+    expect(readFileSync(join(schemaDir, 'content-types', 'article.toml'), 'utf8')).toContain(
       'components = ["article"]',
     )
   })

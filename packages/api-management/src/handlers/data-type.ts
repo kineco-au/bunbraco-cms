@@ -110,7 +110,7 @@ export function registerDataTypeHandlers(router: ManagementApiRouter, port: Data
         problemDetails({
           title: 'The data type is in use',
           status: 400,
-          detail: 'Remove it from every document type that uses it first.',
+          detail: 'Remove it from every content type that uses it first.',
           operationStatus: 'InUse',
         }),
       )

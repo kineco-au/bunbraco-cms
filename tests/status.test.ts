@@ -13,7 +13,7 @@ import { loadConfig, siteStatus } from '@bunbraco/server'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
 
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 key = "6d1f9a70-2c55-4a7e-9f3b-1b2c3d4e5f60"
 alias = "page"
 name = "Page"
@@ -46,10 +46,10 @@ describe(`status (${dialectUnderTest})`, () => {
     mkdirSync(join(process.cwd(), 'output'), { recursive: true })
     const root = mkdtempSync(join(process.cwd(), 'output', 'status-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
-    writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
+    writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE)
     writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     return root
   }

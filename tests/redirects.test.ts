@@ -21,7 +21,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const TYPE_TOML = `[document-type]
+const TYPE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -35,7 +35,7 @@ name = "Title"
 type = "textstring"
 `
 
-const VARIANT_TYPE_TOML = `[document-type]
+const VARIANT_TYPE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -59,11 +59,11 @@ const VIEW = `export default function Page({ model }) {
 async function site(config: Partial<BunbracoConfig> = {}, variant = false) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'redirects-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(
-    join(root, 'schema', 'document-types', 'page.toml'),
+    join(root, 'schema', 'content-types', 'page.toml'),
     variant ? VARIANT_TYPE_TOML : TYPE_TOML,
   )
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)

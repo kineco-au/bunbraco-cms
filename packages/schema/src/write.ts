@@ -97,7 +97,7 @@ export function writeDocumentType(
     t.cleanup.keepAllNewerThanDays !== undefined ||
     t.cleanup.keepLatestPerDayForDays !== undefined
   ) {
-    out.push('', '[document-type.cleanup]')
+    out.push('', `[${TYPE_KIND_FILES.document.header}.cleanup]`)
     line(out, 'prevent', true, t.cleanup.prevent)
     line(out, 'keep-all-newer-than-days', t.cleanup.keepAllNewerThanDays)
     line(out, 'keep-latest-per-day-for-days', t.cleanup.keepLatestPerDayForDays)

@@ -83,7 +83,7 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
     if (parsed.problems.length > 0 || !documentType) {
       return parsed.problems.length > 0
         ? parsed.problems
-        : [{ file, path: '', message: 'the file defines no document type' }]
+        : [{ file, path: '', message: 'the file defines no content type' }]
     }
     const set = loadSchemaDirectory(config.schemaDir).set
     const documentTypes = [

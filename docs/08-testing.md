@@ -565,7 +565,7 @@ method and path, and a running count.
 2. Document Types → create a folder "Pages"; inside it a type with a tab,
    three properties on three editors — one via *Select editor → create a new
    data type* — a composition, an allowed child, and *Create template* on.
-   Save → `schema/document-types/<alias>.toml` has `folder = "Pages"`, the
+   Save → `schema/content-types/<alias>.toml` has `folder = "Pages"`, the
    data type's file is in `schema/data-types/`, the component in `components/`.
 3. Reload → the tree shows the folder and the type; the Compositions tab lists
    the other types with their folder paths; the Templates tab shows the new

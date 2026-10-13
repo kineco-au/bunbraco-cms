@@ -303,10 +303,10 @@ describe('the media a bundle carries', () => {
  * hash covers them.
  */
 describe('the sections a bundle can carry', () => {
-  const SCHEMA = 'schema/document-types/campaign-page.toml'
+  const SCHEMA = 'schema/content-types/campaign-page.toml'
   const VIEW = 'components/campaignPage.tsx'
   const sections = (): BundleFile[] => [
-    { path: SCHEMA, text: '[document-type]\nalias = "campaignPage"\n' },
+    { path: SCHEMA, text: '[content-type]\nalias = "campaignPage"\n' },
     { path: VIEW, text: 'export default () => <h1>Campaign</h1>\n' },
   ]
 

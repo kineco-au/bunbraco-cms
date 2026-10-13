@@ -307,7 +307,7 @@ export function createContentTypePort(
         if (!aggregate) {
           const failure: PortFailure = {
             ok: false,
-            reason: 'The document type could not be found.',
+            reason: 'The content type could not be found.',
             status: 404,
           }
           return failure

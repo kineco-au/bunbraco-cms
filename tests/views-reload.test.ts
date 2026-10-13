@@ -29,7 +29,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const HOME = `[document-type]
+const HOME = `[content-type]
 alias = "homePage"
 name = "Home page"
 allow-at-root = true
@@ -56,10 +56,10 @@ describe('a template edited under a running node', () => {
   async function site() {
     const root = mkdtempSync(join(process.cwd(), 'output', 'views-reload-'))
     dirs.push(root)
-    for (const dir of ['schema/document-types', 'components/components'])
+    for (const dir of ['schema/content-types', 'components/components'])
       mkdirSync(join(root, dir), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'home.toml'), HOME)
+    writeFileSync(join(root, 'schema', 'content-types', 'home.toml'), HOME)
     writeFileSync(join(root, 'components', 'homePage.tsx'), TEMPLATE)
     writeFileSync(join(root, 'components', 'components', 'layout.tsx'), layout('first'))
     return {

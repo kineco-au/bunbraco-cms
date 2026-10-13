@@ -248,7 +248,7 @@ const BASIC: Builder = async (site) => {
       title: 'A new bunbraco site',
       bodyText: richtext(
         '<p>This page is content: it lives in the database and you edit it in the backoffice. ' +
-          'Its <em>shape</em> is code — <code>schema/document-types/home-page.toml</code> — and the ' +
+          'Its <em>shape</em> is code — <code>schema/content-types/home-page.toml</code> — and the ' +
           'markup around it is <code>components/homePage.tsx</code>.</p>' +
           '<p>Add a property to the TOML, run <code>bunbraco schema check</code> to see what it would ' +
           'do to this page, then <code>bunbraco start</code> to apply it.</p>',

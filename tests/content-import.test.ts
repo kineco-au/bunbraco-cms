@@ -19,7 +19,7 @@ import { type BundleNode, type ContentSet, exportBundle, importBundle } from '@b
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
-const PAGE_TOML = `[document-type]
+const PAGE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -62,10 +62,10 @@ afterEach(async () => {
 async function site(): Promise<{ h: Harness; typeKey: string }> {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-import-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), PAGE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
     config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },

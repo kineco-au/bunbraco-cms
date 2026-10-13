@@ -22,7 +22,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const ARTICLE = (extra: string) => `[document-type]
+const ARTICLE = (extra: string) => `[content-type]
 key = "0b1c8e3a-4444-4a5b-9c1d-000000000001"
 alias = "article"
 name = "Article"
@@ -47,10 +47,10 @@ mandatory = true
 function site(version: string, extra: string) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'dashboard-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
-  writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE(extra))
+  writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), ARTICLE(extra))
   return {
     root,
     schemaDir: join(root, 'schema'),
@@ -103,6 +103,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Bunbraco.EntryPoint.BundleBuilderLabels',
       // One tree over components/, in place of Templates and Partial Views.
       'backofficeEntryPoint:Bunbraco.EntryPoint.ComponentsTree',
+      'backofficeEntryPoint:Bunbraco.EntryPoint.ContentTypeLabels',
       // The query builder writes TypeScript, so its code block says so.
       'backofficeEntryPoint:Bunbraco.EntryPoint.QueryBuilder',
       // The sign-in button, in place of Umbraco's "Sign in with Umbraco".
@@ -229,7 +230,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     await between.close()
 
     // The developer adds a required property and restarts: pending-allowed, so boot proceeds and reports
-    writeFileSync(join(s.schemaDir, 'document-types', 'article.toml'), ARTICLE(REQUIRED_SUMMARY))
+    writeFileSync(join(s.schemaDir, 'content-types', 'article.toml'), ARTICLE(REQUIRED_SUMMARY))
     writeFileSync(join(s.schemaDir, 'schema.toml'), '[schema]\nversion = "1.1.0"\n')
     const second = await signedInServer({
       keepDatabase: true,
@@ -300,7 +301,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     await live.db.close()
     open.pop()
 
-    writeFileSync(join(s.schemaDir, 'document-types', 'article.toml'), ARTICLE(REQUIRED_SUMMARY))
+    writeFileSync(join(s.schemaDir, 'content-types', 'article.toml'), ARTICLE(REQUIRED_SUMMARY))
     writeFileSync(join(s.schemaDir, 'schema.toml'), '[schema]\nversion = "1.1.0"\n')
     const { createServer, loadConfig, UpgradeRequiredError } = await import('@bunbraco/server')
     let failure: unknown
@@ -314,7 +315,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect((failure as Error).message).toContain('bunbraco upgrade check')
     // An additive change (an optional property) rolls out at boot as before
     writeFileSync(
-      join(s.schemaDir, 'document-types', 'article.toml'),
+      join(s.schemaDir, 'content-types', 'article.toml'),
       ARTICLE(REQUIRED_SUMMARY.replace('mandatory = true\n', '')),
     )
     const rolled = await signedInServer({ keepDatabase: true, config })

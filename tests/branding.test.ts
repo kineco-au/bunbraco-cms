@@ -1,7 +1,7 @@
 /**
  * Everything that makes the vendored Umbraco client read as bunbraco: the page
- * title, the colour scheme, the logos, the System information modal and the
- * per-language product name.
+ * title, the colour scheme, the logos, the System information modal, the
+ * per-language product name, and "content type" where Umbraco says "document type".
  *
  * The title correction runs from a MutationObserver on the title it writes, so
  * anything it produces that it would correct again is an endless loop on the
@@ -29,6 +29,11 @@ import {
   needsCorrection,
   REQUIRED_PREFIX,
 } from '../packages/backoffice-host/plugin/branding/client-credentials.js'
+import {
+  onInit,
+  RELABELLED,
+  relabel,
+} from '../packages/backoffice-host/plugin/branding/content-type-labels.js'
 import english from '../packages/backoffice-host/plugin/branding/localization-en.js'
 import {
   DROPPED,
@@ -39,7 +44,15 @@ import {
   isSysinfoClipboardText,
   rebrandSysinfo,
 } from '../packages/backoffice-host/plugin/branding/sysinfo.js'
-import { brandDictionary, curatedKeys, rebrand } from '../scripts/build-localizations.ts'
+import {
+  brandDictionary,
+  curatedKeys,
+  DOCUMENT_TYPE,
+  localizeDictionary,
+  rebrand,
+  reterm,
+  termKeys,
+} from '../scripts/build-localizations.ts'
 
 const BRANDING_DIR = 'packages/backoffice-host/plugin/branding'
 const LOCALIZATIONS_DIR = 'packages/backoffice-host/plugin/localizations'
@@ -335,22 +348,30 @@ describe('the client credential dialog’s prefix label', () => {
   })
 })
 
-describe('the non-English languages', () => {
+describe('the generated language overrides', () => {
   const keys = curatedKeys(english as Record<string, Record<string, string>>)
   const generated = existsSync(LOCALIZATIONS_DIR)
     ? readdirSync(LOCALIZATIONS_DIR).filter((f) => f.endsWith('.js'))
     : []
 
-  test('are generated for every language whose curated keys name Umbraco', async () => {
+  test('are generated, and current, for every language with something to override', async () => {
+    const terms = termKeys((await import(join(process.cwd(), LANG_DIR, 'en.js'))).default)
     const cultures = readdirSync(LANG_DIR)
       .filter((f) => f.endsWith('.js'))
       .map((f) => f.replace(/\.js$/, ''))
     for (const culture of cultures) {
-      // en and en-us are the hand-written override, not generated.
-      if (culture === 'en' || culture === 'en-us') continue
       const dictionary = (await import(join(process.cwd(), LANG_DIR, `${culture}.js`))).default
-      const needed = brandDictionary(dictionary, keys) !== undefined
-      expect([culture, generated.includes(`${culture}.js`)]).toEqual([culture, needed])
+      // English names the product in its hand-written override, so only its terms are generated.
+      const handWritten = culture === 'en' || culture === 'en-us'
+      const expected = handWritten
+        ? localizeDictionary(culture, dictionary, [], terms, english)
+        : localizeDictionary(culture, dictionary, keys, terms)
+      expect([culture, generated.includes(`${culture}.js`)]).toEqual([culture, !!expected])
+      if (!expected) continue
+      const { default: actual } = await import(
+        join(process.cwd(), LOCALIZATIONS_DIR, `${culture}.js`)
+      )
+      expect([culture, actual]).toEqual([culture, expected])
     }
   })
 
@@ -362,10 +383,14 @@ describe('the non-English languages', () => {
         (section) => Object.values(section),
       )
       expect([file, values.length > 0]).toEqual([file, true])
+      // Markup is stripped: a link to umbraco.tv is a real address, not something read.
       for (const value of values) {
-        expect([file, value, /umbraco/i.test(value)]).toEqual([file, value, false])
+        expect([file, value, /umbraco/i.test(value.replace(/<[^>]*>/g, ''))]).toEqual([
+          file,
+          value,
+          false,
+        ])
       }
-      expect([file, values.some((v) => /bunbraco/i.test(v))]).toEqual([file, true])
     }
   })
 
@@ -636,5 +661,113 @@ describe('the Log Viewer’s search menu', () => {
     const dictionary = english as Record<string, Record<string, string>>
     expect(dictionary.logViewer?.searchUmbracoSource).toBe('Search Bunbraco source')
     expect(dictionary.logViewer?.searchUmbracoIssues).toBe('Search Bunbraco issues')
+  })
+})
+
+describe('content types in the backoffice', () => {
+  const vendoredEnglish = async () =>
+    (await import(join(process.cwd(), LANG_DIR, 'en.js'))).default as Record<
+      string,
+      Record<string, string>
+    >
+
+  test('no English string still says document type', async () => {
+    const { default: generated } = await import(join(process.cwd(), LOCALIZATIONS_DIR, 'en.js'))
+    const handWritten = english as Record<string, Record<string, string>>
+    const terms = termKeys(await vendoredEnglish())
+    expect(terms.length).toBeGreaterThan(0)
+    for (const [section, key] of terms) {
+      const value = handWritten[section]?.[key] ?? generated[section]?.[key]
+      expect([`${section}.${key}`, value && DOCUMENT_TYPE.test(value)]).toEqual([
+        `${section}.${key}`,
+        false,
+      ])
+    }
+  })
+
+  test('every language renames its own Settings tree heading', async () => {
+    for (const file of readdirSync(LANG_DIR).filter((f) => f.endsWith('.js'))) {
+      const culture = file.replace(/\.js$/, '')
+      const vendored = (await import(join(process.cwd(), LANG_DIR, file))).default
+      const heading = vendored.treeHeaders?.documentTypes
+      if (typeof heading !== 'string') continue
+      const { default: generated } = await import(join(process.cwd(), LOCALIZATIONS_DIR, file))
+      const renamed = generated.treeHeaders?.documentTypes
+      expect([culture, typeof renamed === 'string' && renamed !== heading]).toEqual([culture, true])
+    }
+  })
+
+  test('changes the modifier and keeps the head noun’s case and number', () => {
+    expect(reterm('de', 'Alle Dokumenttypen')).toBe('Alle Inhaltstypen')
+    expect(reterm('de', 'Bewegen des Dokumenttyps fehlgeschlagen')).toBe(
+      'Bewegen des Inhaltstyps fehlgeschlagen',
+    )
+    expect(reterm('fr', 'Ajouter un Type de Document')).toBe('Ajouter un Type de Contenu')
+    expect(reterm('ru', 'Все типы документов')).toBe('Все типы контента')
+    expect(reterm('hr', 'Sve vrste dokumenata')).toBe('Sve vrste sadržaja')
+    expect(reterm('cy', 'Holl Fathau o Ddogfennau')).toBe('Holl Fathau o Gynnwys')
+    expect(reterm('tr', 'Tüm Belge türleri')).toBe('Tüm İçerik türleri')
+    expect(reterm('ja', 'すべてのドキュメント タイプ')).toBe('すべてのコンテンツタイプ')
+  })
+
+  test('falls back to English where a translator left the English in', () => {
+    expect(reterm('vi', 'xuất Document Type')).toBe('xuất Content Type')
+    expect(reterm('en', 'All Document Types')).toBe('All Content Types')
+    expect(reterm('en', 'the document type')).toBe('the content type')
+  })
+
+  test('leaves blueprints and plain documents alone', () => {
+    expect(reterm('en', 'Create a Document Blueprint')).toBeUndefined()
+    expect(reterm('vi', 'Mẫu tài liệu mới.')).toBeUndefined()
+    expect(reterm('de', 'Dokument veröffentlicht')).toBeUndefined()
+  })
+})
+
+describe('the labels Umbraco hard-codes as Document Types', () => {
+  const registry = (manifests: Record<string, Record<string, unknown>>) => ({
+    getByAlias: (alias: string) => manifests[alias],
+    unregister: (alias: string) => {
+      delete manifests[alias]
+    },
+    register: (manifest: { alias: string }) => {
+      manifests[manifest.alias] = manifest
+    },
+  })
+
+  test('are still hard-coded in the vendored client, so the relabelling has work to do', () => {
+    for (const file of ['menu/manifests.js', 'search/manifests.js']) {
+      const source = readFileSync(
+        join('packages/backoffice-dist/dist/packages/documents/document-types', file),
+        'utf8',
+      )
+      expect([file, source.includes("label: 'Document Types'")]).toEqual([file, true])
+    }
+    expect(RELABELLED).toEqual(['Umb.MenuItem.DocumentTypes', 'Umb.SearchProvider.DocumentType'])
+  })
+
+  test('point at the dictionary, keeping the rest of each manifest', () => {
+    const manifests: Record<string, Record<string, unknown>> = {
+      'Umb.MenuItem.DocumentTypes': {
+        alias: 'Umb.MenuItem.DocumentTypes',
+        type: 'menuItem',
+        kind: 'tree',
+        weight: 900,
+        meta: { label: 'Document Types', treeAlias: 'Umb.Tree.DocumentType' },
+      },
+    }
+    onInit(undefined, registry(manifests))
+    expect(manifests['Umb.MenuItem.DocumentTypes']).toEqual({
+      alias: 'Umb.MenuItem.DocumentTypes',
+      type: 'menuItem',
+      kind: 'tree',
+      weight: 900,
+      meta: { label: '#treeHeaders_documentTypes', treeAlias: 'Umb.Tree.DocumentType' },
+    })
+  })
+
+  test('registers nothing when Umbraco no longer has the extension', () => {
+    const manifests: Record<string, Record<string, unknown>> = {}
+    relabel(registry(manifests), 'Umb.MenuItem.DocumentTypes', '#treeHeaders_documentTypes')
+    expect(manifests).toEqual({})
   })
 })

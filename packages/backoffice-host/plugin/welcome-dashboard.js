@@ -12,9 +12,9 @@ import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 const STEPS = [
   {
     title: 'Model the content',
-    body: html`Open <strong>Settings → Document Types</strong> and describe a page: its
+    body: html`Open <strong>Settings → Content Types</strong> and describe a page: its
       properties, its tabs, and which types may sit beneath it. This is the same
-      editor Umbraco ships, so anything you know about document types applies.`,
+      editor Umbraco ships, so anything you know about Umbraco document types applies.`,
   },
   {
     title: 'Write a template',
@@ -25,13 +25,13 @@ const STEPS = [
   },
   {
     title: 'Create and publish',
-    body: html`Back in <strong>Content</strong>, create a page from your document type, fill it
+    body: html`Back in <strong>Content</strong>, create a page from your content type, fill it
       in and publish. Publishing is per culture, and the published version is what the
       site renders — drafts stay invisible until you say otherwise.`,
   },
   {
     title: 'Keep the schema in the repository',
-    body: html`Document types, data types and templates are also files:
+    body: html`Content types, data types and templates are also files:
       <code>schema/*.toml</code>. <code>bunbraco schema sync</code> writes changes made in
       the backoffice back out, and <code>bunbraco schema check</code> tells you whether a
       database matches. Schema travels through Git, not a database export.`,

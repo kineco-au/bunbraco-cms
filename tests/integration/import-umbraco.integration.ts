@@ -182,7 +182,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
       'bunbraco.config.ts',
       'server.ts',
       'schema/schema.toml',
-      'schema/document-types/home-page.toml',
+      'schema/content-types/home-page.toml',
       'schema/languages.toml',
       'components/HomePage.tsx',
       'bundles/umbraco-import/bundle.json',

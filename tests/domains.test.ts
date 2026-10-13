@@ -29,7 +29,7 @@ const HOST = `\${HOST}`
 const SITE_OTHER_HOST = `\${OTHER_HOST}`
 
 const TYPE_KEY = '2b6c2d1e-9b48-4a7f-8d53-4f2f0f5c2a01'
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 key = "${TYPE_KEY}"
 alias = "page"
 name = "Page"
@@ -128,10 +128,10 @@ describe(`applying the domains file (${dialectUnderTest})`, () => {
     mkdirSync(join(process.cwd(), 'output'), { recursive: true })
     const root = mkdtempSync(join(process.cwd(), 'output', 'domains-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
+    writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE)
     writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     if (domains !== undefined) writeFileSync(join(root, DOMAINS_FILE), domains)
     const h = await signedInServer({

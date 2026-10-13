@@ -2,7 +2,7 @@
 # of these as the figures beside the house style, and the About page picks four
 # more as the decisions that set it. Same type, two document types, no second
 # shape to maintain.
-[document-type]
+[content-type]
 key = "2e4e319f-2627-43da-8200-27d6197aced7"
 alias = "highlight"
 name = "Highlight"

@@ -24,7 +24,7 @@ afterEach(async () => {
 
 const FILES: Record<string, string> = {
   'schema/schema.toml': '[schema]\nversion = "1.0.0"\n',
-  'schema/document-types/page.toml': `[document-type]
+  'schema/content-types/page.toml': `[content-type]
 key = "7a1c9c1e-0d4b-4c35-9d0c-6f2a1e2b3ca1"
 alias = "page"
 name = "Page"

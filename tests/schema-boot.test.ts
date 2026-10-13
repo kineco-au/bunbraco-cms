@@ -29,7 +29,7 @@ const VIEW = `export default function Article({ model }) {
 }
 `
 
-const ARTICLE = (version: string, withSummary: boolean) => `[document-type]
+const ARTICLE = (version: string, withSummary: boolean) => `[content-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
@@ -61,7 +61,7 @@ interface Site {
 function site(version: string, files: Record<string, string> = {}): Site {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-site-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), `[schema]\nversion = "${version}"\n`)
   writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
@@ -127,7 +127,7 @@ async function createArticle(
 
 describe(`schema at boot (${dialectUnderTest})`, () => {
   test('boot syncs the files: the type exists, and a page renders through its template', async () => {
-    const s = site('1.0.0', { 'schema/document-types/article.toml': ARTICLE('', true) })
+    const s = site('1.0.0', { 'schema/content-types/article.toml': ARTICLE('', true) })
     const h = await boot(s)
     expect(h.server.schema.report?.action).toBe('applied')
     expect(h.server.schema.nodeState).toEqual({ version: '1.0.0', revision: '1' })
@@ -141,7 +141,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     // Keys were written back into the file (development).
     const written = parseDocumentType(
       'article',
-      readFileSync(join(s.schemaDir, 'document-types', 'article.toml'), 'utf8'),
+      readFileSync(join(s.schemaDir, 'content-types', 'article.toml'), 'utf8'),
     )
     expect(written.value?.key).toBe(type?.key)
     expect(written.value?.properties.map((p) => p.key)).toEqual(type?.properties.map((p) => p.key))
@@ -160,7 +160,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
   })
 
   test('a document type created in the backoffice appears as a file, and is refused when read-only', async () => {
-    const s = site('1.0.0', { 'schema/document-types/article.toml': ARTICLE('', false) })
+    const s = site('1.0.0', { 'schema/content-types/article.toml': ARTICLE('', false) })
     const h = await boot(s)
     const textstring = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
     const body = {
@@ -209,7 +209,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     expect(created.status).toBe(201)
     const key = created.headers.get('umb-generated-resource') as string
 
-    const file = join(s.schemaDir, 'document-types', 'landing-page.toml')
+    const file = join(s.schemaDir, 'content-types', 'landing-page.toml')
     expect(existsSync(file)).toBe(true)
     const parsed = parseDocumentType('landing-page', readFileSync(file, 'utf8'))
     expect(parsed.problems).toEqual([])
@@ -237,14 +237,14 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
   })
 
   test('removing a type file while documents of it exist refuses to boot', async () => {
-    const s = site('1.0.0', { 'schema/document-types/article.toml': ARTICLE('', false) })
+    const s = site('1.0.0', { 'schema/content-types/article.toml': ARTICLE('', false) })
     const h = await boot(s)
     const type = await new ContentTypeRepository(h.server.db).byAlias('article')
     await createArticle(h, type?.key as string, 'Kept', { title: 'x' })
     await h.db.close()
     open.pop()
 
-    rmSync(join(s.schemaDir, 'document-types', 'article.toml'))
+    rmSync(join(s.schemaDir, 'content-types', 'article.toml'))
     writeFileSync(join(s.schemaDir, 'schema.toml'), '[schema]\nversion = "1.1.0"\n')
     const config = loadConfig({
       schemaDir: s.schemaDir,
@@ -265,7 +265,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
 
   test('a broken file refuses to boot with its location', async () => {
     const s = site('1.0.0', {
-      'schema/document-types/article.toml': ARTICLE('', false).replace('textstring', 'nope'),
+      'schema/content-types/article.toml': ARTICLE('', false).replace('textstring', 'nope'),
     })
     let failure: unknown
     try {
@@ -281,14 +281,14 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
       failure = error
     }
     expect(failure).toBeInstanceOf(SchemaBootError)
-    expect((failure as Error).message).toContain('document-types/article')
+    expect((failure as Error).message).toContain('content-types/article')
     expect((failure as Error).message).toContain('unknown data type "nope"')
   })
 
   test.skipIf(dialectUnderTest !== 'postgres')(
     'two nodes on one database: newer files win, the older node reads, refuses writes, and sees publishes',
     async () => {
-      const older = site('1.0.0', { 'schema/document-types/article.toml': ARTICLE('', false) })
+      const older = site('1.0.0', { 'schema/content-types/article.toml': ARTICLE('', false) })
       const a = await boot(older, { nodeId: 'node-a', revision: '1' })
       const typeKey = (await new ContentTypeRepository(a.server.db).byAlias('article'))
         ?.key as string
@@ -300,7 +300,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
       expect(await (await a.call('/')).text()).toContain('v1')
 
       // Node B deploys newer files onto the same database
-      const newer = site('1.1.0', { 'schema/document-types/article.toml': ARTICLE('', true) })
+      const newer = site('1.1.0', { 'schema/content-types/article.toml': ARTICLE('', true) })
       const b = await boot(newer, { nodeId: 'node-b', revision: '1', keepDatabase: true })
       expect(b.server.schema.report?.action).toBe('applied')
       expect(b.server.schema.compatibilityMode).toBe(false)

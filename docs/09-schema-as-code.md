@@ -24,7 +24,7 @@ and where it sits here:
 
 | Metadata | Umbraco today | Here | Notes |
 | --- | --- | --- | --- |
-| Document types, incl. element types | DB: `cmsContentType`, `cmsPropertyType`, `cmsPropertyTypeGroup`, compositions, allowed children, allowed templates | **Files** `schema/document-types/` | first, in 5b |
+| Document types, incl. element types | DB: `cmsContentType`, `cmsPropertyType`, `cmsPropertyTypeGroup`, compositions, allowed children, allowed templates | **Files** `schema/content-types/` | first, in 5b |
 | Media types | DB, same tables | **Files** `schema/media-types/` | with Media |
 | Member types | DB, same tables plus `cmsMemberType` per-property flags | **Files** `schema/member-types/` | with Members |
 | Data types | DB: `umbracoDataType` — editor, UI alias, storage type, config | **Files** `schema/data-types/`; the core set is built in | 5b |
@@ -118,7 +118,7 @@ Two consequences shape the format:
 ```
 schema/
 ├── schema.toml            the schema version the running site is at
-├── document-types/
+├── content-types/
 │   ├── home-page.toml
 │   └── text-page.toml
 ├── media-types/
@@ -156,7 +156,7 @@ The files are the source, so somebody has to write the first one. Two commands
 do it rather than leaving a new site to copy a type out of the documentation:
 
 ```bash
-bunbraco schema new document-type article --at-root
+bunbraco schema new content-type article --at-root
 bunbraco schema add-property article summary --type textarea --mandatory
 ```
 
@@ -179,7 +179,7 @@ comment in it is not kept. The command says so when it has removed any, and
 ## A document type
 
 ```toml
-[document-type]
+[content-type]
 key = "8c3a6c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10"
 alias = "homePage"
 name = "Home Page"
@@ -556,7 +556,7 @@ output is a diffable text file that developers review like any other change.
   a hundred lines for a fixed vocabulary; it also avoids the quote and blank-line
   churn of general-purpose TOML writers). Comments are stripped; `notes` is not.
 - Writing is enabled in development. In production the schema directory is read
-  only and the editor shows "defined in `schema/document-types/home-page.toml` —
+  only and the editor shows "defined in `schema/content-types/home-page.toml` —
   change it in source control", unless `BUNBRACO_SCHEMA_WRITABLE=true`.
 - A save validates the whole schema set before writing, so a change that would
   break another file is refused in the UI with the same messages boot would give.
@@ -590,7 +590,7 @@ output is a diffable text file that developers review like any other change.
 ## Schema as code
 
 Document, media and member types, data types and languages are files:
-`schema/schema.toml` holds the version, `schema/document-types/*.toml`,
+`schema/schema.toml` holds the version, `schema/content-types/*.toml`,
 `schema/media-types/*.toml`, `schema/member-types/*.toml` and
 `schema/data-types/*.toml` the definitions,
 `schema/languages.toml` the cultures. Boot syncs them into the
@@ -606,7 +606,7 @@ database under a distributed lock, version-gated (`docs/09-schema-as-code.md`):
   database runs in compatibility mode: reads only, writes refused with 409.
 
 ```bash
-bunx bunbraco schema new document-type article --at-root   # the file, with keys, and its view
+bunx bunbraco schema new content-type article --at-root   # the file, with keys, and its view
 bunx bunbraco schema add-property article summary --type textarea --mandatory
 bunx bunbraco schema check --static   # parse and validate, no database
 bunx bunbraco schema check            # …and report what a sync would do

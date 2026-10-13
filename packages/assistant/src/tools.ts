@@ -173,7 +173,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
         toml: {
           type: 'string',
           description:
-            'The whole file, not a fragment: a [document-type] table with alias and name, then a [[property]] table per property whose `type` is a data type alias such as textstring or textarea.',
+            'The whole file, not a fragment: a [content-type] table with alias and name, then a [[property]] table per property whose `type` is a data type alias such as textstring or textarea.',
         },
         summary: { type: 'string' },
       },

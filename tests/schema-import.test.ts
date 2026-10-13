@@ -40,7 +40,7 @@ const temp = (name: string) => {
 
 const storeIn = (dir: string): SchemaStore => schemaStoreOver(fileSystemMediaStore(dir))
 
-const type = (alias: string, name: string, extra = '') => `[document-type]
+const type = (alias: string, name: string, extra = '') => `[content-type]
 alias = "${alias}"
 name = "${name}"
 allow-at-root = true
@@ -49,9 +49,9 @@ ${extra}`
 /** A schema directory with one document type, and the server reading it. */
 async function site(options: { store?: boolean } = {}) {
   const schemaDir = temp('schema')
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), type('homePage', 'Home Page'))
+  writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), type('homePage', 'Home Page'))
 
   if (!options.store) {
     const h = await signedInServer({ config: { schemaDir } })
@@ -82,7 +82,7 @@ const aliases = async (h: Harness, alias: string) =>
 describe('asking what an import would do', () => {
   test('a GET reports the classification and changes nothing', async () => {
     const { h, schemaDir } = await site()
-    writeFileSync(join(schemaDir, 'document-types', 'article.toml'), type('article', 'Article'))
+    writeFileSync(join(schemaDir, 'content-types', 'article.toml'), type('article', 'Article'))
 
     const asked = await h.json<ImportResult>(IMPORT)
     expect(asked.dryRun).toBe(true)
@@ -102,7 +102,7 @@ describe('importing', () => {
     const { h, schemaDir } = await site()
     expect(await aliases(h, 'article')).toBeUndefined()
 
-    writeFileSync(join(schemaDir, 'document-types', 'article.toml'), type('article', 'Article'))
+    writeFileSync(join(schemaDir, 'content-types', 'article.toml'), type('article', 'Article'))
     const applied = await h.json<ImportResult>(IMPORT, { method: 'POST' })
 
     expect(applied.action).toBe('applied')
@@ -112,7 +112,7 @@ describe('importing', () => {
   test('a change to an existing type is applied', async () => {
     const { h, schemaDir } = await site()
     writeFileSync(
-      join(schemaDir, 'document-types', 'home-page.toml'),
+      join(schemaDir, 'content-types', 'home-page.toml'),
       type('homePage', 'Renamed Home'),
     )
     await h.json<ImportResult>(IMPORT, { method: 'POST' })
@@ -122,7 +122,7 @@ describe('importing', () => {
   test('the node does not then judge itself behind and drain', async () => {
     const { h, schemaDir } = await site()
     writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.1.0"\n')
-    writeFileSync(join(schemaDir, 'document-types', 'article.toml'), type('article', 'Article'))
+    writeFileSync(join(schemaDir, 'content-types', 'article.toml'), type('article', 'Article'))
 
     const applied = await h.json<ImportResult>(IMPORT, { method: 'POST' })
     expect(applied.state.version).toBe('1.1.0')
@@ -160,13 +160,10 @@ describe('with a shared store', () => {
 
     // Another node writes a new type and publishes it.
     const elsewhere = temp('other-node')
-    mkdirSync(join(elsewhere, 'document-types'), { recursive: true })
+    mkdirSync(join(elsewhere, 'content-types'), { recursive: true })
     writeFileSync(join(elsewhere, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(
-      join(elsewhere, 'document-types', 'home-page.toml'),
-      type('homePage', 'Home Page'),
-    )
-    writeFileSync(join(elsewhere, 'document-types', 'article.toml'), type('article', 'Article'))
+    writeFileSync(join(elsewhere, 'content-types', 'home-page.toml'), type('homePage', 'Home Page'))
+    writeFileSync(join(elsewhere, 'content-types', 'article.toml'), type('article', 'Article'))
     await publishSchema(store as SchemaStore, elsewhere)
     expect(remote).toBeTruthy()
 

@@ -35,7 +35,7 @@ afterEach(async () => {
 const rulesPath = (h: Harness) =>
   `${h.server.paths.pluginPath}/api/bundle/${REDIRECTS_BUNDLE_ID}/rules`
 
-const TYPE_TOML = `[document-type]
+const TYPE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -65,10 +65,10 @@ interface Rule {
 async function site(config: Partial<BunbracoConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'simple-redirects-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
     config: {

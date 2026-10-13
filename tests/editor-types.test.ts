@@ -35,7 +35,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const HOME = `[document-type]
+const HOME = `[content-type]
 alias = "homePage"
 name = "Home Page"
 allow-at-root = true
@@ -51,9 +51,9 @@ type = "textstring"
 function schemaFiles(): string {
   const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'editor-types-'))
   dirs.push(schemaDir)
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(schemaDir, 'document-types', 'home-page.toml'), HOME)
+  writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
   return schemaDir
 }
 

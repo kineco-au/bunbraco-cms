@@ -80,7 +80,7 @@ async function another(): Promise<Db> {
 function schemaDir(version: string, files: Record<string, string>): string {
   const dir = mkdtempSync(join(process.cwd(), 'output', 'upgrade-'))
   dirs.push(dir)
-  mkdirSync(join(dir, 'document-types'), { recursive: true })
+  mkdirSync(join(dir, 'content-types'), { recursive: true })
   mkdirSync(join(dir, 'migrations'), { recursive: true })
   writeFileSync(join(dir, 'schema.toml'), `[schema]\nversion = "${version}"\n`)
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source)
@@ -89,7 +89,7 @@ function schemaDir(version: string, files: Record<string, string>): string {
 
 const K = (n: number) => `0b1c8e3a-3333-4a5b-9c1d-${String(n).padStart(12, '0')}`
 
-const ARTICLE = (properties: string) => `[document-type]
+const ARTICLE = (properties: string) => `[content-type]
 key = "${K(1)}"
 alias = "article"
 name = "Article"
@@ -188,9 +188,9 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
   })
 
   test('a rename with a value migration promotes through two databases with different content', async () => {
-    const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(SUMMARY) })
+    const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(SUMMARY) })
     const v2 = schemaDir('1.1.0', {
-      'document-types/article.toml': ARTICLE(INTRO),
+      'content-types/article.toml': ARTICLE(INTRO),
       'migrations/0001-summary-to-intro.ts': MIGRATION,
     })
     const migrations = await loadValueMigrations(v2)
@@ -336,9 +336,9 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
       },
     })
     const db = await prepared()
-    const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE(TEASER('textstring')) })
+    const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE(TEASER('textstring')) })
     const v2 = schemaDir('1.1.0', {
-      'document-types/article.toml': ARTICLE(`${TEASER('richtext')}${REQUIRED_SUMMARY}`),
+      'content-types/article.toml': ARTICLE(`${TEASER('richtext')}${REQUIRED_SUMMARY}`),
     })
     const options = {
       mode: 'production' as const,
@@ -464,8 +464,8 @@ describe(`upgrade: check, fix, cut over (${dialectUnderTest})`, () => {
 
   test('the upgrade policy: pending-allowed proceeds over what needs a person; --force records why', async () => {
     const db = await prepared()
-    const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
-    const v2 = schemaDir('1.1.0', { 'document-types/article.toml': ARTICLE(REQUIRED_SUMMARY) })
+    const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE('') })
+    const v2 = schemaDir('1.1.0', { 'content-types/article.toml': ARTICLE(REQUIRED_SUMMARY) })
     const options = { mode: 'development' as const, componentAliases: templates }
     await runUpgrade(db, loadSchemaDirectory(v1), node(S1), {
       ...options,
@@ -523,8 +523,8 @@ describe('an old instance through an upgrade (sqlite)', () => {
         join(root, 'components', 'article.tsx'),
         `export default function Article({ model }) { return <h1>{model.text('title')}</h1> }\n`,
       )
-      const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
-      const v2 = schemaDir('1.1.0', { 'document-types/article.toml': ARTICLE(SUMMARY) })
+      const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE('') })
+      const v2 = schemaDir('1.1.0', { 'content-types/article.toml': ARTICLE(SUMMARY) })
       const sqliteFile = join(root, 'site.sqlite')
       const a = await signedInServer({
         config: {
@@ -592,7 +592,7 @@ describe(`upgrade from a database behind the framework (${dialectUnderTest})`, (
   test('check reports the framework steps and defers the site part; upgrade applies them first', async () => {
     const db = await freshDb()
     open.push(db)
-    const v1 = schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE('') })
+    const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE('') })
     const options = { mode: 'production' as const, componentAliases: templates }
     const check = await runCheck(db, loadSchemaDirectory(v1), node(S1), options)
     expect(check.siteChecked).toBe(false)

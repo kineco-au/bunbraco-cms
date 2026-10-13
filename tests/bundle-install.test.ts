@@ -31,7 +31,7 @@ import {
 } from '@bunbraco/transfer'
 import { type Harness, signedInServer } from './support/harness.ts'
 
-const PAGE_TOML = `[document-type]
+const PAGE_TOML = `[content-type]
 alias = "brochure"
 name = "Brochure"
 allow-at-root = true
@@ -104,7 +104,7 @@ async function bundleWith(h: Harness, sections: BundleFile[]): Promise<CarriedSe
 }
 
 const SECTIONS = (): BundleFile[] => [
-  { path: 'schema/document-types/brochure.toml', text: PAGE_TOML },
+  { path: 'schema/content-types/brochure.toml', text: PAGE_TOML },
   { path: 'components/brochure.tsx', text: VIEW },
   // A nested one: there is one section and one root, so a bundle can carry a
   // component in the folder its author put it in.
@@ -145,8 +145,8 @@ describe('planning, before anything is written', () => {
     )
     expect(target('styles/brochure.css')).toBe(join(root, 'css', 'brochure.css'))
     expect(target('scripts/brochure.js')).toBe(join(root, 'scripts', 'brochure.js'))
-    expect(target('schema/document-types/brochure.toml')).toBe(
-      join(root, 'schema', 'document-types', 'brochure.toml'),
+    expect(target('schema/content-types/brochure.toml')).toBe(
+      join(root, 'schema', 'content-types', 'brochure.toml'),
     )
   })
 
@@ -154,7 +154,7 @@ describe('planning, before anything is written', () => {
     const { h, config, db, root } = await site()
     await planSections(db, config, await bundleWith(h, SECTIONS()))
     expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(false)
-    expect(existsSync(join(root, 'schema', 'document-types', 'brochure.toml'))).toBe(false)
+    expect(existsSync(join(root, 'schema', 'content-types', 'brochure.toml'))).toBe(false)
     // And the type it describes has not been created either.
     expect(await new ContentTypeRepository(db).byAlias('brochure')).toBeUndefined()
   })
@@ -205,7 +205,7 @@ describe('applying', () => {
     // Not byte-identical to what the bundle carried: the sync writes the keys it
     // assigned back into the file, which is how a type stays matchable by key
     // across environments rather than by alias alone.
-    const written = readFileSync(join(root, 'schema', 'document-types', 'brochure.toml'), 'utf8')
+    const written = readFileSync(join(root, 'schema', 'content-types', 'brochure.toml'), 'utf8')
     expect(written).toContain('alias = "brochure"')
     expect(written).toContain('key = ')
     expect(result.written).toHaveLength(5)
@@ -250,7 +250,7 @@ describe('applying', () => {
   test('declining the schema leaves the site’s structure alone', async () => {
     const { h, config, db, root } = await site()
     await applySections(db, config, await bundleWith(h, SECTIONS()), { withoutSchema: true })
-    expect(existsSync(join(root, 'schema', 'document-types', 'brochure.toml'))).toBe(false)
+    expect(existsSync(join(root, 'schema', 'content-types', 'brochure.toml'))).toBe(false)
     expect(await new ContentTypeRepository(db).byAlias('brochure')).toBeUndefined()
     // The views still arrived.
     expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(true)
@@ -369,14 +369,14 @@ describe('permission to replace a file', () => {
   /** Schema is as editable from the backoffice as a stylesheet is. */
   test('a schema file the backoffice changed is protected too', async () => {
     const { h, config, db, root } = await site()
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     writeFileSync(
-      join(root, 'schema', 'document-types', 'brochure.toml'),
-      '[document-type]\nalias = "brochure"\nname = "Edited here"\n',
+      join(root, 'schema', 'content-types', 'brochure.toml'),
+      '[content-type]\nalias = "brochure"\nname = "Edited here"\n',
     )
     const plan = await planSections(db, config, await bundleWith(h, SECTIONS()))
     expect(replacementsNeedingPermission(plan).map((f) => f.path)).toContain(
-      'schema/document-types/brochure.toml',
+      'schema/content-types/brochure.toml',
     )
   })
 })

@@ -71,7 +71,7 @@ export default class BunbracoSettingsDashboardElement extends UmbLitElement {
     return html`
       <uui-box headline="Settings">
         <p>
-          Document types, data types and languages are <strong>files</strong>, in
+          Content types, data types and languages are <strong>files</strong>, in
           <code>schema/</code>, written as TOML. The database is a view of them: what you change
           here is written to the file, and the file is what a deploy and every other node reads.
         </p>

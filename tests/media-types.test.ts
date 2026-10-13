@@ -26,7 +26,7 @@ const UPLOAD = '84c6b441-31df-4ffe-b67e-67d5bc3ae65a'
 async function site(files: Record<string, string> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'media-types-'))
   dirs.push(root)
-  for (const dir of ['document-types', 'media-types', 'data-types'])
+  for (const dir of ['content-types', 'media-types', 'data-types'])
     mkdirSync(join(root, 'schema', dir), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')

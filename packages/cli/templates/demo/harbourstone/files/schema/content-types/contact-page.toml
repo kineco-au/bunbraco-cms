@@ -2,7 +2,7 @@
 # beside an address panel, which is a different thing from prose with a picture,
 # and branching one template on which properties happen to be filled is how a
 # view becomes unreadable.
-[document-type]
+[content-type]
 key = "7100a925-a7e5-48a4-ad8e-120fc08cf987"
 alias = "contactPage"
 name = "Contact Page"

@@ -178,12 +178,12 @@ async function saveAsContent(
   deps: WorkflowDeps,
 ): Promise<WorkflowResult> {
   const settings = workflow.settings
-  const alias = asString(settings['document-type'])
-  if (!alias) return { ok: false, retry: false, error: 'The workflow names no document type.' }
+  const alias = asString(settings['content-type'])
+  if (!alias) return { ok: false, retry: false, error: 'The workflow names no content type.' }
 
   const types = new ContentTypeRepository(deps.db)
   const type = await types.byAlias(alias)
-  if (!type) return { ok: false, retry: false, error: `There is no document type '${alias}'.` }
+  if (!type) return { ok: false, retry: false, error: `There is no content type '${alias}'.` }
 
   const parent = asString(settings.parent)
   const map = (

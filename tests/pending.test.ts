@@ -53,13 +53,13 @@ async function prepared(): Promise<Db> {
 function schemaDir(version: string, files: Record<string, string>): string {
   const dir = mkdtempSync(join(process.cwd(), 'output', 'pending-'))
   dirs.push(dir)
-  mkdirSync(join(dir, 'document-types'), { recursive: true })
+  mkdirSync(join(dir, 'content-types'), { recursive: true })
   writeFileSync(join(dir, 'schema.toml'), `[schema]\nversion = "${version}"\n`)
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source)
   return dir
 }
 
-const ARTICLE_V1 = `[document-type]
+const ARTICLE_V1 = `[content-type]
 key = "0b1c8e3a-2222-4a5b-9c1d-000000000001"
 alias = "article"
 name = "Article"
@@ -81,7 +81,7 @@ type = "textarea"
 mandatory = true
 `
 
-const LANDING_SINCE = `[document-type]
+const LANDING_SINCE = `[content-type]
 key = "0b1c8e3a-2222-4a5b-9c1d-000000000010"
 alias = "landing"
 name = "Landing"
@@ -141,7 +141,7 @@ describe(`pending elements (${dialectUnderTest})`, () => {
     // The live deployment
     const live = await syncSchema(
       db,
-      loadSchemaDirectory(schemaDir('1.0.0', { 'document-types/article.toml': ARTICLE_V1 })),
+      loadSchemaDirectory(schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE_V1 })),
       { nodeId: 'node-a', ...V1 },
       { mode: 'production' },
     )
@@ -153,7 +153,7 @@ describe(`pending elements (${dialectUnderTest})`, () => {
     // `check --fix` from the next artifact: the mandatory summary arrives under a prepared state
     const early = await syncSchema(
       db,
-      loadSchemaDirectory(schemaDir('1.1.0', { 'document-types/article.toml': ARTICLE_V2 })),
+      loadSchemaDirectory(schemaDir('1.1.0', { 'content-types/article.toml': ARTICLE_V2 })),
       { nodeId: 'cli', ...V2 },
       { mode: 'production', status: 'prepared' },
     )
@@ -210,8 +210,8 @@ describe(`pending elements (${dialectUnderTest})`, () => {
   test('a type with since in its file is hidden from the create menu until its version, on every node', async () => {
     const db = await prepared()
     const dir = schemaDir('1.1.0', {
-      'document-types/article.toml': ARTICLE_V1,
-      'document-types/landing.toml': LANDING_SINCE,
+      'content-types/article.toml': ARTICLE_V1,
+      'content-types/landing.toml': LANDING_SINCE,
     })
     expect(
       (

@@ -12,7 +12,7 @@ import { join } from 'node:path'
 import { ComponentRepository } from '@bunbraco/data'
 import { signedInServer, V1 } from './support/harness.ts'
 
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 key = "0f74e1c2-5a16-4d9c-9c70-9a2a6c3a1f10"
 alias = "page"
 name = "Page"
@@ -45,10 +45,10 @@ describe('a site with nothing published', () => {
     mkdirSync(join(process.cwd(), 'output'), { recursive: true })
     const root = mkdtempSync(join(process.cwd(), 'output', 'no-nodes-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
+    writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE)
     writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     const h = await signedInServer({
       config: {

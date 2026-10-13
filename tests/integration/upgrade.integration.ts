@@ -29,7 +29,7 @@ const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
 const K = (n: number) => `7c3f91a2-1111-4b2c-9d3e-${String(n).padStart(12, '0')}`
 
 /** Keys are explicit, so no sync writes them back into the fixture mid-run. */
-const articleType = (properties: string) => `[document-type]
+const articleType = (properties: string) => `[content-type]
 key = "${K(1)}"
 alias = "article"
 name = "Article"
@@ -328,13 +328,13 @@ describe('the upgrade, end to end through the CLI', () => {
 
   function deploy(release: Release): void {
     const root = releaseDir(release)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(
       join(root, 'schema', 'schema.toml'),
       `[schema]\nversion = "${RELEASES[release].version}"\n`,
     )
-    writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), RELEASES[release].type)
+    writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), RELEASES[release].type)
     writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
     // The same tsconfig `bunbraco init` scaffolds: without `jsxImportSource` the
     // view transpiles against React and every page is a 500.

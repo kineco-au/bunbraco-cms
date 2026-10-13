@@ -1,7 +1,7 @@
 /**
  * The backoffice writes schema files. A document-type save lands in the
  * database as before and, when the directory is writable, in
- * `schema/document-types/<alias>.toml` — the file the next boot will sync.
+ * `schema/content-types/<alias>.toml` — the file the next boot will sync.
  * docs/09-schema-as-code.md, "The backoffice writes files".
  */
 
@@ -60,7 +60,7 @@ export interface SchemaFileWriter {
 
 /**
  * A writer for one kind of content type: document types (the default) write
- * `schema/document-types/`, media types `schema/media-types/`. Data types,
+ * `schema/content-types/`, media types `schema/media-types/`. Data types,
  * languages and the rewrite are the same whichever kind asks.
  */
 export function createSchemaFileWriter(

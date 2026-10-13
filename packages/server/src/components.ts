@@ -137,14 +137,14 @@ export async function checkComponents(options: {
     if (!isSafeAlias(alias)) {
       problems.push({
         file: relative(options.siteDir, options.componentsDir),
-        message: `a document type declares the component "${alias}", which is not a path inside components/`,
+        message: `a content type declares the component "${alias}", which is not a path inside components/`,
       })
       continue
     }
     if (present.has(alias)) continue
     problems.push({
       file: relative(options.siteDir, componentFileFor(options.componentsDir, alias)),
-      message: `a document type declares the component "${alias}", and there is no file for it`,
+      message: `a content type declares the component "${alias}", and there is no file for it`,
     })
   }
 

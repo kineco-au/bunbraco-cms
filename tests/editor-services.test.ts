@@ -24,12 +24,12 @@ describe('tags', () => {
   test('lists the tags pages use, with how many pages use each, filtered as asked', async () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'tags-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(
-      join(root, 'schema', 'document-types', 'post.toml'),
-      '[document-type]\nalias = "post"\nname = "Post"\nallow-at-root = true\n\n[[property]]\nalias = "labels"\nname = "Labels"\ntype = "tags"\n',
+      join(root, 'schema', 'content-types', 'post.toml'),
+      '[content-type]\nalias = "post"\nname = "Post"\nallow-at-root = true\n\n[[property]]\nalias = "labels"\nname = "Labels"\ntype = "tags"\n',
     )
     const h = await signedInServer({
       config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },

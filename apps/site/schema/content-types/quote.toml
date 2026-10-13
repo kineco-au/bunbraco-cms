@@ -1,7 +1,7 @@
 # An element type: content with no URL of its own, created in the Library and
 # pointed at from a page. `is-element` makes it one; `allow-in-library` is what
 # puts it in the Library's Create dialog, and Umbraco requires both.
-[document-type]
+[content-type]
 key = "3f2a9c17-6d84-4b0e-9a55-1c7e2d40b8f3"
 alias = "quote"
 name = "Quote"

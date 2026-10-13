@@ -138,7 +138,7 @@ function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
 
   put('schema.toml', writeSchemaVersion(set.version))
   for (const type of documentTypes)
-    put(join('document-types', fileNameFor(type.alias)), writeDocumentType(type))
+    put(join('content-types', fileNameFor(type.alias)), writeDocumentType(type))
   for (const type of mediaTypes)
     put(join('media-types', fileNameFor(type.alias)), writeMediaType(type))
   for (const type of dataTypes)

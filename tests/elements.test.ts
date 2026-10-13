@@ -26,7 +26,7 @@ afterEach(async () => {
 })
 
 /** An element type: a document type carrying `is-element` and `allow-in-library`. */
-const QUOTE_TOML = `[document-type]
+const QUOTE_TOML = `[content-type]
 alias = "quote"
 name = "Quote"
 icon = "icon-quote"
@@ -43,10 +43,10 @@ mandatory = true
 async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'elements-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'quote.toml'), QUOTE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'quote.toml'), QUOTE_TOML)
   const h = await signedInServer({
     config: { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components') },
   })
@@ -410,7 +410,7 @@ editor = "Umbraco.ElementPicker"
 editor-ui = "Umb.PropertyEditorUi.ElementPicker"
 `
 
-  const PAGE_TOML = `[document-type]
+  const PAGE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -443,12 +443,12 @@ type = "heroPicker"
   async function pickerSite() {
     const root = mkdtempSync(join(process.cwd(), 'output', 'element-picker-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'schema', 'data-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'quote.toml'), QUOTE_TOML)
-    writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
+    writeFileSync(join(root, 'schema', 'content-types', 'quote.toml'), QUOTE_TOML)
+    writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), PAGE_TOML)
     writeFileSync(join(root, 'schema', 'data-types', 'hero-picker.toml'), HERO_TOML)
     writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
     const h = await signedInServer({
@@ -558,7 +558,7 @@ describe('`bunbraco generate` for the element picker', () => {
   const QUOTE_KEY = 'b1f2c3d4-0000-4a11-9c22-3e4f5a6b7c88'
   const files: Record<string, string> = {
     'schema/schema.toml': '[schema]\nversion = "1.0.0"\n',
-    'schema/document-types/quote.toml': `[document-type]
+    'schema/content-types/quote.toml': `[content-type]
 key = "${QUOTE_KEY}"
 alias = "quote"
 name = "Quote"
@@ -570,7 +570,7 @@ alias = "body"
 name = "Body"
 type = "textstring"
 `,
-    'schema/document-types/aside.toml': `[document-type]
+    'schema/content-types/aside.toml': `[content-type]
 key = "c2e3d4f5-0000-4b22-8d33-4f5a6b7c8d99"
 alias = "aside"
 name = "Aside"
@@ -600,7 +600,7 @@ editor = "Umbraco.ElementPicker"
 editor-ui = "Umb.PropertyEditorUi.ElementPicker"
 config = { allowedContentTypes = "${QUOTE_KEY},c2e3d4f5-0000-4b22-8d33-4f5a6b7c8d99" }
 `,
-    'schema/document-types/page.toml': `[document-type]
+    'schema/content-types/page.toml': `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -645,13 +645,13 @@ describe('an element type in a schema file', () => {
   test('is refused when it declares what only a routed type has', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'element-validate-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     // Every one of these belongs to a type with a URL. Silently ignoring them
     // would leave the file saying one thing and the editor another.
     writeFileSync(
-      join(root, 'schema', 'document-types', 'bad.toml'),
-      `[document-type]
+      join(root, 'schema', 'content-types', 'bad.toml'),
+      `[content-type]
 key = "9a1b2c3d-0000-4e55-8f66-7a8b9c0d1e22"
 alias = "badElement"
 name = "Bad Element"
@@ -664,10 +664,10 @@ default-component = "badElement"
     )
     const problems = validateSchemaSet(loadSchemaDirectory(join(root, 'schema')).set)
     const paths = problems.map((p) => p.path)
-    expect(paths).toContain('document-type.components')
-    expect(paths).toContain('document-type.default-component')
-    expect(paths).toContain('document-type.allow-at-root')
-    expect(paths).toContain('document-type.allow-children')
+    expect(paths).toContain('content-type.components')
+    expect(paths).toContain('content-type.default-component')
+    expect(paths).toContain('content-type.allow-at-root')
+    expect(paths).toContain('content-type.allow-children')
     // Each says why, and points at allow-in-library where that is the answer.
     expect(problems.map((p) => p.message).join('\n')).toContain('never routed')
     expect(problems.map((p) => p.message).join('\n')).toContain('allow-in-library')
@@ -676,9 +676,9 @@ default-component = "badElement"
   test('is accepted when it declares only what an element has', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'element-validate-ok-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'quote.toml'), QUOTE_TOML)
+    writeFileSync(join(root, 'schema', 'content-types', 'quote.toml'), QUOTE_TOML)
     expect(validateSchemaSet(loadSchemaDirectory(join(root, 'schema')).set)).toEqual([])
   })
 })

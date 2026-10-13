@@ -76,7 +76,7 @@ name = "Tell the team"
   subject = "Contact from {email} about {topic}"
 `
 
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -89,7 +89,7 @@ name = "Contact form"
 type = "formPicker"
 `
 
-const ENQUIRY_TYPE = `[document-type]
+const ENQUIRY_TYPE = `[content-type]
 alias = "enquiry"
 name = "Enquiry"
 allow-at-root = true
@@ -130,12 +130,12 @@ function recordingEmail(failures = 0): EmailPort & { sent: EmailMessage[]; attem
 async function site(options: { form?: string; extraTypes?: Record<string, string> } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-wf-'))
   dirs.push(root)
-  for (const dir of ['schema/document-types', 'schema/forms', 'components'])
+  for (const dir of ['schema/content-types', 'schema/forms', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE)
   for (const [name, content] of Object.entries(options.extraTypes ?? {}))
-    writeFileSync(join(root, 'schema', 'document-types', name), content)
+    writeFileSync(join(root, 'schema', 'content-types', name), content)
   writeFileSync(
     join(root, 'schema', 'forms', 'contact-us.toml'),
     options.form ?? definition(EMAIL_WORKFLOW),
@@ -413,7 +413,7 @@ type = "saveAsContent"
 name = "File it"
 
   [workflow.settings]
-  document-type = "enquiry"
+  content-type = "enquiry"
   parent = "root"
   publish = true
   name-field = "topic"
@@ -460,7 +460,7 @@ name = "File it"
     } catch (error) {
       message = error instanceof Error ? error.message : String(error)
     }
-    expect(message).toContain('unknown document type "nothingLikeThis"')
+    expect(message).toContain('unknown content type "nothingLikeThis"')
   })
 })
 

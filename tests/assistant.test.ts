@@ -32,7 +32,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const HOME_PAGE_TOML = `[document-type]
+const HOME_PAGE_TOML = `[content-type]
 alias = "homePage"
 name = "Home Page"
 icon = "icon-home"
@@ -122,10 +122,10 @@ function programmable() {
 async function site(options: { mcp?: boolean } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-assistant-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'home-page.toml'), HOME_PAGE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'home-page.toml'), HOME_PAGE_TOML)
   writeFileSync(join(root, 'components', 'homePage.tsx'), VIEW)
   const model = programmable()
   const h = await signedInServer({

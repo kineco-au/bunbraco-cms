@@ -264,7 +264,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(first.banner).toMatch(/bundle\s+\S+: 1 created, 0 updated, 1 published/)
     const html = await page(first, '/')
     expect(html).toContain('A new bunbraco site')
-    expect(html).toContain('schema/document-types/home-page.toml')
+    expect(html).toContain('schema/content-types/home-page.toml')
     await first.stop()
 
     const second = await serve('basic', ...start.split(' ').slice(1))
@@ -397,9 +397,9 @@ describe('creating a site, end to end through the CLI', () => {
 
     // No types at all, which is where `schema new` earns its place: there is
     // nothing in the directory to copy from.
-    const created = await cli('scaffold', 'schema', 'new', 'document-type', 'note', '--at-root')
+    const created = await cli('scaffold', 'schema', 'new', 'content-type', 'note', '--at-root')
     expect(created.code, created.out).toBe(0)
-    expect(created.out).toContain('schema/document-types/note.toml')
+    expect(created.out).toContain('schema/content-types/note.toml')
     expect(created.out).toContain('components/note.tsx')
     expect(created.out).toContain('schema   applied')
     expect(existsSync(join(siteDir('scaffold'), 'components', 'note.tsx'))).toBe(true)

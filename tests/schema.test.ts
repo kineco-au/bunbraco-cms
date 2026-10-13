@@ -26,7 +26,7 @@ import {
 
 const HOME_PAGE = `
 # a comment, which the writer will drop
-[document-type]
+[content-type]
 key = "8c3a6c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10"
 alias = "homePage"
 name = "Home Page"
@@ -39,7 +39,7 @@ allow-children = ["textPage", "newsPage"]
 components = ["homePage"]
 default-component = "homePage"
 
-[document-type.cleanup]
+[content-type.cleanup]
 keep-all-newer-than-days = 7
 
 [[tab]]
@@ -143,24 +143,24 @@ describe('parsing', () => {
   test('rejects an unknown key, naming the file and where', () => {
     const { value, problems } = parseDocumentType(
       'x.toml',
-      '[document-type]\nalias = "a"\nname = "A"\nallow-at-rooot = true\n',
+      '[content-type]\nalias = "a"\nname = "A"\nallow-at-rooot = true\n',
     )
     expect(value).toBeUndefined()
     expect(problems).toHaveLength(1)
     expect(problems[0]?.file).toBe('x.toml')
-    expect(problems[0]?.path).toBe('document-type.allow-at-rooot')
+    expect(problems[0]?.path).toBe('content-type.allow-at-rooot')
     expect(problems[0]?.message).toContain('unknown key')
   })
 
   test('rejects a missing required key and a wrong type, reporting every problem', () => {
     const { problems } = parseDocumentType(
       'x.toml',
-      '[document-type]\nname = 5\n[[tab]]\n[[tab.property]]\nalias = "p"\nname = "P"\n',
+      '[content-type]\nname = 5\n[[tab]]\n[[tab.property]]\nalias = "p"\nname = "P"\n',
     )
     const paths = problems.map((p) => p.path).sort()
     expect(paths).toEqual([
-      'document-type.alias',
-      'document-type.name',
+      'content-type.alias',
+      'content-type.name',
       'tab[0].name',
       'tab[0].property[0].type',
     ])
@@ -206,7 +206,7 @@ describe('canonical writer', () => {
     const parsed = parseDocumentType('home-page.toml', HOME_PAGE).value as SchemaDocumentType
     const written = writeDocumentType(parsed)
     expect(written).not.toContain('# a comment')
-    expect(written.startsWith('[document-type]\nkey = ')).toBe(true)
+    expect(written.startsWith('[content-type]\nkey = ')).toBe(true)
     const again = parseDocumentType('home-page.toml', written)
     expect(again.problems).toEqual([])
     expect(again.value).toEqual(parsed)
@@ -260,7 +260,7 @@ describe('canonical writer', () => {
 
   test('omits defaults so files stay short', () => {
     const written = writeDocumentType(type('plain'))
-    expect(written).toBe('[document-type]\nalias = "plain"\nname = "plain"\n')
+    expect(written).toBe('[content-type]\nalias = "plain"\nname = "plain"\n')
   })
 
   test('names files as kebab-case of the alias', () => {
@@ -354,20 +354,20 @@ describe('validation', () => {
     const problems = validateSchemaSet(
       set({ version: 'v2', documentTypes: [type('a', { since: 'soon' })] }),
     )
-    expect(problems.map((p) => p.path).sort()).toEqual(['document-type.since', 'schema.version'])
+    expect(problems.map((p) => p.path).sort()).toEqual(['content-type.since', 'schema.version'])
   })
 })
 
 describe('loading a directory', () => {
   function scaffold(): string {
     const dir = mkdtempSync(join(tmpdir(), 'bb-schema-'))
-    mkdirSync(join(dir, 'document-types'), { recursive: true })
+    mkdirSync(join(dir, 'content-types'), { recursive: true })
     mkdirSync(join(dir, 'data-types'), { recursive: true })
     writeFileSync(join(dir, 'schema.toml'), '[schema]\nversion = "1.2"\n')
-    writeFileSync(join(dir, 'document-types', 'home-page.toml'), HOME_PAGE)
+    writeFileSync(join(dir, 'content-types', 'home-page.toml'), HOME_PAGE)
     writeFileSync(
-      join(dir, 'document-types', 'seo.toml'),
-      '[document-type]\nalias = "seoFields"\nname = "SEO"\nis-element = true\n',
+      join(dir, 'content-types', 'seo.toml'),
+      '[content-type]\nalias = "seoFields"\nname = "SEO"\nis-element = true\n',
     )
     writeFileSync(
       join(dir, 'data-types', 'short.toml'),
@@ -388,17 +388,17 @@ describe('loading a directory', () => {
     expect(loaded.set.documentTypes.map((t) => t.alias).sort()).toEqual(['homePage', 'seoFields'])
     expect(loaded.set.dataTypes.map((d) => d.alias)).toEqual(['shortText'])
     expect(loaded.set.languages[0]?.iso).toBe('en-US')
-    expect(loaded.files.get('homePage')).toBe(join(dir, 'document-types', 'home-page.toml'))
+    expect(loaded.files.get('homePage')).toBe(join(dir, 'content-types', 'home-page.toml'))
   })
 
   test('problems carry a schema-relative file path', () => {
     const dir = scaffold()
     writeFileSync(
-      join(dir, 'document-types', 'bad.toml'),
-      '[document-type]\nalias = "bad"\nname = "Bad"\ncolour = "red"\n',
+      join(dir, 'content-types', 'bad.toml'),
+      '[content-type]\nalias = "bad"\nname = "Bad"\ncolour = "red"\n',
     )
     const loaded = loadSchemaDirectory(dir)
-    expect(loaded.problems[0]?.file).toBe('schema/document-types/bad.toml')
+    expect(loaded.problems[0]?.file).toBe('schema/content-types/bad.toml')
   })
 
   test('the hash ignores order, whitespace and comments, and notices meaning', () => {
@@ -407,7 +407,7 @@ describe('loading a directory', () => {
     expect(hashSchemaSet(a)).toBe(hashSchemaSet(b))
     const dir = scaffold()
     writeFileSync(
-      join(dir, 'document-types', 'home-page.toml'),
+      join(dir, 'content-types', 'home-page.toml'),
       `${HOME_PAGE}\n# trailing comment\n\n`,
     )
     expect(hashSchemaSet(loadSchemaDirectory(dir).set)).toBe(hashSchemaSet(a))

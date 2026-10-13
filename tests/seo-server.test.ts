@@ -29,7 +29,7 @@ afterEach(async () => {
 
 const SEO_KEY = SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields
 
-const PAGE_TOML = `[document-type]
+const PAGE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -44,7 +44,7 @@ name = "Redirect"
 type = "contentPicker"
 `
 
-const PLAIN_TOML = `[document-type]
+const PLAIN_TOML = `[content-type]
 alias = "plain"
 name = "Plain"
 allow-at-root = true
@@ -62,11 +62,11 @@ async function site(config: Partial<BunbracoConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'seo-'))
   dirs.push(root)
   const schemaDir = join(root, 'schema')
-  mkdirSync(join(schemaDir, 'document-types'), { recursive: true })
+  mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(schemaDir, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(schemaDir, 'document-types', 'page.toml'), PAGE_TOML)
-  writeFileSync(join(schemaDir, 'document-types', 'plain.toml'), PLAIN_TOML)
+  writeFileSync(join(schemaDir, 'content-types', 'page.toml'), PAGE_TOML)
+  writeFileSync(join(schemaDir, 'content-types', 'plain.toml'), PLAIN_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({
     config: { schemaDir, componentsDir: join(root, 'components'), ...config },
@@ -158,7 +158,7 @@ describe('the Search & sharing type', () => {
     })
     expect(extended.status).toBe(200)
     // The extension is written down as the site's own file, which still validates.
-    const file = join(schemaDir, 'document-types', 'seo-fields.toml')
+    const file = join(schemaDir, 'content-types', 'seo-fields.toml')
     expect(existsSync(file)).toBe(true)
     expect(readFileSync(file, 'utf8')).toContain('seoKeywords')
     expect(validateSchemaSet(loadSchemaDirectory(schemaDir).set)).toEqual([])
@@ -167,8 +167,8 @@ describe('the Search & sharing type', () => {
   test('a file that drops a shipped field is refused, naming it', async () => {
     const { schemaDir } = await site()
     writeFileSync(
-      join(schemaDir, 'document-types', 'seo-fields.toml'),
-      `[document-type]\nkey = "${SEO_KEY}"\nalias = "seoFields"\nname = "Search & sharing"\n\n[[property]]\nalias = "seoTitle"\nname = "Search title"\ntype = "textarea"\n`,
+      join(schemaDir, 'content-types', 'seo-fields.toml'),
+      `[content-type]\nkey = "${SEO_KEY}"\nalias = "seoFields"\nname = "Search & sharing"\n\n[[property]]\nalias = "seoTitle"\nname = "Search title"\ntype = "textarea"\n`,
     )
     const messages = validateSchemaSet(loadSchemaDirectory(schemaDir).set).map((p) => p.message)
     expect(messages).toContainEqual(
@@ -181,13 +181,13 @@ describe('the Search & sharing type', () => {
 
   test('a type that does not vary cannot compose fields that do', async () => {
     const { schemaDir } = await site()
-    const original = readFileSync(join(schemaDir, 'document-types', 'page.toml'), 'utf8')
+    const original = readFileSync(join(schemaDir, 'content-types', 'page.toml'), 'utf8')
     writeFileSync(
-      join(schemaDir, 'document-types', 'shared.toml'),
-      `[document-type]\nalias = "shared"\nname = "Shared"\nvaries-by-culture = true\n\n[[property]]\nalias = "tagline"\nname = "Tagline"\ntype = "textstring"\nvaries-by-culture = true\n`,
+      join(schemaDir, 'content-types', 'shared.toml'),
+      `[content-type]\nalias = "shared"\nname = "Shared"\nvaries-by-culture = true\n\n[[property]]\nalias = "tagline"\nname = "Tagline"\ntype = "textstring"\nvaries-by-culture = true\n`,
     )
     writeFileSync(
-      join(schemaDir, 'document-types', 'page.toml'),
+      join(schemaDir, 'content-types', 'page.toml'),
       original.replace('compositions = ["seoFields"]', 'compositions = ["seoFields", "shared"]'),
     )
     const messages = validateSchemaSet(loadSchemaDirectory(schemaDir).set).map((p) => p.message)

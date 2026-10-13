@@ -27,7 +27,7 @@ afterEach(async () => {
 
 const FORM_KEY = '9c4a7d1e-0001-4b2a-9f31-6d8e2c5a7b40'
 
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -88,10 +88,10 @@ const CONTACT = form(`message-on-submit = "Thanks, we will be in touch."
 async function site(definition = CONTACT) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-e2e-'))
   dirs.push(root)
-  for (const dir of ['schema/document-types', 'schema/forms', 'components'])
+  for (const dir of ['schema/content-types', 'schema/forms', 'components'])
     mkdirSync(join(root, dir), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'page.toml'), TYPE)
+  writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE)
   writeFileSync(join(root, 'schema', 'forms', 'contact-us.toml'), definition)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   const h = await signedInServer({

@@ -41,8 +41,8 @@ cpSync(join(repo, 'apps/site/components'), join(root, 'components'), { recursive
 // editor-coverage tests, and a view that renders a crop of its image picker.
 const editors = DEFAULT_DATA_TYPES.filter((d) => d.editorAlias !== 'Umbraco.ListView')
 writeFileSync(
-  join(root, 'schema', 'document-types', 'every-editor.toml'),
-  `[document-type]\nalias = "everyEditor"\nname = "Every editor"\nallow-at-root = true\ncomponents = ["everyEditor"]\ndefault-component = "everyEditor"\n${editors
+  join(root, 'schema', 'content-types', 'every-editor.toml'),
+  `[content-type]\nalias = "everyEditor"\nname = "Every editor"\nallow-at-root = true\ncomponents = ["everyEditor"]\ndefault-component = "everyEditor"\n${editors
     .map((d) => `\n[[property]]\nalias = "${d.alias}"\nname = "${d.name}"\ntype = "${d.alias}"\n`)
     .join('')}`,
 )
@@ -57,8 +57,8 @@ writeFileSync(
 
 // A page that varies by culture, for the two-language tests
 writeFileSync(
-  join(root, 'schema', 'document-types', 'variant-page.toml'),
-  `[document-type]
+  join(root, 'schema', 'content-types', 'variant-page.toml'),
+  `[content-type]
 alias = "variantPage"
 name = "Variant page"
 allow-at-root = true
@@ -86,8 +86,8 @@ writeFileSync(
 // site's own schema whenever someone flips that toggle, and did — the type this
 // test used to lean on has carried `allow-in-library` since it was committed.
 writeFileSync(
-  join(root, 'schema', 'document-types', 'block-only.toml'),
-  `[document-type]
+  join(root, 'schema', 'content-types', 'block-only.toml'),
+  `[content-type]
 key = "${BLOCK_ONLY_ELEMENT_TYPE}"
 alias = "blockOnly"
 name = "Block only"

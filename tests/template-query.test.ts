@@ -16,7 +16,7 @@ import { queryExpression } from '@bunbraco/api-management'
 import { ContentTypeRepository } from '@bunbraco/data'
 import { signedInServer, V1 } from './support/harness.ts'
 
-const TYPES = `[document-type]
+const TYPES = `[content-type]
 key = "7c1f0a62-0001-4a7e-8f21-5b2c9d4e6a01"
 alias = "homePage"
 name = "Home Page"
@@ -32,7 +32,7 @@ name = "Title"
 type = "textstring"
 `
 
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 key = "7c1f0a62-0003-4a7e-8f21-5b2c9d4e6a01"
 alias = "article"
 name = "Article"
@@ -46,7 +46,7 @@ name = "Title"
 type = "textstring"
 `
 
-const ELEMENT = `[document-type]
+const ELEMENT = `[content-type]
 key = "7c1f0a62-0005-4a7e-8f21-5b2c9d4e6a01"
 alias = "pullQuote"
 name = "Pull Quote"
@@ -81,12 +81,12 @@ describe('the query builder', () => {
     mkdirSync(join(process.cwd(), 'output'), { recursive: true })
     const root = mkdtempSync(join(process.cwd(), 'output', 'template-query-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'home-page.toml'), TYPES)
-    writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE)
-    writeFileSync(join(root, 'schema', 'document-types', 'pull-quote.toml'), ELEMENT)
+    writeFileSync(join(root, 'schema', 'content-types', 'home-page.toml'), TYPES)
+    writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), ARTICLE)
+    writeFileSync(join(root, 'schema', 'content-types', 'pull-quote.toml'), ELEMENT)
     writeFileSync(join(root, 'components', 'homePage.tsx'), VIEW)
     writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
     const h = await signedInServer({

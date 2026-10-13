@@ -19,7 +19,7 @@ import { join, resolve } from 'node:path'
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
 
-const PAGE_TOML = `[document-type]
+const PAGE_TOML = `[content-type]
 alias = "page"
 name = "Page"
 allow-at-root = true
@@ -213,10 +213,10 @@ describe('content transfer, end to end through the CLI', () => {
     mkdirSync(join(ROOT, 'output'), { recursive: true })
     dir = mkdtempSync(join(ROOT, 'output', 'integration-'))
     site = join(dir, 'site')
-    mkdirSync(join(site, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(site, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(site, 'components'), { recursive: true })
     writeFileSync(join(site, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(site, 'schema', 'document-types', 'page.toml'), PAGE_TOML)
+    writeFileSync(join(site, 'schema', 'content-types', 'page.toml'), PAGE_TOML)
     writeFileSync(join(site, 'components', 'page.tsx'), VIEW)
     writeFileSync(join(site, 'seed.ts'), SEED)
 

@@ -150,12 +150,12 @@ describe('a page rendered by the server', () => {
   test('lets a nested component and the layout read the page', async () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'context-'))
     dirs.push(root)
-    for (const dir of ['schema/document-types', 'components/shared'])
+    for (const dir of ['schema/content-types', 'components/shared'])
       mkdirSync(join(root, dir), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(
-      join(root, 'schema', 'document-types', 'home.toml'),
-      `[document-type]
+      join(root, 'schema', 'content-types', 'home.toml'),
+      `[content-type]
 alias = "homePage"
 name = "Home page"
 allow-at-root = true

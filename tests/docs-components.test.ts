@@ -23,7 +23,7 @@ function examples(): Map<string, string> {
   return files
 }
 
-const SHOWCASE = `[document-type]
+const SHOWCASE = `[content-type]
 alias = "showcasePage"
 name = "Showcase Page"
 allow-at-root = true
@@ -67,9 +67,9 @@ afterEach(async () => {
 function siteFromGuide(): string {
   const root = mkdtempSync(join(process.cwd(), 'output', 'docs-components-'))
   dirs.push(root)
-  mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+  mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-  writeFileSync(join(root, 'schema', 'document-types', 'showcase-page.toml'), SHOWCASE)
+  writeFileSync(join(root, 'schema', 'content-types', 'showcase-page.toml'), SHOWCASE)
   writeFileSync(
     join(root, 'schema', 'content-types.d.ts'),
     generateTypes(loadSchemaDirectory(join(root, 'schema')).set),

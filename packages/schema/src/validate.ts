@@ -152,11 +152,11 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
     // System types exist whether or not a file defines them.
     const known = (alias: string) =>
       byAlias.has(alias) ||
-      (dir === 'media-types' && SYSTEM_MEDIA_TYPE_ALIASES.has(alias)) ||
-      (dir === 'document-types' && SYSTEM_DOCUMENT_TYPE_ALIASES.has(alias))
+      (dir === TYPE_KIND_FILES.media.dir && SYSTEM_MEDIA_TYPE_ALIASES.has(alias)) ||
+      (dir === TYPE_KIND_FILES.document.dir && SYSTEM_DOCUMENT_TYPE_ALIASES.has(alias))
     for (const t of types) {
       const file = `schema/${dir}/${t.alias}`
-      if (dir === 'document-types')
+      if (dir === TYPE_KIND_FILES.document.dir)
         for (const message of checkSystemDocumentTypeFile(t)) add(file, header, message)
       for (const c of t.compositions) {
         if (!known(c)) add(file, `${header}.compositions`, `unknown type "${c}"`)

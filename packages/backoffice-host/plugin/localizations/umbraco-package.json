@@ -67,6 +67,16 @@
     },
     {
       "type": "localization",
+      "alias": "Bunbraco.Localization.EN",
+      "name": "Bunbraco Localization Overrides (en)",
+      "weight": 0,
+      "meta": {
+        "culture": "en"
+      },
+      "js": "/bunbraco-plugin/localizations/en.js"
+    },
+    {
+      "type": "localization",
       "alias": "Bunbraco.Localization.ES",
       "name": "Bunbraco Localization Overrides (es)",
       "weight": 0,
@@ -84,6 +94,16 @@
         "culture": "fr"
       },
       "js": "/bunbraco-plugin/localizations/fr.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.HE",
+      "name": "Bunbraco Localization Overrides (he)",
+      "weight": 0,
+      "meta": {
+        "culture": "he"
+      },
+      "js": "/bunbraco-plugin/localizations/he.js"
     },
     {
       "type": "localization",
@@ -174,6 +194,16 @@
         "culture": "pt-br"
       },
       "js": "/bunbraco-plugin/localizations/pt-br.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Bunbraco.Localization.RO",
+      "name": "Bunbraco Localization Overrides (ro)",
+      "weight": 0,
+      "meta": {
+        "culture": "ro"
+      },
+      "js": "/bunbraco-plugin/localizations/ro.js"
     },
     {
       "type": "localization",

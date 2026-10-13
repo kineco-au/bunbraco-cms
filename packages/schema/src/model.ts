@@ -125,7 +125,7 @@ export type SchemaTypeKind = 'document' | 'media' | 'member'
 
 /** The table header and directory for each kind. */
 export const TYPE_KIND_FILES: Record<SchemaTypeKind, { header: string; dir: string }> = {
-  document: { header: 'document-type', dir: 'document-types' },
+  document: { header: 'content-type', dir: 'content-types' },
   media: { header: 'media-type', dir: 'media-types' },
   member: { header: 'member-type', dir: 'member-types' },
 }

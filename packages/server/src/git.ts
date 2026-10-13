@@ -14,7 +14,7 @@
  */
 
 export interface RepositoryFile {
-  /** Repository-relative, e.g. `schema/document-types/home-page.toml`. */
+  /** Repository-relative, e.g. `schema/content-types/home-page.toml`. */
   path: string
   contents: string
 }

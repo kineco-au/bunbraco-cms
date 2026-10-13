@@ -1,6 +1,6 @@
 # Reused across both pages: the reasons to switch, the editor checklist and the
 # developer toolkit are all a heading and a line under it.
-[document-type]
+[content-type]
 key = "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4"
 alias = "feature"
 name = "Feature"

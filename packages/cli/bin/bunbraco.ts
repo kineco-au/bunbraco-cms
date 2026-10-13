@@ -624,7 +624,7 @@ async function schema(): Promise<void> {
 }
 
 const TYPE_KINDS: Record<string, SchemaTypeKind> = {
-  'document-type': 'document',
+  'content-type': 'document',
   'media-type': 'media',
   'member-type': 'member',
 }
@@ -640,7 +640,7 @@ async function schemaNew(config: BunbracoConfig): Promise<void> {
   if (!kind || !alias) {
     console.error(
       `schema new needs a kind and an alias: ${Object.keys(TYPE_KINDS).join(', ')}.\n` +
-        '  bunbraco schema new document-type article --at-root',
+        '  bunbraco schema new content-type article --at-root',
     )
     process.exit(1)
   }
@@ -1961,7 +1961,7 @@ function help(): void {
                               apply schema/ to the database
   schema export               write the database's definitions as schema/ files
   schema rewrite              rewrite every schema/ file canonically
-  schema new <document-type|media-type|member-type> <alias>
+  schema new <content-type|media-type|member-type> <alias>
                               write the type file, with keys, and the view it points at
                               [--name <name>] [--description <text>] [--icon <icon>]
                               [--at-root] [--element] [--tab <tab>] [--no-view]

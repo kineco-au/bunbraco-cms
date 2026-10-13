@@ -501,7 +501,7 @@ describe('validating forms', () => {
           name: 'w',
           on: 'submit',
           settings: {
-            'document-type': 'nope',
+            'content-type': 'nope',
             parent: 'x',
             'name-field': 'missing',
             map: { alsoMissing: 'title' },
@@ -512,7 +512,7 @@ describe('validating forms', () => {
     const messages = validateForms([subject], {
       documentTypeAliases: new Set(['page']),
     }).map((p) => p.message)
-    expect(messages.some((m) => m.includes('unknown document type "nope"'))).toBe(true)
+    expect(messages.some((m) => m.includes('unknown content type "nope"'))).toBe(true)
     expect(messages.some((m) => m.includes('unknown field "missing"'))).toBe(true)
     expect(messages.some((m) => m.includes('unknown field "alsoMissing"'))).toBe(true)
   })
@@ -631,13 +631,13 @@ describe('forms in a schema directory', () => {
               type: 'saveAsContent',
               name: 'w',
               on: 'submit',
-              settings: { 'document-type': 'page', parent: 'x' },
+              settings: { 'content-type': 'page', parent: 'x' },
             },
           ],
         }),
       ],
     })
-    expect(problems.some((p) => p.message.includes('unknown document type "page"'))).toBe(true)
+    expect(problems.some((p) => p.message.includes('unknown content type "page"'))).toBe(true)
   })
 })
 

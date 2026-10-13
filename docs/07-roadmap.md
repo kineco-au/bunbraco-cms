@@ -443,7 +443,7 @@ manual checklist is in `08-testing.md`. API coverage 61/513.
 **Exit:** in the real backoffice, create a document type with a tab, three
 properties on three editors (one via "Select editor → create new data type"),
 a composition, an allowed child and "Create template"; reload: it persists,
-its file is in `schema/document-types/`, the data type's in
+its file is in `schema/content-types/`, the data type's in
 `schema/data-types/`, the view in `components/`. Settings opens clean.
 
 **Built:** everything above, pinned by `tests/settings.test.ts`. Folders live in

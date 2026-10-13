@@ -15,7 +15,7 @@ import type {
   SchemaProblem,
   SchemaSet,
 } from './model.ts'
-import { typeFileKey } from './model.ts'
+import { TYPE_KIND_FILES, typeFileKey } from './model.ts'
 import {
   parseDataType,
   parseDocumentType,
@@ -66,7 +66,7 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
     problems.push(...parsed.problems)
     if (parsed.value) version = parsed.value
   }
-  for (const file of tomlFiles(join(schemaDir, 'document-types'))) {
+  for (const file of tomlFiles(join(schemaDir, TYPE_KIND_FILES.document.dir))) {
     const parsed = parseDocumentType(rel(file), readFileSync(file, 'utf8'))
     problems.push(...parsed.problems)
     if (parsed.value) {

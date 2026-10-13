@@ -101,7 +101,7 @@ describe('the JSX runtime', () => {
   })
 })
 
-const HOME = `[document-type]
+const HOME = `[content-type]
 alias = "homePage"
 name = "Home page"
 allow-at-root = true
@@ -139,10 +139,10 @@ describe('an async page', () => {
   async function site(components: Record<string, string>, renderTimeoutMs?: number) {
     const root = mkdtempSync(join(process.cwd(), 'output', 'async-rendering-'))
     dirs.push(root)
-    for (const dir of ['schema/document-types', 'components'])
+    for (const dir of ['schema/content-types', 'components'])
       mkdirSync(join(root, dir), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'home.toml'), HOME)
+    writeFileSync(join(root, 'schema', 'content-types', 'home.toml'), HOME)
     for (const [name, source] of Object.entries(components))
       writeFileSync(join(root, 'components', name), source)
     const h = await signedInServer({
@@ -247,12 +247,12 @@ describe('the events page in docs/20-adding-a-page.md', () => {
   async function eventsSite(feedUrl: string) {
     const root = mkdtempSync(join(process.cwd(), 'output', 'adding-a-page-'))
     dirs.push(root)
-    for (const dir of ['schema/document-types', 'components/shared'])
+    for (const dir of ['schema/content-types', 'components/shared'])
       mkdirSync(join(root, dir), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
     writeFileSync(
-      join(root, 'schema', 'document-types', 'events-page.toml'),
-      `[document-type]
+      join(root, 'schema', 'content-types', 'events-page.toml'),
+      `[content-type]
 alias = "eventsPage"
 name = "Events Page"
 allow-at-root = true

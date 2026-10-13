@@ -23,7 +23,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const ARTICLE = `[document-type]
+const ARTICLE = `[content-type]
 alias = "article"
 name = "Article"
 allow-at-root = true
@@ -90,7 +90,7 @@ async function site() {
   const root = mkdtempSync(join(process.cwd(), 'output', 'media-render-'))
   dirs.push(root)
   for (const dir of [
-    'schema/document-types',
+    'schema/content-types',
     'schema/data-types',
     'schema/media-types',
     'components',
@@ -99,7 +99,7 @@ async function site() {
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   for (const [path, content] of Object.entries(siteMediaTypeFiles()))
     writeFileSync(join(root, path), content)
-  writeFileSync(join(root, 'schema', 'document-types', 'article.toml'), ARTICLE)
+  writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), ARTICLE)
   writeFileSync(join(root, 'schema', 'data-types', 'cover-cropper.toml'), COVER_CROPPER)
   writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
   const h = await signedInServer({

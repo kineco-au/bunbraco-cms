@@ -217,7 +217,7 @@ file and the key.
 - **`sendEmail`** — through the email port. `to`, `subject`, `cc`, `bcc`,
   `reply-to`, `from`, `body`, `attach-uploads`. With no `body` it sends a plain
   list of captions and answers, which is what most forms want.
-- **`saveAsContent`** — creates a document from `map` (field alias → property
+- **`saveAsContent`** — creates a document of `content-type` from `map` (field alias → property
   alias), named from `name-field`, under `parent`, published when `publish` is
   true.
 - **`sendToUrl`** — POSTs JSON: `{form, formName, entryId, submittedAt, fields}`.

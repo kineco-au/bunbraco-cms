@@ -23,7 +23,7 @@ afterEach(async () => {
 /** Every built-in a property can use: list views configure collections, not properties. */
 const EDITORS = DEFAULT_DATA_TYPES.filter((d) => d.editorAlias !== 'Umbraco.ListView')
 
-const TYPE = `[document-type]
+const TYPE = `[content-type]
 alias = "everyEditor"
 name = "Every editor"
 allow-at-root = true
@@ -41,10 +41,10 @@ describe('every built-in editor', () => {
   test('round-trips what the editor sends, and renders', async () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'every-editor-'))
     dirs.push(root)
-    mkdirSync(join(root, 'schema', 'document-types'), { recursive: true })
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })
     writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
-    writeFileSync(join(root, 'schema', 'document-types', 'every-editor.toml'), TYPE)
+    writeFileSync(join(root, 'schema', 'content-types', 'every-editor.toml'), TYPE)
     writeFileSync(join(root, 'components', 'everyEditor.tsx'), VIEW)
     const h = await signedInServer({
       config: {
