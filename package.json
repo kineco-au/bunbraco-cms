@@ -36,6 +36,7 @@
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "localizations:build": "bun run scripts/build-localizations.ts",
+    "release": "bun run scripts/release.ts",
     "release:dry-run": "bun run scripts/publish-packages.ts --dry-run",
     "release:publish": "bun run scripts/publish-packages.ts",
     "release:version": "bun run scripts/version.ts",
