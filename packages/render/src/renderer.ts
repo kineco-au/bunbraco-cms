@@ -18,7 +18,7 @@ import { absoluteUrl, type SeoSiteDefaults } from './seo.ts'
 import type { ViewSnapshots } from './snapshots.ts'
 
 export interface ComponentModule {
-  default: (props: PageProps) => Child
+  default: (props: PageProps) => Child | Promise<Child>
   /** Alias of the layout template to wrap this one in. */
   layout?: string
 }
@@ -38,7 +38,11 @@ export interface RenderOptions {
    * restarts — see `snapshots.ts` for why.
    */
   snapshots?: ViewSnapshots
+  /** How long a page may take to render, layouts included; 0 for no limit. */
+  renderTimeoutMs?: number
 }
+
+export const DEFAULT_RENDER_TIMEOUT_MS = 10_000
 
 export type RenderResult =
   | { status: 'ok'; html: string; content: PublishedContent }
@@ -78,6 +82,8 @@ export interface RenderRequest {
   url?: string
   /** Site-wide search and sharing values. */
   seo?: SeoSiteDefaults
+  /** Aborts when nobody is waiting for the page any more: the visitor disconnected. */
+  signal?: AbortSignal
 }
 
 /**
@@ -100,6 +106,7 @@ export class Renderer {
   /** Keyed by the generation that holds the view, so one swap retires them all. */
   #modules = new Map<string, ComponentModule>()
   #importedFrom: string | undefined
+  #renderTimeoutMs: number
 
   constructor(options: RenderOptions) {
     this.#cache = options.cache
@@ -107,6 +114,7 @@ export class Renderer {
     // resolves against this module, not the working directory.
     this.#componentsDir = resolve(options.componentsDir)
     this.#snapshots = options.snapshots
+    this.#renderTimeoutMs = options.renderTimeoutMs ?? DEFAULT_RENDER_TIMEOUT_MS
   }
 
   /**
@@ -241,6 +249,47 @@ export class Renderer {
     culture: string | null,
     request: RenderRequest = {},
   ): Promise<string | undefined> {
+    const deadline = new AbortController()
+    const signal = request.signal
+      ? AbortSignal.any([deadline.signal, request.signal])
+      : deadline.signal
+    const rendering = { alias }
+    const timer =
+      this.#renderTimeoutMs > 0
+        ? setTimeout(
+            () =>
+              deadline.abort(
+                new Error(
+                  `Rendering '${rendering.alias}' took longer than ${this.#renderTimeoutMs}ms.`,
+                ),
+              ),
+            this.#renderTimeoutMs,
+          )
+        : undefined
+    const stopped = new Promise<never>((_, reject) => {
+      const fail = () => reject(signal.reason)
+      if (signal.aborted) fail()
+      else signal.addEventListener('abort', fail, { once: true })
+    })
+    stopped.catch(() => {})
+    const work = this.#renderChain(content, alias, culture, request, signal, rendering)
+    // Once the deadline has answered, a late failure has nobody left to tell.
+    work.catch(() => {})
+    try {
+      return await Promise.race([work, stopped])
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  async #renderChain(
+    content: PublishedContent,
+    alias: string,
+    culture: string | null,
+    request: RenderRequest,
+    signal: AbortSignal,
+    rendering: { alias: string },
+  ): Promise<string | undefined> {
     const nav = await this.#cache.navigation(culture)
     const snapshot = await this.#cache.snapshot()
     const dictionary = (key: string) => translate(snapshot, key, culture)
@@ -258,6 +307,7 @@ export class Renderer {
         alternates: (target) => urlsIn(snapshot, target.key),
       },
       seo: request.seo ?? { siteName: '', indexable: true },
+      signal,
     }
 
     let currentAlias: string | undefined = alias
@@ -267,13 +317,14 @@ export class Renderer {
     // Walk the layout chain outwards: the page renders first, then each layout
     // wraps the result. A cycle would otherwise hang the request.
     while (currentAlias && depth < MAX_LAYOUT_DEPTH) {
+      rendering.alias = currentAlias
       const module = await this.#load(currentAlias)
       if (!module) return depth === 0 ? undefined : body?.value
       const rendered =
         body === undefined
           ? module.default(props)
           : module.default({ ...props, children: body } as LayoutProps)
-      body = new RawHtml(renderToString(rendered))
+      body = new RawHtml(await renderToString(rendered as Child))
       currentAlias = module.layout
       depth += 1
     }

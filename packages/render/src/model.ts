@@ -244,6 +244,11 @@ export interface PageProps {
   }
   /** Site-wide search and sharing values, for `<SeoHead>`. */
   seo: SeoSiteDefaults
+  /**
+   * Aborts when the render runs out of time or the visitor disconnects. Pass it
+   * to anything an async component waits on: `fetch(url, { signal })`.
+   */
+  signal: AbortSignal
 }
 
 export interface NavigationOptions {

@@ -45,7 +45,7 @@ const form = (fields: SchemaFormField[], overrides: Partial<SchemaForm> = {}): S
 })
 
 const html = (subject: SchemaForm, props: Record<string, unknown> = {}) =>
-  renderToString(Form({ form: subject, token: 'TOKEN', renderedAt: 1700000000000, ...props }))
+  Form({ form: subject, token: 'TOKEN', renderedAt: 1700000000000, ...props }).value
 
 describe('condition rules', () => {
   const values: SubmittedValues = { topic: ['Support'], tags: ['a', 'b'], empty: [''] }

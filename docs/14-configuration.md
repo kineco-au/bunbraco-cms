@@ -18,6 +18,7 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_COMPONENTS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
 | `BUNBRACO_COMPONENTS_SWAP_MS`                    | `10000`, `0` in development                    | the floor between generations, which absorbs a flapping sync; an announced save is never delayed by it    |
 | `BUNBRACO_COMPONENTS_GENERATION_LIMIT`           | `250`                                          | generations a node loads before it freezes, keeps serving and refuses newer ones                         |
+| `BUNBRACO_RENDER_TIMEOUT_MS`                     | `10000`                                        | how long a page may take to render, layouts included, before it fails and its `signal` aborts; `0` for no limit |
 | `BUNBRACO_COMPONENTS_KEEP`                       | `3`                                            | generations left on disk, for an instant return to one                                                   |
 | `BUNBRACO_BACKOFFICE_PATH`                  | `/bunbraco`                                    | where the editor is mounted; the Management API stays at `/umbraco/management/api/v1`                  |
 | `BUNBRACO_INSECURE_COOKIES`                 | `false`                                        | drops the `__Host-` prefix and `Secure`, for plain-http hosts that are not localhost                   |

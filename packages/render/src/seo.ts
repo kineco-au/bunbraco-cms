@@ -7,7 +7,7 @@
  */
 
 import { RawHtml } from './html.ts'
-import { jsx } from './jsx-runtime.ts'
+import { element } from './jsx-runtime.ts'
 import type { PublishedContent } from './model.ts'
 
 /** The fields of the "Search & sharing" composition, by role. */
@@ -183,13 +183,13 @@ export function SeoHead(props: SeoHeadProps): RawHtml {
     overrides,
   )
   const tag = (name: string, attributes: Record<string, string | undefined>) =>
-    Object.values(attributes).some((v) => v === undefined) ? '' : jsx(name, attributes).value
+    Object.values(attributes).some((v) => v === undefined) ? '' : element(name, attributes).value
   const property = (name: string, value: string | undefined) =>
     tag('meta', { property: name, content: value })
   const named = (name: string, value: string | undefined) => tag('meta', { name, content: value })
   return new RawHtml(
     [
-      jsx('title', { children: meta.fullTitle }).value,
+      element('title', { children: meta.fullTitle }).value,
       named('description', meta.description.value),
       meta.noindex.value ? named('robots', 'noindex') : '',
       tag('link', { rel: 'canonical', href: meta.canonical.value }),

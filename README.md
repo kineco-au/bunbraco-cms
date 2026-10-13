@@ -470,6 +470,7 @@ Design documents, in reading order:
 | [17-bundles](docs/17-bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [18-forms](docs/18-forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
 | [19-seo](docs/19-seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
+| [20-adding-a-page](docs/20-adding-a-page.md) | a walkthrough: the document type, its component (with an async example), the content, shipping it |
 
 ---
 

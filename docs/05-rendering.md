@@ -167,6 +167,52 @@ value, so forgetting it fails closed. The attribute never appears in the output,
 a void element has no content to set, so it is ignored there. Pinned by
 `tests/documents.test.ts` "setInnerHTML emits markup verbatim only when told to".
 
+### Async components
+
+A template, a layout or any component it renders may be `async`, so a page can
+fetch what it shows:
+
+```tsx
+async function Weather({ city, signal }: { city: string; signal: AbortSignal }) {
+  const forecast = await fetch(`https://api.example/weather/${city}`, { signal })
+  return <p>{(await forecast.json()).summary}</p>
+}
+
+export default async function Home({ model, signal }: PageProps) {
+  return (
+    <main>
+      <h1>{model.text('title')}</h1>
+      <Weather city="Perth" signal={signal} />
+    </main>
+  )
+}
+```
+
+The runtime still renders straight to a string and stays synchronous until it
+meets a promise; from there `jsx()` hands back a promise of the markup, and the
+renderer awaits the page and then each layout. A tree with nothing async renders
+exactly as it did before. Text from an async component is escaped like any other.
+
+- **Siblings run together.** JSX evaluates its children before the element that
+  holds them, so two async components side by side both start before either is
+  awaited. Awaits *inside* one component still run in turn — fetch two things with
+  `Promise.all`.
+- **Children and `setInnerHTML.__html` may be promises; attributes may not.** A
+  promised attribute throws, naming the attribute and the tag, rather than printing
+  `[object Promise]`.
+- **Every render has a deadline**, `renderTimeoutMs` (10 seconds by default; 0 for
+  none), covering the page and its layouts. Past it the render fails like any
+  template error — logged, naming the template it was in, a 500 to the visitor.
+- **`signal` aborts** when the deadline passes or the visitor disconnects. Pass it
+  to whatever a component waits on. A visitor who left is not logged as a
+  template error.
+- **The built-in components stay synchronous.** `<Form>` and `<SeoHead>` return
+  markup, not a promise, so a custom form-field component must be synchronous too;
+  an async one is refused with an error saying so.
+
+Pinned by `tests/async-rendering.test.ts`. [`20-adding-a-page.md`](20-adding-a-page.md)
+walks through a whole page built this way.
+
 ## The model a template sees
 
 Umbraco's `IPublishedContent` is deliberately tiny, and notably has **no `Parent`

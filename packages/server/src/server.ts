@@ -306,7 +306,12 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // Before the poller, which tells it to look again on a `views` instruction
   // from another node: a closure over a `const` declared later would be a
   // temporal dead zone waiting for the first instruction to land.
-  const renderer = new Renderer({ cache, componentsDir: config.componentsDir, snapshots })
+  const renderer = new Renderer({
+    cache,
+    componentsDir: config.componentsDir,
+    snapshots,
+    renderTimeoutMs: config.renderTimeoutMs,
+  })
   // The site's own redirects are code, so the database follows the file: rules it
   // no longer declares are removed, which is what makes deleting one from config
   // actually take effect.
@@ -1279,7 +1284,12 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
 
   /** What every rendered page is told about the request and the site's search defaults. */
   async function pageRequest(request: Request) {
-    return { origin: originOf(request, config), url: request.url, seo: await seo.siteDefaults() }
+    return {
+      origin: originOf(request, config),
+      url: request.url,
+      seo: await seo.siteDefaults(),
+      signal: request.signal,
+    }
   }
 
   /**
@@ -1421,6 +1431,9 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
           headers: { 'content-type': 'text/plain; charset=utf-8' },
         })
       case 'error': {
+        // The visitor left and the render was stopped for it: nobody reads this
+        // response, and it says nothing about the template.
+        if (request.signal.aborted) return new Response(null, { status: 499, headers: cleared })
         // Through `inSource`, so the file named is the one somebody can open
         // rather than the snapshot generation it was imported from.
         const detail = renderer.inSource(result.error.stack ?? result.error.message)
@@ -1487,7 +1500,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       ...(await pageRequest(request)),
     })
     if (result.status !== 'ok') {
-      if (result.status === 'error')
+      if (result.status === 'error' && !request.signal.aborted)
         renderLog.error('Template error while rendering the not-found page {name}: {detail}', {
           name: found.content.name,
           detail: renderer.inSource(result.error.stack ?? result.error.message),

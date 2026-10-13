@@ -69,6 +69,8 @@ tail of 1–3 each.
 - URL-segment generation, hierarchical routing, culture/domain routing, URL aliases
 - TSX template execution with an Umbraco-shaped model: `value()`, `children`,
   `ancestors`, `parent`, culture fallback
+- Async components: templates, layouts and components may await, within a render
+  deadline and with a `signal` for cancelling their work
 - Preview (render drafts for an authenticated editor); `NotFound`, `NoNodes`, maintenance pages
 - Search & sharing: the `seoFields` composition, `<SeoHead>`, `/sitemap.xml`, `/robots.txt`,
   a chosen not-found page, `umbracoRedirect` and `umbracoNaviHide` ([`19-seo.md`](19-seo.md))

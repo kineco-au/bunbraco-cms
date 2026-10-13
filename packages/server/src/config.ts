@@ -1,7 +1,7 @@
 import { hostname, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import type { RedirectRule, SnapshotLimits } from '@bunbraco/render'
+import { DEFAULT_RENDER_TIMEOUT_MS, type RedirectRule, type SnapshotLimits } from '@bunbraco/render'
 import type { AssistantConfig } from './assistant.ts'
 import type { ServerBundle } from './bundles.ts'
 import type { EmailPort } from './email.ts'
@@ -95,6 +95,11 @@ export interface BunbracoConfig {
    * Anything unset takes `SNAPSHOT_LIMITS`, or its development override.
    */
   componentsSnapshot: Partial<SnapshotLimits>
+  /**
+   * How long a page may take to render, layouts included, before it fails as a
+   * template error and its `signal` aborts; 0 for no limit.
+   */
+  renderTimeoutMs: number
   /** Where `schema/*.toml` lives; sync is skipped when the directory is absent. */
   schemaDir: string
   /** Supplied at deploy time (BUNBRACO_SCHEMA_REVISION); orders deploys within one schema version. */
@@ -293,6 +298,7 @@ export const DEFAULTS = {
   siteName: 'Bunbraco',
   componentsDir: 'components',
   componentsCacheDir: join('.bunbraco', 'components'),
+  renderTimeoutMs: DEFAULT_RENDER_TIMEOUT_MS,
   schemaDir: 'schema',
   schemaRevision: '0',
   mediaDir: 'media',
@@ -396,6 +402,7 @@ export function loadConfig(
         ? { minSwapIntervalMs: Number(Bun.env.BUNBRACO_COMPONENTS_SWAP_MS) }
         : {}),
     },
+    renderTimeoutMs: Number(Bun.env.BUNBRACO_RENDER_TIMEOUT_MS ?? DEFAULTS.renderTimeoutMs),
     schemaDir: Bun.env.BUNBRACO_SCHEMA_DIR ?? DEFAULTS.schemaDir,
     schemaRevision: Bun.env.BUNBRACO_SCHEMA_REVISION ?? DEFAULTS.schemaRevision,
     nodeId: Bun.env.BUNBRACO_NODE_ID ?? `${hostname()}:${process.pid}`,

@@ -1,7 +1,7 @@
 /**
  * Rendering a form definition to HTML.
  *
- * Built with `jsx()` rather than JSX syntax: `jsxImportSource` is `bunbraco`,
+ * Built with `element()` rather than JSX syntax: `jsxImportSource` is `bunbraco`,
  * which depends on this package, so a `.tsx` file here would be a cycle.
  *
  * Progressive enhancement is the baseline. The form is a real
@@ -32,7 +32,7 @@ import {
   type SubmittedValues,
 } from '@bunbraco/core'
 import { RawHtml } from './html.ts'
-import { type Child, Fragment, jsx } from './jsx-runtime.ts'
+import { type Child, element, Fragment } from './jsx-runtime.ts'
 
 /** Where a submission is posted; the form's key is the only identifier it needs. */
 export const FORM_SUBMIT_PATH = '/bunbraco/forms'
@@ -128,7 +128,7 @@ const INPUT_TYPES: Partial<Record<FormFieldType, string>> = {
 }
 
 function textInput({ field, values, id, name, error, shown }: FormFieldRenderProps): Child {
-  return jsx(
+  return element(
     'input',
     attrs({
       type: INPUT_TYPES[field.type] ?? 'text',
@@ -167,7 +167,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
   hidden: textInput,
 
   longAnswer: ({ field, values, id, name, error, shown }) =>
-    jsx(
+    element(
       'textarea',
       attrs({
         id,
@@ -183,7 +183,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
     ),
 
   checkbox: ({ field, values, id, name, error, shown }) =>
-    jsx(
+    element(
       'input',
       attrs({
         type: 'checkbox',
@@ -200,7 +200,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
   // Consent reads as a checkbox whose label is the caption, because the wording
   // of the consent *is* the question.
   dataConsent: ({ field, values, id, name, error, shown }) =>
-    jsx(
+    element(
       'input',
       attrs({
         type: 'checkbox',
@@ -215,7 +215,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
     ),
 
   dropdown: ({ field, values, id, name, error, shown }) =>
-    jsx(
+    element(
       'select',
       attrs({
         id,
@@ -227,10 +227,10 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
           // An empty first option, so a mandatory dropdown starts unanswered
           // rather than silently defaulting to whatever is first.
           field.mandatory || first(values) === ''
-            ? jsx('option', { value: '', children: field.placeholder ?? '' })
+            ? element('option', { value: '', children: field.placeholder ?? '' })
             : null,
           ...field.values.map((option) =>
-            jsx(
+            element(
               'option',
               attrs({
                 value: option,
@@ -244,14 +244,14 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
     ),
 
   singleChoice: ({ field, values, id, name, shown }) =>
-    jsx('div', {
+    element('div', {
       class: 'bunbraco-form__choices',
       role: 'radiogroup',
       children: field.values.map((option, index) =>
-        jsx('label', {
+        element('label', {
           class: 'bunbraco-form__choice',
           children: [
-            jsx(
+            element(
               'input',
               attrs({
                 type: 'radio',
@@ -262,20 +262,20 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
                 required: (field.mandatory && shown) || undefined,
               }),
             ),
-            jsx('span', { children: option }),
+            element('span', { children: option }),
           ],
         }),
       ),
     }),
 
   multipleChoice: ({ field, values, id, name }) =>
-    jsx('div', {
+    element('div', {
       class: 'bunbraco-form__choices',
       children: field.values.map((option, index) =>
-        jsx('label', {
+        element('label', {
           class: 'bunbraco-form__choice',
           children: [
-            jsx(
+            element(
               'input',
               attrs({
                 type: 'checkbox',
@@ -285,14 +285,14 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
                 checked: values.includes(option) || undefined,
               }),
             ),
-            jsx('span', { children: option }),
+            element('span', { children: option }),
           ],
         }),
       ),
     }),
 
   fileUpload: ({ field, id, name, error, shown }) =>
-    jsx(
+    element(
       'input',
       attrs({
         type: 'file',
@@ -309,11 +309,11 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
   // Presentational: the content comes from the schema file, which a developer
   // wrote and a deploy reviewed, so it is emitted as the markup it is.
   titleAndDescription: ({ field }) =>
-    jsx(Fragment, {
+    element(Fragment, {
       children: [
-        jsx('h3', { class: 'bunbraco-form__title', children: field.caption }),
+        element('h3', { class: 'bunbraco-form__title', children: field.caption }),
         field.content
-          ? jsx('div', {
+          ? element('div', {
               class: 'bunbraco-form__description',
               setInnerHTML: { __html: field.content, dangerously: true },
             })
@@ -322,7 +322,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
     }),
 
   richText: ({ field }) =>
-    jsx('div', {
+    element('div', {
       class: 'bunbraco-form__richtext',
       setInnerHTML: { __html: field.content ?? '', dangerously: true },
     }),
@@ -367,13 +367,13 @@ function renderField(
   const labelled = info.presentational
     ? [control]
     : [
-        jsx('label', {
+        element('label', {
           class: 'bunbraco-form__label',
           for: id,
           children: [
             field.caption,
             field.mandatory
-              ? jsx('span', {
+              ? element('span', {
                   class: 'bunbraco-form__required',
                   'aria-hidden': 'true',
                   children: '*',
@@ -382,11 +382,15 @@ function renderField(
           ],
         }),
         field.helpText
-          ? jsx('p', { class: 'bunbraco-form__help', id: `${id}-help`, children: field.helpText })
+          ? element('p', {
+              class: 'bunbraco-form__help',
+              id: `${id}-help`,
+              children: field.helpText,
+            })
           : null,
         control,
         error
-          ? jsx('p', {
+          ? element('p', {
               class: 'bunbraco-form__error',
               id: `${id}-error`,
               role: 'alert',
@@ -395,7 +399,7 @@ function renderField(
           : null,
       ]
 
-  return jsx(
+  return element(
     'div',
     attrs({
       class: classes.join(' '),
@@ -413,7 +417,7 @@ function renderField(
 function renderGroup(group: SchemaFormGroup, options: Parameters<typeof renderField>[1]): Child {
   const classes = ['bunbraco-form__group']
   if (group.columns > 1) classes.push(`bunbraco-form__group--columns-${group.columns}`)
-  return jsx(
+  return element(
     'div',
     attrs({
       class: classes.join(' '),
@@ -422,7 +426,7 @@ function renderGroup(group: SchemaFormGroup, options: Parameters<typeof renderFi
       style: group.columns > 1 ? `--bunbraco-form-columns:${group.columns}` : undefined,
       children: [
         group.caption
-          ? jsx('legend', { class: 'bunbraco-form__group-caption', children: group.caption })
+          ? element('legend', { class: 'bunbraco-form__group-caption', children: group.caption })
           : null,
         ...group.fields.map((field) => renderField(field, options)),
       ],
@@ -435,7 +439,7 @@ function renderPage(
   index: number,
   options: Parameters<typeof renderField>[1],
 ): Child {
-  return jsx(
+  return element(
     'fieldset',
     attrs({
       class: 'bunbraco-form__page',
@@ -444,7 +448,7 @@ function renderPage(
       'data-condition': page.condition ? JSON.stringify(page.condition) : undefined,
       children: [
         page.caption
-          ? jsx('legend', { class: 'bunbraco-form__page-caption', children: page.caption })
+          ? element('legend', { class: 'bunbraco-form__page-caption', children: page.caption })
           : null,
         ...page.groups.map((group) => renderGroup(group, options)),
       ],
@@ -466,7 +470,7 @@ export function Form(props: FormProps): RawHtml {
     props.message ??
     (props.submission?.formKey === (form.key ?? form.alias) ? props.submission.message : undefined)
   if (accepted !== undefined)
-    return jsx('div', {
+    return element('div', {
       class: 'bunbraco-form bunbraco-form--submitted',
       role: 'status',
       children: accepted,
@@ -494,7 +498,7 @@ export function Form(props: FormProps): RawHtml {
   const renderedAt = props.renderedAt ?? Date.now()
   const token = props.token ?? signer?.(key, renderedAt)
 
-  return jsx(
+  return element(
     'form',
     attrs({
       method: 'post',
@@ -507,17 +511,17 @@ export function Form(props: FormProps): RawHtml {
       novalidate: undefined,
       children: [
         errors.length > 0
-          ? jsx('div', {
+          ? element('div', {
               class: 'bunbraco-form__summary',
               role: 'alert',
-              children: jsx('ul', {
-                children: errors.map((error) => jsx('li', { children: error.message })),
+              children: element('ul', {
+                children: errors.map((error) => element('li', { children: error.message })),
               }),
             })
           : null,
         ...form.pages.map((page, index) => renderPage(page, index, options)),
-        token ? jsx('input', { type: 'hidden', name: FORM_TOKEN_FIELD, value: token }) : null,
-        jsx('input', {
+        token ? element('input', { type: 'hidden', name: FORM_TOKEN_FIELD, value: token }) : null,
+        element('input', {
           type: 'hidden',
           name: FORM_RENDERED_FIELD,
           value: String(renderedAt),
@@ -526,11 +530,11 @@ export function Form(props: FormProps): RawHtml {
         // skips hidden inputs would skip this one too. `autocomplete=off` and a
         // tab stop of -1 keep a real browser out of it.
         form.honeypot
-          ? jsx('div', {
+          ? element('div', {
               class: 'bunbraco-form__honeypot',
               'aria-hidden': 'true',
               style: 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden',
-              children: jsx('input', {
+              children: element('input', {
                 type: 'text',
                 name: FORM_HONEYPOT_FIELD,
                 value: '',
@@ -539,9 +543,9 @@ export function Form(props: FormProps): RawHtml {
               }),
             })
           : null,
-        jsx('div', {
+        element('div', {
           class: 'bunbraco-form__actions',
-          children: jsx('button', {
+          children: element('button', {
             type: 'submit',
             class: 'bunbraco-form__submit',
             children: form.submitLabel ?? 'Submit',
