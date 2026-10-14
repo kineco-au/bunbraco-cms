@@ -86,13 +86,15 @@ export async function freshDb(): Promise<Db> {
 
 /**
  * Undoes what migrations 010 onward did — their tables, dependants first, 011's
- * column rename, the table renames in 018 and 027, and 031–032's search index —
+ * column rename, the table renames in 018 and 027, 031–032's search index and 033's
+ * audit log —
  * so a test can rewind the recorded state to before them and migrate forward again.
  *
  * Every migration that creates or renames something needs its undo here, or the
  * replay runs its `CREATE TABLE` against a table that is already there.
  */
 export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
+  await db.exec('DROP TABLE IF EXISTS audit_entry')
   // 032's column, and 031's index and queue. SQLite's FTS table and its triggers
   // go with them: the triggers are dropped with the table they are on.
   await db.exec('ALTER TABLE property_type DROP COLUMN searchable')

@@ -2,6 +2,7 @@
  * Composition root for the Management API. Handlers are registered here as they
  * are implemented; every other operation in the contract answers 501.
  */
+import { registerAuditLogHandlers } from './handlers/audit-log.ts'
 import { registerContentTypeHandlers } from './handlers/content-type.ts'
 import { registerDataTypeHandlers } from './handlers/data-type.ts'
 import { registerDictionaryHandlers } from './handlers/dictionary.ts'
@@ -40,6 +41,8 @@ export interface ManagementApiOptions {
   onServerEvent?: RouterOptions['onServerEvent']
   nodes?: RouterOptions['nodes']
   allowLocalLogin?: boolean
+  audit?: RouterOptions['audit']
+  clientAddress?: RouterOptions['clientAddress']
 }
 
 export function createManagementApiRouter(options: ManagementApiOptions = {}): ManagementApiRouter {
@@ -49,6 +52,8 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     onServerEvent: options.onServerEvent,
     nodes: options.nodes,
     allowLocalLogin: options.allowLocalLogin,
+    audit: options.audit,
+    clientAddress: options.clientAddress,
   })
   const { deps } = options
   if (!deps) return router
@@ -91,6 +96,16 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
   if (deps.members) registerMemberHandlers(router, deps.members)
   if (deps.publicAccess) registerPublicAccessHandlers(router, deps.publicAccess)
   if (deps.elements) registerElementHandlers(router, deps.elements, deps.references)
+  registerAuditLogHandlers(
+    router,
+    {
+      documents: deps.documents,
+      media: deps.media,
+      elements: deps.elements,
+      blueprints: deps.blueprints,
+    },
+    deps.auditHistory,
+  )
   if (deps.redirects) registerRedirectHandlers(router, deps.redirects)
   if (deps.packages) registerPackageHandlers(router, deps.packages)
   if (deps.references)

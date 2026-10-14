@@ -14,6 +14,15 @@ import {
   type StartNodes,
   unauthorized,
 } from '@crombolo/core'
+import {
+  type AuditPlan,
+  type AuditRecord,
+  type AuditSink,
+  auditDrafts,
+  auditNamesFirst,
+  auditPlanFor,
+  auditReadsBody,
+} from './audit.ts'
 import { authorize, LOCAL_LOGIN_OPERATIONS, type NodeLookup } from './authorization.ts'
 import { type ServerEvent, serverEventFor } from './server-events.ts'
 
@@ -75,7 +84,23 @@ export interface RouterOptions {
   nodes?: NodeLookup
   /** Whether users may sign in with a password, which opens the password-reset endpoints to everyone. */
   allowLocalLogin?: boolean
+  /** Where every successful change is recorded. docs/audit-log.md. */
+  audit?: AuditSink
+  /** Where a request came from, for its audit entry. */
+  clientAddress?: (request: Request) => ClientAddress
 }
+
+export interface ClientAddress {
+  /** The peer that connected: a proxy, when there is one. */
+  ipAddress: string | null
+  /** What a proxy said the client was; anyone can send it, so it is kept apart. */
+  forwardedFor: string | null
+}
+
+const forwardedOnly = (request: Request): ClientAddress => ({
+  ipAddress: null,
+  forwardedFor: request.headers.get('x-forwarded-for'),
+})
 
 export type OperationHandler = (ctx: RequestContext) => Response | Promise<Response>
 
@@ -95,6 +120,8 @@ export class ManagementApiRouter {
   readonly #onServerEvent: RouterOptions['onServerEvent']
   readonly #nodes: NodeLookup | undefined
   readonly #allowLocalLogin: boolean
+  readonly #audit: AuditSink | undefined
+  readonly #clientAddress: (request: Request) => ClientAddress
 
   constructor(options: RouterOptions = {}) {
     const operations = options.operations ?? listOperations(loadSpec())
@@ -104,6 +131,8 @@ export class ManagementApiRouter {
     this.#onServerEvent = options.onServerEvent
     this.#nodes = options.nodes
     this.#allowLocalLogin = options.allowLocalLogin ?? true
+    this.#audit = options.audit
+    this.#clientAddress = options.clientAddress ?? forwardedOnly
     for (const operation of operations) {
       const segments = operation.path.split('/').filter((s) => s.length > 0)
       const paramNames = segments.map((s) =>
@@ -201,9 +230,13 @@ export class ManagementApiRouter {
 
     const handler = this.#handlers.get(operation.operationId)
     if (!handler) this.#onNotImplemented?.(operation, request)
+    const plan = handler && this.#audit ? auditPlanFor(operation.operationId) : undefined
+    const audit = plan ? await this.#beforeAudit(plan, params, request) : undefined
     const response = handler
       ? await handler({ request, url, params, operation, notifications, principal })
       : problemResponse(notImplemented(operation.operationId))
+    if (plan && audit && response.status >= 200 && response.status < 300)
+      await this.#recordAudit(plan, audit, params, request, response, principal)
     if (handler && this.#onServerEvent) {
       const event = serverEventFor(operation, params, response)
       if (event) this.#onServerEvent(event)
@@ -213,4 +246,76 @@ export class ManagementApiRouter {
     headers.set('cache-control', 'no-store')
     return new Response(response.body, { status: response.status, headers })
   }
+
+  /** Reads what the entry needs before the handler consumes the body or removes the item. */
+  async #beforeAudit(
+    plan: AuditPlan,
+    params: Readonly<Record<string, string>>,
+    request: Request,
+  ): Promise<AuditState> {
+    const body = auditReadsBody(plan)
+      ? await request
+          .clone()
+          .json()
+          .catch(() => undefined)
+      : undefined
+    const named = new Map<string, Subject>()
+    if (auditNamesFirst(plan) && this.#audit)
+      for (const draft of auditDrafts(plan, params, new Response(), body))
+        if (draft.entityKey)
+          named.set(draft.entityKey, await this.#audit.describe(draft.entityType, draft.entityKey))
+    return { body, named }
+  }
+
+  async #recordAudit(
+    plan: AuditPlan,
+    state: AuditState,
+    params: Readonly<Record<string, string>>,
+    request: Request,
+    response: Response,
+    principal: Principal | undefined,
+  ): Promise<void> {
+    const sink = this.#audit
+    if (!sink) return
+    const address = this.#clientAddress(request)
+    let detail: string | null = null
+    if (plan.related) {
+      const names: string[] = []
+      for (const key of plan.related.keys(state.body))
+        names.push((await sink.describe(plan.related.entityType, key)).entityName ?? key)
+      detail = `${plan.related.label}: ${names.length > 0 ? names.join(', ') : 'none'}`
+    }
+    const records: AuditRecord[] = []
+    for (const draft of auditDrafts(plan, params, response, state.body)) {
+      const key = draft.entityKey ?? (plan.entityType === 'User' ? (principal?.id ?? null) : null)
+      const subject = key
+        ? (state.named.get(key) ?? (await sink.describe(draft.entityType, key)))
+        : undefined
+      // A reset link or an accepted invite is anonymous: the user it names is who acted.
+      const self = !principal && draft.entityType === 'User' && subject
+      records.push({
+        ...draft,
+        entityType: subject?.entityType ?? draft.entityType,
+        entityKey: subject?.entityKey ?? key,
+        entityName: subject?.entityName ?? null,
+        detail,
+        userKey: principal?.id ?? (self ? subject.entityKey : null),
+        userName: principal?.name ?? (self ? subject.entityName : null),
+        ipAddress: address.ipAddress,
+        forwardedFor: address.forwardedFor,
+      })
+    }
+    await sink.record(records)
+  }
+}
+
+interface Subject {
+  entityType: string
+  entityKey: string
+  entityName: string | null
+}
+
+interface AuditState {
+  body: unknown
+  named: Map<string, Subject>
 }

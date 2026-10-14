@@ -7,7 +7,7 @@ import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@cro
 import type { BlueprintPort, PortFailure } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging, registerFolderHandlers } from './content-type.ts'
-import { auditLogResponse, readBody, toDocumentResponse, toSaveDocument } from './document.ts'
+import { readBody, toDocumentResponse, toSaveDocument } from './document.ts'
 
 const API = '/umbraco/management/api/v1'
 
@@ -125,8 +125,6 @@ export function registerDocumentBlueprintHandlers(
     if (!result.ok) return failed('Could not move the blueprint', result)
     return new Response(null, { status: 200 })
   })
-
-  router.handle('GetDocumentBlueprintByIdAuditLog', (ctx) => auditLogResponse(ctx, port))
 
   router.handle('GetDocumentTypeByIdBlueprint', async (ctx) => {
     const page = paging(ctx)

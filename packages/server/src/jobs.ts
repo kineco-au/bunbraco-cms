@@ -1,14 +1,21 @@
 /**
  * Background jobs, as Umbraco runs them: scheduled publishing every minute and
  * version cleanup every hour when it is enabled, plus the search indexer
- * draining its queue. Each run can also be called directly, which is
+ * draining its queue and the audit log ageing out old entries hourly. Each run can also be called directly, which is
  * how tests drive them. On a multi-node Postgres site every node runs them;
  * each schedule and queued item is claimed atomically, so it runs once.
  */
 
 import type { NodeSchemaState } from '@crombolo/data'
-import { type Db, DocumentRepository, PublishBlockedError, SearchIndex } from '@crombolo/data'
+import {
+  AuditLog,
+  type Db,
+  DocumentRepository,
+  PublishBlockedError,
+  SearchIndex,
+} from '@crombolo/data'
 import type { PublishedCache } from '@crombolo/render'
+import { auditRetainedSince, recordAudit } from './adapters/audit.ts'
 import type { WorkflowRunner, WorkflowRunReport } from './form-workflows.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
@@ -36,6 +43,8 @@ export interface JobsOptions {
   formWorkflowsMs?: number
   /** How often the search indexer looks for queued items; a write here also starts it at once. */
   searchIndexingMs?: number
+  /** Days the audit log keeps an entry; 0 or absent keeps them forever. */
+  auditRetentionDays?: number
 }
 
 export interface ScheduledRun {
@@ -52,6 +61,8 @@ export interface BackgroundJobs {
   runSearchIndexing(): Promise<number>
   /** Something was queued here: index it shortly, rather than at the next tick. */
   kickSearchIndexing(): void
+  /** Deletes audit entries older than the retention period, and returns how many. */
+  runAuditRetention(now?: Date): Promise<number>
   /** Runs whether or not the hourly job is enabled; the policy decides what goes. */
   runVersionCleanup(now?: Date): Promise<{ nodes: number; versionsDeleted: number }>
   start(): void
@@ -77,13 +88,20 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       if (!(await documents.claimSchedule(due.id))) continue
       const cultures = due.culture ? [due.culture] : null
       try {
-        if (due.action === 'Release') {
-          await documents.publish(due.key, cultures)
-          run.published.push(due.key)
-        } else {
-          await documents.unpublish(due.key, cultures)
-          run.unpublished.push(due.key)
-        }
+        const release = due.action === 'Release'
+        const changed = release
+          ? await documents.publish(due.key, cultures)
+          : await documents.unpublish(due.key, cultures)
+        ;(release ? run.published : run.unpublished).push(due.key)
+        await recordAudit(options.db, {
+          category: 'content',
+          action: release ? 'Publish' : 'Unpublish',
+          source: 'job',
+          entityType: 'Document',
+          entityKey: due.key,
+          entityName: changed?.variants[0]?.name ?? null,
+          detail: `Scheduled${due.culture ? ` (${due.culture})` : ''}`,
+        })
         options.onDocumentChanged?.(due.key)
       } catch (error) {
         if (!(error instanceof PublishBlockedError)) throw error
@@ -92,6 +110,11 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     }
     if (run.published.length + run.unpublished.length > 0) options.cache.invalidate()
     return run
+  }
+
+  async function runAuditRetention(now = new Date()): Promise<number> {
+    const before = auditRetainedSince(options.auditRetentionDays ?? 0, now)
+    return before ? new AuditLog(options.db).prune(before) : 0
   }
 
   async function runVersionCleanup(now = new Date()) {
@@ -144,6 +167,7 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
   return {
     runScheduledPublishing,
     runVersionCleanup,
+    runAuditRetention,
     runFormWorkflows,
     runSearchIndexing,
     kickSearchIndexing() {
@@ -164,6 +188,7 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       // notices a minute, and a queue row is cheap to look for.
       if (options.formWorkflows) every(options.formWorkflowsMs ?? 15_000, runFormWorkflows)
       if (options.versionCleanup.enabled) every(60 * 60_000, runVersionCleanup)
+      if (options.auditRetentionDays) every(60 * 60_000, runAuditRetention)
       const files = options.mediaFiles
       if (files) every(60 * 60_000, () => files.cleanupExpired())
     },

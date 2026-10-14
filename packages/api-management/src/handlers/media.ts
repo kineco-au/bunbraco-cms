@@ -13,7 +13,7 @@ import {
 import type { MediaPort, PortFailure } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging } from './content-type.ts'
-import { auditLogResponse, readBody, toSaveDocument, validationProblem } from './document.ts'
+import { readBody, toSaveDocument, validationProblem } from './document.ts'
 import { visibleChildren, visibleRoot, visibleSearch, visibleSiblings } from './start-node-trees.ts'
 
 const API = '/umbraco/management/api/v1'
@@ -250,8 +250,6 @@ export function registerMediaHandlers(router: ManagementApiRouter, port: MediaPo
   }
   router.handle('PutMediaByIdSortChildren', (ctx) => sortByField(ctx, ctx.params.id as string))
   router.handle('PutMediaRootSortChildren', (ctx) => sortByField(ctx, null))
-
-  router.handle('GetMediaByIdAuditLog', (ctx) => auditLogResponse(ctx, port))
 
   /** Thumbnail and crop URLs in the query vocabulary the media route understands. */
   router.handle('GetImagingResizeUrls', async (ctx) => {

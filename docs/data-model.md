@@ -470,3 +470,8 @@ three is `(node_id, property_type_id, language_id, segment, id DESC)`.
   so deleting an item needs no index code. See [`search.md`](search.md).
 - **Migration 032, story `043`:** `property_type.searchable`, default true:
   `searchable = false` in a schema file keeps a property out of search.
+- **Migration 033, story `083`:** `audit_entry` — the audit log: who, what,
+  when and from where, with the names of the user and the item copied in so an
+  entry outlives both. No foreign keys, for the same reason. It starts empty;
+  an item's versions answer for the time before it. See
+  [`audit-log.md`](audit-log.md).

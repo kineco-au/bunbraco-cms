@@ -33,6 +33,8 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_VERSION_CLEANUP`                  | `false`                                        | `true` runs the hourly version cleanup, as Umbraco's `EnableCleanup`                                   |
 | `CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS`    | `7`                                            | keep every version newer than this; a content type's own policy wins                                   |
 | `CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS` | `90`                                           | then keep each day's latest version for this long                                                      |
+| `CROMBOLO_AUDIT_RETENTION_DAYS`            | `365`                                          | how long the audit log keeps an entry; `0` keeps them all ([`audit-log.md`](audit-log.md))            |
+| `CROMBOLO_ACTOR`                            | the account running the command                | who the command line records in the audit log, for a pipeline acting for someone                       |
 | `CROMBOLO_LOGS_DIR`                         | `logs`                                         | where log files are written (Serilog's compact JSON, a file per day), read by the log viewer           |
 | `CROMBOLO_LOG_LEVEL`                        | `info`                                         | the least severe level logged: `trace`, `debug`, `info`, `warning`, `error`, `fatal`                   |
 | `CROMBOLO_LOG_TO_CONSOLE`                   | `true`                                         | whether log events are also printed                                                                    |

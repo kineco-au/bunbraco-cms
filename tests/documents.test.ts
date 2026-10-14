@@ -876,7 +876,7 @@ describe('story 020 document workspace', () => {
     expect(under.total).toBe(1)
   })
 
-  test("the Info tab: the audit log from the page's versions, and empty references and redirects", async () => {
+  test("the Info tab: the page's audit log, and empty references and redirects", async () => {
     const { h, typeKey, componentKey } = await strictScaffold()
     const me = (await h.json<{ id: string }>(`${V1}/user/current`)).id
     const home = await createPage(h, typeKey, componentKey, 'Home', [
@@ -890,8 +890,8 @@ describe('story 020 document workspace', () => {
     }
     const log = await h.json<Log>(`${V1}/document/${home}/audit-log?skip=0&take=10`)
     expect(log.total).toBe(2)
-    expect(log.items.map((i) => i.logType)).toEqual(['Publish', 'Save'])
-    // The version records who made it
+    expect(log.items.map((i) => i.logType)).toEqual(['Publish', 'New'])
+    // Each entry records who made it
     expect(log.items.map((i) => i.user.id)).toEqual([me, me])
     // …whose name the history resolves; unknown keys are skipped
     expect(await h.json<unknown>(`${V1}/item/user?id=${me}&id=${crypto.randomUUID()}`)).toEqual([
@@ -900,7 +900,7 @@ describe('story 020 document workspace', () => {
     const oldestFirst = await h.json<Log>(
       `${V1}/document/${home}/audit-log?orderDirection=Ascending&skip=0&take=1`,
     )
-    expect(oldestFirst).toMatchObject({ total: 2, items: [{ logType: 'Save' }] })
+    expect(oldestFirst).toMatchObject({ total: 2, items: [{ logType: 'New' }] })
     const future = new Date(Date.now() + 60_000).toISOString()
     expect(
       (await h.json<Log>(`${V1}/document/${home}/audit-log?sinceDate=${future}&skip=0&take=10`))

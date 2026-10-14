@@ -17,7 +17,7 @@ import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@cro
 import type { ElementPort, PortFailure, ReferencePort } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging, registerFolderHandlers } from './content-type.ts'
-import { auditLogResponse, failureResponse, readBody, toSaveDocument } from './document.ts'
+import { failureResponse, readBody, toSaveDocument } from './document.ts'
 
 const API = '/umbraco/management/api/v1'
 
@@ -444,7 +444,6 @@ export function registerElementHandlers(
     })
 
   // ── history ───────────────────────────────────────────────────────────────
-  handle('GetElementByIdAuditLog', (ctx) => auditLogResponse(ctx, port))
 
   handle('GetElementVersion', async (ctx) => {
     const elementId = ctx.url.searchParams.get('elementId')

@@ -161,6 +161,8 @@ export interface CromboloConfig {
     keepAllVersionsNewerThanDays: number
     keepLatestVersionPerDayForDays: number
   }
+  /** How many days the audit log keeps an entry; 0 keeps them forever. docs/audit-log.md. */
+  auditRetentionDays: number
   /** Where uploaded media files live; served at `/media/`. */
   mediaDir: string
   /**
@@ -317,6 +319,7 @@ export const DEFAULTS = {
   npmRegistry: 'https://registry.npmjs.org',
   keepAllVersionsNewerThanDays: 7,
   keepLatestVersionPerDayForDays: 90,
+  auditRetentionDays: 365,
   memberRegistrationType: 'Member',
   memberSessionMinutes: 60 * 24 * 14,
   maxFailedPasswordAttempts: 5,
@@ -440,6 +443,10 @@ export function loadConfig(
           DEFAULTS.keepLatestVersionPerDayForDays,
       ),
     },
+    auditRetentionDays: nonNegative(
+      Bun.env.CROMBOLO_AUDIT_RETENTION_DAYS,
+      DEFAULTS.auditRetentionDays,
+    ),
     mediaDir: Bun.env.CROMBOLO_MEDIA_DIR ?? DEFAULTS.mediaDir,
     mediaStore: undefined,
     logsDir: Bun.env.CROMBOLO_LOGS_DIR ?? DEFAULTS.logsDir,
@@ -518,6 +525,12 @@ export function loadConfig(
 }
 
 /** `true`/`false` from the environment; undefined when unset, so a default applies. */
+/** A whole number of at least 0; anything else falls back, rather than ageing the log out by accident. */
+function nonNegative(value: string | undefined, fallback: number): number {
+  const parsed = value === undefined ? Number.NaN : Number(value)
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback
+}
+
 function envFlag(value: string | undefined): boolean | undefined {
   return value === undefined ? undefined : value !== 'false'
 }

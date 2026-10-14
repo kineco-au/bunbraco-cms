@@ -121,6 +121,19 @@ export interface SearchIndexInfo {
   pending: number
 }
 
+/** An item's entries in the audit log, for its Info tab. docs/audit-log.md. */
+export interface AuditHistoryPort {
+  forItem(
+    key: string,
+  ): Promise<
+    Array<{ userKey: string | null; occurredAt: Date; action: string; detail: string | null }>
+  >
+  /** When the log began; an item's versions from before then stand in for its entries. */
+  startedAt(): Promise<Date | undefined>
+  /** Entries older than this have been aged out, and versions standing in for them are too. */
+  retainedSince(): Date | undefined
+}
+
 /** The backoffice search index behind the Examine dashboard. docs/search.md. */
 export interface SearchIndexPort {
   indexes(): Promise<SearchIndexInfo[]>
@@ -249,6 +262,7 @@ export interface ManagementApiDeps {
   modelsBuilder?: ModelsBuilderPort
   publishedCache?: PublishedCachePort
   searchIndex?: SearchIndexPort
+  auditHistory?: AuditHistoryPort
   /** The template editor's query builder. */
   templateQuery?: TemplateQueryPort
   memberGroups?: MemberGroupPort

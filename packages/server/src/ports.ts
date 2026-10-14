@@ -35,6 +35,7 @@ import {
 } from '@crombolo/data'
 import type { PublishedCache } from '@crombolo/render'
 import { createNodeLookup } from './access.ts'
+import { createAuditHistory } from './adapters/audit.ts'
 import { createBlueprintPort } from './adapters/blueprints.ts'
 import { createPackagePort } from './adapters/bundles.ts'
 import {
@@ -517,6 +518,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
       stylesheets: deps.stylesheets,
       scripts: deps.scripts,
     })
+    deps.auditHistory = createAuditHistory(options.db, options.config.auditRetentionDays)
     if (options.cache) {
       const cache = options.cache
       deps.templateQuery = createTemplateQueryPort({

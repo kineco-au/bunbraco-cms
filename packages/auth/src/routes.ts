@@ -17,6 +17,7 @@ import {
 } from './cookies.ts'
 import type { AuthService } from './service.ts'
 import { BACKOFFICE_CLIENT_ID, DEFAULT_SCOPE } from './service.ts'
+import type { UserRow } from './store.ts'
 
 export const SECURITY_PREFIX = `${MANAGEMENT_API_PATH}/security/back-office`
 
@@ -24,6 +25,17 @@ export interface AuthRouteOptions {
   backOfficePath: string
   service: AuthService
   cookies: CookieOptions
+  /** Told about every sign-in, failed sign-in and sign-out, for the audit log. */
+  onAudit?: (event: AuthAuditEvent, request: Request) => Promise<void>
+}
+
+export interface AuthAuditEvent {
+  action: 'SignIn' | 'SignInFailed' | 'LockedOut' | 'SignOut'
+  /** Absent when the login named nobody. */
+  user?: Pick<UserRow, 'key' | 'userName'>
+  /** The login that was tried, for a failure that names nobody. */
+  login?: string
+  detail?: string
 }
 
 export interface AuthRoutes {
@@ -47,6 +59,8 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
   const names = cookieNames(options.cookies)
   const secure = options.cookies.securePrefix
   const { service } = options
+  const audit = (event: AuthAuditEvent, request: Request) =>
+    options.onAudit?.(event, request) ?? Promise.resolve()
 
   const expectedRedirectUri = (origin: string) =>
     `${origin}${options.backOfficePath}/oauth_complete`
@@ -144,7 +158,14 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
     // API users: a machine client presents its own id and secret and gets a bearer token back
     if (grantType === 'client_credentials') {
       const issued = await service.clientCredentials(clientId, form.get('client_secret') ?? '')
-      if (!issued.ok) return oauthError(issued.error, issued.description, 401)
+      if (!issued.ok) {
+        await audit(
+          { action: 'SignInFailed', login: clientId, detail: 'Client credentials refused' },
+          request,
+        )
+        return oauthError(issued.error, issued.description, 401)
+      }
+      await audit({ action: 'SignIn', user: issued.user, detail: 'Client credentials' }, request)
       return Response.json({
         access_token: issued.accessToken,
         token_type: 'Bearer',
@@ -262,6 +283,29 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
       request.headers.get('x-forwarded-for') ?? undefined,
     )
 
+    if (result.status === 'success') await audit({ action: 'SignIn', user: result.user }, request)
+    else if (result.status === 'invalid') {
+      await audit(
+        result.user
+          ? { action: 'SignInFailed', user: result.user, detail: 'Wrong password' }
+          : { action: 'SignInFailed', login: username, detail: 'No such user' },
+        request,
+      )
+      if (result.lockedOut && result.user)
+        await audit(
+          { action: 'LockedOut', user: result.user, detail: 'Too many failed attempts' },
+          request,
+        )
+    } else if (result.status === 'notAllowed')
+      await audit(
+        {
+          action: 'SignInFailed',
+          ...(result.user ? { user: result.user } : { login: username }),
+          detail: result.reason === 'notApproved' ? 'Account disabled' : 'Account locked',
+        },
+        request,
+      )
+
     // Status codes the login UI branches on: 401 invalid, 402 needs 2FA,
     // 403 locked or not approved.
     if (result.status === 'invalid') {
@@ -296,7 +340,8 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
   async function handleRevoke(request: Request): Promise<Response> {
     const form = new URLSearchParams(await request.text())
     const token = resolveRedacted(form.get('token'), readCookie(request, names.accessToken))
-    if (token) await service.revokeAccessToken(token)
+    const revoked = token ? await service.revokeAccessToken(token) : undefined
+    if (revoked) await audit({ action: 'SignOut', user: revoked }, request)
     const response = new Response(null, { status: 200 })
     for (const cookie of clearedCookies()) response.headers.append('set-cookie', cookie)
     return response
@@ -304,7 +349,8 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
 
   async function handleSignOut(request: Request, url: URL): Promise<Response> {
     const sessionId = readCookie(request, names.session)
-    if (sessionId) await service.signOut(sessionId)
+    const ended = sessionId ? await service.signOut(sessionId) : undefined
+    if (ended) await audit({ action: 'SignOut', user: ended }, request)
 
     const requested = url.searchParams.get('post_logout_redirect_uri')
     const allowed = `${url.origin}${options.backOfficePath}/logout`

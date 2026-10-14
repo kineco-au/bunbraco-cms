@@ -2111,12 +2111,58 @@ function help(): void {
 }
 
 try {
+  // Before dispatching, which rewrites `bundle install` as `content import`.
+  const audited = commandAudit()
   await dispatch()
+  if (audited) await ops.recordCommand(await siteConfig(), audited)
 } catch (error) {
   if (!(error instanceof ops.CommandError)) throw error
   for (const problem of error.problems) console.error(`  ${problem}`)
   console.error(error.message)
   process.exit(1)
+}
+
+const capital = (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+
+/** The audit log entry for a command that changes the environment; undefined for one that only reads. */
+function commandAudit(): ops.CommandAudit | undefined {
+  if (flags.has('--dry-run') || flags.has('--plan') || flags.has('--help')) return undefined
+  const sub = positional[0]
+  const typed = `crombolo ${command}${sub ? ` ${sub}` : ''}`
+  const entry = (
+    category: ops.CommandAudit['category'],
+    action: string,
+    entityType?: string,
+    entityKey?: string,
+  ): ops.CommandAudit => ({ category, action, command: typed, entityType, entityKey })
+  switch (command) {
+    case 'admin':
+      return sub === 'reset-password' ? entry('user', 'ResetPassword', 'User') : undefined
+    case 'schema':
+      if (sub === 'sync') return entry('schema', 'Sync', 'Schema')
+      return sub === 'purge' ? entry('schema', 'Purge', 'Schema') : undefined
+    case 'content':
+    case 'bundle':
+      if (sub === 'purge') return entry('system', 'Purge', 'Bundle', positional[1])
+      if (sub === 'import' || sub === 'install') return entry('content', 'Import', 'Bundle')
+      return sub === 'publish' || sub === 'unpublish' || sub === 'revert'
+        ? entry('content', capital(sub), 'Document', positional[1])
+        : undefined
+    case 'dictionary':
+      return sub === 'import' ? entry('settings', 'Import', 'DictionaryItem') : undefined
+    case 'domains':
+      return sub && sub !== 'list'
+        ? entry('settings', `${capital(sub)}Domains`, 'Domain')
+        : undefined
+    case 'upgrade':
+      if (sub === undefined) return entry('system', 'Upgrade')
+      return sub === 'check' && flags.has('--fix') ? entry('system', 'UpgradeFix') : undefined
+    case 'maintenance':
+      if (sub === 'pause') return entry('system', 'PauseEditing')
+      return sub === 'resume' ? entry('system', 'ResumeEditing') : undefined
+    default:
+      return undefined
+  }
 }
 
 async function dispatch(): Promise<void> {

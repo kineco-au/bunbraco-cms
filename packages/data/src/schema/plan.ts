@@ -13,6 +13,7 @@
  */
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
+import { auditLogMigration } from './audit-log.ts'
 import { bundleComponentsMigration } from './bundle-components.ts'
 import { bundlePackageMigration } from './bundle-package.ts'
 import { bundlesRenameMigration } from './bundles-rename.ts'
@@ -78,4 +79,5 @@ export const cromboloPlan = new MigrationPlan([
   transferRunPackageMigration,
   searchIndexMigration,
   propertySearchableMigration,
+  auditLogMigration,
 ])

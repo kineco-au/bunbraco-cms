@@ -81,6 +81,23 @@
     },
     {
       "type": "dashboard",
+      "alias": "Crombolo.Dashboard.AuditLog",
+      "name": "Crombolo Audit Log Dashboard",
+      "element": "/crombolo-plugin/audit-dashboard.js",
+      "weight": 4,
+      "meta": {
+        "label": "Audit log",
+        "pathname": "audit-log"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
+      "type": "dashboard",
       "alias": "Crombolo.Dashboard.Welcome",
       "name": "Crombolo Welcome Dashboard",
       "element": "/crombolo-plugin/welcome-dashboard.js",

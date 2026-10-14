@@ -433,9 +433,8 @@ The `brochureware` job in `.github/workflows/release.yml` runs it after the
 registry publish, and only when the repository variable `BROCHUREWARE_PUBLISH`
 is `enabled` — gated on a variable rather than on a secret being absent, because
 a rotated token would otherwise skip silently. It publishes to **preview**;
-production is promoted by hand once somebody has looked at it. It needs
-`CROMBOLO_PLATFORM_URL`, `_ORGANISATION`, `_SITE` and `_PREVIEW` as variables and
-`CROMBOLO_PLATFORM_TOKEN` as a secret, which is a `deploy`-scoped platform token.
+production is promoted by hand once somebody has looked at it. It needs `CROMBOLO_PLATFORM_URL`,
+`_ORGANISATION`, `_SITE` and `_PREVIEW` as variables and a `deploy`-scoped `CROMBOLO_PLATFORM_TOKEN` secret.
 
 ---
 
@@ -465,6 +464,7 @@ Design documents, in reading order; planned work is in the stories:
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
+| [audit-log](docs/audit-log.md) | who did what, when and from where: what writes an entry, the Info tab and the dashboard, retention |
 | [search](docs/search.md) | backoffice search: the index on both dialects, the queue that keeps it current, who sees a result |
 | [seo](docs/seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
 | [adding-a-page](docs/adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |

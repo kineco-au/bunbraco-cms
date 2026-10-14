@@ -5,8 +5,10 @@
  * a platform's own tooling — gets the same results as data. One implementation,
  * so the two can never disagree about what an import or an upgrade does.
  */
+import { userInfo } from 'node:os'
 import { ROOT_ACCESS } from '@crombolo/core'
 import {
+  type AuditCategory,
   bundleStateKey,
   bundleTablesIn,
   connect,
@@ -52,6 +54,7 @@ import {
   planBundleUpgrades,
   readBlobs,
   readBundle,
+  recordAudit,
   syncOptionsFor,
   type TransferInput,
   VERSION,
@@ -563,6 +566,44 @@ export async function backup(
     reason: input.reason ?? 'backup',
     backupTaken: input.backupTaken,
   })
+}
+
+export interface CommandAudit {
+  category: AuditCategory
+  action: string
+  /** The command as typed, without its arguments, which can hold a password. */
+  command: string
+  entityType?: string
+  entityKey?: string
+}
+
+/**
+ * Records a command that changed this environment, in the audit log, as the
+ * account that ran it — `CROMBOLO_ACTOR` when a pipeline names who it runs for.
+ * Never fails the command: what it records has already happened.
+ */
+export async function recordCommand(config: CromboloConfig, entry: CommandAudit): Promise<void> {
+  let actor = Bun.env.CROMBOLO_ACTOR
+  try {
+    actor ??= userInfo().username
+  } catch {
+    actor ??= undefined
+  }
+  try {
+    await withDatabase(config, (db) =>
+      recordAudit(db, {
+        category: entry.category,
+        action: entry.action,
+        source: 'cli',
+        userName: actor ?? null,
+        entityType: entry.entityType ?? null,
+        entityKey: entry.entityKey ?? null,
+        detail: entry.command,
+      }),
+    )
+  } catch {
+    // No database to write to, or one without the log yet: the command still happened.
+  }
 }
 
 async function withDatabase<T>(config: CromboloConfig, use: (db: Db) => Promise<T>): Promise<T> {

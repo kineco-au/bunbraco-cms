@@ -7,7 +7,6 @@ import type {
   DocumentTreeItem,
   DocumentValidationError,
   DocumentValue,
-  DocumentVersionSummary,
 } from '@crombolo/core'
 import {
   DocumentPermissions,
@@ -869,7 +868,6 @@ export function registerDocumentHandlers(
   })
 
   /** The page's history, from its versions: who saved, published or rolled back, and when. */
-  router.handle('GetDocumentByIdAuditLog', (ctx) => auditLogResponse(ctx, port))
 
   router.handle('GetDocumentVersion', async (ctx) => {
     const documentId = ctx.url.searchParams.get('documentId')
@@ -940,42 +938,5 @@ export function registerDocumentHandlers(
         ancestors: [],
       })),
     })
-  })
-}
-
-const AUDIT_TYPE = {
-  save: 'Save',
-  publish: 'Publish',
-  rollback: 'RollBack',
-  migrate: 'System',
-} as const
-
-/** An audit log built from an item's versions, paged and filtered as the contract asks. */
-export async function auditLogResponse(
-  ctx: RequestContext,
-  port: {
-    versions(key: string): Promise<DocumentVersionSummary[]>
-    systemUserKey(): Promise<string | null>
-  },
-): Promise<Response> {
-  const page = paging(ctx)
-  if (!page) return problemResponse(invalidSkipTake())
-  const since = ctx.url.searchParams.get('sinceDate')
-  const sinceTime = since ? Date.parse(since) : Number.NaN
-  let versions = await port.versions(ctx.params.id as string)
-  if (!Number.isNaN(sinceTime))
-    versions = versions.filter((v) => v.versionDate.getTime() >= sinceTime)
-  if (ctx.url.searchParams.get('orderDirection') === 'Ascending') versions = versions.reverse()
-  const fallbackUser = await port.systemUserKey()
-  const window = versions.slice(page.skip, page.skip + page.take)
-  return Response.json({
-    total: versions.length,
-    items: window.map((version) => ({
-      user: { id: version.userKey ?? fallbackUser },
-      timestamp: version.versionDate.toISOString(),
-      logType: AUDIT_TYPE[version.kind ?? 'save'],
-      comment: null,
-      parameters: null,
-    })),
   })
 }

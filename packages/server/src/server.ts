@@ -7,7 +7,12 @@
  */
 
 import { join } from 'node:path'
-import { createManagementApiRouter, hasSection, type Principal } from '@crombolo/api-management'
+import {
+  type ClientAddress,
+  createManagementApiRouter,
+  hasSection,
+  type Principal,
+} from '@crombolo/api-management'
 import {
   AuthService,
   AuthStore,
@@ -65,6 +70,7 @@ import {
 import type { SyncReport } from '@crombolo/schema'
 import type { Server } from 'bun'
 import { createNodeLookup, loadAccess } from './access.ts'
+import { createAuditHost, createAuditSink, pluginAuditPlan, recordAudit } from './adapters/audit.ts'
 import { readCreatedBundlePackage, writeCreatedBundlePackage } from './adapters/bundles.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
@@ -270,10 +276,30 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   const auth = new AuthService(new AuthStore(db))
   const cookies = { siteName: config.siteName, securePrefix: config.secureCookies }
   const names = cookieNames(cookies)
+  // The socket's peer for each request in flight, which only `Bun.serve` knows;
+  // a request that came some other way (a test, the assistant) has none.
+  const peers = new WeakMap<Request, string>()
+  const clientAddress = (request: Request): ClientAddress => ({
+    ipAddress: peers.get(request) ?? null,
+    forwardedFor: request.headers.get('x-forwarded-for'),
+  })
   const authRoutes = createAuthRoutes({
     backOfficePath: paths.backOfficePath,
     service: auth,
     cookies,
+    onAudit: (event, request) =>
+      recordAudit(db, {
+        category: 'sign-in',
+        action: event.action,
+        source: 'request',
+        userKey: event.user?.key ?? null,
+        userName: event.user?.userName ?? event.login ?? null,
+        entityType: event.user ? 'User' : null,
+        entityKey: event.user?.key ?? null,
+        entityName: event.user?.userName ?? null,
+        detail: event.detail ?? null,
+        ...clientAddress(request),
+      }),
   })
 
   /**
@@ -558,6 +584,8 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     authenticate,
     nodes: createNodeLookup(db),
     allowLocalLogin: config.allowLocalLogin,
+    audit: createAuditSink(db),
+    clientAddress,
     onNotImplemented: config.development
       ? (operation, request) => notImplemented.record(operation, request)
       : undefined,
@@ -609,6 +637,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     nodeState: schema.nodeState,
     nodeId: schema.nodeId,
     versionCleanup: config.versionCleanup,
+    auditRetentionDays: config.auditRetentionDays,
     mediaFiles,
     // The workflow queue drains here rather than in the request: a submission is
     // stored first, and an e-mail that cannot be sent yet must not cost it.
@@ -683,6 +712,9 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
 
   // Imported only when configured, like the assistant: an unconfigured site has no
   // git route and no credentials anywhere near it.
+  const auditPath = `${paths.pluginPath}/api/audit`
+  const auditHost = createAuditHost(db, config.auditRetentionDays)
+
   const gitPath = `${paths.pluginPath}/api/git`
   const git =
     config.git && servesBackOffice
@@ -717,7 +749,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     // there — they are not routes at all, and 404 like any other unknown path.
     if (servesBackOffice) {
       const response = await serveBackOffice(request, url)
-      if (response) return response
+      if (response) {
+        if (response.ok) await auditPluginWrite(request, pathname)
+        return response
+      }
     }
 
     if (pathname.startsWith(`${MEMBER_ROUTE_PREFIX}/`)) {
@@ -750,6 +785,27 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     if (pathname.startsWith('/css/')) return serveSiteFile(config.stylesheetsDir, pathname, '.css')
     if (pathname.startsWith('/scripts/')) return serveSiteFile(config.scriptsDir, pathname, '.js')
     return renderSite(request, pathname, url.host)
+  }
+
+  /**
+   * The audit entry for a successful write to one of Crombolo's own endpoints,
+   * which the contract router does not see. The assistant's are left out: what it
+   * changes goes through the router, and is recorded there. docs/audit-log.md.
+   */
+  async function auditPluginWrite(request: Request, pathname: string): Promise<void> {
+    const prefix = `${paths.pluginPath}/api/`
+    if (request.method === 'GET' || request.method === 'HEAD') return
+    if (!pathname.startsWith(prefix) || pathname.startsWith(`${assistantPath}/`)) return
+    const principal = await authenticate(request)
+    if (!principal) return
+    const plan = pluginAuditPlan(request.method, pathname.slice(prefix.length))
+    await recordAudit(db, {
+      ...plan,
+      source: 'request',
+      userKey: principal.id,
+      userName: principal.name,
+      ...clientAddress(request),
+    })
   }
 
   /**
@@ -1169,6 +1225,16 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     // and no explanation. The findings name documents and the properties that are
     // unfilled: that is the Settings dashboard's material, and the dashboard's own
     // manifest is already `Umb.Condition.SectionAlias` on Settings.
+    // Non-contract, Settings: the audit log dashboard's reads. Settings, as the
+    // dashboard is: it names who signed in from where, and every change made.
+    if (pathname === auditPath || pathname.startsWith(`${auditPath}/`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'settings')) return new Response('Forbidden', { status: 403 })
+      const response = await auditHost.handle(request, pathname.slice(auditPath.length))
+      if (response) return response
+    }
+
     if (pathname === `${paths.pluginPath}/api/change-report`) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
@@ -1608,6 +1674,8 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       port: config.port,
       maxRequestBodySize: config.maxRequestBodyBytes,
       fetch: diagnostics.wrap(async (request, bunServer: Server<HubSocketData>) => {
+        const peer = bunServer.requestIP(request)?.address
+        if (peer) peers.set(request, peer)
         const pathname = new URL(request.url).pathname
         if (pathname === hubPath || pathname === previewHubPath) {
           const principal = await authenticate(request)

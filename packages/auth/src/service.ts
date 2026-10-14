@@ -38,11 +38,15 @@ export const DEFAULT_AUTH_SETTINGS: AuthSettings = {
   maxFailedLoginAttempts: 10,
 }
 
+/**
+ * `user` on a refusal is for the audit log only, and never reaches the response:
+ * the status alone is what the sign-in page may learn.
+ */
 export type LoginResult =
   | { status: 'success'; user: UserRow; sessionId: string }
-  | { status: 'invalid' }
+  | { status: 'invalid'; user?: UserRow; lockedOut?: boolean }
   | { status: 'twoFactorRequired'; providers: string[] }
-  | { status: 'notAllowed'; reason: 'disabled' | 'lockedOut' | 'notApproved' }
+  | { status: 'notAllowed'; reason: 'disabled' | 'lockedOut' | 'notApproved'; user?: UserRow }
 
 export interface AuthorizationRequest {
   clientId: string
@@ -125,22 +129,20 @@ export class AuthService {
       // this path costing what the others cost.
       if (user.isLockedOut) {
         await verifyPassword(password, await DUMMY_HASH_PROMISE)
-        return { status: 'notAllowed', reason: 'lockedOut' } as const
+        return { status: 'notAllowed', reason: 'lockedOut', user } as const
       }
       if (!(await verifyPassword(password, user.passwordHash))) {
         const attempts = await this.#store.recordLoginFailure(user.id)
-        if (
+        const lockedOut =
           this.#settings.maxFailedLoginAttempts > 0 &&
           attempts >= this.#settings.maxFailedLoginAttempts
-        ) {
-          await this.#store.lockOut(user.id)
-        }
-        return { status: 'invalid' } as const
+        if (lockedOut) await this.#store.lockOut(user.id)
+        return { status: 'invalid', user, lockedOut } as const
       }
       // `isApproved` stays behind the password on purpose: it is not a state an
       // attacker can induce, so answering it only to whoever knows the password
       // discloses strictly less than checking it up front.
-      if (!user.isApproved) return { status: 'notAllowed', reason: 'notApproved' } as const
+      if (!user.isApproved) return { status: 'notAllowed', reason: 'notApproved', user } as const
 
       const sessionId = crypto.randomUUID()
       await this.#store.recordLoginSuccess(user.id, sessionId, ipAddress)
@@ -247,7 +249,7 @@ export class AuthService {
     clientId: string,
     secret: string,
   ): Promise<
-    | { ok: true; accessToken: string; expiresIn: number; issuedAt: number }
+    | { ok: true; accessToken: string; expiresIn: number; issuedAt: number; user: UserRow }
     | { ok: false; error: TokenError; description: string }
   > {
     const credential = await this.#store.findClientCredential(clientId)
@@ -273,6 +275,7 @@ export class AuthService {
       accessToken,
       expiresIn: this.#settings.accessTokenSeconds,
       issuedAt: Math.floor(now / 1000),
+      user,
     }
   }
 
@@ -301,13 +304,18 @@ export class AuthService {
     return this.#store.findSession(sessionId)
   }
 
-  async signOut(sessionId: string): Promise<void> {
+  /** Ends the session, and returns whose it was while it was still open. */
+  async signOut(sessionId: string): Promise<UserRow | undefined> {
+    const session = await this.#store.findSession(sessionId)
+    const user = session ? await this.#store.findUserById(session.userId) : undefined
     await this.#store.endSession(sessionId)
+    return user
   }
 
-  async revokeAccessToken(accessToken: string): Promise<void> {
+  async revokeAccessToken(accessToken: string): Promise<UserRow | undefined> {
     const token = await this.#store.findToken(accessToken, 'access')
-    if (token) await this.#store.endSession(token.sessionId)
+    if (!token) return undefined
+    return this.signOut(token.sessionId)
   }
 
   async #issue(

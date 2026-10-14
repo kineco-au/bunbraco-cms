@@ -149,7 +149,7 @@ not cover.
 | `080` | Install and upgrade flows | should | M | ready | 015 |
 | `081` | Concurrency and locking under load | should | M | ready | — |
 | `082` | Version cleanup at scale | could | S | ready | — |
-| `083` | Audit log | should | M | ready | — |
+| `083` | Audit log | should | M | done | — |
 | `084` | Problem-details parity | should | M | ready | — |
 | `085` | A full Postgres parity run | must | M | ready | — |
 | `086` | Performance of the tree and the published cache | should | M | ready | — |
