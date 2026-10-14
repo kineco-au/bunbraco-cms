@@ -52,13 +52,12 @@ not cover.
 | Order | Story | Why here |
 |---|---|---|
 | 1 | `045` — E-mail delivery | Senders exist, but the eleven content notification subscriptions are stored and never delivered |
-| 2 | `043` — Search over content | Backoffice search finds pages by name only; Umbraco searches every property value |
-| 3 | `031` — External identity providers | Members and backoffice users are local-only; `external_login` is waiting |
-| 4 | `032` — Two-factor sign-in | Umbraco ships app-authenticator 2FA for users and members; the seams here are unreachable |
-| 5 | `044` — Webhooks | 1 of 8 operations; no events, no delivery log |
-| 6 | `050` — The Delivery API | The largest absence for anyone wanting headless |
-| 7 | `060` — Provenance | A runtime install runs third-party code with the user's session, and nothing names its publisher |
-| 8 | `085` — A full Postgres parity run | The conformance suite green on both dialects is the hardening exit |
+| 2 | `031` — External identity providers | Members and backoffice users are local-only; `external_login` is waiting |
+| 3 | `032` — Two-factor sign-in | Umbraco ships app-authenticator 2FA for users and members; the seams here are unreachable |
+| 4 | `044` — Webhooks | 1 of 8 operations; no events, no delivery log |
+| 5 | `050` — The Delivery API | The largest absence for anyone wanting headless |
+| 6 | `060` — Provenance | A runtime install runs third-party code with the user's session, and nothing names its publisher |
+| 7 | `085` — A full Postgres parity run | The conformance suite green on both dialects is the hardening exit |
 | — | the rest | Ranked within their epics below; diagnostics and tooling (`047`, `048`) are last because no visitor sees them |
 
 ## Stories
@@ -113,7 +112,7 @@ not cover.
 | `040` | The log viewer | should | M | done | — |
 | `041` | References and content-type transfer | should | M | done | — |
 | `042` | Redirects and the URL tracker | must | M | done | — |
-| `043` | Search over content | must | L | ready | — |
+| `043` | Search over content | must | L | done | — |
 | `044` | Webhooks | should | M | ready | — |
 | `045` | E-mail delivery | must | M | ready | — |
 | `046` | Relations and relation types | could | S | ready | 041 |

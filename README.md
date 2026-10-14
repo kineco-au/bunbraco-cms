@@ -465,6 +465,7 @@ Design documents, in reading order; planned work is in the stories:
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
+| [search](docs/search.md) | backoffice search: the index on both dialects, the queue that keeps it current, who sees a result |
 | [seo](docs/seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
 | [adding-a-page](docs/adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |
 | [writing-components](docs/writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |
@@ -487,7 +488,7 @@ crombolo/
 │   │                              #    — the marks and the palette, for a surface outside this repo
 │   ├── cli/                       # the command line, installable on its own;
 │   │                              #    templates/ holds `basic`; the distributed sites are staged in at pack time
-│   ├── server/                    # the composition root: config, ports, adapters, createServer;
+│   ├── server/                    # the composition root: config, ports, adapters, createServer, the schema store, git;
 │   │                              #    background jobs, oEmbed, the event hubs, member sign-in and public access,
 │   │                              #    the media store seam (file system, S3, Azure), imaging and the bundle installer
 │   ├── core/                      # domain primitives — problem details, notifications, paging
@@ -497,7 +498,6 @@ crombolo/
 │   ├── api-management/            # contract-first router, authorization, ports, handlers
 │   ├── assistant/                 # optional AI helper: tool definitions, guardrails, changesets,
 │   │                              #    the agent loop, the MCP server and the Bedrock provider
-│   │                              #    (server/ also holds the optional schema store and git integration)
 │   ├── backoffice-host/           # SPA shells, import map, static serving, graphics, bundle manifest and discovery;
 │   │                              #    plugin/ = the Changes dashboard, the Bundles views, the banner,
 │   │                              #    the template editor's TSX scaffold and layout, and the assistant drawer;

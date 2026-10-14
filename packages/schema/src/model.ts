@@ -26,6 +26,8 @@ export interface SchemaProperty {
   memberCanEdit?: boolean
   /** Member types only: hidden from users without sensitive-data access. */
   sensitive?: boolean
+  /** False keeps the property's values out of backoffice search; searchable when absent. */
+  searchable?: boolean
   /** Fills existing content when a required property is added to a type with pages. */
   default?: unknown
   since?: string

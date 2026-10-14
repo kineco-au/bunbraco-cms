@@ -7,6 +7,7 @@
 import { normaliseUuid, ObjectTypes, type Page, SystemNodes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
+import { searchTerms } from '../search-text.ts'
 
 export interface NodeRow {
   id: number
@@ -231,30 +232,54 @@ export class NodeRepository {
     return { items: rows.slice(start, end), totalBefore: start, totalAfter: rows.length - end }
   }
 
-  /** Name search, case-insensitive, optionally under a parent. */
+  /**
+   * Name search, case-insensitive, optionally under a parent. With `fullText`,
+   * an item also matches when the search index holds every word of the query by
+   * prefix; items whose name matches come first, then the best index matches.
+   */
   async search(
     objectType: string,
     query: string,
-    options: { trashed?: boolean; parentId?: number; skip: number; take: number },
+    options: {
+      trashed?: boolean
+      parentId?: number
+      fullText?: boolean
+      skip: number
+      take: number
+    },
   ): Promise<Page<NodeRow>> {
-    const conditions = ['node_object_type = ?', 'trashed = ?', 'LOWER(text) LIKE ?']
+    const like = `%${query.toLowerCase().replaceAll('%', '').replaceAll('_', '')}%`
+    const terms = options.fullText ? searchTerms(query) : []
+    const indexed = terms.length > 0
+    const conditions = [
+      'node_object_type = ?',
+      'trashed = ?',
+      indexed ? '(LOWER(text) LIKE ? OR h.node_id IS NOT NULL)' : 'LOWER(text) LIKE ?',
+    ]
     const params: unknown[] = [
+      ...(indexed ? [this.#db.dialect.fullTextQuery(terms)] : []),
       objectType,
       this.#db.dialect.boolValue(options.trashed ?? false),
-      `%${query.toLowerCase().replaceAll('%', '').replaceAll('_', '')}%`,
+      like,
     ]
     if (options.parentId !== undefined) {
       conditions.push('parent_id = ?')
       params.push(options.parentId)
     }
+    const from = indexed
+      ? `node LEFT JOIN (${this.#db.dialect.fullTextHits}) h ON h.node_id = node.id`
+      : 'node'
     const where = conditions.join(' AND ')
     const totals = await this.#db.query<{ n: number }>(
-      `SELECT COUNT(*) AS n FROM node WHERE ${where}`,
+      `SELECT COUNT(*) AS n FROM ${from} WHERE ${where}`,
       params,
     )
+    const order = indexed
+      ? 'CASE WHEN LOWER(text) LIKE ? THEN 0 ELSE 1 END, COALESCE(h.score, 0) DESC, text, id'
+      : 'text, id'
     const rows = await this.#db.query(
-      `SELECT ${NODE_COLUMNS} FROM node WHERE ${where} ORDER BY text, id LIMIT ? OFFSET ?`,
-      [...params, options.take, options.skip],
+      `SELECT ${NODE_COLUMNS} FROM ${from} WHERE ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,
+      [...params, ...(indexed ? [like] : []), options.take, options.skip],
     )
     return { total: Number(totals[0]?.n ?? 0), items: rows.map(mapNode) }
   }

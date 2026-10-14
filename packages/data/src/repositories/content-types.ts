@@ -27,9 +27,25 @@ import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 import { pendingUntil } from '../pending.ts'
 import type { NodeSchemaState } from '../schema-state.ts'
+import { queueContentTypesForSearch, queueEverythingForSearch } from '../search.ts'
 import { NodeRepository } from './nodes.ts'
 
 const GROUP_TYPE_NAMES = ['Group', 'Tab'] as const
+
+/** The live properties of a type, by alias, variation and storage: what its items are indexed by. */
+async function propertySignature(db: Db, contentTypeNodeId: number): Promise<string> {
+  const rows = await db.query<Record<string, unknown>>(
+    `SELECT p.id, p.alias, p.variations, p.data_type_id, p.searchable FROM property_type p
+     WHERE p.content_type_id = ? AND p.retired_at IS NULL ORDER BY p.id`,
+    [contentTypeNodeId],
+  )
+  return rows
+    .map(
+      (row) =>
+        `${row.id}:${row.alias}:${row.variations}:${row.data_type_id}:${fromDbBool(row.searchable)}`,
+    )
+    .join('|')
+}
 
 export interface SaveContentTypeOptions {
   userId?: number
@@ -228,6 +244,9 @@ export class ContentTypeRepository {
         ? ((await repo.nodes.byKey(aggregate.parentKey))?.id ?? SystemNodes.Root)
         : SystemNodes.Root
 
+      // What the search index holds depends on which properties are live and what
+      // they are called, so a change to either has the type's items re-indexed.
+      const propertiesBefore = existing ? await propertySignature(tx, existing.id) : ''
       let nodeId: number
       if (existing) {
         nodeId = existing.id
@@ -361,13 +380,25 @@ export class ContentTypeRepository {
              WHERE id = ?`,
             [...columns, Number(found[0].id)],
           )
+          // Only a schema sync says; a backoffice save leaves it as it was.
+          if (property.searchable !== undefined)
+            await tx.exec('UPDATE property_type SET searchable = ? WHERE id = ?', [
+              bool(property.searchable),
+              Number(found[0].id),
+            ])
         } else {
           await tx.exec(
             `INSERT INTO property_type
                (unique_id, content_type_id, data_type_id, property_type_group_id, alias, name, description, sort_order,
-                mandatory, mandatory_message, validation_reg_exp, validation_reg_exp_message, label_on_top, variations, since_version, since_state_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [key, nodeId, ...columns, options.sinceStateId ?? null],
+                mandatory, mandatory_message, validation_reg_exp, validation_reg_exp_message, label_on_top, variations, since_version, since_state_id, searchable)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              key,
+              nodeId,
+              ...columns,
+              options.sinceStateId ?? null,
+              bool(property.searchable !== false),
+            ],
           )
         }
       }
@@ -449,6 +480,11 @@ export class ContentTypeRepository {
             'INSERT INTO content_type_template (content_type_node_id, template_node_id, is_default) VALUES (?, ?, ?)',
             [nodeId, template.id, bool(componentKey === aggregate.defaultComponentKey)],
           )
+      }
+
+      if (existing && propertiesBefore !== (await propertySignature(tx, nodeId))) {
+        if (aggregate.isElement) await queueEverythingForSearch(tx)
+        else await queueContentTypesForSearch(tx, [nodeId])
       }
 
       const saved = await repo.byKey(aggregate.key)
@@ -739,7 +775,7 @@ export class ContentTypeRepository {
               p.validation_reg_exp, p.validation_reg_exp_message, p.label_on_top, p.variations,
               dtn.unique_id AS data_type_key, g.unique_id AS container_key,
               p.since_version, ss.version AS since_v, ss.revision AS since_r,
-              m.member_can_edit, m.member_can_view, m.is_sensitive
+              m.member_can_edit, m.member_can_view, m.is_sensitive, p.searchable
        FROM property_type p
        JOIN node dtn ON dtn.id = p.data_type_id
        LEFT JOIN property_type_group g ON g.id = p.property_type_group_id
@@ -766,6 +802,7 @@ export class ContentTypeRepository {
       labelOnTop: fromDbBool(row.label_on_top),
       sinceVersion: (row.since_version as string | null) ?? null,
       pending: this.#pending(row),
+      ...(fromDbBool(row.searchable) ? {} : { searchable: false }),
       ...(this.#kind === 'member'
         ? {
             memberCanEdit: fromDbBool(row.member_can_edit),

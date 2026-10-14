@@ -10,8 +10,10 @@ import type {
   DocumentVersionSummary,
 } from '@crombolo/core'
 import {
+  DocumentPermissions,
   invalidSkipTake,
   notFound,
+  permissionsForPath,
   problemDetails,
   problemResponse,
   ROOT_ACCESS,
@@ -24,6 +26,7 @@ import {
   type TreeSource,
   visibleChildren,
   visibleRoot,
+  visibleSearch,
   visibleSiblings,
 } from './start-node-trees.ts'
 
@@ -385,11 +388,28 @@ export function registerDocumentHandlers(
     const page = paging(ctx)
     if (!page) return problemResponse(invalidSkipTake())
     const query = ctx.url.searchParams.get('query') ?? ''
-    const result = await port.search(query, {
-      ...page,
-      trashed: ctx.url.searchParams.get('trashed') === 'true',
-      parentKey: ctx.url.searchParams.get('parentId'),
-    })
+    const groups = ctx.principal?.groups ?? []
+    // Browse is checked per item only when some group could withhold it somewhere.
+    const browsesEverything =
+      !ctx.principal ||
+      groups.some(
+        (group) =>
+          group.defaults.includes(DocumentPermissions.Read) &&
+          [...group.granular.values()].every((verbs) => verbs.includes(DocumentPermissions.Read)),
+      )
+    const result = await visibleSearch(
+      documentStart(ctx),
+      browsesEverything
+        ? undefined
+        : (chain) => permissionsForPath(groups, chain).has(DocumentPermissions.Read),
+      (paging) =>
+        port.search(query, {
+          ...paging,
+          trashed: ctx.url.searchParams.get('trashed') === 'true',
+          parentKey: ctx.url.searchParams.get('parentId'),
+        }),
+      page,
+    )
     return Response.json({ total: result.total, items: result.items.map(toDocumentItemResponse) })
   })
 

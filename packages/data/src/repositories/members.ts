@@ -14,6 +14,8 @@
 import { normaliseUuid, ObjectTypes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
+import { queueForSearch } from '../search.ts'
+import { searchTerms } from '../search-text.ts'
 import {
   DocumentRepository,
   type DocumentRepositoryOptions,
@@ -242,6 +244,8 @@ export class MemberRepository {
       ],
     )
     await this.#writeGroups(node.id, identity.groupKeys ?? [])
+    // Again, now the e-mail and username it is found by are written.
+    await queueForSearch(this.#db, [node.id])
     const member = await this.byKey(created.key)
     if (!member) throw new Error(`the member ${created.key} could not be read back`)
     return member
@@ -290,6 +294,7 @@ export class MemberRepository {
       ...values,
       node.id,
     ])
+    await queueForSearch(this.#db, [node.id])
     if (identity.groupKeys) await this.#writeGroups(node.id, identity.groupKeys)
     return this.byKey(key)
   }
@@ -365,9 +370,18 @@ export class MemberRepository {
     }
     const text = criteria.filter?.trim()
     if (text) {
-      wheres.push('(LOWER(m.email) LIKE ? OR LOWER(m.login_name) LIKE ? OR LOWER(n.text) LIKE ?)')
       const like = `%${text.toLowerCase()}%`
+      const terms = searchTerms(text)
+      // The index adds what a member's properties say to the name, username and e-mail.
+      const indexed =
+        terms.length > 0
+          ? ` OR m.node_id IN (SELECT node_id FROM (${this.#db.dialect.fullTextHits}) h)`
+          : ''
+      wheres.push(
+        `(LOWER(m.email) LIKE ? OR LOWER(m.login_name) LIKE ? OR LOWER(n.text) LIKE ?${indexed})`,
+      )
       values.push(like, like, like)
+      if (indexed) values.push(this.#db.dialect.fullTextQuery(terms))
     }
     const where = wheres.length > 0 ? `WHERE ${wheres.join(' AND ')}` : ''
     const order = ORDER_COLUMNS[(criteria.orderBy ?? '').toLowerCase()] ?? ORDER_COLUMNS.username

@@ -91,7 +91,7 @@ tail of 1–3 each.
 
 ### Cross-cutting
 - Relations and relation types; tags; redirect management — the URL tracker, rules declared in code, and a Settings screen for the ones an administrator writes ([`bundles.md`](bundles.md))
-- Backoffice search: `searcher`, `indexer`, `filter` over FTS5/`tsvector`
+- Backoffice search over every text property, not only names: `searcher`, `indexer`, `filter` over FTS5/`tsvector` ([`search.md`](search.md))
 - Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`bundles.md`](bundles.md))
 - Bundles: exporting a slice of the site — schema, files, content, media — as a zip, and installable bundles added as npm dependencies. A bundle may carry server endpoints too, which the site opts into by importing them ([`bundles.md`](bundles.md))
 - Background jobs: version cleanup, scheduled publishing, temp-file cleanup, log scrubbing

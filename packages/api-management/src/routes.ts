@@ -23,6 +23,7 @@ import { registerPublicAccessHandlers } from './handlers/public-access.ts'
 import { registerPublishedCacheHandlers } from './handlers/published-cache.ts'
 import { registerRedirectHandlers } from './handlers/redirects.ts'
 import { registerReferenceHandlers } from './handlers/references.ts'
+import { registerSearchIndexHandlers } from './handlers/search-index.ts'
 import { registerServerHandlers } from './handlers/server.ts'
 import { registerSettingsStubHandlers } from './handlers/settings-stubs.ts'
 import { registerTemplateHandlers } from './handlers/template.ts'
@@ -84,6 +85,7 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
   if (deps.logViewer) registerLogViewerHandlers(router, deps.logViewer)
   if (deps.modelsBuilder) registerModelsBuilderHandlers(router, deps.modelsBuilder)
   if (deps.publishedCache) registerPublishedCacheHandlers(router, deps.publishedCache)
+  if (deps.searchIndex) registerSearchIndexHandlers(router, deps.searchIndex)
   if (deps.temporaryFiles) registerImportHandlers(router, deps.temporaryFiles)
   if (deps.memberGroups) registerMemberGroupHandlers(router, deps.memberGroups)
   if (deps.members) registerMemberHandlers(router, deps.members)

@@ -36,6 +36,7 @@ import {
   type SchemaStateRow,
   visibleStateIdFor,
 } from '../schema-state.ts'
+import { queueForSearch } from '../search.ts'
 import { NodeRepository, type NodeRow } from './nodes.ts'
 
 export type EventKind = 'save' | 'publish' | 'rollback' | 'migrate'
@@ -334,7 +335,11 @@ export class DocumentRepository {
       ? (await this.#nodes.byKey(options.parentKey))?.id
       : undefined
     if (options.parentKey && parentId === undefined) return { total: 0, items: [] }
-    return this.#nodes.search(this.objectType, query, { ...options, parentId })
+    return this.#nodes.search(this.objectType, query, {
+      ...options,
+      parentId,
+      fullText: this.kind === 'document' || this.kind === 'media',
+    })
   }
 
   async versions(key: string): Promise<DocumentVersionSummary[]> {
@@ -594,7 +599,10 @@ export class DocumentRepository {
         )
         written = true
       }
-      if (written) await repo.#recomputeEdited(node.id)
+      if (written) {
+        await repo.#recomputeEdited(node.id)
+        await queueForSearch(tx, [node.id])
+      }
       return written
     })
   }
@@ -2053,6 +2061,8 @@ export class DocumentRepository {
       'INSERT INTO document_version (id, template_id, published) VALUES (?, ?, ?)',
       [eventId, templateId, this.#db.dialect.boolValue(published)],
     )
+    // Every change to what an item says is an event, so this is where the search index hears of it.
+    await queueForSearch(this.#db, [nodeId])
     return eventId
   }
 

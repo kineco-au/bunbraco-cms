@@ -36,6 +36,16 @@ export interface Dialect {
   /** Appended to a SELECT that must block a concurrent state change; empty where the engine is single-writer. */
   readonly forShare: string
   readonly forUpdate: string
+  /** Appended to a SELECT that claims rows, passing over any another connection holds. */
+  readonly forUpdateSkipLocked: string
+  /**
+   * The full-text match over `search_document`: a subquery of `node_id` and
+   * `score`, higher being better, for each item holding every term as a word
+   * prefix. Its one parameter is `fullTextQuery(terms)`. docs/search.md.
+   */
+  readonly fullTextHits: string
+  /** Terms are already folded words: letters and digits only. */
+  fullTextQuery(terms: readonly string[]): string
   /**
    * SQL that moves a table's identity past rows inserted with explicit ids, or
    * undefined where the engine does that itself.
@@ -71,6 +81,15 @@ export const sqliteDialect: Dialect = {
   boolValue: (value) => (value ? 1 : 0),
   forShare: '',
   forUpdate: '',
+  forUpdateSkipLocked: '',
+  // Name hits weigh ten times body hits; bm25 is lower-is-better, so negated.
+  // bm25 cannot be called under an aggregate, and `LIMIT -1` (no limit) keeps
+  // SQLite from flattening the inner query into the outer one, which would.
+  fullTextHits: `SELECT sd.node_id AS node_id, MAX(f.score) AS score
+    FROM (SELECT rowid AS id, -bm25(search_document_fts, 10.0, 1.0) AS score
+          FROM search_document_fts WHERE search_document_fts MATCH ? LIMIT -1) f
+    JOIN search_document sd ON sd.id = f.id GROUP BY sd.node_id`,
+  fullTextQuery: (terms) => terms.map((term) => `"${term}"*`).join(' AND '),
   syncIdentity: () => undefined,
 }
 
@@ -102,6 +121,11 @@ export const postgresDialect: Dialect = {
   boolValue: (value) => value,
   forShare: 'FOR SHARE',
   forUpdate: 'FOR UPDATE',
+  forUpdateSkipLocked: 'FOR UPDATE SKIP LOCKED',
+  fullTextHits: `SELECT sd.node_id AS node_id, MAX(ts_rank(sd.terms, q)) AS score
+    FROM search_document sd, to_tsquery('simple', ?) q
+    WHERE sd.terms @@ q GROUP BY sd.node_id`,
+  fullTextQuery: (terms) => terms.map((term) => `${term}:*`).join(' & '),
   syncIdentity: (table) =>
     `SELECT setval(pg_get_serial_sequence('${table}', 'id'), (SELECT COALESCE(MAX(id), 1) FROM ${table}))`,
 }

@@ -111,6 +111,41 @@ export interface PublishedCachePort {
   isRebuilding(): boolean
 }
 
+/** An index as the Examine dashboard lists it. */
+export interface SearchIndexInfo {
+  name: string
+  searcherName: string
+  documentCount: number
+  fieldCount: number
+  /** Items waiting to be indexed; while any are, the index reports itself rebuilding. */
+  pending: number
+}
+
+/** The backoffice search index behind the Examine dashboard. docs/search.md. */
+export interface SearchIndexPort {
+  indexes(): Promise<SearchIndexInfo[]>
+  index(name: string): Promise<SearchIndexInfo | undefined>
+  /** False when there is no index by that name. */
+  rebuild(name: string): Promise<boolean>
+  searchers(): string[]
+  /** Undefined when there is no searcher by that name. */
+  query(
+    searcherName: string,
+    term: string,
+    paging: { skip: number; take: number },
+  ): Promise<
+    | {
+        total: number
+        items: Array<{
+          key: string
+          score: number
+          fields: Array<{ name: string; values: string[] }>
+        }>
+      }
+    | undefined
+  >
+}
+
 /** Embed markup for a URL, from its oEmbed provider. */
 export interface OEmbedPort {
   markup(
@@ -213,6 +248,7 @@ export interface ManagementApiDeps {
   logViewer?: LogViewerPort
   modelsBuilder?: ModelsBuilderPort
   publishedCache?: PublishedCachePort
+  searchIndex?: SearchIndexPort
   /** The template editor's query builder. */
   templateQuery?: TemplateQueryPort
   memberGroups?: MemberGroupPort

@@ -21,6 +21,7 @@ const PROPERTY_KEYS = [
   'member-can-view',
   'member-can-edit',
   'sensitive',
+  'searchable',
   'key',
   'alias',
   'name',
@@ -101,6 +102,7 @@ function property(r: Reader, t: Toml, path: string): SchemaProperty {
       ? { memberCanEdit: r.bool(t, 'member-can-edit', path, false) }
       : {}),
     ...(t.sensitive !== undefined ? { sensitive: r.bool(t, 'sensitive', path, false) } : {}),
+    ...(t.searchable !== undefined ? { searchable: r.bool(t, 'searchable', path, true) } : {}),
     default: t.default,
     since: r.str(t, 'since', path),
   }

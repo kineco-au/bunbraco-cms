@@ -82,3 +82,29 @@ export async function visibleSiblings(
   const visible = await onTheWay(start, source, window.items)
   return { items: visible.items, totalBefore: 0, totalAfter: 0 }
 }
+
+/** How far a filtered search looks before paging: past it, an editor refines the query. */
+const SEARCH_WINDOW = 1_000
+
+/**
+ * A page of search results as a user may see them: under a start node, and
+ * passing `allowed` (Browse, for documents). Unrestricted access pages in the
+ * database; otherwise a window of the best matches is filtered, then paged.
+ */
+export async function visibleSearch(
+  start: StartNodes,
+  allowed: ((chain: readonly string[]) => boolean) | undefined,
+  search: (paging: SkipTake) => Promise<Page<DocumentTreeItem>>,
+  paging: SkipTake,
+): Promise<Page<DocumentTreeItem>> {
+  if (start.root && !allowed) return search(paging)
+  const window = await search({ skip: 0, take: SEARCH_WINDOW })
+  const visible = window.items.filter((item) => {
+    const chain = chainOf(item)
+    return hasPathAccess(start, chain, item.isTrashed) && (allowed?.(chain) ?? true)
+  })
+  return {
+    total: visible.length,
+    items: visible.slice(paging.skip, paging.skip + paging.take),
+  }
+}

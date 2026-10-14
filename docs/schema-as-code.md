@@ -238,7 +238,12 @@ Reference:
 
 A property: `alias`, `name` required; `description`, `notes`, `type` (a data type
 alias, required), `mandatory`, `mandatory-message`, `regex`, `regex-message`,
-`varies-by-culture`, `varies-by-segment`, `label-on-top`, and **`default`**.
+`varies-by-culture`, `varies-by-segment`, `label-on-top`, `searchable`, and **`default`**.
+
+`searchable = false` keeps a property's values out of backoffice search, on any
+kind of type. On an element type, it keeps those values out of the blocks that
+use it. Properties are searchable unless they say otherwise
+([`search.md`](search.md)).
 
 `default` matters beyond convenience. When a required property is added to a
 type that already has content, existing pages have no value for it. With a

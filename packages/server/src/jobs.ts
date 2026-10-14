@@ -1,12 +1,13 @@
 /**
  * Background jobs, as Umbraco runs them: scheduled publishing every minute and
- * version cleanup every hour when it is enabled. Each run can also be called directly, which is
+ * version cleanup every hour when it is enabled, plus the search indexer
+ * draining its queue. Each run can also be called directly, which is
  * how tests drive them. On a multi-node Postgres site every node runs them;
- * each schedule is claimed atomically, so it runs once.
+ * each schedule and queued item is claimed atomically, so it runs once.
  */
 
 import type { NodeSchemaState } from '@crombolo/data'
-import { type Db, DocumentRepository, PublishBlockedError } from '@crombolo/data'
+import { type Db, DocumentRepository, PublishBlockedError, SearchIndex } from '@crombolo/data'
 import type { PublishedCache } from '@crombolo/render'
 import type { WorkflowRunner, WorkflowRunReport } from './form-workflows.ts'
 import { logger } from './logging.ts'
@@ -33,6 +34,8 @@ export interface JobsOptions {
    */
   formWorkflows?: WorkflowRunner
   formWorkflowsMs?: number
+  /** How often the search indexer looks for queued items; a write here also starts it at once. */
+  searchIndexingMs?: number
 }
 
 export interface ScheduledRun {
@@ -45,6 +48,10 @@ export interface BackgroundJobs {
   runScheduledPublishing(now?: Date): Promise<ScheduledRun>
   /** Runs the form workflows that are due; a no-op when none are configured. */
   runFormWorkflows(now?: Date): Promise<WorkflowRunReport>
+  /** Indexes every queued item, and returns how many. docs/search.md. */
+  runSearchIndexing(): Promise<number>
+  /** Something was queued here: index it shortly, rather than at the next tick. */
+  kickSearchIndexing(): void
   /** Runs whether or not the hourly job is enabled; the policy decides what goes. */
   runVersionCleanup(now?: Date): Promise<{ nodes: number; versionsDeleted: number }>
   start(): void
@@ -60,6 +67,9 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
   })
   const timers: Array<ReturnType<typeof setInterval>> = []
   let running = false
+  const search = new SearchIndex(options.db)
+  let indexing: Promise<number> | undefined
+  let kicked: ReturnType<typeof setTimeout> | undefined
 
   async function runScheduledPublishing(now = new Date()): Promise<ScheduledRun> {
     const run: ScheduledRun = { published: [], unpublished: [], failed: [] }
@@ -99,6 +109,20 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     )
   }
 
+  // Its own guard rather than `guarded`: indexing a big rebuild must not hold up
+  // a scheduled publish, and a kick while it runs joins the run in progress.
+  function runSearchIndexing(): Promise<number> {
+    indexing ??= search.indexAll().finally(() => {
+      indexing = undefined
+    })
+    return indexing
+  }
+
+  const indexQuietly = () =>
+    runSearchIndexing().catch((error: unknown) => {
+      logger('jobs').error('Search indexing failed', { error })
+    })
+
   const guarded = (job: () => Promise<unknown>) => async () => {
     if (running) return
     running = true
@@ -121,8 +145,21 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     runScheduledPublishing,
     runVersionCleanup,
     runFormWorkflows,
+    runSearchIndexing,
+    kickSearchIndexing() {
+      if (timers.length === 0 || kicked) return
+      kicked = setTimeout(() => {
+        kicked = undefined
+        void indexQuietly()
+      }, 250)
+      kicked.unref()
+    },
     start() {
       every(options.scheduledPublishingMs ?? 60_000, runScheduledPublishing)
+      // The queue is shared, so this also picks up what other nodes wrote.
+      const searchTimer = setInterval(indexQuietly, options.searchIndexingMs ?? 5_000)
+      searchTimer.unref()
+      timers.push(searchTimer)
       // More often than the other jobs: somebody waiting on a form notification
       // notices a minute, and a queue row is cheap to look for.
       if (options.formWorkflows) every(options.formWorkflowsMs ?? 15_000, runFormWorkflows)
@@ -132,6 +169,8 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     },
     stop() {
       for (const timer of timers.splice(0)) clearInterval(timer)
+      if (kicked) clearTimeout(kicked)
+      kicked = undefined
     },
     started() {
       return timers.length > 0

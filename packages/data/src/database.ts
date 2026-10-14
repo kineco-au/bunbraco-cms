@@ -1,5 +1,7 @@
 /** Driver-agnostic database handle. */
+
 import { Database as BunSqlite } from 'bun:sqlite'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { type Dialect, type DialectName, dialectFor } from './dialect.ts'
 import { createLockManager, type LockManager } from './locks.ts'
 
@@ -22,16 +24,32 @@ export interface ConnectOptions {
   url?: string
 }
 
+/** The connection the current async chain holds a transaction on. */
+const transacting = new AsyncLocalStorage<BunSqlite>()
+
+/**
+ * One connection has one transaction at a time, but async chains interleave:
+ * a background job's BEGIN between a request's BEGIN and COMMIT would fail, or
+ * worse, land its statements in the request's transaction. So top-level
+ * transactions queue here, and a chain already inside one joins it.
+ */
 class SqliteDb implements Db {
   readonly dialect = dialectFor('sqlite')
   readonly locks: LockManager
   #db: BunSqlite
   #inTransaction: boolean
+  #gate: { tail: Promise<void> }
 
-  constructor(db: BunSqlite, locks?: LockManager, inTransaction = false) {
+  constructor(
+    db: BunSqlite,
+    locks?: LockManager,
+    inTransaction = false,
+    gate: { tail: Promise<void> } = { tail: Promise.resolve() },
+  ) {
     this.#db = db
     this.locks = locks ?? createLockManager(this)
     this.#inTransaction = inTransaction
+    this.#gate = gate
   }
 
   async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
@@ -44,14 +62,26 @@ class SqliteDb implements Db {
 
   async transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
     if (this.#inTransaction) return fn(this)
-    this.#db.exec('BEGIN')
+    const tx = new SqliteDb(this.#db, this.locks, true, this.#gate)
+    if (transacting.getStore() === this.#db) return fn(tx)
+    const previous = this.#gate.tail
+    let release!: () => void
+    this.#gate.tail = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await previous
     try {
-      const result = await fn(new SqliteDb(this.#db, this.locks, true))
-      this.#db.exec('COMMIT')
-      return result
-    } catch (error) {
-      this.#db.exec('ROLLBACK')
-      throw error
+      this.#db.exec('BEGIN')
+      try {
+        const result = await transacting.run(this.#db, () => fn(tx))
+        this.#db.exec('COMMIT')
+        return result
+      } catch (error) {
+        this.#db.exec('ROLLBACK')
+        throw error
+      }
+    } finally {
+      release()
     }
   }
 

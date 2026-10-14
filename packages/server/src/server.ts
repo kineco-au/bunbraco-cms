@@ -535,6 +535,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         schema,
         mediaFiles,
         email,
+        onSearchQueued: () => jobs.kickSearchIndexing(),
         // This node looks again at once; the others are told to. The write has
         // already landed wherever `componentsDir` points, so there is nothing to
         // distribute — only the fact that it happened.
@@ -562,6 +563,8 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       : undefined,
     onServerEvent: (event) => {
       events.broadcast('notify', [event])
+      // Saves, deletes and moves all announce themselves; whatever they queued gets indexed now.
+      jobs.kickSearchIndexing()
       // An open preview of the document reloads when it changes.
       if (event.eventSource === 'Umbraco:CMS:Document' && event.eventType !== 'Deleted')
         previewHub.broadcast('refreshed', [event.key])

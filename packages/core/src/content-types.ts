@@ -31,6 +31,11 @@ export interface PropertyTypeModel {
   memberCanEdit?: boolean
   /** Member types only: hidden from users without sensitive-data access. */
   isSensitive?: boolean
+  /**
+   * False keeps the property's values out of backoffice search. Absent means
+   * unchanged on a save, which is what a backoffice save sends.
+   */
+  searchable?: boolean
 }
 
 export interface PropertyGroupModel {

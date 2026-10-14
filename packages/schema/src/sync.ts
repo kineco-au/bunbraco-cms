@@ -418,6 +418,7 @@ export async function syncSchema(
                 memberCanView: p.memberCanView === true,
                 memberCanEdit: p.memberCanEdit === true,
                 isSensitive: p.sensitive === true,
+                searchable: p.searchable !== false,
               }
             }
             // Groups have no key in the file; they match an existing group of the same name.

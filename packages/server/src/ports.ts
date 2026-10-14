@@ -58,6 +58,7 @@ import {
   type SchemaFiles,
   type SchemaFileWriter,
 } from './adapters/schema-files.ts'
+import { createSearchIndexPort } from './adapters/search-index.ts'
 import { createTemplateFileStore } from './adapters/template-files.ts'
 import { createTemplateQueryPort } from './adapters/template-query.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
@@ -374,6 +375,8 @@ export interface DepsOptions {
    * tells the other nodes to look; without it they keep the view they imported.
    */
   onViewsChange?: (alias: string) => void | Promise<void>
+  /** Items were queued for the search index; the indexer can start on them now. */
+  onSearchQueued?: () => void
 }
 
 function createTemporaryFilePort(files: MediaFileStore): TemporaryFilePort {
@@ -520,6 +523,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
         cache,
         types: new ContentTypeRepository(options.db),
       })
+      deps.searchIndex = createSearchIndexPort(options.db, options.onSearchQueued)
       deps.publishedCache = {
         reload: () => cache.invalidate(),
         rebuild: async () => {

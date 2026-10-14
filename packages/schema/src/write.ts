@@ -65,6 +65,7 @@ function writeProperty(out: string[], header: string, p: SchemaProperty): void {
   line(out, 'member-can-view', true, p.memberCanView === true)
   line(out, 'member-can-edit', true, p.memberCanEdit === true)
   line(out, 'sensitive', true, p.sensitive === true)
+  line(out, 'searchable', false, p.searchable === false)
   line(out, 'default', p.default)
   line(out, 'since', p.since)
 }

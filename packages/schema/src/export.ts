@@ -67,6 +67,7 @@ function toSchemaProperty(p: PropertyTypeModel, ctx: ExportContext): SchemaPrope
   if (p.memberCanView) property.memberCanView = true
   if (p.memberCanEdit) property.memberCanEdit = true
   if (p.isSensitive) property.sensitive = true
+  if (p.searchable === false) property.searchable = false
   return property
 }
 

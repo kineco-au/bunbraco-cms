@@ -248,6 +248,8 @@ actually matter:
 | UUID | `TEXT` (upper-case, as Umbraco does) | `uuid` |
 | Timestamps / decimals | `TEXT` (`REAL` would be lossy for decimals) | `timestamptz` / `numeric` |
 | Write locking | WAL + a single-writer queue | advisory locks |
+| Transactions | one connection, so top-level transactions queue behind each other | one pooled connection each |
+| Full text | FTS5 table over `search_document`, kept in step by triggers | generated `tsvector` column with a GIN index |
 
 `lock` rows exist in both (Umbraco's `SqliteDistributedLockingMechanism` takes a
 row lock per `Constants.Locks` id); they are the named-lock registry the lock
@@ -460,4 +462,11 @@ three is `(node_id, property_type_id, language_id, segment, id DESC)`.
 - **Media bytes are not necessarily on disk.** Where they live is the
   `MediaStore` seam (file system, S3, Azure); the database holds only the path a
   value names, exactly as before, so moving the store moves no data model.
-
+- **Migration 031, story `043`:** `search_document(node_id, culture, name, body,
+  fields, field_count)` — the backoffice search index, one row per item and
+  culture, with an FTS5 table beside it on SQLite and a generated `tsvector`
+  column on Postgres — and `search_index_queue(node_id, generation)`, what a
+  write leaves for the indexer. Both reference `node` with `ON DELETE CASCADE`,
+  so deleting an item needs no index code. See [`search.md`](search.md).
+- **Migration 032, story `043`:** `property_type.searchable`, default true:
+  `searchable = false` in a schema file keeps a property out of search.

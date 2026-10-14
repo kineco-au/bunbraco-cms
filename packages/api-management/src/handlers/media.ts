@@ -14,7 +14,7 @@ import type { MediaPort, PortFailure } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging } from './content-type.ts'
 import { auditLogResponse, readBody, toSaveDocument, validationProblem } from './document.ts'
-import { visibleChildren, visibleRoot, visibleSiblings } from './start-node-trees.ts'
+import { visibleChildren, visibleRoot, visibleSearch, visibleSiblings } from './start-node-trees.ts'
 
 const API = '/umbraco/management/api/v1'
 
@@ -341,11 +341,17 @@ export function registerMediaHandlers(router: ManagementApiRouter, port: MediaPo
     const page = paging(ctx)
     if (!page) return problemResponse(invalidSkipTake())
     const parentId = ctx.url.searchParams.get('parentId')
-    const result = await port.search(ctx.url.searchParams.get('query') ?? '', {
-      trashed: ctx.url.searchParams.get('trashed') === 'true',
-      parentKey: parentId,
-      ...page,
-    })
+    const result = await visibleSearch(
+      mediaStart(ctx),
+      undefined,
+      (paging) =>
+        port.search(ctx.url.searchParams.get('query') ?? '', {
+          trashed: ctx.url.searchParams.get('trashed') === 'true',
+          parentKey: parentId,
+          ...paging,
+        }),
+      page,
+    )
     return Response.json({ total: result.total, items: result.items.map(toMediaItem) })
   })
 

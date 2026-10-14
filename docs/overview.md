@@ -46,7 +46,7 @@ Umbraco-shaped relational model, plus a front-end rendering layer.
 | DB schema | Umbraco's relational model and semantics, **snake_case naming** (`content_version`, `property_data`). No drop-in compatibility with existing Umbraco databases. |
 | DB dialects | **SQLite and Postgres from day one**, both exercised in CI, behind a single dialect seam. |
 | Templating | **Bun-native TSX server rendering** with an Umbraco-shaped model API (`model.value('alias')`, layouts, sections). |
-| Search | Database-native full text: **SQLite FTS5 / Postgres `tsvector`**, exposed through Umbraco's `searcher`/`indexer` endpoints. |
+| Search | Database-native full text: **SQLite FTS5 / Postgres `tsvector`**, exposed through Umbraco's `searcher`/`indexer` endpoints. See `search.md`. |
 | Federated members | **External identity providers** (OIDC/OAuth) linked to locally-stored members, mirroring Umbraco's external-login model. |
 | Sequencing | **Deep vertical slice first**: login → content type → edit → save → publish → render; then widen. |
 | Schema definitions | **Code first, in TOML files** under `schema/` — content types, data types, languages. The database's schema tables are a cache synced at boot. The backoffice type editor writes the files. See `schema-as-code.md`. |
