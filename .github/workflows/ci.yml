@@ -1,10 +1,13 @@
-# Format, lint, typecheck and the test suite on both dialects. Called directly by
-# a push to main or a pull request, and by release.yml before it publishes, so a
-# release runs exactly the build that guards main.
+# Format, lint, typecheck and the test suite. Called directly by a push to main or
+# a pull request, and by release.yml before it publishes, so a release runs the
+# build that guards main plus the two legs below that main leaves out.
 #
-# The browser suite is the exception to "the same build every time": it is slow and
-# runner-sensitive, so on main it runs only when the commit message says
-# `--browser-tests`, while a release always runs it.
+# Two things are opt-in on main and unconditional for a release. The browser suite
+# is slow and runner-sensitive, so it runs only when the commit message says
+# `--browser-tests`. The Postgres leg of the unit suite rebuilds the schema per
+# test and is several times slower than SQLite on a runner, so main runs SQLite
+# alone and Postgres only when the commit message says `--postgres-tests`; a
+# release always runs both dialects, because that is what it publishes.
 #
 # The integration suites are the other thing `bun test` does not collect — they
 # spawn the CLI per step — but they are cheap, so the pipeline always runs them.
@@ -19,6 +22,10 @@ on:
         inputs:
             browser_tests:
                 description: Run the browser suite regardless of the commit message.
+                type: boolean
+                default: false
+            postgres_tests:
+                description: Run the unit suite on Postgres as well as SQLite, regardless of the commit message.
                 type: boolean
                 default: false
 
@@ -77,9 +84,16 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                dialect: [sqlite, postgres]
+                # SQLite always; Postgres for a release, or when the commit asks.
+                dialect: >-
+                    ${{ fromJSON(
+                      (inputs.postgres_tests ||
+                       (github.event_name == 'push' &&
+                        github.ref == 'refs/heads/main' &&
+                        contains(github.event.head_commit.message, '--postgres-tests')))
+                      && '["sqlite", "postgres"]' || '["sqlite"]') }}
         services:
-            # Started for both legs; the sqlite leg simply never connects to it.
+            # Started for every leg; the sqlite leg simply never connects to it.
             db:
                 image: postgres:18-alpine
                 env:

@@ -426,11 +426,19 @@ creates uniquely.
 
 ### In the pipeline
 
-The suite is a CI job of its own, and the only one that does not run every time: it
-takes ~7 minutes at one worker and is the most runner-sensitive thing here. On `main`
-it runs when the commit message contains `--browser-tests`; on a tag push it always
-runs, because `release.yml` calls `ci.yml` with `browser_tests: true` and nothing
-should be published without it. Pull requests never run it.
+The suite is a CI job of its own, and one of two things that do not run every time:
+it takes ~7 minutes at one worker and is the most runner-sensitive thing here. On
+`main` it runs when the commit message contains `--browser-tests`; on a tag push it
+always runs, because `release.yml` calls `ci.yml` with `browser_tests: true` and
+nothing should be published without it. Pull requests never run it.
+
+The Postgres leg of the unit suite is the other. It rebuilds the `public` schema and
+replays the migrations per test, which is several times slower than SQLite and
+slower again on a runner, so a push to `main` and a pull request run the suite on
+SQLite alone. `--postgres-tests` in the commit message adds the Postgres leg on
+`main`, and a release always runs both dialects (`postgres_tests: true` from
+`release.yml`), since both are what it publishes. Locally, `docker:test:all` is
+the release's matrix.
 
 Three settings exist for CI specifically. `retries: 2` applies only when `CI` is set,
 so a flake on a laptop stays a flake worth chasing rather than being retried away.

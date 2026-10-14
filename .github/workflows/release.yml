@@ -24,9 +24,11 @@ env:
 jobs:
     ci:
         uses: ./.github/workflows/ci.yml
-        # A release always runs the browser suite, whatever the tagged commit says.
+        # A release always runs the browser suite and both database dialects,
+        # whatever the tagged commit says: main runs SQLite alone to stay fast.
         with:
             browser_tests: true
+            postgres_tests: true
 
     publish:
         needs: ci
