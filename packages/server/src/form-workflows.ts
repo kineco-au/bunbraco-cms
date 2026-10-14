@@ -1,5 +1,5 @@
 /**
- * Running a form's workflows. `docs/18-forms.md`.
+ * Running a form's workflows. `docs/forms.md`.
  *
  * The submission is already stored by the time anything here runs: these are
  * the side effects, and a side effect that fails must never cost the entry.
@@ -7,7 +7,7 @@
  * a mail server that is down for ten minutes delays an email rather than
  * losing it — and a multi-node site sends it once.
  *
- * Three types. The XSLT ones Umbraco has are gone (`docs/18-forms.md` says
+ * Three types. The XSLT ones Umbraco has are gone (`docs/forms.md` says
  * why), and Slack is `sendToUrl` with a webhook URL rather than a type of its
  * own.
  */

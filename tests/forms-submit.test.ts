@@ -1,5 +1,5 @@
 /**
- * Forms, phase 3 end to end (`docs/18-forms.md`): a page renders a form, a
+ * Forms, phase 3 end to end (`docs/forms.md`): a page renders a form, a
  * visitor posts it, and the entry is stored.
  *
  * Every submission here goes through the real markup — the token and the render

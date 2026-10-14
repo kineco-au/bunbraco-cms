@@ -440,7 +440,7 @@ export function registerMediaHandlers(router: ManagementApiRouter, port: MediaPo
     return done(ctx)
   })
 
-  // References arrive with relations (WP-6.9); nothing is known to refer yet.
+  // References arrive with relations (story 046); nothing is known to refer yet.
   for (const operation of [
     'GetMediaByIdReferencedBy',
     'GetMediaByIdReferencedDescendants',

@@ -1,5 +1,5 @@
 /**
- * WP-6.3 and 6.4's exits in the real backoffice: every built-in property editor
+ * Stories 022 and 023's exits in the real backoffice: every built-in property editor
  * renders and saves, including an upload; and an image uploaded in Media,
  * picked on a page and published, renders as a resized crop.
  */

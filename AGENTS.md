@@ -3,11 +3,19 @@
 - Run formatting checks and unit tests - all warnings and errors must be fixed
 - For new features there must be covering unit tests
 - Changes to the repo structure, architecture, or core tool chain should be documented in the README
+- Story docs and the index table in `docs/stories/README.md` updated with the implementation details and the latest state - completed stories moved to `05_completed`, unblocked stories moved to `03_ready`
 
 ## Workflow
 
 - Prompt for a decision for all important architectural decisions before starting work
 - Push back on any requests which don't make sense or where there's a simpler alternative
+- Move a story doc to `docs/stories/04_in_progress` before starting work on it
+- Move a story doc to `docs/stories/05_completed` once tested and all acceptance criteria are met
+- Planned work is a story, not a section of an info doc: the docs at the root of `docs/` describe what exists and why, and point at a story by number for what is still to come
+
+## Boundaries
+
+- Do not store lengthy commentary in code files, prefer storing implementation details in md files in the docs directory
 
 ## Testing
 

@@ -1,5 +1,5 @@
 /**
- * Migration 024 — the queue a form's workflows run from. `docs/18-forms.md`.
+ * Migration 024 — the queue a form's workflows run from. `docs/forms.md`.
  *
  * A submission is stored and *then* its workflows run, so a mail server being
  * down never loses an entry. That means a row per workflow per submission,

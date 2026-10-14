@@ -1,5 +1,5 @@
 /**
- * Phase 3: content types, data types and templates through the real API.
+ * Story 004: content types, data types and templates through the real API.
  *
  * The exit criterion is that a content type with tabs, properties and a template
  * survives a reload, so these tests write and then re-read rather than asserting

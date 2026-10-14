@@ -1,4 +1,4 @@
-/** The Phase 1 Management API handlers, exercised with an authenticated caller. */
+/** Story 002's Management API handlers, exercised with an authenticated caller. */
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 import { createManagementApiRouter, type Principal } from '@crombolo/api-management'

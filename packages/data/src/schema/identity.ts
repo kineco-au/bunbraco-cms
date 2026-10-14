@@ -1,7 +1,7 @@
 /**
  * Migration 001 — back-office identity.
  *
- * Table and column names follow docs/02-data-model.md: Umbraco's relational
+ * Table and column names follow docs/data-model.md: Umbraco's relational
  * model with snake_case names. `user` is reserved in Postgres, hence
  * `user_account`.
  */

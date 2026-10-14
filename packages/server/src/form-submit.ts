@@ -1,5 +1,5 @@
 /**
- * Taking a form submission. `docs/18-forms.md`.
+ * Taking a form submission. `docs/forms.md`.
  *
  * `POST /crombolo/forms/<key>`, outside the Management API because a visitor is
  * not a backoffice user and there is no operation in the vendored contract for

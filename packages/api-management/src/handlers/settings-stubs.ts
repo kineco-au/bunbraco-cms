@@ -3,7 +3,7 @@
  * Settings, Media and Library sections. Each answers an honest empty result in
  * the shape its operation declares, so every section loads, expands and
  * deep-links without an error toast; every one is replaced by a real handler
- * when its work package lands (docs/07-roadmap.md, Phase 6). Counted
+ * when its story in docs/stories/ lands. Counted
  * separately by `coverage:api`.
  */
 import { invalidSkipTake, notFound, problemResponse } from '@crombolo/core'
@@ -23,10 +23,10 @@ const PAGED = [
     `GetRecycleBin${b}Children`,
     `GetRecycleBin${b}ReferencedBy`,
   ]),
-  'GetRecycleBinDocumentReferencedBy', // needs relations, WP-6.9
+  'GetRecycleBinDocumentReferencedBy', // needs relations, story 046
   'GetRecycleBinMediaReferencedBy',
   'GetRecycleBinElementReferencedBy',
-  // The recycle bin and the trash and delete dialogs; needs relations, WP-6.9. Until
+  // The recycle bin and the trash and delete dialogs; needs relations, story 046. Until
   // then they cannot warn that other content links to what is being removed.
   'GetTreeStaticFileRoot',
   'GetTreeStaticFileChildren',

@@ -1,5 +1,5 @@
 /**
- * Backoffice extensions as npm dependencies. `docs/17-bundles.md`.
+ * Backoffice extensions as npm dependencies. `docs/bundles.md`.
  *
  * A site's extensions are its dependencies: discovery reads the site's own
  * `package.json`, resolves each dependency through `node_modules`, and takes the

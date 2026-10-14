@@ -1,5 +1,5 @@
 /**
- * WP-6.6: dictionary items — the Translation section's tree, list and editor,
+ * Story 025: dictionary items — the Translation section's tree, list and editor,
  * move rules, and `.udt` export and import as Umbraco writes them.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -226,7 +226,7 @@ describe('dictionary items', () => {
   /**
    * The dictionary stays in the database because translators work in
    * production, so this pair is how a lower environment gets the translations
-   * (`docs/09-schema-as-code.md`). The endpoint and the CLI share one
+   * (`docs/schema-as-code.md`). The endpoint and the CLI share one
    * implementation, which is what these exercise.
    */
   test('the whole dictionary round trips, items upserting by key', async () => {

@@ -4,7 +4,7 @@
  * Its manifest declares `overwrites: ['Umb.SectionView.Packages.Installed']`.
  * Umbraco's view is built around package migrations — it lists installed
  * packages so that pending C# migrations can be run. Nothing carries those here
- * (`docs/17-bundles.md`), so the view would be a list of nothing with a button
+ * (`docs/bundles.md`), so the view would be a list of nothing with a button
  * that cannot apply.
  *
  * What it lists instead is the site's declared `crombolo` dependencies, which is

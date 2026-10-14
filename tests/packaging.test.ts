@@ -106,7 +106,7 @@ describe('the published package set', () => {
     // The `crombolo` field is what declares the extensions, but npm will not
     // index a custom field — only keywords — so a bundle without this one is
     // invisible in the Bundles section however correct the rest of it is
-    // (`docs/17-bundles.md`).
+    // (`docs/bundles.md`).
     for (const name of BUNDLES) {
       const bundle = packages.find((pkg) => pkg.name === name)
       expect(bundle?.manifest.keywords ?? [], name).toContain(EXTENSION_KEYWORD)

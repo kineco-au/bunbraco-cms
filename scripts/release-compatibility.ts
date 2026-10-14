@@ -1,7 +1,7 @@
 /**
  * The migration-compatibility declaration a release publishes, so a platform can
  * tell whether it may roll an upgrade under live traffic before installing it
- * (docs/10-packaging-and-upgrades.md, "The release declaration").
+ * (docs/packaging-and-upgrades.md, "The release declaration").
  *
  * It lives in the `@crombolo/crombolo` umbrella's package.json — `"crombolo": {
  * "migrations": "compatible" | "breaking" }` — because that is readable both

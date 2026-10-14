@@ -1,5 +1,5 @@
 /**
- * The 5c exit scenarios (docs/07-roadmap.md): a rename with a value migration
+ * The 5c exit scenarios (docs/roadmap.md): a rename with a value migration
  * promoting through two databases with different content; a release adding a
  * required property and breaking three values — check, refuse, fix early,
  * resolve in the live editor, upgrade, cut over — with an old instance serving

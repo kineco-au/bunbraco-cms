@@ -1,6 +1,6 @@
 /**
  * The server-side bundle capability, and the guardrails that are the reason it
- * exists at all (`docs/17-bundles.md`).
+ * exists at all (`docs/bundles.md`).
  *
  * The mechanism is tested on its own here, with a stub host and no database: the
  * things that must hold — a bundle cannot leave its namespace, cannot be reached

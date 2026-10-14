@@ -2,7 +2,7 @@
  * The form model, and the closed set of field types it may use.
  *
  * A form definition is structure, so it is a file like every other type
- * (`docs/18-forms.md`). Field types are an internal registry rather than an
+ * (`docs/forms.md`). Field types are an internal registry rather than an
  * extension point: the TOML vocabulary, the validator, the renderer and the
  * entry value shape all have to agree, and freezing that contract before
  * anything has stressed it would be a promise made too early.

@@ -1,5 +1,5 @@
 /**
- * Form entries: what visitors submitted. `docs/18-forms.md`.
+ * Form entries: what visitors submitted. `docs/forms.md`.
  *
  * Keyed by the form's UUID rather than a foreign key, because the definition is
  * a file. An entry outlives its definition on purpose.

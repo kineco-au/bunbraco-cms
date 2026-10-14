@@ -1,5 +1,5 @@
 /**
- * Rollback is a backup (docs/10-packaging-and-upgrades.md): SQLite is copied
+ * Rollback is a backup (docs/packaging-and-upgrades.md): SQLite is copied
  * beside the database; Postgres runs the operator's `CROMBOLO_PG_DUMP` command
  * or refuses unless the caller vouches with `--backup-taken`.
  */

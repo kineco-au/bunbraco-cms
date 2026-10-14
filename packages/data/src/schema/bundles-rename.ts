@@ -3,7 +3,7 @@
  *
  * The table was named after Umbraco's `umbracoCreatedPackageSchema`, which it
  * mirrors column for column. What it holds is a bundle definition
- * (`docs/17-bundles.md`), and the backoffice now says so, so the table does too.
+ * (`docs/bundles.md`), and the backoffice now says so, so the table does too.
  *
  * A rename rather than an edit to migration 022: 022 has already run on every
  * database that exists, and rewriting it would leave those sites with a table

@@ -17,7 +17,7 @@
  *
  * `sections` and `packager` are the other kind of rename: not the product's name
  * but a feature's. Umbraco's Packages section builds a `.umb` file; the artifact
- * here is a bundle (`docs/17-bundles.md`), so the section and the flow that
+ * here is a bundle (`docs/bundles.md`), so the section and the flow that
  * builds one say so. `build-localizations.ts` reads this file for its key set and
  * rewrites only values that name the product, so these pass through untouched and
  * every other language keeps its own word.

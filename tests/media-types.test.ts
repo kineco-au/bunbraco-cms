@@ -1,5 +1,5 @@
 /**
- * Media types (the Settings half of WP-6.4): the same table, rules and files
+ * Media types (the Settings half of story 023): the same table, rules and files
  * as content types — `schema/media-types/*.toml` under `[media-type]` — with
  * no templates or cleanup, and references keyed `mediaType`.
  */

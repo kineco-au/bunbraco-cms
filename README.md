@@ -65,7 +65,7 @@ add a script yourself. The practical consequences:
   `setInnerHTML` stands in for `dangerouslySetInnerHTML` — it escapes unless you
   also pass `dangerously: true`
 
-[`docs/05-rendering.md`](docs/05-rendering.md) has the model API, layouts,
+[`docs/rendering.md`](docs/rendering.md) has the model API, layouts,
 partials and routing.
 
 ---
@@ -95,8 +95,7 @@ partials and routing.
 It is a poor fit if you need Umbraco packages or plugins (they do not run here),
 Razor views, SQL Server, or client-side React with hydration out of the box.
 
-Crombolo is in active development. What is built and what is not is tracked in
-the [roadmap](docs/07-roadmap.md).
+Crombolo is in active development. What is built and planned is tracked as [stories](docs/stories/README.md).
 
 ### What is in the box
 
@@ -153,7 +152,7 @@ package into `packages/backoffice-dist/dist`, then verifies that every one of it
 ~6,555 modules will actually link in a browser and fails if any will not. It is
 required before the server can serve the editor, and the output is not committed
 — see
-[`docs/04-backoffice-hosting.md`](docs/04-backoffice-hosting.md) for why the npm
+[`docs/backoffice-hosting.md`](docs/backoffice-hosting.md) for why the npm
 package alone is not loadable.
 
 ### Run it
@@ -279,7 +278,7 @@ bun run site basic                      # a CLI template, scaffolded into .scaff
 ```
 
 The database is forced to SQLite inside the site, whatever the environment says.
-[`docs/14-configuration.md`](docs/14-configuration.md) has the layout of a site,
+[`docs/configuration.md`](docs/configuration.md) has the layout of a site,
 how distribution works and the safety rules.
 
 A template brings `schema/`, `components/`, a stylesheet, its images — and its content as
@@ -318,7 +317,7 @@ A template may also wire a bundle's server half, which the demo does for
 redirects: `template.json` names the package and the factory, and `init` writes
 both the dependency and the `bundles: [redirects()]` line into the site's own
 `crombolo.config.ts` — visible, and removable, from the first commit
-([`docs/17-bundles.md`](docs/17-bundles.md)).
+([`docs/bundles.md`](docs/bundles.md)).
 
 ### Bring an existing Umbraco site
 
@@ -341,7 +340,7 @@ the original kept beside the report for whoever rewrites it.
 `apply` writes a site directory, not a database: schema files, the view stubs,
 the media, and the content as a bundle that `bun start` imports on the first
 boot. Members, users, redirects and protected pages are counted in the report
-and not imported yet. [`docs/16-umbraco-import.md`](docs/16-umbraco-import.md)
+and not imported yet. [`docs/umbraco-import.md`](docs/umbraco-import.md)
 has the detail and what is left.
 
 ### Walk the slice in the editor
@@ -412,7 +411,7 @@ because both need Docker; `git push --no-verify` skips the hook entirely.
 The host twins (`bun run test`, `test:all`) run the same suites outside Docker.
 Postgres tests skip themselves when no server is reachable, so a clone without
 Docker is never blocked — but a skip is not a pass.
-[`docs/08-testing.md`](docs/08-testing.md) has the layers, the containers and the
+[`docs/testing.md`](docs/testing.md) has the layers, the containers and the
 browser suite.
 
 ### Publishing the product site
@@ -442,33 +441,34 @@ production is promoted by hand once somebody has looked at it. It needs
 
 ## Documentation
 
-Design documents, in reading order:
+Design documents, in reading order; planned work is in the stories:
 
 | | |
 | --- | --- |
-| [00-overview](docs/00-overview.md) | what this is, the decisions behind it, and the non-goals |
-| [01-architecture](docs/01-architecture.md) | repo layout, dependency rules, server composition, the toolchain |
-| [02-data-model](docs/02-data-model.md) | the relational model, and why a node behind the schema may not write |
-| [03-api-contract](docs/03-api-contract.md) | the vendored contract, and how a handler is held to it |
-| [04-backoffice-hosting](docs/04-backoffice-hosting.md) | vendoring the SPA, the shells, the auth wire contract, de-branding |
-| [05-rendering](docs/05-rendering.md) | TSX templates and the JSX runtime, the published cache, views, hostnames, cultures |
-| [06-features](docs/06-features.md) | what is implemented, and what is out of scope |
-| [07-roadmap](docs/07-roadmap.md) | what is built, what is not, and what is planned |
-| [08-testing](docs/08-testing.md) | the test layers, the containers, the browser suite |
-| [09-schema-as-code](docs/09-schema-as-code.md) | the TOML format, sync, retirement, coherence across nodes |
-| [10-packaging-and-upgrades](docs/10-packaging-and-upgrades.md) | environments, the upgrade process, releasing to npm |
-| [11-assistant](docs/11-assistant.md) | the optional AI helper, its guardrails and its credentials |
-| [12-schema-at-runtime](docs/12-schema-at-runtime.md) | the shared schema store, and importing at runtime |
-| [13-content-transfer](docs/13-content-transfer.md) | the bundle format, and moving content between environments |
-| [14-configuration](docs/14-configuration.md) | every environment variable, and every script |
-| [15-operations](docs/15-operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions |
-| [16-umbraco-import](docs/16-umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
-| [17-bundles](docs/17-bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
-| [18-forms](docs/18-forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
-| [19-seo](docs/19-seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
-| [20-adding-a-page](docs/20-adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |
-| [21-writing-components](docs/21-writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |
-| [22-brand](docs/22-brand.md) | the mark, the logo files and the palette taken from them |
+| [overview](docs/overview.md) | what this is, the decisions behind it, and the non-goals |
+| [architecture](docs/architecture.md) | repo layout, dependency rules, server composition, the toolchain |
+| [data-model](docs/data-model.md) | the relational model, and why a node behind the schema may not write |
+| [api-contract](docs/api-contract.md) | the vendored contract, and how a handler is held to it |
+| [backoffice-hosting](docs/backoffice-hosting.md) | vendoring the SPA, the shells, the auth wire contract, de-branding |
+| [rendering](docs/rendering.md) | TSX templates and the JSX runtime, the published cache, views, hostnames, cultures |
+| [features](docs/features.md) | what is implemented, and what is out of scope |
+| [roadmap](docs/roadmap.md) | where this is going, the risks, and what diverges from Umbraco on purpose |
+| [stories](docs/stories/README.md) | every piece of work, built and planned, by epic and state |
+| [testing](docs/testing.md) | the test layers, the containers, the browser suite |
+| [schema-as-code](docs/schema-as-code.md) | the TOML format, sync, retirement, coherence across nodes |
+| [packaging-and-upgrades](docs/packaging-and-upgrades.md) | environments, the upgrade process, releasing to npm |
+| [assistant](docs/assistant.md) | the optional AI helper, its guardrails and its credentials |
+| [schema-at-runtime](docs/schema-at-runtime.md) | the shared schema store, and importing at runtime |
+| [content-transfer](docs/content-transfer.md) | the bundle format, and moving content between environments |
+| [configuration](docs/configuration.md) | every environment variable, and every script |
+| [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions |
+| [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
+| [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
+| [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
+| [seo](docs/seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
+| [adding-a-page](docs/adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |
+| [writing-components](docs/writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |
+| [brand](docs/brand.md) | the mark, the logo files and the palette taken from them |
 
 ---
 
@@ -477,6 +477,7 @@ Design documents, in reading order:
 ```
 crombolo/
 ├── docs/                          # the detail: design documents, configuration, operations
+│   ├── stories/                   # the work, by state: backlog, ready, in progress, completed
 │   └── brand/                     # PNG exports of the mark and the full logo, for use outside the product
 ├── assets/                        # source media for the starter templates, at the size it ships at;
 │                                  #    outside the published `files` list, so it is never published twice
@@ -509,7 +510,7 @@ crombolo/
 │   ├── import-umbraco/            # opt-in: an Umbraco backup → a compatibility report, schema files,
 │   │                              #    a content bundle and view stubs; reads a .bacpac without .NET
 │   ├── simple-redirects/          # opt-in bundle: manage redirects in Settings; the reference example
-│   │                              #    of a bundle with a server half (docs/17-bundles.md)
+│   │                              #    of a bundle with a server half (docs/bundles.md)
 │   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed
 │   └── render/                    # the JSX→HTML runtime behind TSX templates, published cache (one view per culture),
 │                                  #    URL and hostname routing, language fallback, the dictionary,

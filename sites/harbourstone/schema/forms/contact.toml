@@ -1,5 +1,5 @@
 # A form is structure, so it is a file like the content types beside it and a
-# change to it shows up in a diff (`docs/18-forms.md`). The Contact page points
+# change to it shows up in a diff (`docs/forms.md`). The Contact page points
 # at this one through its `enquiryForm` property, and `components/contactPage.tsx`
 # renders it with `<Form>`.
 #
@@ -103,7 +103,7 @@ minimum-submit-seconds = 3
     mandatory-message = "We cannot store your message without this"
 
 # Telling somebody about a submission takes an e-mail provider, which this
-# template does not configure — see `docs/14-configuration.md`. With
+# template does not configure — see `docs/configuration.md`. With
 # CROMBOLO_EMAIL_* set, uncomment this and the message is mailed on submit; the
 # queue retries, so a provider that is briefly down loses nothing.
 #

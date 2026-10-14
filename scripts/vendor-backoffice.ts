@@ -4,7 +4,7 @@
  *
  * The npm package ships the `tsc` output, which is not directly loadable: its
  * external/* modules are bare re-export stubs, and it carries no CSS and no
- * import map. See docs/04-backoffice-hosting.md.
+ * import map. See docs/backoffice-hosting.md.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'

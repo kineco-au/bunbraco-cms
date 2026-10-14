@@ -11,7 +11,7 @@
  * Both halves ship in one npm package. The client half is discovered from the
  * `crombolo` field once the package is a dependency; the server half runs only
  * because a site imported `redirects()` into its `crombolo.config.ts` — see
- * `docs/17-bundles.md` for why that asymmetry is the whole security story.
+ * `docs/bundles.md` for why that asymmetry is the whole security story.
  */
 import type {
   BundleRedirectInput,

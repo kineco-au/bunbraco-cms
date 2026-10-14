@@ -221,7 +221,7 @@ export const EMAIL_DEPENDENT_FEATURES = [
 ]
 
 export const EMAIL_SETUP_HINT =
-  'Set CROMBOLO_EMAIL_PROVIDER to resend, postmark or custom with its key and CROMBOLO_EMAIL_FROM, or pass `email` in crombolo.config.ts. See docs/14-configuration.md.'
+  'Set CROMBOLO_EMAIL_PROVIDER to resend, postmark or custom with its key and CROMBOLO_EMAIL_FROM, or pass `email` in crombolo.config.ts. See docs/configuration.md.'
 
 export function emailAvailability(port: EmailPort | undefined): EmailAvailability {
   if (!port)

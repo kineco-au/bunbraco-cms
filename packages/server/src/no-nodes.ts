@@ -1,6 +1,6 @@
 /**
  * The holding page for a site with nothing published — Umbraco's "no nodes"
- * screen, which `docs/06-features.md` asks for.
+ * screen, which `docs/features.md` asks for.
  *
  * It answers 404, not 200: a brand-new site is not a working one, and anything
  * watching the URL should keep saying so until a page is published. It is only

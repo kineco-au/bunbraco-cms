@@ -1,6 +1,6 @@
 /**
  * The bundle definitions: what a bundle would contain, not a built bundle.
- * `docs/17-bundles.md`.
+ * `docs/bundles.md`.
  *
  * The selection lists travel as JSON text in single columns. A malformed list
  * reads back as empty rather than throwing: a definition whose row was edited

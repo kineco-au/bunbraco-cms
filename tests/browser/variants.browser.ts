@@ -1,5 +1,5 @@
 /**
- * WP-6.6's exit in the real backoffice: on a two-language site, a page that
+ * Story 025's exit in the real backoffice: on a two-language site, a page that
  * varies by culture is written and published in English, then in Danish
  * through the publish dialog, and each culture renders under its own
  * hostname — Danish falling back to English for the title it leaves empty.

@@ -1,7 +1,7 @@
 /**
  * An element is pending on a node when the deployment that created it is newer
  * than the node, or its file says `since` a version the node has not reached.
- * The one place the rule lives. docs/09-schema-as-code.md, "since".
+ * The one place the rule lives. docs/schema-as-code.md, "since".
  */
 import { compareStates, compareVersions, type NodeSchemaState } from './schema-state.ts'
 

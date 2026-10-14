@@ -1,7 +1,7 @@
 /**
  * The Bundles section in the backoffice: the views that replace Umbraco's, the
  * two labels its builder hard-codes, and the migrations that moved the stored
- * names. docs/17-bundles.md.
+ * names. docs/bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { formPermissionPrefixMigration, RENAMED_FORM_VERBS } from '@crombolo/data'

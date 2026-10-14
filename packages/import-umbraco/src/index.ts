@@ -1,6 +1,6 @@
 /**
  * Importing an Umbraco site: a compatibility report, and then the files of a
- * crombolo site. `docs/16-umbraco-import.md`.
+ * crombolo site. `docs/umbraco-import.md`.
  *
  * Nothing here writes a database row or a file. The result is a report and a
  * list of files — schema, a content bundle, view stubs — for the caller to put

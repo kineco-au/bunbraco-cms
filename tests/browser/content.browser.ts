@@ -1,5 +1,5 @@
 /**
- * WP-6.1's journey in the real backoffice: the Content section's create
+ * Story 020's journey in the real backoffice: the Content section's create
  * action offers the site's content type and opens the editor for it.
  */
 import type { Page } from '@playwright/test'

@@ -1,5 +1,5 @@
 /**
- * WP-6.9's URL tracker: a page that is renamed or moved keeps answering on the URL
+ * Story 042's URL tracker: a page that is renamed or moved keeps answering on the URL
  * it had, and the redirects a site declares in its configuration.
  */
 import { afterEach, describe, expect, test } from 'bun:test'

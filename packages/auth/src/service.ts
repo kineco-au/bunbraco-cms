@@ -1,6 +1,6 @@
 /**
  * The OAuth 2.0 authorization server, shaped to what the Umbraco backoffice
- * actually sends. See docs/04-backoffice-hosting.md for the wire contract.
+ * actually sends. See docs/backoffice-hosting.md for the wire contract.
  */
 import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@crombolo/core'
 import { hashPassword, passwordConfigJson, verifyPassword } from './password.ts'

@@ -1,5 +1,5 @@
 /**
- * WP-6.3: uploads. A file goes up as a temporary file, and a saved value that
+ * Story 022: uploads. A file goes up as a temporary file, and a saved value that
  * names it places it under the media root and stores its path, served at
  * `/media/…`.
  */

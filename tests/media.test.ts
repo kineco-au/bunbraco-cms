@@ -1,5 +1,5 @@
 /**
- * WP-6.4: the Media section — uploading into media items, the tree, items,
+ * Story 023: the Media section — uploading into media items, the tree, items,
  * search and collection, sorting and moving, the recycle bin, and the lookups
  * the dropzone uses to choose a media type.
  */

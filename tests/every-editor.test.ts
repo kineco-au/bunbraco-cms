@@ -1,5 +1,5 @@
 /**
- * WP-6.3's exit, through the API: a page with a property for every built-in
+ * Story 022's exit, through the API: a page with a property for every built-in
  * data type round-trips — what the editor sends is what it reads back — and
  * renders, each value as templates receive it.
  */

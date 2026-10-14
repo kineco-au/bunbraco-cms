@@ -120,7 +120,7 @@ export type ChangeKind =
  *
  * The trade is that these do not pass through `authorization.ts`, so the apply
  * path checks the caller's Settings access itself, the way that file would for a
- * `document-type` operation. See `docs/12-schema-at-runtime.md`.
+ * `document-type` operation. See `docs/schema-at-runtime.md`.
  */
 export const SCHEMA_KINDS: ReadonlySet<ChangeKind> = new Set([
   'document-type',

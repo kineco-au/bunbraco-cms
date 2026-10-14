@@ -2,7 +2,7 @@
  * Migration 002 — the content schema.
  *
  * `node` is the universal polymorphic tree; every other table here is a facet of
- * it. See docs/02-data-model.md for the model and why it is kept.
+ * it. See docs/data-model.md for the model and why it is kept.
  */
 import type { Db } from '../database.ts'
 import type { Migration } from '../migrations.ts'
@@ -164,7 +164,7 @@ export const contentMigration: Migration = {
        )`,
     )
 
-    // ---- documents and versions (Phase 4 uses these) ----
+    // ---- documents and versions (story 005 uses these) ----
 
     await db.exec(
       `CREATE TABLE content (

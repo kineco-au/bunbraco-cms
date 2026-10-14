@@ -1,5 +1,5 @@
 /**
- * Forms, phase 2 (`docs/18-forms.md`): entries in the database, keyed by the
+ * Forms, phase 2 (`docs/forms.md`): entries in the database, keyed by the
  * form's UUID because the definition is a file.
  *
  * The exit: an entry survives the deletion of the form that produced it, and a

@@ -1,6 +1,6 @@
 /**
  * The Packages section's marketplace over npm, and the runtime install.
- * docs/17-bundles.md.
+ * docs/bundles.md.
  *
  * Nothing here reaches the network: the registry is a recorded response and the
  * installer is a stub, because what is being checked is the filtering rule, the

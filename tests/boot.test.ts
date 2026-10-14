@@ -104,7 +104,7 @@ describe('shell', () => {
     expect((await get(`${BACKOFFICE}/nonsense`)).status).toBe(404)
   })
 
-  test('the front end 404s until Phase 4', async () => {
+  test('the front end 404s until story 005', async () => {
     expect((await get('/')).status).toBe(404)
   })
 })
@@ -139,7 +139,7 @@ describe.skipIf(!vendored)('vendored assets over HTTP', () => {
    * nothing is left unresolvable.
    *
    * This is the check that catches the class of breakage described in
-   * docs/04-backoffice-hosting.md — npm shipping re-export stubs, and Vite-only
+   * docs/backoffice-hosting.md — npm shipping re-export stubs, and Vite-only
    * import suffixes.
    */
   test('the entire module graph resolves', async () => {

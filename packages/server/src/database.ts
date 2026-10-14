@@ -2,7 +2,7 @@
  * Database bootstrap: connect, migrate, seed.
  *
  * Migration and seeding run at startup rather than through the install wizard;
- * the wizard is Phase 6. Both are idempotent, so restarting is safe.
+ * the wizard is story 080. Both are idempotent, so restarting is safe.
  */
 import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {

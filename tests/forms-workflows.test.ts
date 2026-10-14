@@ -1,5 +1,5 @@
 /**
- * Forms, phase 4 (`docs/18-forms.md`): the three workflows, and the queue they
+ * Forms, phase 4 (`docs/forms.md`): the three workflows, and the queue they
  * run from.
  *
  * The exit: a submission is stored before any workflow runs, a workflow that

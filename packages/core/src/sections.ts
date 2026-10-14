@@ -23,7 +23,7 @@ export const SECTION_ALIASES = {
   packages: 'Umb.Section.Packages',
   // Umbraco seeds this alias and then has no section for it: Forms is a
   // commercial add-on there. Form building is in core here, so the section is
-  // real and the alias resolves (`docs/18-forms.md`).
+  // real and the alias resolves (`docs/forms.md`).
   forms: 'Crombolo.Section.Forms',
 } as const
 

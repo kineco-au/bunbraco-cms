@@ -1,7 +1,7 @@
 /**
  * Multi-node plumbing: node identity in `server`, and the polled
  * `cache_instruction` table that tells other nodes what changed.
- * docs/09-schema-as-code.md, "Cache coherence".
+ * docs/schema-as-code.md, "Cache coherence".
  */
 import type { Db } from './database.ts'
 import { DbDate } from './dialect.ts'

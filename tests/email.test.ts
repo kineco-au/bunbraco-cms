@@ -1,5 +1,5 @@
 /**
- * Phase 0 of Forms (`docs/18-forms.md`): e-mail as a port, opt-in, and the
+ * E-mail for Forms (`docs/forms.md`, story 045): a port, opt-in, and the
  * features that need it unavailable-with-a-reason when there is none.
  *
  * The exit: a site with no provider boots, says what it cannot do, and refuses

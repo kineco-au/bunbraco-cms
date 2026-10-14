@@ -1,7 +1,7 @@
 /**
  * Schema-as-code at runtime: the boot sync, the development watcher that
  * re-syncs on file changes, and the cache-instruction poll that keeps this
- * node's caches coherent with the others. docs/09-schema-as-code.md.
+ * node's caches coherent with the others. docs/schema-as-code.md.
  */
 
 import { existsSync, watch } from 'node:fs'

@@ -1,7 +1,7 @@
 /**
  * Migration 005 — `upgrade_report`: the pre-upgrade check's findings, in a
  * stable shape the backoffice dashboard reads whatever version is live.
- * docs/10-packaging-and-upgrades.md, "The upgrade dashboard ships in the first release".
+ * docs/packaging-and-upgrades.md, "The upgrade dashboard ships in the first release".
  */
 import type { Db } from '../database.ts'
 import type { Migration } from '../migrations.ts'

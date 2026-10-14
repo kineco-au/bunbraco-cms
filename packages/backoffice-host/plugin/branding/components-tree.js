@@ -3,7 +3,7 @@
  *
  * Umbraco splits the two because Razor needed the distinction for
  * master-template inheritance; a TSX layout is an import, so here a template is
- * just a component a content type names (`docs/05-rendering.md`). The tree that
+ * just a component a content type names (`docs/rendering.md`). The tree that
  * survives is the partial-view one, because it is path-addressed and understands
  * folders — the template tree is id-addressed and cannot show one.
  *

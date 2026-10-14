@@ -1,7 +1,7 @@
 /**
  * Dictionary items as a `.udt` file, for seeding one environment from another.
  *
- * `09-schema-as-code.md` leaves the dictionary in the database rather than in
+ * `schema-as-code.md` leaves the dictionary in the database rather than in
  * `schema/`, because translators work in production where the schema files are
  * read-only — and promises this pair of commands as the way a lower environment
  * gets the translations.

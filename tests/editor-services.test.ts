@@ -1,5 +1,5 @@
 /**
- * WP-6.3: what property editors ask the server while editing — tag suggestions
+ * Story 022: what property editors ask the server while editing — tag suggestions
  * and oEmbed markup for the rich text editor.
  */
 import { afterEach, describe, expect, test } from 'bun:test'

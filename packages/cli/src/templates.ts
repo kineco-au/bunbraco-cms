@@ -29,7 +29,7 @@ export const TEMPLATES_DIR = join(import.meta.dir, '..', 'templates')
  * Written into the site's own files rather than hidden anywhere, because that
  * import is the whole of what lets a bundle answer a request — so it has to be
  * a line the developer owns from the first commit and can delete
- * (`docs/17-bundles.md`).
+ * (`docs/bundles.md`).
  */
 export interface TemplateServerBundle {
   /** The npm package, added to the site's dependencies. */

@@ -1,6 +1,6 @@
 /**
  * Migration 025 — the form permission verbs, for databases seeded before they
- * existed. `docs/18-forms.md`.
+ * existed. `docs/forms.md`.
  *
  * The same shape as migration 007: granting what the seed now grants, so an
  * upgraded site does not have a Forms section nobody can open. Idempotent, and

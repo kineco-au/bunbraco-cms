@@ -1,5 +1,5 @@
 /**
- * Phase 4: the vertical slice.
+ * Story 005: the vertical slice.
  *
  * create page → edit → save draft → publish → render at its URL → roll back.
  */
@@ -609,7 +609,7 @@ describe('rendering', () => {
 })
 
 /**
- * WP-6.1: what the real document workspace calls that the Phase 4 slice did
+ * Story 020: what the real document workspace calls that story 005's slice did
  * not — configuration, validate, save-and-publish, the published read, the
  * tree's ancestors/siblings/search, and the recycle bin it always renders.
  */
@@ -681,7 +681,7 @@ function body(
   }
 }
 
-describe('WP-6.1 document workspace', () => {
+describe('story 020 document workspace', () => {
   test('configuration answers', async () => {
     const { h } = await strictScaffold()
     expect(await h.json<Record<string, boolean>>(`${V1}/document/configuration`)).toEqual({

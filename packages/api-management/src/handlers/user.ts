@@ -476,7 +476,7 @@ function registerUsers(router: ManagementApiRouter, users: UserPort): void {
     return found.status === 'Success' ? Response.json([]) : status(found.status)
   })
   router.handle('DeleteUserById2faByProviderName', noProvider)
-  // External backoffice logins arrive with WP-6.8's providers.
+  // External backoffice logins arrive with story 031's providers.
   router.handle('GetUserCurrentLoginProviders', () => Response.json([]))
 
   router.handle('PostSecurityForgotPassword', async (ctx) => {

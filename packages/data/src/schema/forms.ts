@@ -1,5 +1,5 @@
 /**
- * Migration 023 — form entries. `docs/18-forms.md`.
+ * Migration 023 — form entries. `docs/forms.md`.
  *
  * The definition is a file, so there is no form table and nothing to point at:
  * an entry carries `form_key`, the UUID from `schema/forms/*.toml`, and keeps

@@ -1,6 +1,6 @@
 /**
  * The bundle: content selected out of one environment and reviewable on its way
- * to another. `docs/13-content-transfer.md`.
+ * to another. `docs/content-transfer.md`.
  *
  * Everything travels by uuid and alias, never by integer id, because the ids
  * differ between environments and the keys do not. A content type is matched by
@@ -32,7 +32,7 @@ export const CONTENT_ONLY_FORMAT_VERSION = 1
  * layout therefore installs into another's.
  *
  * There is one section for components, not two. Umbraco's split of templates
- * and partial views was a Razor concern (`docs/05-rendering.md`), and a bundle
+ * and partial views was a Razor concern (`docs/rendering.md`), and a bundle
  * that carried it would push the distinction back into every site that
  * installed one.
  */

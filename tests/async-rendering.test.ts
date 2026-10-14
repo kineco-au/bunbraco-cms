@@ -220,19 +220,19 @@ export default async function Home({ model }) {
   })
 })
 
-/** The fenced block in `docs/20-adding-a-page.md` that starts with `// components/<file>`. */
+/** The fenced block in `docs/adding-a-page.md` that starts with `// components/<file>`. */
 function guideComponent(file: string): string {
-  const guide = readFileSync(join(import.meta.dir, '..', 'docs', '20-adding-a-page.md'), 'utf8')
+  const guide = readFileSync(join(import.meta.dir, '..', 'docs', 'adding-a-page.md'), 'utf8')
   const block = guide
     .split('```tsx\n')
     .slice(1)
     .map((part) => part.slice(0, part.indexOf('```')))
     .find((part) => part.startsWith(`// components/${file}\n`))
-  if (!block) throw new Error(`docs/20-adding-a-page.md has no block for components/${file}`)
+  if (!block) throw new Error(`docs/adding-a-page.md has no block for components/${file}`)
   return block
 }
 
-describe('the events page in docs/20-adding-a-page.md', () => {
+describe('the events page in docs/adding-a-page.md', () => {
   const open: Harness[] = []
   const dirs: string[] = []
   afterEach(async () => {

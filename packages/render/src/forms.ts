@@ -14,7 +14,7 @@
  * Theming is composition, not directories. `components` overrides the renderer
  * for a field type, and a site that wants different markup altogether writes it
  * from the definition — which is three lines of TSX and needs nothing from here.
- * `docs/18-forms.md` says why this diverges from Umbraco's theme folders.
+ * `docs/forms.md` says why this diverges from Umbraco's theme folders.
  */
 import {
   FORM_HONEYPOT_FIELD,

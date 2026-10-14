@@ -1,5 +1,5 @@
 /**
- * Forms, phases 5 and 6 (`docs/18-forms.md`): the Forms section, the designer's
+ * Forms, phases 5 and 6 (`docs/forms.md`): the Forms section, the designer's
  * save path, CSV export, and the four permission verbs.
  *
  * The exit: an editor can read entries and act on them but cannot design a form

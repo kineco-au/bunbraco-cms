@@ -2,7 +2,7 @@
  * The backoffice writes schema files. A document-type save lands in the
  * database as before and, when the directory is writable, in
  * `schema/content-types/<alias>.toml` — the file the next boot will sync.
- * docs/09-schema-as-code.md, "The backoffice writes files".
+ * docs/schema-as-code.md, "The backoffice writes files".
  */
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'

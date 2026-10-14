@@ -1,5 +1,5 @@
 /**
- * The form workflow queue. `docs/18-forms.md`.
+ * The form workflow queue. `docs/forms.md`.
  *
  * Claimed with `UPDATE … WHERE state = 'pending' … RETURNING`, which is atomic
  * on both dialects: on a multi-node Postgres site every node polls, and exactly

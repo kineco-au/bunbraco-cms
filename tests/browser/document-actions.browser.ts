@@ -1,5 +1,5 @@
 /**
- * WP-6.5's exit: every action in a page's action menu, done through its dialog
+ * Story 024's exit: every action in a page's action menu, done through its dialog
  * in the real backoffice, with the outcome checked through the API.
  */
 import type { Page } from '@playwright/test'

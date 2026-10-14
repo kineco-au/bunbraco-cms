@@ -205,7 +205,7 @@ export interface CromboloConfig {
    *
    * Nothing here throws: a site with no provider reports the features as
    * unavailable, with the reason, rather than failing when someone presses the
-   * button. See `email.ts` and `docs/14-configuration.md`.
+   * button. See `email.ts` and `docs/configuration.md`.
    */
   email: EmailPort | null | undefined
   /**
@@ -245,7 +245,7 @@ export interface CromboloConfig {
    * factory its package exports. Imported and listed here by hand on purpose:
    * installing a bundle never makes its server code run, so the only way code
    * reaches the request path is a committed, deployed edit to this file
-   * (`bundles.ts`, `docs/17-bundles.md`).
+   * (`bundles.ts`, `docs/bundles.md`).
    */
   bundles: ServerBundle[]
   /**

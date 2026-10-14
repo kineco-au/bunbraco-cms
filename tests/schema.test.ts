@@ -1,6 +1,6 @@
 /**
  * The schema-as-code core: strict parsing, whole-set validation, and a canonical
- * writer that round-trips. docs/09-schema-as-code.md.
+ * writer that round-trips. docs/schema-as-code.md.
  */
 import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'

@@ -76,7 +76,7 @@ export {
 } from '@crombolo/render'
 export type { Child } from '@crombolo/render/jsx-runtime'
 export {
-  // What a bundle's server half is written against; see `docs/17-bundles.md`.
+  // What a bundle's server half is written against; see `docs/bundles.md`.
   type AppAlias,
   type AzureMediaStoreOptions,
   type AzureSchemaStoreOptions,

@@ -1,6 +1,6 @@
 /**
  * Bundles: the definitions, and the zip a download builds from one.
- * `docs/17-bundles.md`.
+ * `docs/bundles.md`.
  *
  * Nothing new is serialized here. Schema travels as the canonical TOML
  * `@crombolo/schema` already writes, content and media as the bundle

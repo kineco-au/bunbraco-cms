@@ -2,7 +2,7 @@
  * Server-side bundle extensions: a bundle that has to answer a request, not just
  * render a screen.
  *
- * `docs/17-bundles.md` argued that server-side extensions should not exist here,
+ * `docs/bundles.md` argued that server-side extensions should not exist here,
  * and the objection was specific — loading third-party JS into a running node
  * has no isolation story, and a `role: web` node would never see a runtime
  * install. What answers it is wiring rather than sandboxing: **nothing in this

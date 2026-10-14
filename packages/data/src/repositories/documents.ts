@@ -5,7 +5,7 @@
  * tagged with the event that wrote it and the schema state the writer was at.
  * `content_version` rows are events (save | publish | rollback | migrate).
  * Publish is an event and a pointer, not a copy; rollback appends the old
- * values under a new event. See docs/02-data-model.md.
+ * values under a new event. See docs/data-model.md.
  */
 import {
   type DocumentAggregate,

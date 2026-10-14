@@ -8,7 +8,7 @@
  * Field types are an internal registry rather than an extension point: the TOML
  * vocabulary, the validator, the renderer and the entry value shape all have to
  * agree, and freezing that contract before anything has stressed it would be a
- * promise made too early (`docs/18-forms.md`).
+ * promise made too early (`docs/forms.md`).
  */
 
 export type FormFieldType =

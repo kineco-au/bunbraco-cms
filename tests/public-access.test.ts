@@ -1,5 +1,5 @@
 /**
- * WP-6.8: public access — protecting a branch by member group or by named
+ * Story 030: public access — protecting a branch by member group or by named
  * member — and the member sign-in it depends on.
  *
  * The rendering half is what matters: Umbraco *rewrites* a protected page to its

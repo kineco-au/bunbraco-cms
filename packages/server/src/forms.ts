@@ -1,5 +1,5 @@
 /**
- * What the backoffice reads about forms. `docs/18-forms.md`.
+ * What the backoffice reads about forms. `docs/forms.md`.
  *
  * Non-contract, under the plugin path, because there is no form operation in
  * the vendored OpenAPI document — Umbraco Forms ships its own API and its own

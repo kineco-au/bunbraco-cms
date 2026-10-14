@@ -1,7 +1,7 @@
 /**
  * The Crombolo server.
  *
- * Route order matters and mirrors docs/01-architecture.md: static assets, the
+ * Route order matters and mirrors docs/architecture.md: static assets, the
  * non-contract security and branding endpoints, the contract-first Management
  * API, the SPA shells, then the front-end site.
  */
@@ -198,7 +198,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     }
   }
   const domainLog = logger('domains')
-  // Extensions are the site's own npm dependencies (`docs/17-bundles.md`).
+  // Extensions are the site's own npm dependencies (`docs/bundles.md`).
   // Uncached in development so an author editing one sees a reload pick it up.
   const extensions = createExtensionRegistry(config.siteDir, { cache: !config.development })
   const marketplace = createMarketplace({
@@ -592,7 +592,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     nodeId: schema.nodeId,
     role: config.role,
   })
-  // App_Plugins is gone (`docs/17-bundles.md`). Saying so beats a site whose
+  // App_Plugins is gone (`docs/bundles.md`). Saying so beats a site whose
   // extensions silently stopped loading after an upgrade; remove at 1.0.
   warnAboutAppPlugins(config.siteDir, log)
   noticeAboutEmail(emailStatus, logger('email'), { development: config.development })
@@ -901,7 +901,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     /**
      * Non-contract: forms and their entries. There is no form operation in the
      * vendored contract — Umbraco Forms ships its own API and its own client,
-     * and neither is here — so this is ours (`docs/18-forms.md`).
+     * and neither is here — so this is ours (`docs/forms.md`).
      *
      * Definitions are read from `schema/` per request rather than cached: the
      * files are the truth, the backoffice may have just rewritten one, and a
@@ -924,7 +924,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       const byKey = formsByKey(definitions)
       // Submissions are personal data, so reading them asks for more than a
       // session. Four verbs, because designing a form and reading what people
-      // sent it are different jobs (`docs/18-forms.md`).
+      // sent it are different jobs (`docs/forms.md`).
       const may = (verb: string) => principal.isAdmin || principal.permissions.includes(verb)
       const formFiles = {
         schemaDir: config.schemaDir,

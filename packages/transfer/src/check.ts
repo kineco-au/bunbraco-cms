@@ -3,7 +3,7 @@
  * from someone first.
  *
  * Read-only, and it runs before every import rather than only when asked
- * (`13-content-transfer.md`). The point is that nothing is written until the
+ * (`content-transfer.md`). The point is that nothing is written until the
  * conflicts are named and answered, so a transfer is never a surprise.
  *
  * Findings share the shape, table, endpoint and dashboard of the pre-upgrade

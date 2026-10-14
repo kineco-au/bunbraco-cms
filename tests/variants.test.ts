@@ -1,5 +1,5 @@
 /**
- * WP-6.6's exit: a two-language site publishes one culture, falls back for the
+ * Story 025's exit: a two-language site publishes one culture, falls back for the
  * other, and renders both under their hostnames. Publishing one culture leaves
  * the others as they were published; mandatory languages must be published.
  */

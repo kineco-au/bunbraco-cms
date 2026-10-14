@@ -1,5 +1,5 @@
 /**
- * WP-6.7: users and user groups, and permissions enforced on every call. The
+ * Story 026: users and user groups, and permissions enforced on every call. The
  * exit: an editor in a restricted group sees only their start node and
  * cannot delete.
  */

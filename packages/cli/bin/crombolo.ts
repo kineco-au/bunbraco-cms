@@ -1362,7 +1362,7 @@ async function contentExport(config: CromboloConfig): Promise<void> {
 }
 
 /**
- * `09-schema-as-code.md` leaves the dictionary in the database, because
+ * `schema-as-code.md` leaves the dictionary in the database, because
  * translators work in production where `schema/` is read-only — so this is how
  * a lower environment gets the translations.
  */
@@ -2073,7 +2073,7 @@ async function dispatch(): Promise<void> {
       break
     /**
      * The artifact's own name. A bundle that carries its own structure is what
-     * the Packages section builds (`docs/17-bundles.md`), and `install` reads
+     * the Packages section builds (`docs/bundles.md`), and `install` reads
      * better than `import` for one — but it is the same operation on the same
      * artifact, so this is the same code path, not a second one.
      */

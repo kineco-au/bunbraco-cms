@@ -1,5 +1,5 @@
 /**
- * WP-6.4: resized and cropped media, in the query vocabulary Umbraco's URL
+ * Story 023: resized and cropped media, in the query vocabulary Umbraco's URL
  * generator writes (`width`, `height`, `rmode`, `rxy`, `cc`, `format`).
  * Images are built from known colours so crops can be checked pixel by pixel.
  */

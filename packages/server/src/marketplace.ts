@@ -1,5 +1,5 @@
 /**
- * The Bundles section's marketplace, over npm. `docs/17-bundles.md`.
+ * The Bundles section's marketplace, over npm. `docs/bundles.md`.
  *
  * Discovery and declaration are two different things, because npm indexes only
  * one of them: a bundle is *found* by the `crombolo-bundle` keyword, which is

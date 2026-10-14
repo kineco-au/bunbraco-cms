@@ -1,5 +1,5 @@
 /**
- * WP-6.5: the document action menu beyond save and publish — move, copy, sort,
+ * Story 024: the document action menu beyond save and publish — move, copy, sort,
  * the recycle bin, publishing a branch, and reading a past version.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -93,7 +93,7 @@ async function site() {
   return { h, create, publish, children, names, componentKey }
 }
 
-describe('WP-6.5 move, copy, sort', () => {
+describe('story 024 move, copy, sort', () => {
   test('move re-parents a branch, and refuses to move below itself', async () => {
     const { h, create, publish, names } = await site()
     const home = await create('Home')
@@ -213,7 +213,7 @@ describe('WP-6.5 move, copy, sort', () => {
   })
 })
 
-describe('WP-6.5 recycle bin', () => {
+describe('story 024 recycle bin', () => {
   test('restore returns a branch to where it was, or to a chosen target', async () => {
     const { h, create, publish, names } = await site()
     const home = await create('Home')
@@ -264,7 +264,7 @@ describe('WP-6.5 recycle bin', () => {
   })
 })
 
-describe('WP-6.5 publishing a branch and past versions', () => {
+describe('story 024 publishing a branch and past versions', () => {
   test('publish with descendants publishes what was published, or everything, skipping what cannot', async () => {
     const { h, create, publish, children } = await site()
     const home = await create('Home')
@@ -358,7 +358,7 @@ describe('WP-6.5 publishing a branch and past versions', () => {
   })
 })
 
-describe('WP-6.5 scheduled publishing', () => {
+describe('story 024 scheduled publishing', () => {
   test('a future publish time waits for the job; an unpublish time takes the page down later', async () => {
     const { h, create } = await site()
     const home = await create('Home')
@@ -433,7 +433,7 @@ describe('WP-6.5 scheduled publishing', () => {
   })
 })
 
-describe('WP-6.5 version cleanup', () => {
+describe('story 024 version cleanup', () => {
   test('prunes by age and per day, keeps pinned and current versions, and every kept version reads as before', async () => {
     const { h, create } = await site()
     const page = await create('Page', null, 'A1')
@@ -513,7 +513,7 @@ describe('WP-6.5 version cleanup', () => {
   })
 })
 
-describe('WP-6.5 culture and hostnames, notifications', () => {
+describe('story 024 culture and hostnames, notifications', () => {
   test('a hostname roots the site at a document, in its culture; names are unique', async () => {
     const { h, create, publish } = await site()
     const home = await create('Home')
@@ -626,7 +626,7 @@ describe('WP-6.5 culture and hostnames, notifications', () => {
   })
 })
 
-describe('WP-6.5 preview', () => {
+describe('story 024 preview', () => {
   test('the preview URL enters preview; a signed-in editor then sees drafts, and nobody else does', async () => {
     const { h, create, publish, componentKey } = await site()
     const home = await create('Home', null, 'Published title')
@@ -717,7 +717,7 @@ describe('WP-6.5 preview', () => {
   })
 })
 
-describe('WP-6.5 document blueprints', () => {
+describe('story 024 document blueprints', () => {
   test('a blueprint made from a page lists under its type, and scaffolds a new page', async () => {
     const { h, create } = await site()
     const home = await create('Home', null, 'Welcome')
@@ -859,7 +859,7 @@ describe('WP-6.5 document blueprints', () => {
   })
 })
 
-describe('WP-6.5 item ancestors and public access', () => {
+describe('story 024 item ancestors and public access', () => {
   test('item ancestors: folders for types and data types, the layout chain for templates', async () => {
     const { h, create, componentKey } = await site()
     const home = await create('Home')

@@ -1,5 +1,5 @@
 /**
- * WP-6.8: member groups. They are plain `node` rows with the MemberGroup object
+ * Story 030: member groups. They are plain `node` rows with the MemberGroup object
  * type — no table of their own — and the contract gives them seven operations:
  * CRUD, the item lookup pickers use, and a flat tree root.
  */

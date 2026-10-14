@@ -1,5 +1,5 @@
 /**
- * WP-6.7: the pure rules behind authorization — path access, per-node verb
+ * Story 026: the pure rules behind authorization — path access, per-node verb
  * calculation and start-node combination, ported from Umbraco — and the
  * section each operation demands.
  */

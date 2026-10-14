@@ -4,7 +4,7 @@
  * Published only — drafts are never cached — and rebuilt from the database on
  * invalidation. Umbraco runs three tiers here (in-process objects, a hybrid
  * memory/distributed cache, and a serialised table); a single Bun process needs
- * only the first, and the other two are pure throughput. See docs/05-rendering.md.
+ * only the first, and the other two are pure throughput. See docs/rendering.md.
  *
  * Content is held once per culture: a node that varies by culture appears in
  * each culture it is published in, with that culture's name, URL and values

@@ -1,7 +1,7 @@
 /**
  * The pre-upgrade check: what would this change do to the data, and what does
  * it need? One function behind `crombolo upgrade check` and `crombolo schema
- * check`. Read-only. docs/10-packaging-and-upgrades.md, "Three kinds of finding".
+ * check`. Read-only. docs/packaging-and-upgrades.md, "Three kinds of finding".
  */
 import type { ContentTypeAggregate, PropertyTypeModel } from '@crombolo/core'
 import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'

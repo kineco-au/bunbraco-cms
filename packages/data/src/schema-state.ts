@@ -4,7 +4,7 @@
  *
  * `(version, revision)` is a deployment's identity: `version` is the human
  * value in `schema/schema.toml`, `revision` a monotonic number supplied at
- * deploy time. See docs/10-packaging-and-upgrades.md.
+ * deploy time. See docs/packaging-and-upgrades.md.
  */
 import type { Db } from './database.ts'
 import { DbDate } from './dialect.ts'

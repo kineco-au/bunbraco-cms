@@ -1,5 +1,5 @@
 /**
- * WP-6.8: members. A member is a content node with a sign-in facet, so these
+ * Story 030: members. A member is a content node with a sign-in facet, so these
  * cover both halves — the properties a member type declares, and the e-mail,
  * username, approval, lockout and group membership that make it a member.
  *

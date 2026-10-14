@@ -1,5 +1,5 @@
 /**
- * Forms, phase 1 (`docs/18-forms.md`): a form definition is a file, so it
+ * Forms, phase 1 (`docs/forms.md`): a form definition is a file, so it
  * parses strictly, writes canonically, round trips, and is validated against
  * the rest of the schema.
  *

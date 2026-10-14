@@ -1,5 +1,5 @@
 /**
- * Forms, phase 3 (`docs/18-forms.md`): the submission rules, and a form as HTML.
+ * Forms, phase 3 (`docs/forms.md`): the submission rules, and a form as HTML.
  *
  * The exit: a value posted for a field the conditions hide is discarded rather
  * than stored, and a form renders as a real `<form method="post">` that works

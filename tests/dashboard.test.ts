@@ -120,7 +120,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     // All three Bundles views replace Umbraco's: its Marketplace is an iframe of
     // a site that refuses to be framed, its Installed view is built around
     // package migrations, which cannot exist here, and its Created view is a
-    // router whose overview says package (`docs/17-bundles.md`).
+    // router whose overview says package (`docs/bundles.md`).
     const marketplace = ours?.extensions.find(
       (e) => e.alias === 'Crombolo.SectionView.Bundles.Marketplace',
     )

@@ -5,7 +5,7 @@
  * same rules for immediate feedback, but every submission is re-validated from
  * the definition before anything is stored — and so is every condition, because
  * "this field was hidden" is a client-side claim. A value for a field the
- * conditions hide is discarded rather than trusted (`docs/18-forms.md`).
+ * conditions hide is discarded rather than trusted (`docs/forms.md`).
  *
  * This is a deliberate divergence from Umbraco Forms, whose conditional logic
  * is a client-side concern tied to CSS classes.

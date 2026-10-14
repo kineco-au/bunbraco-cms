@@ -2,7 +2,7 @@
  * Created packages: the definitions' CRUD, the two migration operations that
  * answer honestly, and the download — asserted by reading the zip back and
  * loading the bundle inside it through the importer that already exists, rather
- * than by inspecting bytes. docs/17-bundles.md.
+ * than by inspecting bytes. docs/bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -364,7 +364,7 @@ describe('the download', () => {
   })
 
   /**
-   * Built-ins are not written as schema files either (`09-schema-as-code.md`):
+   * Built-ins are not written as schema files either (`schema-as-code.md`):
    * every site has them, so carrying one would ship a file the destination
    * already satisfies. Picking one is therefore allowed and carries nothing.
    */

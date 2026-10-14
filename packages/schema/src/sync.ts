@@ -1,7 +1,7 @@
 /**
  * Files → database. Version-gated, locked, and never destructive: removal is
  * retirement, and a type with content refuses to disappear. The algorithm and
- * the multi-node rules are in docs/09-schema-as-code.md, "Synchronisation".
+ * the multi-node rules are in docs/schema-as-code.md, "Synchronisation".
  */
 import { type ContentTypeAggregate, ObjectTypes, type PropertyTypeModel } from '@crombolo/core'
 import {

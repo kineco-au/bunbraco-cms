@@ -1,6 +1,6 @@
 /**
  * The append-only value model's own guarantees, tested at the data layer.
- * docs/02-data-model.md, "Values are append-only".
+ * docs/data-model.md, "Values are append-only".
  */
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { hashPassword, passwordConfigJson } from '@crombolo/auth'

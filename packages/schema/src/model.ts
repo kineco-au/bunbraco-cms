@@ -2,7 +2,7 @@ import type { SchemaForm } from '@crombolo/core'
 
 /**
  * The schema-as-code model: what a site's `schema/*.toml` files describe.
- * The shapes mirror the TOML vocabulary in docs/09-schema-as-code.md, with
+ * The shapes mirror the TOML vocabulary in docs/schema-as-code.md, with
  * defaults applied, so the rest of the system never sees a missing key.
  */
 export interface SchemaProperty {
@@ -108,7 +108,7 @@ export interface SchemaSet {
   memberTypes?: SchemaContentType[]
   dataTypes: SchemaDataType[]
   languages: SchemaLanguage[]
-  /** `schema/forms/*.toml` — form definitions; see `docs/18-forms.md`. */
+  /** `schema/forms/*.toml` — form definitions; see `docs/forms.md`. */
   forms?: SchemaForm[]
 }
 

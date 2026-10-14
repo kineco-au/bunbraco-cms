@@ -89,7 +89,7 @@ const CULTURES = [
 
 function createServerPort(config: CromboloConfig, canSendUserLinks: boolean): ServerPort {
   return {
-    // Phase 6 derives this from migration state; until then the site is always up.
+    // Story 080 derives this from migration state; until then the site is always up.
     status: () => ({ serverStatus: 'Run' }),
     configuration: () => ({
       // Reported false when no link could be delivered, so the client does not

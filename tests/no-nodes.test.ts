@@ -1,7 +1,7 @@
 /**
  * What a site serves before anybody has published anything.
  *
- * Umbraco shows a "no nodes" screen; `docs/06-features.md` asks for the same.
+ * Umbraco shows a "no nodes" screen; `docs/features.md` asks for the same.
  * The rule worth holding is which 404 is which: the explanation only appears
  * while the published tree is empty, so a missing path on a live site keeps the
  * plain answer a crawler and a monitor expect.

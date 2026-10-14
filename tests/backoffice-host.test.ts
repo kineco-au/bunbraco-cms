@@ -201,7 +201,7 @@ describe('shell', () => {
 
   test('the login shell configures the login element', () => {
     // Umbraco's own <umb-auth> ships in an unpublished package, so we render our
-    // equivalent; see R2 in docs/07-roadmap.md.
+    // equivalent; see R2 in docs/roadmap.md.
     const html = renderLoginShell(paths, importmap, {
       defaultUiLanguage: 'en-US',
       keepUserLoggedIn: false,

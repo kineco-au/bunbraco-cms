@@ -1,8 +1,8 @@
 /**
  * Schema-as-code end to end: boot syncs `schema/`, the backoffice writes files,
  * a removed type with content refuses to boot, and two nodes on one Postgres
- * database stay coherent. docs/09-schema-as-code.md; the 5b exit criteria in
- * docs/07-roadmap.md.
+ * database stay coherent. docs/schema-as-code.md; the 5b exit criteria in
+ * docs/roadmap.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

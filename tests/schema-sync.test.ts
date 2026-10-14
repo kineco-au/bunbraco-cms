@@ -1,6 +1,6 @@
 /**
  * Files → database: version gating, retirement and revival, key assignment,
- * deletion safety. docs/09-schema-as-code.md, "Synchronisation".
+ * deletion safety. docs/schema-as-code.md, "Synchronisation".
  */
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

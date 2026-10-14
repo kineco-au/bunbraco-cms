@@ -1,5 +1,5 @@
 /**
- * WP-6.7's exit in the real backoffice: an administrator creates a user in the
+ * Story 026's exit in the real backoffice: an administrator creates a user in the
  * Users section and puts them in a group restricted to one branch without the
  * Delete verb; signed in, that editor sees only their start node and is not
  * offered Delete. Plus the Translation section's dictionary.

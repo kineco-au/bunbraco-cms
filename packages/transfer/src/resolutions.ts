@@ -2,7 +2,7 @@
  * `resolutions.json`, beside the bundle it answers.
  *
  * A decision is committed with the bundle rather than retyped per environment,
- * for the reason `10-packaging-and-upgrades.md` gives for site-authored value
+ * for the reason `packaging-and-upgrades.md` gives for site-authored value
  * migrations: the same fix-up should not be worked out again in test and then
  * again in production, each time against more content.
  *

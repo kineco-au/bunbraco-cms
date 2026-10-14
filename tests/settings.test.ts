@@ -1,5 +1,5 @@
 /**
- * WP-6.2: the Settings section end to end — what the document-type, data-type
+ * Story 021: the Settings section end to end — what the document-type, data-type
  * and template workspaces call, folders that live in the files, the editor
  * picker, languages, and every tree the section renders answering.
  */
@@ -91,7 +91,7 @@ async function createType(h: Harness, body: Record<string, unknown>): Promise<st
   return response.headers.get('umb-generated-resource') as string
 }
 
-describe('WP-6.2 content types', () => {
+describe('story 021 content types', () => {
   test('configuration, batch, search, allowed parents and composition references', async () => {
     const { h } = await site()
     const configuration = await h.json<{
@@ -389,7 +389,7 @@ describe('WP-6.2 content types', () => {
   })
 })
 
-describe('WP-6.2 data types', () => {
+describe('story 021 data types', () => {
   test('the editor picker filters, search finds, references list, and a saved data type becomes a file', async () => {
     const { h, schemaDir } = await site()
     const byUi = await h.json<{
@@ -519,7 +519,7 @@ describe('WP-6.2 data types', () => {
   })
 })
 
-describe('WP-6.2 templates and languages', () => {
+describe('story 021 templates and languages', () => {
   test('the template tree hangs children under the layout their view names', async () => {
     const { h } = await site()
     const layout = await h.post(`${V1}/template`, {
@@ -719,7 +719,7 @@ describe('WP-6.2 templates and languages', () => {
       expect([path, response.status]).toEqual([path, 200])
       expect(await response.json()).toEqual([])
     }
-    // Blueprint and media siblings are real since WP-6.5 and 6.4
+    // Blueprint and media siblings are real since stories 024 and 023
     for (const path of [
       'tree/partial-view/siblings?path=a',
       'tree/script/siblings?path=a',

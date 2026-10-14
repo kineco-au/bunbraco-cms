@@ -1,7 +1,7 @@
 /**
  * The browser smoke suite: the real vendored backoffice, driven by the
  * installed Chrome against a throwaway site. `bun run test:browser`. Not part
- * of `bun test` or `bun run check`; see docs/08-testing.md.
+ * of `bun test` or `bun run check`; see docs/testing.md.
  */
 import { defineConfig } from '@playwright/test'
 

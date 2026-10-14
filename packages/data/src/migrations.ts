@@ -3,7 +3,7 @@
  * version number and not a list of applied migrations: the plan is a chain of
  * transitions walked forward to its final state. That design handles concurrent
  * development branches far better than sequence numbers, so we keep it — and
- * harden it (docs/10-packaging-and-upgrades.md): a ledger of every step that
+ * harden it (docs/packaging-and-upgrades.md): a ledger of every step that
  * ran, expand/contract declared and linted, a recorded plan, and an explicit
  * refusal when the database is newer than the code.
  */

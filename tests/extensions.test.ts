@@ -1,6 +1,6 @@
 /**
  * Backoffice extensions as npm dependencies, which replaced `App_Plugins`.
- * docs/17-bundles.md.
+ * docs/bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'

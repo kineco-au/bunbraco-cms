@@ -1,5 +1,5 @@
 /**
- * WP-6.3: structured values as templates receive them — pickers yield the
+ * Story 022: structured values as templates receive them — pickers yield the
  * content they point at, link pickers yield resolved links, and block editors
  * yield elements with the same `value()` API as a page.
  */

@@ -4,7 +4,7 @@
  * every set), then, for documents and media, the caller's start nodes and the
  * permission verbs the operation needs on the nodes it names. Users and user
  * groups carry rules about the people involved, which their port enforces.
- * See docs/04-backoffice-hosting.md for the table's provenance.
+ * See docs/backoffice-hosting.md for the table's provenance.
  */
 import type { OperationInfo } from '@crombolo/contracts'
 import {

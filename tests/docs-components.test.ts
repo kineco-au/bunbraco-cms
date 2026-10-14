@@ -1,5 +1,5 @@
 /**
- * The examples in docs/21-writing-components.md, run: every `// components/…`
+ * The examples in docs/writing-components.md, run: every `// components/…`
  * block is written into a site, type-checked as a site would be, and rendered
  * as the page the document builds.
  */
@@ -10,7 +10,7 @@ import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
 import { generateTypes, loadSchemaDirectory } from '@crombolo/schema'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
-const GUIDE = join(import.meta.dir, '..', 'docs', '21-writing-components.md')
+const GUIDE = join(import.meta.dir, '..', 'docs', 'writing-components.md')
 
 /** Each fenced `tsx` block whose first line names its file under `components/`. */
 function examples(): Map<string, string> {
@@ -81,7 +81,7 @@ function siteFromGuide(): string {
   return root
 }
 
-describe('docs/21-writing-components.md', () => {
+describe('docs/writing-components.md', () => {
   test('has the components the page it builds imports', () => {
     expect([...examples().keys()].sort()).toEqual([
       'components/shared/arrow-icon.tsx',

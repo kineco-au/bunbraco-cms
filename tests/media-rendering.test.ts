@@ -1,5 +1,5 @@
 /**
- * WP-6.4's exit, through the API: an image uploaded to Media, picked on a page
+ * Story 023's exit, through the API: an image uploaded to Media, picked on a page
  * and published, renders as a resized crop the media route serves. Plus the
  * gallery form, rich text links and images, and the Image Cropper's crops.
  */

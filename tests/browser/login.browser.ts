@@ -1,5 +1,5 @@
 /**
- * WP-6.7's login flows on our login page: an invited user follows their link,
+ * Story 026's login flows on our login page: an invited user follows their link,
  * chooses a password and signs in; later they forget it, ask for a reset link
  * from the sign-in screen, and choose a new one. The browser site records the
  * links it would have e-mailed.

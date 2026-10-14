@@ -1,5 +1,5 @@
 /**
- * Writing a form definition back to `schema/forms/`. `docs/18-forms.md`.
+ * Writing a form definition back to `schema/forms/`. `docs/forms.md`.
  *
  * The designer saves a form the way the type editors save a content type: the
  * file is the truth, so the write goes to the file and `onChanged` publishes it
@@ -234,7 +234,7 @@ export async function deleteForm(
       ],
     }
   // The entries stay: they are the business record, and deleting a definition
-  // must not take what people sent it (`docs/18-forms.md`).
+  // must not take what people sent it (`docs/forms.md`).
   rmSync(file)
   await options.onChanged?.()
   return { ok: true, file }
