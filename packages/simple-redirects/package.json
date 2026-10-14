@@ -1,6 +1,6 @@
 {
   "name": "@bunbraco/simple-redirects",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Manage redirects in the Bunbraco backoffice: a Settings screen over the redirect engine in core.",
   "license": "MIT",
   "author": "Kineco",
