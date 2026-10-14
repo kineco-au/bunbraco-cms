@@ -7,7 +7,7 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { toDocumentTypeResponse } from '@bunbraco/api-management'
+import { toContentTypeResponse } from '@bunbraco/api-management'
 import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
 import {
   bunbracoPlan,
@@ -166,7 +166,7 @@ describe(`pending elements (${dialectUnderTest})`, () => {
     const summary = onOld?.properties.find((p) => p.alias === 'summary')
     expect(summary?.pending).toEqual({ version: '1.1.0', revision: '2' })
     expect(onOld?.properties.find((p) => p.alias === 'title')?.pending).toBeNull()
-    const response = toDocumentTypeResponse(onOld as NonNullable<typeof onOld>)
+    const response = toContentTypeResponse(onOld as NonNullable<typeof onOld>)
     expect(response.properties.find((p) => p.alias === 'summary')?.name).toBe(
       'Summary (goes live in 1.1.0)',
     )

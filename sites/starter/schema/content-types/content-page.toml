@@ -1,0 +1,51 @@
+[content-type]
+key = "8491ffa4-9b2f-48b0-a3c0-f40c1034216e"
+alias = "contentPage"
+name = "Content Page"
+description = "A page with a main column and a sidebar"
+icon = "icon-document"
+allow-at-root = true
+allow-children = ["contentPage"]
+compositions = ["seoFields"]
+components = ["pages/contentPage"]
+default-component = "pages/contentPage"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "98fd8217-c0d5-4388-92e2-9e94b43265de"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "7028eeb8-9739-4cc9-b3e1-8b424dd1e929"
+alias = "intro"
+name = "Introduction"
+description = "A sentence or two under the heading"
+type = "textarea"
+
+[[tab.property]]
+key = "ecf97032-ce17-472e-a0ba-c1dbfc31633d"
+alias = "bodyText"
+name = "Body"
+type = "richtext"
+
+[[tab]]
+name = "Sidebar"
+
+[[tab.property]]
+key = "d049eba5-ae38-4fe9-9b05-64d1fa50b35e"
+alias = "sidebarHeading"
+name = "Heading"
+type = "textstring"
+
+[[tab.property]]
+key = "fff4d170-e192-419a-9490-59affd2f6148"
+alias = "sidebarText"
+name = "Text"
+description = "Leave empty for a single-column page"
+type = "richtext"

@@ -22,7 +22,7 @@
     "packages/*/src/**/*",
     "packages/*/bin/**/*",
     "packages/cli/templates/*/files/components/**/*",
-    "packages/cli/templates/*/*/files/components/**/*",
+    "sites/*/components/**/*",
     "apps/*/**/*",
     "scripts/**/*",
     "tests/**/*"

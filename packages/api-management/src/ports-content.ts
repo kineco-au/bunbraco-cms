@@ -44,7 +44,7 @@ export interface FolderInput {
   parentKey: string | null
 }
 
-/** Document types and media types share one port shape. */
+/** Content types and media types share one port shape. */
 export type ContentTypeKind = 'document' | 'media' | 'member'
 
 /** Umbraco's TreeItemKind: which of folders and items a search returns. */
@@ -204,7 +204,7 @@ export interface ContentTypePort extends TreePort {
   }): Promise<Array<{ type: ContentTypeAggregate; folderPath: string[]; isCompatible: boolean }>>
   move(key: string, parentKey: string | null): Promise<boolean>
   copy(key: string, parentKey: string | null): Promise<ContentTypeAggregate | undefined>
-  /** Creates a view for the type and attaches it, as the "Create template" toggle does. Document types only. */
+  /** Creates a view for the type and attaches it, as the "Create template" toggle does. Content types only. */
   createTemplate(
     key: string,
     template: { alias: string; name: string; isDefault: boolean },
@@ -412,8 +412,8 @@ export interface BlueprintPort {
   move(key: string, targetKey: string | null): Promise<{ ok: true } | PortFailure>
   versions(key: string): Promise<DocumentVersionSummary[]>
   systemUserKey(): Promise<string | null>
-  /** Blueprints of one document type, by name. */
-  forDocumentType(
+  /** Blueprints of one content type, by name. */
+  forContentType(
     contentTypeKey: string,
     paging: SkipTake,
   ): Promise<Page<{ key: string; name: string }>>
@@ -558,7 +558,7 @@ export interface TemplateQueryItem {
  * are the answer the generated snippet would give.
  */
 export interface TemplateQueryPort {
-  /** The aliases a query may be narrowed to: the routable document types. */
+  /** The aliases a query may be narrowed to: the routable content types. */
   documentTypeAliases(): Promise<string[]>
   execute(request: TemplateQueryRequest): Promise<{ items: TemplateQueryItem[]; total: number }>
 }

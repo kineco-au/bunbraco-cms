@@ -3,7 +3,7 @@
  *
  * A definition, never an artifact: the zip is built when it is downloaded
  * (`docs/17-bundles.md`), so there are no bytes here to go stale when a
- * document type the package carries is edited afterwards.
+ * content type the package carries is edited afterwards.
  *
  * The selection lists are JSON text rather than a row each. They are read and
  * written whole and never queried into, so a child table would be a join for
@@ -33,7 +33,7 @@ export const createdPackagesMigration: Migration = {
          media_load_child_nodes ${t.boolean} NOT NULL,
          media_ids ${t.text} NOT NULL,
          element_ids ${t.text},
-         document_types ${t.text} NOT NULL,
+         content_types ${t.text} NOT NULL,
          media_types ${t.text} NOT NULL,
          data_types ${t.text} NOT NULL,
          templates ${t.text} NOT NULL,

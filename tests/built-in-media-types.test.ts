@@ -209,7 +209,7 @@ describe('built-in media types', () => {
   test('a file cannot take a system alias with another key', () => {
     const set = {
       version: '1.0.0',
-      documentTypes: [],
+      contentTypes: [],
       dataTypes: [],
       languages: [],
       mediaTypes: [

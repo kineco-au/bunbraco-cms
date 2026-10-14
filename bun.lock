@@ -228,6 +228,28 @@
         "@bunbraco/data": "workspace:*",
       },
     },
+    "sites/bunbraco": {
+      "name": "@bunbraco/site-bunbraco",
+      "version": "0.0.0",
+      "dependencies": {
+        "bunbraco": "workspace:*",
+      },
+    },
+    "sites/harbourstone": {
+      "name": "@bunbraco/site-harbourstone",
+      "version": "0.0.0",
+      "dependencies": {
+        "@bunbraco/simple-redirects": "workspace:*",
+        "bunbraco": "workspace:*",
+      },
+    },
+    "sites/starter": {
+      "name": "@bunbraco/site-starter",
+      "version": "0.0.0",
+      "dependencies": {
+        "bunbraco": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@aws-sdk/client-bedrock-runtime": ["@aws-sdk/client-bedrock-runtime@3.1142.0", "", { "dependencies": { "@aws-sdk/core": "^3.978.1", "@aws-sdk/credential-provider-node": "^3.972.84", "@aws-sdk/eventstream-handler-node": "^3.972.35", "@aws-sdk/middleware-eventstream": "^3.972.30", "@aws-sdk/middleware-websocket": "^3.972.54", "@aws-sdk/token-providers": "3.1142.0", "@aws-sdk/types": "^3.974.6", "@smithy/core": "^3.35.0", "@smithy/fetch-http-handler": "^5.8.0", "@smithy/node-http-handler": "^4.12.1", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-b8ITozQBv7jeOAWZcxTfhzK/nXrVvvqOvfL7PePZtZm9AnOB5rEd/pIZZl0eBcRd56Nnd4zrtptvUhpN0336fA=="],
@@ -315,6 +337,12 @@
     "@bunbraco/simple-redirects": ["@bunbraco/simple-redirects@workspace:packages/simple-redirects"],
 
     "@bunbraco/site": ["@bunbraco/site@workspace:apps/site"],
+
+    "@bunbraco/site-bunbraco": ["@bunbraco/site-bunbraco@workspace:sites/bunbraco"],
+
+    "@bunbraco/site-harbourstone": ["@bunbraco/site-harbourstone@workspace:sites/harbourstone"],
+
+    "@bunbraco/site-starter": ["@bunbraco/site-starter@workspace:sites/starter"],
 
     "@bunbraco/transfer": ["@bunbraco/transfer@workspace:packages/transfer"],
 

@@ -13,7 +13,7 @@ my-site/
 ├── package.json          "bunbraco": "^1.0"
 ├── bunbraco.config.ts    site name, database, paths, providers
 ├── server.ts             import { bunbraco } from 'bunbraco'; Bun.serve(await bunbraco(config))
-├── schema/               document types, data types, languages — see 09-schema-as-code.md
+├── schema/               content types, data types, languages — see 09-schema-as-code.md
 ├── components/           components (.tsx)
 ├── package.json          dependencies, backoffice extensions among them — see 17-bundles.md
 └── bunbraco.sqlite       content, users, versions — never schema

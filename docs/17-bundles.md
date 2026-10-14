@@ -207,7 +207,7 @@ table the code no longer looks for, with no migration to say so.
 
 Columns follow the contract's model: `id`, `name`, `content_node_id`,
 `content_load_child_nodes`, `media_ids`, `media_load_child_nodes`,
-`element_ids`, and the alias/path lists — document types, media types, data
+`element_ids`, and the alias/path lists — content types, media types, data
 types, components, stylesheets, scripts, languages, dictionary items. The lists are JSON text; they are read and written whole and never
 queried into, so a column each would be columns for nothing.
 
@@ -217,7 +217,7 @@ queried into, so a column each would be columns for nothing.
 is the only stored state.
 
 This is the difference that matters in practice: a stored artifact goes stale
-the moment someone edits a document type it carries, and a user who downloads it
+the moment someone edits a content type it carries, and a user who downloads it
 a week later gets something that no longer matches the site. Building on demand
 cannot be stale, needs no blob storage, and works from any node. `packagePath`
 in the response is a derived filename rather than a real path.
@@ -467,7 +467,7 @@ diff afterwards.
 
 Every section an install writes is editable **in the backoffice**: a stylesheet
 and a script through the Settings section, a template through the template
-editor, a document type through `createSchemaFileWriter`. So an overwrite does
+editor, a content type through `createSchemaFileWriter`. So an overwrite does
 not destroy a file that came from a deploy — it destroys whatever somebody last
 saved. And git cannot be assumed to be behind it: `git` is `undefined` by
 default, a feature a site opts into.

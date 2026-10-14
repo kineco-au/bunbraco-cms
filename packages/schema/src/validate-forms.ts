@@ -43,8 +43,8 @@ const set = (field: SchemaFormField, model: keyof SchemaFormField): boolean => {
 export interface ValidateFormsOptions {
   /** Theme directories that exist under `components/Forms/`; omit to skip the check. */
   formThemes?: ReadonlySet<string>
-  /** Document type aliases, so `saveAsContent` can be held to a real one. */
-  documentTypeAliases?: ReadonlySet<string>
+  /** Content type aliases, so `saveAsContent` can be held to a real one. */
+  contentTypeAliases?: ReadonlySet<string>
 }
 
 export function validateForms(
@@ -300,9 +300,9 @@ function validateWorkflows(
     if (workflow.type === 'saveAsContent') {
       const alias = workflow.settings['content-type']
       if (
-        options.documentTypeAliases &&
+        options.contentTypeAliases &&
         typeof alias === 'string' &&
-        !options.documentTypeAliases.has(alias)
+        !options.contentTypeAliases.has(alias)
       )
         add(file, `${path}.settings.content-type`, `unknown content type "${alias}"`)
       validateFieldMap(form, workflow.settings.map, file, `${path}.settings.map`, add)

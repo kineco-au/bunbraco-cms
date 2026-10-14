@@ -22,7 +22,7 @@ import {
   makeStateCurrent,
   type NodeSchemaState,
   type SchemaStateRow,
-  SYSTEM_DOCUMENT_TYPES,
+  SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
   updateSchemaStateHash,
@@ -31,7 +31,7 @@ import { BUILTIN_DATA_TYPES, storageTypeFor, systemPropertyKeys } from './builti
 import { hashSchemaSet, type LoadedSchema } from './load.ts'
 import {
   allProperties,
-  type SchemaDocumentType,
+  type SchemaContentType,
   type SchemaProblem,
   type SchemaProperty,
   type SchemaSet,
@@ -107,11 +107,11 @@ export const emptySyncReport = (
 })
 
 /** Composition dependencies first. Cycles were rejected by validation. */
-function inCompositionOrder(types: readonly SchemaDocumentType[]): SchemaDocumentType[] {
+function inCompositionOrder(types: readonly SchemaContentType[]): SchemaContentType[] {
   const byAlias = new Map(types.map((t) => [t.alias, t]))
   const done = new Set<string>()
-  const out: SchemaDocumentType[] = []
-  const visit = (t: SchemaDocumentType) => {
+  const out: SchemaContentType[] = []
+  const visit = (t: SchemaContentType) => {
     if (done.has(t.alias)) return
     done.add(t.alias)
     for (const c of t.compositions) {
@@ -270,18 +270,18 @@ export async function syncSchema(
 
         // ---- templates referenced by types must have a row
         const componentKeyByAlias = new Map<string, string>()
-        for (const alias of new Set(set.documentTypes.flatMap((t) => t.components))) {
+        for (const alias of new Set(set.contentTypes.flatMap((t) => t.components))) {
           const existing = await templates.byAlias(alias)
           const key = existing?.key ?? crypto.randomUUID()
           if (!existing) await templates.save({ key, name: alias, alias, content: null })
           componentKeyByAlias.set(alias, key)
         }
 
-        // Document types, then media types: one table, two kinds, the same rules.
+        // Content types, then media types: one table, two kinds, the same rules.
         const kinds = [
           {
             name: 'document' as const,
-            types: set.documentTypes,
+            types: set.contentTypes,
             repo: types,
             folders: typeFolders,
             noun: 'content type',
@@ -318,7 +318,7 @@ export async function syncSchema(
           ...BUILT_IN_MEDIA_TYPES.flatMap((t) =>
             t.group ? [[`${t.alias}|${t.group.name}`, t.group.key] as const] : [],
           ),
-          ...SYSTEM_DOCUMENT_TYPES.map((t) => [`${t.alias}|${t.tab.name}`, t.tab.key] as const),
+          ...SYSTEM_CONTENT_TYPES.map((t) => [`${t.alias}|${t.tab.name}`, t.tab.key] as const),
         ])
         for (const kind of kinds) {
           // ---- types: resolve keys, then save in composition order, twice
@@ -328,11 +328,11 @@ export async function syncSchema(
               ? SYSTEM_MEDIA_TYPES.map((t) => [t.alias, t.key])
               : kind.name === 'member'
                 ? [[SYSTEM_MEMBER_TYPE.alias, SYSTEM_MEMBER_TYPE.key]]
-                : SYSTEM_DOCUMENT_TYPES.map((t) => [t.alias, t.key]),
+                : SYSTEM_CONTENT_TYPES.map((t) => [t.alias, t.key]),
           )
           const aggregates: Array<{
             file: string
-            type: SchemaDocumentType
+            type: SchemaContentType
             aggregate: ContentTypeAggregate
           }> = []
           for (const t of inCompositionOrder(kind.types)) {
@@ -342,7 +342,7 @@ export async function syncSchema(
               : await kind.repo.byAlias(t.alias, { includeRetired: true })
             const shippedKey =
               kind.name === 'document'
-                ? SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === t.alias)?.key
+                ? SYSTEM_CONTENT_TYPES.find((d) => d.alias === t.alias)?.key
                 : undefined
             const key = t.key ?? existing?.key ?? shippedKey ?? crypto.randomUUID()
             if (!t.key && !existing)
@@ -556,7 +556,7 @@ export async function syncSchema(
             // Shipped with the framework: present whether or not a file defines it.
             if (SYSTEM_MEDIA_TYPES.some((t) => t.key === key)) continue
             if (key === SYSTEM_MEMBER_TYPE.key) continue
-            if (SYSTEM_DOCUMENT_TYPES.some((t) => t.key === key)) continue
+            if (SYSTEM_CONTENT_TYPES.some((t) => t.key === key)) continue
             if (status === 'prepared') {
               report.deferred.push(`${row.alias} (retire type)`)
               continue
@@ -606,7 +606,7 @@ class DryRun extends Error {
 
 function elementsWithoutKeys(set: SchemaSet): string[] {
   const missing: string[] = []
-  for (const t of [...set.documentTypes, ...(set.mediaTypes ?? []), ...(set.memberTypes ?? [])]) {
+  for (const t of [...set.contentTypes, ...(set.mediaTypes ?? []), ...(set.memberTypes ?? [])]) {
     if (!t.key) missing.push(t.alias)
     for (const p of allProperties(t)) if (!p.key) missing.push(`${t.alias}.${p.alias}`)
   }

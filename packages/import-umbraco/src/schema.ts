@@ -11,8 +11,8 @@ import {
   aliasFromName,
   BUILTIN_DATA_TYPES,
   builtInMediaTypeSchema,
+  type SchemaContentType,
   type SchemaDataType,
-  type SchemaDocumentType,
   type SchemaGroup,
   type SchemaLanguage,
   type SchemaProperty,
@@ -224,7 +224,7 @@ function readDataTypes(
 }
 
 /** A media type as text, with the property keys taken out, to compare two definitions by meaning. */
-function shapeOf(type: SchemaDocumentType): string {
+function shapeOf(type: SchemaContentType): string {
   const strip = (properties: SchemaProperty[]) => properties.map(({ key: _, ...rest }) => rest)
   return writeMediaType({
     ...type,
@@ -460,15 +460,15 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       )
     : new Map()
 
-  const documentTypes: SchemaDocumentType[] = []
-  const mediaTypes: SchemaDocumentType[] = []
-  const memberTypes: SchemaDocumentType[] = []
+  const schemaContentTypes: SchemaContentType[] = []
+  const mediaTypes: SchemaContentType[] = []
+  const memberTypes: SchemaContentType[] = []
   const strippedElements: string[] = []
 
   for (const row of typeRows) {
     const meta = contentTypes.get(Number(row.id)) as SourceContentType
     const kind = meta.kind
-    const type: SchemaDocumentType = {
+    const type: SchemaContentType = {
       key: meta.key,
       alias: meta.alias,
       name: meta.name,
@@ -539,7 +539,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
       return prefix !== undefined && tabAliases.has(prefix) ? prefix : undefined
     }
     for (const tab of tabs) {
-      const entry: SchemaDocumentType['tabs'][number] = {
+      const entry: SchemaContentType['tabs'][number] = {
         name: tab.name ?? '',
         properties: propertiesByGroup.get(`${meta.id}:${tab.id}`) ?? [],
         groups: own
@@ -552,7 +552,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
     const orphanGroups = own.filter((g) => Number(g.type) === 0 && parentTab(g) === undefined)
     if (orphanGroups.length > 0) type.groups = orphanGroups.map(toGroup)
 
-    if (kind === 'document') documentTypes.push(type)
+    if (kind === 'document') schemaContentTypes.push(type)
     else if (kind === 'media') {
       // A media type Umbraco ships is written only where the site changed it.
       // Property keys are left out of the comparison: bunbraco seeds its own.
@@ -573,7 +573,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
 
   const set: SchemaSet = {
     version: '1.0.0',
-    documentTypes,
+    contentTypes: schemaContentTypes,
     mediaTypes,
     memberTypes,
     dataTypes: dataTypeFiles,
@@ -585,7 +585,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
     code: 'content-types',
     title: 'Document, media and member types',
     count: typeRows.length,
-    detail: `${documentTypes.length} document types, ${mediaTypes.length} media types and ${memberTypes.length} member types are written as files; built-in types the site left alone need none.`,
+    detail: `${schemaContentTypes.length} content types, ${mediaTypes.length} media types and ${memberTypes.length} member types are written as files; built-in types the site left alone need none.`,
   })
   findings.add({
     class: 'migrates',

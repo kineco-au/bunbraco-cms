@@ -162,7 +162,7 @@ export async function runFix(
 
   // ---- the site's value migrations
   for (const m of options.migrations ?? []) {
-    const fileType = loaded.set.documentTypes.find((t) => t.alias === m.from.type)
+    const fileType = loaded.set.contentTypes.find((t) => t.alias === m.from.type)
     const existing = await types.byAlias(m.from.type, { includeRetired: true })
     if (!fileType || !existing) continue
     if (!m.to.every((x) => allProperties(fileType).some((p) => p.alias === x.property))) continue

@@ -4,7 +4,7 @@
  * A component is loaded when a request renders it, so one that does not compile
  * is a 500 waiting for a visitor. These hold the check to catching that — and to
  * the rule that replaced the old directory split: a component is a template
- * because a document type names it, at whatever depth it sits.
+ * because a content type names it, at whatever depth it sits.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -168,7 +168,7 @@ describe('checking the components', () => {
     expect(report.problems.filter((p) => p.message.includes('outside components/'))).toEqual([])
   })
 
-  test('reports a template a document type declares and nothing provides', async () => {
+  test('reports a template a content type declares and nothing provides', async () => {
     const { root, componentsDir } = site({ 'components/homePage.tsx': GOOD })
     const report = await checkComponents({
       componentsDir,

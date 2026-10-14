@@ -2,7 +2,7 @@
  * The icon picker, with Umbraco's own mark taken out of it.
  *
  * `icon-umbraco` is one of the 700-odd icons the registry offers, so the picker
- * on a document type or a media type listed the Umbraco roundel among the
+ * on a content type or a media type listed the Umbraco roundel among the
  * icons a site can label its content with, under a tooltip and an accessible
  * name of `icon-umbraco` (`icon-picker-modal.element.js` renders `icon.name`
  * into both).

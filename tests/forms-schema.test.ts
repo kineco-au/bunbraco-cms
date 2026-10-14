@@ -493,7 +493,7 @@ describe('validating forms', () => {
     expect(messages.some((m) => m.includes("expected 'POST' or 'PUT'"))).toBe(true)
   })
 
-  test("saveAsContent is held to a document type that exists, and to the form's own fields", () => {
+  test("saveAsContent is held to a content type that exists, and to the form's own fields", () => {
     const subject = form({
       workflows: [
         {
@@ -510,7 +510,7 @@ describe('validating forms', () => {
       ],
     })
     const messages = validateForms([subject], {
-      documentTypeAliases: new Set(['page']),
+      contentTypeAliases: new Set(['page']),
     }).map((p) => p.message)
     expect(messages.some((m) => m.includes('unknown content type "nope"'))).toBe(true)
     expect(messages.some((m) => m.includes('unknown field "missing"'))).toBe(true)
@@ -618,10 +618,10 @@ describe('forms in a schema directory', () => {
     expect(hashSchemaSet(reversed)).toBe(hashSchemaSet(withForm))
   })
 
-  test('whole-set validation reaches forms, and knows the document types', () => {
+  test('whole-set validation reaches forms, and knows the content types', () => {
     const problems = validateSchemaSet({
       version: '1.0.0',
-      documentTypes: [],
+      contentTypes: [],
       dataTypes: [],
       languages: [],
       forms: [
@@ -649,7 +649,7 @@ describe('the form picker data type', () => {
   test('a property typed formPicker validates without a data-type file', () => {
     const problems = validateSchemaSet({
       version: '1.0.0',
-      documentTypes: [
+      contentTypes: [
         {
           alias: 'page',
           name: 'Page',

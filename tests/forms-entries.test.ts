@@ -397,7 +397,7 @@ describe('the forms endpoints', () => {
   })
 
   test('a broken form file fails the boot, as any other broken schema file does', async () => {
-    // Deliberate, and the same rule as a malformed document type: the files are
+    // Deliberate, and the same rule as a malformed content type: the files are
     // the schema, so a site does not start half-configured. The message names
     // the file and the key, which is what makes it fixable.
     let message = ''

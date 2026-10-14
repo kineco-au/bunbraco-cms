@@ -18,14 +18,14 @@ import {
   type Db,
   FolderRepository,
   LanguageRepository,
-  SYSTEM_DOCUMENT_TYPES,
+  SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@bunbraco/data'
-import { BUILTIN_DATA_TYPES, builtInDocumentTypeSchema, builtInMediaTypeSchema } from './builtin.ts'
+import { BUILTIN_DATA_TYPES, builtInContentTypeSchema, builtInMediaTypeSchema } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
 import type {
+  SchemaContentType,
   SchemaDataType,
-  SchemaDocumentType,
   SchemaLanguage,
   SchemaProperty,
   SchemaSet,
@@ -34,15 +34,15 @@ import { TYPE_KIND_FILES, typeFileKey } from './model.ts'
 import type { AssignedKey } from './sync.ts'
 import {
   fileNameFor,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
   writeMediaType,
   writeMemberType,
   writeSchemaVersion,
 } from './write.ts'
 
-/** Key → alias lookups for everything a document type refers to. */
+/** Key → alias lookups for everything a content type refers to. */
 export interface ExportContext {
   dataTypeAlias(key: string): string | undefined
   contentTypeAlias(key: string): string | undefined
@@ -70,10 +70,10 @@ function toSchemaProperty(p: PropertyTypeModel, ctx: ExportContext): SchemaPrope
   return property
 }
 
-export function toSchemaDocumentType(
+export function toSchemaContentType(
   aggregate: ContentTypeAggregate,
   ctx: ExportContext,
-): SchemaDocumentType {
+): SchemaContentType {
   const byOrder = (a: { sortOrder: number }, b: { sortOrder: number }) => a.sortOrder - b.sortOrder
   const properties = [...aggregate.properties].sort(byOrder)
   const containers = [...aggregate.containers].sort(byOrder)
@@ -82,7 +82,7 @@ export function toSchemaDocumentType(
       .filter((p) => (p.containerKey ?? null) === containerKey)
       .map((p) => toSchemaProperty(p, ctx))
 
-  const type: SchemaDocumentType = {
+  const type: SchemaContentType = {
     key: aggregate.key,
     alias: aggregate.alias,
     name: aggregate.name,
@@ -125,11 +125,11 @@ export function toSchemaDocumentType(
   const orphanGroups = containers.filter((c) => c.type === 'Group' && !c.parentKey)
   for (const tab of tabs) {
     const groups = containers.filter((c) => c.type === 'Group' && c.parentKey === tab.key)
-    const entry: SchemaDocumentType['tabs'][number] = {
+    const entry: SchemaContentType['tabs'][number] = {
       name: tab.name ?? '',
       properties: under(tab.key),
       groups: groups.map((g) => {
-        const group: SchemaDocumentType['tabs'][number]['groups'][number] = {
+        const group: SchemaContentType['tabs'][number]['groups'][number] = {
           name: g.name ?? '',
           properties: under(g.key),
         }
@@ -142,7 +142,7 @@ export function toSchemaDocumentType(
   }
   if (orphanGroups.length > 0) {
     type.groups = orphanGroups.map((g) => {
-      const group: NonNullable<SchemaDocumentType['groups']>[number] = {
+      const group: NonNullable<SchemaContentType['groups']>[number] = {
         name: g.name ?? '',
         properties: under(g.key),
       }
@@ -271,29 +271,26 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
     if (l.fallbackIsoCode) language.fallback = l.fallbackIsoCode
     return language
   })
-  const documentTypes: SchemaDocumentType[] = []
+  const contentTypes: SchemaContentType[] = []
   for (const a of aggregates) {
-    const type = toSchemaDocumentType(a, ctx)
+    const type = toSchemaContentType(a, ctx)
     const folder = await folderOf(typeFolders, a.key)
     if (folder) type.folder = folder
     // A system type needs a file only once a site has extended it.
-    const shipped = SYSTEM_DOCUMENT_TYPES.find((t) => t.key === a.key)
-    if (
-      shipped &&
-      writeDocumentType(type) === writeDocumentType(builtInDocumentTypeSchema(shipped))
-    )
+    const shipped = SYSTEM_CONTENT_TYPES.find((t) => t.key === a.key)
+    if (shipped && writeContentType(type) === writeContentType(builtInContentTypeSchema(shipped)))
       continue
-    documentTypes.push(type)
+    contentTypes.push(type)
   }
   const mediaTypeFolders = new FolderRepository(
     db,
     ObjectTypes.MediaTypeContainer,
     ObjectTypes.MediaType,
   )
-  const mediaTypes: SchemaDocumentType[] = []
+  const mediaTypes: SchemaContentType[] = []
   for (const a of mediaAggregates) {
     // Media types carry neither templates nor a cleanup policy.
-    const type = toSchemaDocumentType(
+    const type = toSchemaContentType(
       { ...a, allowedComponentKeys: [], defaultComponentKey: null },
       ctx,
     )
@@ -313,10 +310,10 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
     ObjectTypes.MemberTypeContainer,
     ObjectTypes.MemberType,
   )
-  const memberTypes: SchemaDocumentType[] = []
+  const memberTypes: SchemaContentType[] = []
   for (const a of memberAggregates) {
     // Member types carry neither templates, a cleanup policy, nor children.
-    const type = toSchemaDocumentType(
+    const type = toSchemaContentType(
       { ...a, allowedComponentKeys: [], defaultComponentKey: null, allowedContentTypes: [] },
       ctx,
     )
@@ -327,7 +324,7 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
   }
   return {
     version,
-    documentTypes,
+    contentTypes,
     mediaTypes,
     memberTypes,
     dataTypes: exportedDataTypes,
@@ -345,8 +342,8 @@ export function writeSchemaFiles(schemaDir: string, set: SchemaSet): string[] {
     written.push(file)
   }
   put('schema.toml', writeSchemaVersion(set.version))
-  for (const t of set.documentTypes)
-    put(join(TYPE_KIND_FILES.document.dir, fileNameFor(t.alias)), writeDocumentType(t))
+  for (const t of set.contentTypes)
+    put(join(TYPE_KIND_FILES.document.dir, fileNameFor(t.alias)), writeContentType(t))
   for (const t of set.mediaTypes ?? [])
     put(join('media-types', fileNameFor(t.alias)), writeMediaType(t))
   for (const t of set.memberTypes ?? [])
@@ -361,7 +358,7 @@ export function writeKeysBack(loaded: LoadedSchema, assigned: readonly AssignedK
   const touched = new Set<string>()
   for (const a of assigned) {
     const allTypes = [
-      ...loaded.set.documentTypes,
+      ...loaded.set.contentTypes,
       ...(loaded.set.mediaTypes ?? []),
       ...(loaded.set.memberTypes ?? []),
     ]
@@ -379,9 +376,9 @@ export function writeKeysBack(loaded: LoadedSchema, assigned: readonly AssignedK
   }
   const written: string[] = []
   for (const file of touched) {
-    const type = loaded.set.documentTypes.find((t) => loaded.files.get(t.alias) === file)
+    const type = loaded.set.contentTypes.find((t) => loaded.files.get(t.alias) === file)
     if (type) {
-      writeFileSync(file, writeDocumentType(type))
+      writeFileSync(file, writeContentType(type))
       written.push(file)
       continue
     }
@@ -412,7 +409,7 @@ export function writeKeysBack(loaded: LoadedSchema, assigned: readonly AssignedK
   return written
 }
 
-function allPropertiesOf(type: SchemaDocumentType): SchemaProperty[] {
+function allPropertiesOf(type: SchemaContentType): SchemaProperty[] {
   const out = [...type.properties]
   for (const tab of type.tabs) {
     out.push(...tab.properties)

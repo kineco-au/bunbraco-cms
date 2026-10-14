@@ -1,0 +1,42 @@
+{
+  "key": "6fbd32fd-64ea-4cc1-867d-a453a3fc6d7a",
+  "kind": "element",
+  "contentType": {
+    "key": "bd46f89c-5685-4048-adb7-b4bd40b65c8a",
+    "alias": "step"
+  },
+  "parent": null,
+  "sortOrder": 20,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Create a site",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "command",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "mkdir my-site && cd my-site\nbunx bunbraco init --name \"My Site\""
+    },
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Scaffold a site in an empty folder. Add --template list to see the starter sites, or --postgres to use Postgres."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Create a site"
+    }
+  ]
+}

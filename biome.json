@@ -17,7 +17,8 @@
       "!apps/site/css",
       "!apps/site/scripts",
       "!apps/site/logs",
-      "!packages/cli/templates/**/bundle"
+      "!packages/cli/templates/**/bundle",
+      "!sites/*/bundles"
     ]
   },
   "formatter": {

@@ -193,7 +193,7 @@ export function createFolderPort(
 }
 
 export interface ContentTypePortOptions extends ContentTypeRepositoryOptions {
-  /** Document types by default; media types share the port. */
+  /** Content types by default; media types share the port. */
   kind?: ContentTypeKind
   /** Lets "Create template" write the view file. */
   componentFiles?: ComponentFileStore

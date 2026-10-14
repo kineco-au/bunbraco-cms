@@ -9,16 +9,16 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { SchemaForm } from './forms.ts'
 import type {
+  SchemaContentType,
   SchemaDataType,
-  SchemaDocumentType,
   SchemaLanguage,
   SchemaProblem,
   SchemaSet,
 } from './model.ts'
 import { TYPE_KIND_FILES, typeFileKey } from './model.ts'
 import {
+  parseContentType,
   parseDataType,
-  parseDocumentType,
   parseLanguages,
   parseMediaType,
   parseMemberType,
@@ -26,8 +26,8 @@ import {
 } from './parse.ts'
 import { parseForm } from './parse-forms.ts'
 import {
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
   writeMediaType,
   writeMemberType,
@@ -52,7 +52,7 @@ function tomlFiles(dir: string): string[] {
 export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
   const problems: SchemaProblem[] = []
   const files = new Map<string, string>()
-  const documentTypes: SchemaDocumentType[] = []
+  const contentTypes: SchemaContentType[] = []
   const dataTypes: SchemaDataType[] = []
   let languages: SchemaLanguage[] = []
   let version = '0'
@@ -67,14 +67,14 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
     if (parsed.value) version = parsed.value
   }
   for (const file of tomlFiles(join(schemaDir, TYPE_KIND_FILES.document.dir))) {
-    const parsed = parseDocumentType(rel(file), readFileSync(file, 'utf8'))
+    const parsed = parseContentType(rel(file), readFileSync(file, 'utf8'))
     problems.push(...parsed.problems)
     if (parsed.value) {
-      documentTypes.push(parsed.value)
+      contentTypes.push(parsed.value)
       files.set(parsed.value.alias, file)
     }
   }
-  const mediaTypes: SchemaDocumentType[] = []
+  const mediaTypes: SchemaContentType[] = []
   for (const file of tomlFiles(join(schemaDir, 'media-types'))) {
     const parsed = parseMediaType(rel(file), readFileSync(file, 'utf8'))
     problems.push(...parsed.problems)
@@ -83,7 +83,7 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
       files.set(typeFileKey('media', parsed.value.alias), file)
     }
   }
-  const memberTypes: SchemaDocumentType[] = []
+  const memberTypes: SchemaContentType[] = []
   for (const file of tomlFiles(join(schemaDir, 'member-types'))) {
     const parsed = parseMemberType(rel(file), readFileSync(file, 'utf8'))
     problems.push(...parsed.problems)
@@ -116,7 +116,7 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
     if (parsed.value) languages = parsed.value
   }
   return {
-    set: { version, documentTypes, mediaTypes, memberTypes, dataTypes, languages, forms },
+    set: { version, contentTypes, mediaTypes, memberTypes, dataTypes, languages, forms },
     problems,
     files,
   }
@@ -126,7 +126,7 @@ export function loadSchemaDirectory(schemaDir: string): LoadedSchema {
 export function hashSchemaSet(set: SchemaSet): string {
   const parts = [
     `version:${set.version}`,
-    ...set.documentTypes.map((t) => writeDocumentType(t)).sort(),
+    ...set.contentTypes.map((t) => writeContentType(t)).sort(),
     ...(set.mediaTypes ?? []).map((t) => writeMediaType(t)).sort(),
     ...(set.memberTypes ?? []).map((t) => writeMemberType(t)).sort(),
     ...set.dataTypes.map((d) => writeDataType(d)).sort(),

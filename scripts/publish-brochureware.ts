@@ -6,10 +6,10 @@
  *   bun run brochureware:publish --dry-run    say what it would do, send nothing
  *   bun run brochureware:publish --no-wait    return once accepted
  *
- * What is published is the committed template export under
- * `packages/cli/templates/demo/bunbraco/bundle`, so the platform gets what the
- * repository holds rather than whatever a laptop happened to have scaffolded —
- * `sites/` is gitignored and disposable.
+ * What is published is the committed bundle under
+ * `sites/bunbraco/bundles/demo-bunbraco`, written by `bun run build:template`, so
+ * the platform gets what the repository holds rather than whatever a laptop's
+ * copy of the site happens to have in its database.
  *
  * It goes through the ordinary customer path: an upload ticket, a PUT straight
  * to the store, then a publish, authenticated with a scoped `deploy` token.
@@ -25,13 +25,12 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { writeZip, type ZipEntry } from '../packages/server/src/zip.ts'
+import { SITES_DIR, slugOf } from './sites.ts'
 
-const ROOT = join(import.meta.dir, '..')
-
-/** The template whose bundle is the product site. */
+/** The site whose bundle is the product site. */
 export const TEMPLATE = 'demo/bunbraco'
 
-export const BUNDLE_DIR = join(ROOT, 'packages', 'cli', 'templates', TEMPLATE, 'bundle')
+export const BUNDLE_DIR = join(SITES_DIR, 'bunbraco', 'bundles', slugOf(TEMPLATE))
 
 /** Where the bundle is sent. Every one is required: a default would guess. */
 export const VARIABLES = {

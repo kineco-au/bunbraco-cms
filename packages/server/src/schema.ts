@@ -12,7 +12,7 @@ import {
   contractsLedgeredAfter,
   currentSchemaState,
   type Db,
-  ensureSystemDocumentTypes,
+  ensureSystemContentTypes,
   ensureSystemMediaTypes,
   ensureSystemMemberTypes,
   type Finding,
@@ -148,7 +148,7 @@ export async function bootSchema(db: Db, config: BunbracoConfig): Promise<Schema
     await touchServer(db, { nodeId, ...nodeState, role: config.role })
     await ensureSystemMediaTypes(db, { linkFolderChildren: true })
     await ensureSystemMemberTypes(db)
-    await ensureSystemDocumentTypes(db)
+    await ensureSystemContentTypes(db)
     return { nodeState, nodeId, report: undefined, compatibilityMode: false }
   }
   const loaded = loadSchemaDirectory(config.schemaDir)
@@ -171,7 +171,7 @@ export async function bootSchema(db: Db, config: BunbracoConfig): Promise<Schema
   const folderInFiles = (loaded.set.mediaTypes ?? []).some((t) => t.alias === 'Folder')
   await ensureSystemMediaTypes(db, { linkFolderChildren: !folderInFiles })
   await ensureSystemMemberTypes(db)
-  await ensureSystemDocumentTypes(db)
+  await ensureSystemContentTypes(db)
   const boot: SchemaBoot = {
     nodeState,
     nodeId,

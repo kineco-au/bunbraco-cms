@@ -68,19 +68,50 @@ defaults are chosen so that a clone runs with nothing set.
 | `BUNBRACO_EMAIL_SES_CONFIGURATION_SET`      | —                                              | `ses` only: the configuration set that governs sending                                                 |
 | `BUNBRACO_EMAIL_SES_ENDPOINT`               | the regional SES host                          | `ses` only: a VPC endpoint, or a fake in a test                                                        |
 
+## The sites in this repository
+
+`sites/` holds the sites this repository builds, one directory each, committed and
+run in place:
+
+| Site | Id | Ships with the CLI |
+| --- | --- | --- |
+| `sites/starter` | `starter` | yes |
+| `sites/harbourstone` | `demo/harbourstone` | yes |
+| `sites/bunbraco` | `demo/bunbraco` | no — the product site |
+
+Each is a real site — `package.json`, `bunbraco.config.ts`, `server.ts`, `schema/`,
+`components/`, `css/` — plus a `site.json` naming it, and its content bundle under
+`bundles/<slug>`. Each `package.json` is a private workspace depending on
+`bunbraco: workspace:*`, so after `bun install` it runs the working tree. What it
+writes as it runs — the database, its backups, media, logs, the view cache — is
+gitignored, and is what `bun run site <id> --fresh` clears.
+
+None is published by default. A site whose `site.json` says `"distribute": true`
+is staged into `@bunbraco/cli`'s `templates/` only while the CLI is packed
+(`scripts/publish-packages.ts`, through `scripts/sites.ts`), as `components/`,
+`css/` and `schema/` under `files/`, its bundle as `bundle/`, and `CREDITS.md`
+beside them; the media types `init` writes for itself are left out. Only
+`templates/basic` is committed in the CLI.
+
+A site's bundle is generated, not edited: `scripts/build-template.ts` creates the
+content in a throwaway database from the site's own schema and exports it, so
+`bun run build:template <id>` is how a change to the content lands.
+
 ## The demo command and the database it may touch
 
-`bun run site <template>` exists so trying a starter template is one command
-rather than four. Two decisions in it are worth stating, because both are about
-not damaging anything:
+`bun run site <id>` exists so running one of the sites in `sites/`, or trying a
+template the CLI ships, is one command rather than four. A site in `sites/` runs
+in place; a CLI template is scaffolded first. Two decisions in it are worth
+stating, because both are about not damaging anything:
 
 - **The database is forced, not defaulted.** The dialect is SQLite and the file
-  is inside the scaffolded site, whatever the environment says — a `.env` naming
+  is inside the site, whatever the environment says — a `.env` naming
   Postgres, or a `BUNBRACO_SQLITE_FILE` pointing at a real site, is overridden
   rather than honoured. A demo cannot migrate or seed a live database even by
-  accident. If the site's own file already holds content the run stops and names
-  the two flags that continue it.
-- **The site lives in `sites/<template>`**, not `output/`. The compose stack
+  accident. If a scaffold's own file already holds content the run stops and
+  names the two flags that continue it; a site in `sites/` carries on with its
+  own, and `--fresh` clears only what it wrote as it ran.
+- **A scaffold lives in `.scaffolds/<template>`**, not `output/`. The compose stack
   mounts `cms_output:/app/output`, which masks the host directory inside the
   container, so a site scaffolded there would be invisible to `--docker`.
 - **Ctrl-C ends the run, the container included.** `--docker` runs the site in a
@@ -89,10 +120,11 @@ not damaging anything:
   dying on the first press, and removes the container by a name it chose itself.
   A second press forces it. A container left by a run that was killed outright is
   cleared by the next one, so nothing needs `docker:down` by hand.
-  `sites/` is inside the bind mount, matches no workspace glob — so it joins no
-  `bun install` — and is gitignored.
+  `.scaffolds/` is inside the bind mount, matches no workspace glob — so it joins
+  no `bun install` — and is gitignored. `sites/` is a workspace glob, so its sites
+  link to the working tree through their own `workspace:*` dependencies.
 
-Nothing is installed into the site. Resolution walks up to this repository's
+Nothing is installed into a scaffold. Resolution walks up to this repository's
 `node_modules`, where every `@bunbraco/*` name is a workspace symlink, so the
 demo serves the working tree. That is the point: a demo that installed from npm
 would not show you your own changes.
@@ -248,7 +280,7 @@ when a link can actually be delivered.
 | `bun run start:local`                                 | **local development**: `bunbraco start` in `apps/site` — migrate, seed, reset and print the admin password, serve                                             |
 | `bun run start:local:watch`                           | as above, reloading on change                                                                                                                                 |
 | `bun run dev`                                         | `apps/site/server.ts` under `bun --watch`, with no password handling                                                                                          |
-| `bun run site <template>`                             | **a starter template, running**: scaffolds it into `sites/<template>` and starts it. `--docker` in the compose stack, `--fresh` to scaffold again, `--reuse` to accept a database that already holds content, `--dry-run` to say what it would do. Runs the working tree, not the published packages |
+| `bun run site <id>`                                   | **a site, running**: a site in `sites/` in place, or a CLI template scaffolded into `.scaffolds/<template>` first. `--docker` in the compose stack, `--fresh` to clear its database and media (or scaffold again), `--reuse` to accept a scaffold whose database holds content, `--dry-run` to say what it would do. Runs the working tree, not the published packages |
 | `bunx bunbraco <cmd>`                                 | the CLI: `start [--bundle <dir>]`, `init [--name\|--postgres\|--template]`, `status [--json]`, `admin reset-password`, `schema check\|sync\|export\|rewrite\|purge\|new\|add-property`, `generate`, `components check\|list\|new`, `assets list\|new`, `content export\|check\|import\|runs\|revert\|publish\|unpublish`, `domains [set\|clear\|apply\|undo]`, `dictionary export\|import`, `upgrade [check [--fix]\|--plan\|ledger\|schema]` |
 | `bun add -g @bunbraco/cli`                            | the same CLI without a site: `init` somewhere new, or run commands against a site this machine does not serve                                                  |
 | `bun run build:template`                              | regenerate a starter template's content bundle and images (`scripts/build-template.ts`); no argument does every template                                       |
@@ -256,7 +288,7 @@ when a link can actually be delivered.
 | `bun run coverage:api`                                | implemented vs. total API operations → `docs/api-coverage.md`                                                                                                 |
 | `bun run vendor:backoffice`                           | build `vendor/backoffice/` from npm                                                                                                                           |
 | `bun run vendor:refresh-static`                       | re-seed `vendor/upstream-static/` from `$UMBRACO_SRC`                                                                                                         |
-| `bun run localizations:build`                         | regenerate the per-language overrides in `backoffice-host/plugin/localizations/` (the product name, and "content type" for "document type"); `vendor:backoffice` already runs it                                 |
+| `bun run localizations:build`                         | regenerate the per-language overrides in `backoffice-host/plugin/localizations/` (the product name, and "content type" for "content type"); `vendor:backoffice` already runs it                                 |
 | `bun run docker:down`                                 | stop the test containers and remove any stray `run` container                                                                                                 |
 | `bun run docker:reset`                                | the same, and delete the volumes too, including the database                                                                                                   |
 | `bun run docker:build`                                | rebuild the CMS image                                                                                                                                         |

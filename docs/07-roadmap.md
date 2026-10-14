@@ -72,7 +72,7 @@ The full Tier 1–2 migration; content-type services (compositions, groups, allo
 children, variance); data types and core property-editor value handling;
 `tree`/`item` endpoints for types and folders.
 
-**Exit:** create a document type with tabs, properties and a template in the real
+**Exit:** create a content type with tabs, properties and a template in the real
 backoffice, reload, and it persists.
 
 **Done.** `node` as the universal polymorphic tree, the content-type aggregate
@@ -415,13 +415,13 @@ validation errors by index and by filter expression exactly as Umbraco emits
 them, create-and-publish refusing before creating anything, the published
 read against a newer draft, ancestors/siblings/search, and the recycle bin
 with the original parent (migration 006 records it). The content tree now
-returns the contract's `DocumentTreeItemResponseModel` in full (document type,
+returns the contract's `DocumentTreeItemResponseModel` in full (content type,
 variants with state, ancestors, dates) rather than the generic item. The
 manual checklist is in `08-testing.md`. API coverage 61/513.
 
 ### WP-6.2 — The Settings section, end to end — **done**
 
-- Document types: `GetDocumentTypeConfiguration`,
+- Content types: `GetDocumentTypeConfiguration`,
   `PostDocumentTypeAvailableCompositions`,
   `GetDocumentTypeByIdCompositionReferences`, `GetDocumentTypeByIdAllowedParents`,
   `GetItemDocumentTypeSearch`, `GetTreeDocumentTypeSiblings`, `GetDocumentTypeBatch`,
@@ -440,7 +440,7 @@ manual checklist is in `08-testing.md`. API coverage 61/513.
   the section loads with no red toast. Languages get their real CRUD here
   (`language`, 5 ops) since the document workspace reads them.
 
-**Exit:** in the real backoffice, create a document type with a tab, three
+**Exit:** in the real backoffice, create a content type with a tab, three
 properties on three editors (one via "Select editor → create new data type"),
 a composition, an allowed child and "Create template"; reload: it persists,
 its file is in `schema/content-types/`, the data type's in
@@ -545,7 +545,7 @@ file).
 
 **Started — media types done.** Saving a media type in the backoffice hit
 `PostMediaType`, and a write cannot honestly be stubbed, so the Settings half
-landed first: media types share `content_type` with document types (told
+landed first: media types share `content_type` with content types (told
 apart by node object type, one alias space), `ContentTypeRepository` and the
 type handlers take a kind, and the schema package reads and writes
 `schema/media-types/*.toml` under `[media-type]` — the same vocabulary
@@ -772,7 +772,7 @@ cannot delete.
 
 - **Enforcement on every call** (`api-management/src/authorization.ts`),
   before a handler runs: the sections each area demands, from Umbraco's
-  controller policies (a writer reaches content and reads document types but
+  controller policies (a writer reaches content and reads content types but
   cannot change them; users need the Users section; the dictionary, Translation);
   then per-node rules for documents — each operation's verb on the node it
   names (Create on the parent, Move and Create on the target, Publish on the
@@ -1396,7 +1396,7 @@ scan only sees runtime code.
 Three decisions taken after Phase 4 reshape the project, and they are designed
 before any more code lands:
 
-- **Schema is code.** Document types, data types and languages live in
+- **Schema is code.** Content types, data types and languages live in
   `schema/*.toml` in the site's repo; the database caches them. The backoffice
   type editor writes the files. Comments are stripped on write; `description` and
   `notes` fields survive instead.

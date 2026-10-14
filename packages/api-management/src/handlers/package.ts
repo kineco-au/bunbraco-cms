@@ -45,7 +45,7 @@ const toResponse = (definition: PackageDefinition) => ({
   mediaIds: definition.mediaIds,
   mediaLoadChildNodes: definition.mediaLoadChildNodes,
   elementIds: definition.elementIds,
-  documentTypes: definition.documentTypes,
+  documentTypes: definition.contentTypes,
   mediaTypes: definition.mediaTypes,
   dataTypes: definition.dataTypes,
   templates: definition.templates,
@@ -78,7 +78,7 @@ function readInput(body: Record<string, unknown>): PackageDefinitionInput {
     mediaLoadChildNodes: body.mediaLoadChildNodes === true,
     elementIds:
       body.elementIds === null || body.elementIds === undefined ? null : strings(body.elementIds),
-    documentTypes: strings(body.documentTypes),
+    contentTypes: strings(body.documentTypes),
     mediaTypes: strings(body.mediaTypes),
     dataTypes: strings(body.dataTypes),
     templates: strings(body.templates),

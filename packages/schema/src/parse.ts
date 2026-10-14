@@ -4,8 +4,8 @@
  * hide the thing they were trying to do.
  */
 import {
+  type SchemaContentType,
   type SchemaDataType,
-  type SchemaDocumentType,
   type SchemaGroup,
   type SchemaLanguage,
   type SchemaProperty,
@@ -136,11 +136,11 @@ const MEDIA_TYPE_KEYS = TYPE_KEYS.filter(
 /** Member types, besides, allow no children: members are not a tree. */
 const MEMBER_TYPE_KEYS = MEDIA_TYPE_KEYS.filter((k) => k !== 'allow-children')
 
-export function parseDocumentType(
+export function parseContentType(
   file: string,
   source: string,
   kind: SchemaTypeKind = 'document',
-): ParseResult<SchemaDocumentType> {
+): ParseResult<SchemaContentType> {
   const r = new Reader(file)
   const root = toml(source, r)
   if (!root) return { value: undefined, problems: r.problems }
@@ -159,7 +159,7 @@ export function parseDocumentType(
   )
   const cleanupTable = t.cleanup === undefined ? undefined : r.table(t.cleanup, `${path}.cleanup`)
   if (cleanupTable) r.unknown(cleanupTable, CLEANUP_KEYS, `${path}.cleanup`)
-  const value: SchemaDocumentType = {
+  const value: SchemaContentType = {
     key: r.str(t, 'key', path),
     alias: r.str(t, 'alias', path, true) ?? '',
     name: r.str(t, 'name', path, true) ?? '',
@@ -194,12 +194,12 @@ export function parseDocumentType(
   return { value: r.problems.length === 0 ? value : undefined, problems: r.problems }
 }
 
-export function parseMediaType(file: string, source: string): ParseResult<SchemaDocumentType> {
-  return parseDocumentType(file, source, 'media')
+export function parseMediaType(file: string, source: string): ParseResult<SchemaContentType> {
+  return parseContentType(file, source, 'media')
 }
 
-export function parseMemberType(file: string, source: string): ParseResult<SchemaDocumentType> {
-  return parseDocumentType(file, source, 'member')
+export function parseMemberType(file: string, source: string): ParseResult<SchemaContentType> {
+  return parseContentType(file, source, 'member')
 }
 
 export function parseDataType(file: string, source: string): ParseResult<SchemaDataType> {

@@ -335,7 +335,7 @@ export async function contentImport(
      * A file this site already has is not replaced without being asked.
      *
      * Every section is editable in the backoffice — a stylesheet, a template, a
-     * document type — so an overwrite destroys somebody's work, and the site
+     * content type — so an overwrite destroys somebody's work, and the site
      * may have no git to recover it from. Refused by name, like any other
      * finding a person has to answer.
      */

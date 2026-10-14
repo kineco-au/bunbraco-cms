@@ -7,7 +7,7 @@
  * canonical writer turns it into the file, so what the CLI writes is byte for
  * byte what `schema rewrite` would.
  */
-import type { SchemaDocumentType, SchemaProperty, SchemaTab, SchemaTypeKind } from './model.ts'
+import type { SchemaContentType, SchemaProperty, SchemaTab, SchemaTypeKind } from './model.ts'
 import { allProperties } from './model.ts'
 
 /** `articlePage` → `Article Page`, which is what the backoffice shows. */
@@ -25,11 +25,11 @@ export interface NewTypeOptions {
   name?: string
   description?: string
   icon?: string
-  /** Document types only: may a page of this type sit at the root of the tree. */
+  /** Content types only: may a page of this type sit at the root of the tree. */
   allowAtRoot?: boolean
   /** An element type: content with no URL, created in the Library. */
   element?: boolean
-  /** Document types only: declare `components`/`default-component` for a view of its own. */
+  /** Content types only: declare `components`/`default-component` for a view of its own. */
   template?: boolean
   /** The tab the scaffolded `title` goes in; absent means no properties at all. */
   tab?: string
@@ -45,7 +45,7 @@ const DEFAULT_ICONS: Record<SchemaTypeKind, string> = {
 export function newType(
   options: NewTypeOptions,
   key: () => string = () => crypto.randomUUID(),
-): SchemaDocumentType {
+): SchemaContentType {
   const kind = options.kind ?? 'document'
   const element = options.element === true
   // An element has no URL, so a template would never be used; neither has a
@@ -107,7 +107,7 @@ export interface AddPropertyOptions {
 }
 
 export type AddPropertyResult =
-  | { ok: true; type: SchemaDocumentType; tab: string; property: SchemaProperty }
+  | { ok: true; type: SchemaContentType; tab: string; property: SchemaProperty }
   | { ok: false; reason: string }
 
 /**
@@ -116,7 +116,7 @@ export type AddPropertyResult =
  * person should be able to read in a diff.
  */
 export function addProperty(
-  type: SchemaDocumentType,
+  type: SchemaContentType,
   options: AddPropertyOptions,
   key: () => string = () => crypto.randomUUID(),
 ): AddPropertyResult {
@@ -145,8 +145,8 @@ export function addProperty(
   return { ok: true, type: { ...type, tabs }, tab: wanted, property }
 }
 
-/** The view a scaffolded document type points at, if it has not got one yet. */
-export function viewScaffold(type: SchemaDocumentType): string {
+/** The view a scaffolded content type points at, if it has not got one yet. */
+export function viewScaffold(type: SchemaContentType): string {
   const rendered = allProperties(type)
     .filter((property) => property.type === 'textstring' || property.type === 'textarea')
     .slice(0, 2)

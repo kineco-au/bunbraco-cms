@@ -1,6 +1,6 @@
 # Schema as code
 
-Document types, data types, languages and the other *structural* definitions of a
+Content types, data types, languages and the other *structural* definitions of a
 site live in plain-text files in the site's repository, not in the database. The
 database's schema tables become a cache of those files, synchronised at boot.
 
@@ -24,7 +24,7 @@ and where it sits here:
 
 | Metadata | Umbraco today | Here | Notes |
 | --- | --- | --- | --- |
-| Document types, incl. element types | DB: `cmsContentType`, `cmsPropertyType`, `cmsPropertyTypeGroup`, compositions, allowed children, allowed templates | **Files** `schema/content-types/` | first, in 5b |
+| Content types, incl. element types | DB: `cmsContentType`, `cmsPropertyType`, `cmsPropertyTypeGroup`, compositions, allowed children, allowed templates | **Files** `schema/content-types/` | first, in 5b |
 | Media types | DB, same tables | **Files** `schema/media-types/` | with Media |
 | Member types | DB, same tables plus `cmsMemberType` per-property flags | **Files** `schema/member-types/` | with Members |
 | Data types | DB: `umbracoDataType` — editor, UI alias, storage type, config | **Files** `schema/data-types/`; the core set is built in | 5b |
@@ -176,7 +176,7 @@ The file is re-emitted from the model, exactly as `schema rewrite` does, so a
 comment in it is not kept. The command says so when it has removed any, and
 `--dry-run` prints the file instead of writing it.
 
-## A document type
+## A content type
 
 ```toml
 [content-type]
@@ -320,11 +320,11 @@ Order in the file is the order in the editor; explicit `sort-order` is not neede
 
 ### An element type
 
-An element type is a document type with `is-element = true` — Umbraco's own model,
+An element type is a content type with `is-element = true` — Umbraco's own model,
 kept because the contract has no element-type entity at all: zero of its 513
 operations mention one, and the only element-awareness anywhere is an `isElement`
 filter on `item/document-type/search`. So there is one table, one alias space and one
-editor, a document type may compose from an element type, and the Element Picker's
+editor, a content type may compose from an element type, and the Element Picker's
 "accepted types" setting is the document-type picker with `onlyPickElementTypes`.
 
 Two flags, not one, and deliberately so:
@@ -560,7 +560,7 @@ output is a diffable text file that developers review like any other change.
   change it in source control", unless `BUNBRACO_SCHEMA_WRITABLE=true`.
 - A save validates the whole schema set before writing, so a change that would
   break another file is refused in the UI with the same messages boot would give.
-- As built: document types, data types and languages are all written by
+- As built: content types, data types and languages are all written by
   their editors (WP-6.2). A data type saved in the backoffice gets an alias
   derived from its name, once; a built-in gets a file only when it is changed
   from its shipped definition. Folder actions and moves rewrite every file
@@ -597,7 +597,7 @@ Document, media and member types, data types and languages are files:
 database under a distributed lock, version-gated (`docs/09-schema-as-code.md`):
 
 - **development** — files without keys get them written back on first sync; the
-  directory is watched and re-synced on change; saving a document type in the
+  directory is watched and re-synced on change; saving a content type in the
   backoffice writes its file; removing a property retires it and its values
   survive; removing a type with content refuses to boot.
 - **production** — every element must carry a key, a change needs a version

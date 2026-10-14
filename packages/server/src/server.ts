@@ -915,7 +915,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       // cannot disagree; a save invalidates it rather than waiting out the memo.
       const definitions = forms.all()
 
-      // A definition is structure, like a document type: anyone who may open the
+      // A definition is structure, like a content type: anyone who may open the
       // section may read it, and the picker needs it in the Content section too.
       if (action === '' && request.method === 'GET')
         return Response.json({ items: definitions.map(formSummary) })

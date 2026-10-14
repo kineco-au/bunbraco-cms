@@ -284,7 +284,7 @@ describe('applying', () => {
 
   /**
    * The files a bundle carries are all editable in the backoffice — a
-   * stylesheet, a template, a document type — and a site need not be a git
+   * stylesheet, a template, a content type — and a site need not be a git
    * checkout, so an overwrite can be unrecoverable. The originals are kept.
    */
   test('keeps what it replaced, under the backup directory', async () => {

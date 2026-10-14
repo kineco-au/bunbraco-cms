@@ -12,15 +12,15 @@ import {
   fileNameFor,
   hashSchemaSet,
   loadSchemaDirectory,
+  parseContentType,
   parseDataType,
-  parseDocumentType,
   parseLanguages,
   parseSchemaVersion,
-  type SchemaDocumentType,
+  type SchemaContentType,
   type SchemaSet,
   validateSchemaSet,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
 } from '@bunbraco/schema'
 
@@ -80,10 +80,10 @@ type = "trueFalse"
 `
 
 function set(overrides: Partial<SchemaSet> = {}): SchemaSet {
-  return { version: '1.0', documentTypes: [], dataTypes: [], languages: [], ...overrides }
+  return { version: '1.0', contentTypes: [], dataTypes: [], languages: [], ...overrides }
 }
 
-function type(alias: string, extra: Partial<SchemaDocumentType> = {}): SchemaDocumentType {
+function type(alias: string, extra: Partial<SchemaContentType> = {}): SchemaContentType {
   return {
     alias,
     name: alias,
@@ -116,7 +116,7 @@ const prop = (alias: string, typeAlias = 'textstring', extra = {}) => ({
 
 describe('parsing', () => {
   test('reads the documented example, with defaults applied', () => {
-    const { value, problems } = parseDocumentType('home-page.toml', HOME_PAGE)
+    const { value, problems } = parseContentType('home-page.toml', HOME_PAGE)
     expect(problems).toEqual([])
     expect(value?.alias).toBe('homePage')
     expect(value?.key).toBe('8c3a6c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10')
@@ -132,7 +132,7 @@ describe('parsing', () => {
     expect(value?.tabs[1]?.groups[0]?.properties[0]?.default).toBe('')
     expect(value?.tabs[1]?.groups[0]?.properties[0]?.since).toBe('2.1')
     expect(value?.properties.map((p) => p.alias)).toEqual(['hidden'])
-    expect(allProperties(value as SchemaDocumentType).map((p) => p.alias)).toEqual([
+    expect(allProperties(value as SchemaContentType).map((p) => p.alias)).toEqual([
       'hidden',
       'title',
       'bodyText',
@@ -141,7 +141,7 @@ describe('parsing', () => {
   })
 
   test('rejects an unknown key, naming the file and where', () => {
-    const { value, problems } = parseDocumentType(
+    const { value, problems } = parseContentType(
       'x.toml',
       '[content-type]\nalias = "a"\nname = "A"\nallow-at-rooot = true\n',
     )
@@ -153,7 +153,7 @@ describe('parsing', () => {
   })
 
   test('rejects a missing required key and a wrong type, reporting every problem', () => {
-    const { problems } = parseDocumentType(
+    const { problems } = parseContentType(
       'x.toml',
       '[content-type]\nname = 5\n[[tab]]\n[[tab.property]]\nalias = "p"\nname = "P"\n',
     )
@@ -202,16 +202,16 @@ describe('parsing', () => {
 })
 
 describe('canonical writer', () => {
-  test('round-trips a document type exactly, dropping comments', () => {
-    const parsed = parseDocumentType('home-page.toml', HOME_PAGE).value as SchemaDocumentType
-    const written = writeDocumentType(parsed)
+  test('round-trips a content type exactly, dropping comments', () => {
+    const parsed = parseContentType('home-page.toml', HOME_PAGE).value as SchemaContentType
+    const written = writeContentType(parsed)
     expect(written).not.toContain('# a comment')
     expect(written.startsWith('[content-type]\nkey = ')).toBe(true)
-    const again = parseDocumentType('home-page.toml', written)
+    const again = parseContentType('home-page.toml', written)
     expect(again.problems).toEqual([])
     expect(again.value).toEqual(parsed)
     // Writing the re-parsed model yields byte-identical output: canonical.
-    expect(writeDocumentType(again.value as SchemaDocumentType)).toBe(written)
+    expect(writeContentType(again.value as SchemaContentType)).toBe(written)
   })
 
   test('round-trips data types and languages', () => {
@@ -259,7 +259,7 @@ describe('canonical writer', () => {
   })
 
   test('omits defaults so files stay short', () => {
-    const written = writeDocumentType(type('plain'))
+    const written = writeContentType(type('plain'))
     expect(written).toBe('[content-type]\nalias = "plain"\nname = "plain"\n')
   })
 
@@ -273,7 +273,7 @@ describe('validation', () => {
   test('a coherent set has no problems', () => {
     const problems = validateSchemaSet(
       set({
-        documentTypes: [
+        contentTypes: [
           type('seo', { isElement: true, properties: [prop('metaTitle')] }),
           type('home', {
             allowAtRoot: true,
@@ -295,7 +295,7 @@ describe('validation', () => {
   test('reports every kind of reference problem at once', () => {
     const problems = validateSchemaSet(
       set({
-        documentTypes: [
+        contentTypes: [
           type('a', {
             compositions: ['b'],
             allowChildren: ['nope'],
@@ -331,7 +331,7 @@ describe('validation', () => {
   test('a culture-variant property needs a culture-variant type', () => {
     const problems = validateSchemaSet(
       set({
-        documentTypes: [
+        contentTypes: [
           type('a', { properties: [prop('x', 'textstring', { variesByCulture: true })] }),
         ],
       }),
@@ -344,7 +344,7 @@ describe('validation', () => {
     const problems = validateSchemaSet(
       set({
         dataTypes: [{ alias: 'textstring', name: 'Mine', editor: 'Umbraco.TextBox', config: {} }],
-        documentTypes: [type('a', { properties: [prop('x', 'textstring')] })],
+        contentTypes: [type('a', { properties: [prop('x', 'textstring')] })],
       }),
     )
     expect(problems).toEqual([])
@@ -352,7 +352,7 @@ describe('validation', () => {
 
   test('versions must be dotted numbers', () => {
     const problems = validateSchemaSet(
-      set({ version: 'v2', documentTypes: [type('a', { since: 'soon' })] }),
+      set({ version: 'v2', contentTypes: [type('a', { since: 'soon' })] }),
     )
     expect(problems.map((p) => p.path).sort()).toEqual(['content-type.since', 'schema.version'])
   })
@@ -385,7 +385,7 @@ describe('loading a directory', () => {
     const loaded = loadSchemaDirectory(dir)
     expect(loaded.problems).toEqual([])
     expect(loaded.set.version).toBe('1.2')
-    expect(loaded.set.documentTypes.map((t) => t.alias).sort()).toEqual(['homePage', 'seoFields'])
+    expect(loaded.set.contentTypes.map((t) => t.alias).sort()).toEqual(['homePage', 'seoFields'])
     expect(loaded.set.dataTypes.map((d) => d.alias)).toEqual(['shortText'])
     expect(loaded.set.languages[0]?.iso).toBe('en-US')
     expect(loaded.files.get('homePage')).toBe(join(dir, 'content-types', 'home-page.toml'))
@@ -403,7 +403,7 @@ describe('loading a directory', () => {
 
   test('the hash ignores order, whitespace and comments, and notices meaning', () => {
     const a = loadSchemaDirectory(scaffold()).set
-    const b: SchemaSet = { ...a, documentTypes: [...a.documentTypes].reverse() }
+    const b: SchemaSet = { ...a, contentTypes: [...a.contentTypes].reverse() }
     expect(hashSchemaSet(a)).toBe(hashSchemaSet(b))
     const dir = scaffold()
     writeFileSync(
@@ -413,7 +413,7 @@ describe('loading a directory', () => {
     expect(hashSchemaSet(loadSchemaDirectory(dir).set)).toBe(hashSchemaSet(a))
     const changed: SchemaSet = {
       ...a,
-      documentTypes: a.documentTypes.map((t) =>
+      contentTypes: a.contentTypes.map((t) =>
         t.alias === 'homePage' ? { ...t, name: 'Renamed' } : t,
       ),
     }

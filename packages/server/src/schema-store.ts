@@ -5,7 +5,7 @@
  * durably — the container's disk is thrown away on redeploy — so
  * `schemaWritable` is off in production and metadata is a developer's job. With a
  * store configured, the schema lives in S3 or Azure instead, every node reads the
- * same copy, and an editor can change a document type on a deployed site and have
+ * same copy, and an editor can change a content type on a deployed site and have
  * it survive and reach the other nodes.
  *
  * **The store is materialised into a local directory at boot**, and everything
@@ -90,7 +90,7 @@ async function localFiles(dir: string): Promise<string[]> {
  * Copies the store into `dir`, which becomes the schema directory for this boot.
  *
  * A mirror, not a merge: a file the store no longer has is removed locally, so a
- * node that restarts with a stale cache cannot resurrect a deleted document type.
+ * node that restarts with a stale cache cannot resurrect a deleted content type.
  */
 export async function materialiseSchema(store: SchemaStore, dir: string): Promise<string[]> {
   const keys = await store.list()

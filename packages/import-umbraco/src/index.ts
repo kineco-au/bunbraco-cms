@@ -11,8 +11,8 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   fileNameFor,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
   writeMediaType,
   writeMemberType,
@@ -175,10 +175,10 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
 
     // Schema
     out.push({ path: 'schema/schema.toml', text: writeSchemaVersion(schema.set.version) })
-    for (const type of schema.set.documentTypes)
+    for (const type of schema.set.contentTypes)
       out.push({
         path: `schema/content-types/${fileNameFor(type.alias)}`,
-        text: writeDocumentType(type),
+        text: writeContentType(type),
       })
     for (const type of schema.set.mediaTypes ?? [])
       out.push({

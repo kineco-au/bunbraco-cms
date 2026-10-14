@@ -8,6 +8,9 @@
  * uploads the tarball with npm, which is what signs provenance. A version the
  * registry already holds is skipped rather than failing the run, so a release
  * that only changes some packages does not need the set trimmed by hand.
+ *
+ * The sites in `sites/` marked `"distribute": true` are staged into the CLI's
+ * `templates/` for the length of its pack, so they ship and nothing else does.
  */
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
@@ -20,6 +23,7 @@ import {
   type WorkspacePackage,
 } from './packages.ts'
 import { declaredCompatibility, expectedCompatibility } from './release-compatibility.ts'
+import { stageTemplates, unstage } from './sites.ts'
 
 const REGISTRY = 'https://registry.npmjs.org'
 const OUT = join(ROOT, 'output/packages')
@@ -32,6 +36,9 @@ const OUT = join(ROOT, 'output/packages')
  * and a rule with no exceptions has nothing to drift.
  */
 const LICENCE_FILES = ['LICENSE', 'NOTICE'] as const
+
+/** The package `bunbraco init` reads its templates from. */
+const CLI = '@bunbraco/cli'
 
 const args = Bun.argv.slice(2)
 const dryRun = args.includes('--dry-run')
@@ -119,6 +126,8 @@ for (const pkg of packages) {
   }
 
   for (const file of LICENCE_FILES) copyFileSync(join(ROOT, file), join(pkg.dir, file))
+  const templates = join(pkg.dir, 'templates')
+  const staged = name === CLI ? stageTemplates(templates) : []
 
   try {
     await run(['bun', 'pm', 'pack', '--destination', OUT], pkg.dir, true)
@@ -162,6 +171,7 @@ for (const pkg of packages) {
     published.push(`${name}@${version}`)
   } finally {
     for (const file of LICENCE_FILES) rmSync(join(pkg.dir, file), { force: true })
+    unstage(staged, templates)
   }
 }
 

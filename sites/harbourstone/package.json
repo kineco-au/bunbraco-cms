@@ -1,0 +1,14 @@
+{
+  "name": "@bunbraco/site-harbourstone",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bunbraco start --bundle bundles/demo-harbourstone --publish",
+    "dev": "bun --watch server.ts"
+  },
+  "dependencies": {
+    "@bunbraco/simple-redirects": "workspace:*",
+    "bunbraco": "workspace:*"
+  }
+}

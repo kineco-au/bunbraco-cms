@@ -6,7 +6,13 @@ node_modules/
 dist/
 output/
 # Scaffolded template sites: `bun run site <template>`, disposable.
-sites/
+.scaffolds/
+# What a site in sites/ writes as it runs; its source and bundle are committed.
+sites/*/media/
+*.content-import.bak
+# Sites staged as templates while packing; see scripts/sites.ts
+packages/cli/templates/*
+!packages/cli/templates/basic/
 packages/backoffice-dist/dist/
 packages/contracts/generated/
 # Uploaded media belongs to the site's content, not the repository

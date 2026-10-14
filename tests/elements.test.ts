@@ -25,7 +25,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-/** An element type: a document type carrying `is-element` and `allow-in-library`. */
+/** An element type: a content type carrying `is-element` and `allow-in-library`. */
 const QUOTE_TOML = `[content-type]
 alias = "quote"
 name = "Quote"

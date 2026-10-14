@@ -60,8 +60,8 @@ async function site() {
       )
     return response.headers.get('umb-generated-resource') as string
   }
-  /** A document type that may sit at the root, so content can be packaged. */
-  const documentType = async (alias = 'packagedPage', name = 'Packaged Page') => {
+  /** A content type that may sit at the root, so content can be packaged. */
+  const contentType = async (alias = 'packagedPage', name = 'Packaged Page') => {
     const response = await h.post(`${V1}/document-type`, {
       alias,
       name,
@@ -102,11 +102,11 @@ async function site() {
     })
     if (response.status !== 201)
       throw new Error(
-        `Creating the document type failed with ${response.status}: ${await response.text()}`,
+        `Creating the content type failed with ${response.status}: ${await response.text()}`,
       )
     return { id: response.headers.get('umb-generated-resource') as string, alias }
   }
-  return { h, create, documentType }
+  return { h, create, contentType }
 }
 
 /** The archive's entries, by path. */
@@ -308,8 +308,8 @@ describe('the download', () => {
   })
 
   test('carries the picked schema as the TOML files schema/ would hold', async () => {
-    const { h, create, documentType } = await site()
-    const type = await documentType()
+    const { h, create, contentType } = await site()
+    const type = await contentType()
 
     const entries = await download(
       h,
@@ -317,13 +317,13 @@ describe('the download', () => {
     )
     expect([...entries.keys()]).toContain('schema/schema.toml')
     const file = [...entries.keys()].find((path) => path.startsWith('schema/content-types/'))
-    if (!file) throw new Error(`no document type in ${[...entries.keys()].join(', ')}`)
+    if (!file) throw new Error(`no content type in ${[...entries.keys()].join(', ')}`)
     expect(text(entries, file)).toContain(`alias = "${type.alias}"`)
   })
 
-  test('picks a document type by alias as well as by key', async () => {
-    const { h, create, documentType } = await site()
-    const type = await documentType('byAlias', 'By Alias')
+  test('picks a content type by alias as well as by key', async () => {
+    const { h, create, contentType } = await site()
+    const type = await contentType('byAlias', 'By Alias')
     const entries = await download(
       h,
       await create({ name: 'By alias', documentTypes: [type.alias] }),
@@ -332,9 +332,9 @@ describe('the download', () => {
   })
 
   test('leaves out a type that was not picked', async () => {
-    const { h, create, documentType } = await site()
-    const wanted = await documentType('wanted', 'Wanted')
-    await documentType('unwanted', 'Unwanted')
+    const { h, create, contentType } = await site()
+    const wanted = await contentType('wanted', 'Wanted')
+    await contentType('unwanted', 'Unwanted')
     const entries = await download(
       h,
       await create({ name: 'One type', documentTypes: [wanted.id] }),
@@ -397,8 +397,8 @@ describe('the download', () => {
   })
 
   test('carries a picked content subtree as a loadable bundle', async () => {
-    const { h, create, documentType } = await site()
-    const type = await documentType()
+    const { h, create, contentType } = await site()
+    const type = await contentType()
 
     const made = await h.post(`${V1}/document`, {
       documentType: { id: type.id },
@@ -444,8 +444,8 @@ describe('the download', () => {
    * page's children in behind it.
    */
   test('honours contentLoadChildNodes and mediaLoadChildNodes independently', async () => {
-    const { h, create, documentType } = await site()
-    const type = await documentType()
+    const { h, create, contentType } = await site()
+    const type = await contentType()
     const page = async (name: string, parent: string | null) => {
       const made = await h.post(`${V1}/document`, {
         documentType: { id: type.id },
@@ -502,8 +502,8 @@ describe('the download', () => {
   })
 
   test('counts what the merged bundle actually holds', async () => {
-    const { h, create, documentType } = await site()
-    const type = await documentType()
+    const { h, create, contentType } = await site()
+    const type = await contentType()
     const made = await h.post(`${V1}/document`, {
       documentType: { id: type.id },
       template: null,

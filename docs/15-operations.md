@@ -329,7 +329,7 @@ answering the public site, which the editor, and on which schema state.
 | [`06-features.md`](docs/06-features.md)                             | must-have / could-have / out-of-scope inventory                                                                                         |
 | [`07-roadmap.md`](docs/07-roadmap.md)                               | phases with exit criteria, and the risk register                                                                                        |
 | [`08-testing.md`](docs/08-testing.md)                               | test strategy and what Phase 0 covers                                                                                                   |
-| [`09-schema-as-code.md`](docs/09-schema-as-code.md)                 | document types, data types and languages as TOML files; sync; the backoffice writes them                                                |
+| [`09-schema-as-code.md`](docs/09-schema-as-code.md)                 | content types, data types and languages as TOML files; sync; the backoffice writes them                                                |
 | [`10-packaging-and-upgrades.md`](docs/10-packaging-and-upgrades.md) | how a site consumes the framework; migration ledger, `--plan`, expand/contract; the pre-upgrade check and `--fix` that gate the upgrade |
 | [`11-assistant.md`](docs/11-assistant.md)                           | the optional AI helper: why the boundary is real, query and propose, approval and staleness, TSX guardrails, MCP, providers                |
 | [`12-schema-at-runtime.md`](docs/12-schema-at-runtime.md)           | the shared schema store, importing files at runtime, how the version moves with the change, and getting it back into git                   |

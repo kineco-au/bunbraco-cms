@@ -431,7 +431,7 @@ export class DocumentRepository {
         const repo = this.#child(tx)
         const state = await assertNodeMayWrite(tx, this.#nodeState)
         const contentTypeNode = await repo.nodes.byKey(input.contentTypeKey)
-        if (!contentTypeNode) throw new Error(`Unknown document type '${input.contentTypeKey}'.`)
+        if (!contentTypeNode) throw new Error(`Unknown content type '${input.contentTypeKey}'.`)
 
         const parentId = input.parentKey
           ? ((await repo.nodes.byKey(input.parentKey))?.id ?? SystemNodes.Root)

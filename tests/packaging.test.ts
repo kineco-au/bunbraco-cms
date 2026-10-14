@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { basename, join, relative } from 'node:path'
 import { EXTENSION_KEYWORD } from '@bunbraco/backoffice-host'
 import { VERSION } from '@bunbraco/server'
 import {
@@ -17,6 +17,7 @@ import {
   sharedVersion,
   workspacePackages,
 } from '../scripts/packages.ts'
+import { listSites } from '../scripts/sites.ts'
 
 const REPOSITORY = 'git+https://github.com/kineco-au/bunbraco-cms.git'
 const packages = publishablePackages()
@@ -147,8 +148,10 @@ describe('the published package set', () => {
     expect(VERSION).toBe(sharedVersion())
   })
 
-  test('keeps the workspace root and the example site unpublished', () => {
-    for (const file of ['package.json', 'apps/site/package.json']) {
+  test('keeps the workspace root, the example site and every site unpublished', () => {
+    const sites = listSites().map((site) => relative(ROOT, join(site.dir, 'package.json')))
+    expect(sites.length).toBeGreaterThan(0)
+    for (const file of ['package.json', 'apps/site/package.json', ...sites]) {
       const manifest = JSON.parse(readFileSync(join(ROOT, file), 'utf8')) as { private?: boolean }
       expect(manifest.private).toBe(true)
     }
@@ -321,20 +324,17 @@ describe('every image a template redistributes', () => {
         )
       : []
 
-  test('has a row in its template’s CREDITS.md', () => {
+  test('has a row in its site’s CREDITS.md', () => {
     // `bunbraco init --template` copies these onto someone else's machine, so they
     // are redistributed and each one needs a recorded source. Unattributed is the
     // kind of thing only ever noticed years later, so it is a test rather than a
-    // convention.
-    const templates = join(ROOT, 'packages/cli/templates')
-    if (!existsSync(templates)) return
-    for (const template of readdirSync(join(templates, 'demo'), { withFileTypes: true })) {
-      if (!template.isDirectory()) continue
-      const dir = join(templates, 'demo', template.name)
-      const found = images(join(dir, 'bundle', 'blobs'))
+    // convention. Every site, not only the distributed ones: flipping
+    // `distribute` should not be what reveals an unattributed photograph.
+    for (const site of listSites()) {
+      const found = images(join(site.dir, site.bundle, 'blobs'))
       if (found.length === 0) continue
-      const credits = join(dir, 'CREDITS.md')
-      expect([template.name, existsSync(credits)]).toEqual([template.name, true])
+      const credits = join(site.dir, 'CREDITS.md')
+      expect([site.id, existsSync(credits)]).toEqual([site.id, true])
       const text = readFileSync(credits, 'utf8')
       for (const image of found)
         expect([image, text.includes(basename(image))]).toEqual([image, true])

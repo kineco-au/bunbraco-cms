@@ -50,7 +50,7 @@ export interface SchemaCleanup {
   keepLatestPerDayForDays?: number
 }
 
-export interface SchemaDocumentType {
+export interface SchemaContentType {
   key?: string
   alias: string
   name: string
@@ -101,11 +101,11 @@ export interface SchemaLanguage {
 export interface SchemaSet {
   /** From schema/schema.toml; "0" when the file is absent. */
   version: string
-  documentTypes: SchemaDocumentType[]
+  contentTypes: SchemaContentType[]
   /** `schema/media-types/*.toml`: the same vocabulary under `[media-type]`, without templates or cleanup. */
-  mediaTypes?: SchemaDocumentType[]
+  mediaTypes?: SchemaContentType[]
   /** `schema/member-types/*.toml`: under `[member-type]`, no templates, cleanup or allowed children. */
-  memberTypes?: SchemaDocumentType[]
+  memberTypes?: SchemaContentType[]
   dataTypes: SchemaDataType[]
   languages: SchemaLanguage[]
   /** `schema/forms/*.toml` — form definitions; see `docs/18-forms.md`. */
@@ -130,7 +130,7 @@ export const TYPE_KIND_FILES: Record<SchemaTypeKind, { header: string; dir: stri
   member: { header: 'member-type', dir: 'member-types' },
 }
 
-/** The files-map key for a type: document types by bare alias, others prefixed. */
+/** The files-map key for a type: content types by bare alias, others prefixed. */
 export function typeFileKey(kind: SchemaTypeKind, alias: string): string {
   return kind === 'document' ? alias : `${TYPE_KIND_FILES[kind].header}:${alias}`
 }
@@ -145,7 +145,7 @@ export class SchemaError extends Error {
 }
 
 /** Every property of a type, including tabbed and grouped ones, in editor order. */
-export function allProperties(type: SchemaDocumentType): SchemaProperty[] {
+export function allProperties(type: SchemaContentType): SchemaProperty[] {
   const out = [...type.properties]
   for (const group of type.groups ?? []) out.push(...group.properties)
   for (const tab of type.tabs) {

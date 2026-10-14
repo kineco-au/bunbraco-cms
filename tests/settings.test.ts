@@ -6,9 +6,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_DOCUMENT_TYPE_KEYS } from '@bunbraco/core'
+import { SYSTEM_CONTENT_TYPE_KEYS } from '@bunbraco/core'
 import { Locks, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import { parseDataType, parseDocumentType } from '@bunbraco/schema'
+import { parseContentType, parseDataType } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -56,7 +56,7 @@ function property(alias: string, name: string, dataTypeId: string, sortOrder = 0
   }
 }
 
-function documentType(alias: string, overrides: Record<string, unknown> = {}) {
+function contentType(alias: string, overrides: Record<string, unknown> = {}) {
   return {
     alias,
     name: alias.charAt(0).toUpperCase() + alias.slice(1),
@@ -87,11 +87,11 @@ function documentType(alias: string, overrides: Record<string, unknown> = {}) {
 async function createType(h: Harness, body: Record<string, unknown>): Promise<string> {
   const response = await h.post(`${V1}/document-type`, body)
   if (response.status !== 201)
-    throw new Error(`document type: ${response.status} ${await response.text()}`)
+    throw new Error(`content type: ${response.status} ${await response.text()}`)
   return response.headers.get('umb-generated-resource') as string
 }
 
-describe('WP-6.2 document types', () => {
+describe('WP-6.2 content types', () => {
   test('configuration, batch, search, allowed parents and composition references', async () => {
     const { h } = await site()
     const configuration = await h.json<{
@@ -103,20 +103,20 @@ describe('WP-6.2 document types', () => {
 
     const seo = await createType(
       h,
-      documentType('metaFields', {
+      contentType('metaFields', {
         isElement: true,
         properties: [property('metaTitle', 'Meta title', TEXTSTRING)],
       }),
     )
     const page = await createType(
       h,
-      documentType('textPage', {
+      contentType('textPage', {
         compositions: [{ documentType: { id: seo }, compositionType: 'Composition' }],
       }),
     )
     const home = await createType(
       h,
-      documentType('homePage', {
+      contentType('homePage', {
         allowedAsRoot: true,
         allowedDocumentTypes: [{ documentType: { id: page }, sortOrder: 0 }],
       }),
@@ -152,25 +152,25 @@ describe('WP-6.2 document types', () => {
     const { h } = await site()
     const seo = await createType(
       h,
-      documentType('metaFields', {
+      contentType('metaFields', {
         isElement: true,
         properties: [property('metaTitle', 'Meta title', TEXTSTRING)],
       }),
     )
     const nav = await createType(
       h,
-      documentType('navFields', {
+      contentType('navFields', {
         isElement: true,
         properties: [property('title', 'Title', TEXTSTRING)],
       }),
     )
     const page = await createType(
       h,
-      documentType('textPage', {
+      contentType('textPage', {
         compositions: [{ documentType: { id: seo }, compositionType: 'Composition' }],
       }),
     )
-    const plain = await createType(h, documentType('plainPage'))
+    const plain = await createType(h, contentType('plainPage'))
 
     const forPage = await h.json<
       Array<{ id: string; isCompatible: boolean; folderPath: string[] }>
@@ -187,7 +187,7 @@ describe('WP-6.2 document types', () => {
     // itself never; the type that composes it never (none here); types with compositions never.
     // The shipped Search & sharing type is always on offer.
     expect(forPage.map((c) => c.id).sort()).toEqual(
-      [nav, plain, seo, SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields].sort(),
+      [nav, plain, seo, SYSTEM_CONTENT_TYPE_KEYS.SeoFields].sort(),
     )
     expect(forPage.find((c) => c.id === nav)?.isCompatible).toBe(false)
     expect(forPage.find((c) => c.id === seo)?.isCompatible).toBe(true)
@@ -224,8 +224,8 @@ describe('WP-6.2 document types', () => {
       isTrashed: false,
     })
 
-    const post = await createType(h, documentType('blogPost', { parent: { id: subKey } }))
-    const other = await createType(h, documentType('other'))
+    const post = await createType(h, contentType('blogPost', { parent: { id: subKey } }))
+    const other = await createType(h, contentType('other'))
 
     const root = await h.json<{
       items: Array<{ id: string; isFolder: boolean; hasChildren: boolean }>
@@ -254,11 +254,11 @@ describe('WP-6.2 document types', () => {
     expect(siblings.items.map((i) => i.id)).toEqual([
       folderKey,
       other,
-      SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields,
+      SYSTEM_CONTENT_TYPE_KEYS.SeoFields,
     ])
 
     // The file carries the folder path, and the composition picker shows it
-    const file = parseDocumentType(
+    const file = parseContentType(
       'blog-post',
       readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
     )
@@ -283,7 +283,7 @@ describe('WP-6.2 document types', () => {
       200,
     )
     expect(
-      parseDocumentType(
+      parseContentType(
         'x',
         readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
       ).value?.folder,
@@ -291,7 +291,7 @@ describe('WP-6.2 document types', () => {
     // Move the type to the root: the key goes away
     expect((await h.put(`${V1}/document-type/${post}/move`, { target: null })).status).toBe(200)
     expect(
-      parseDocumentType(
+      parseContentType(
         'x',
         readFileSync(join(schemaDir, 'content-types', 'blog-post.toml'), 'utf8'),
       ).value?.folder,
@@ -353,7 +353,7 @@ describe('WP-6.2 document types', () => {
     const { h, componentsDir, schemaDir } = await site()
     const key = await createType(
       h,
-      documentType('article', { properties: [property('title', 'Title', TEXTSTRING)] }),
+      contentType('article', { properties: [property('title', 'Title', TEXTSTRING)] }),
     )
     const copied = await h.post(`${V1}/document-type/${key}/copy`, { target: null })
     expect(copied.status).toBe(201)
@@ -440,7 +440,7 @@ describe('WP-6.2 data types', () => {
 
     const typeKey = await createType(
       h,
-      documentType('article', { properties: [property('body', 'Body', key)] }),
+      contentType('article', { properties: [property('body', 'Body', key)] }),
     )
     const refs = await h.json<{
       total: number
@@ -639,7 +639,7 @@ describe('WP-6.2 templates and languages', () => {
     const { h } = await site()
     const folder = await h.post(`${V1}/document-type/folder`, { name: 'Page types', parent: null })
     const folderKey = folder.headers.get('umb-generated-resource') as string
-    const typeKey = await createType(h, documentType('landingPage', { parent: { id: folderKey } }))
+    const typeKey = await createType(h, contentType('landingPage', { parent: { id: folderKey } }))
     const all = await h.json<{ total: number; items: Array<{ id: string; isFolder: boolean }> }>(
       `${V1}/tree/document-type/search?query=page&skip=0&take=10`,
     )

@@ -1,0 +1,12 @@
+{
+  "id": "demo/harbourstone",
+  "name": "Harbourstone Distillery",
+  "description": "a coastal distillery: a range with tasting-note elements, reusable highlights, a contact form, photographs and a stylesheet",
+  "distribute": true,
+  "bundles": [
+    {
+      "package": "@bunbraco/simple-redirects",
+      "import": "redirects"
+    }
+  ]
+}

@@ -12,11 +12,11 @@ import {
   allProperties,
   nameFor,
   newType,
-  parseDocumentType,
+  parseContentType,
   parseMediaType,
   validateSchemaSet,
   viewScaffold,
-  writeDocumentType,
+  writeContentType,
 } from '@bunbraco/schema'
 
 /** Deterministic keys, so a test reads as what it is about. */
@@ -29,7 +29,7 @@ const keys = () => {
 }
 
 describe('scaffolding a type', () => {
-  test('writes a document type a site can publish, with a view to match', () => {
+  test('writes a content type a site can publish, with a view to match', () => {
     const type = newType({ alias: 'articlePage', allowAtRoot: true, tab: 'Content' }, keys())
     expect(type.name).toBe('Article Page')
     expect(type.allowAtRoot).toBe(true)
@@ -67,7 +67,7 @@ describe('scaffolding a type', () => {
 
   test('the file it writes parses back to the same type, and validates', () => {
     const type = newType({ alias: 'article', allowAtRoot: true, tab: 'Content' }, keys())
-    const parsed = parseDocumentType('schema/content-types/article.toml', writeDocumentType(type))
+    const parsed = parseContentType('schema/content-types/article.toml', writeContentType(type))
     expect(parsed.problems).toEqual([])
     // The parser fills every optional key in, so the shapes differ where the
     // values do not; what matters is that nothing was lost or invented.
@@ -85,7 +85,7 @@ describe('scaffolding a type', () => {
     const problems = validateSchemaSet(
       {
         version: '1.0.0',
-        documentTypes: [parsed.value as typeof type],
+        contentTypes: [parsed.value as typeof type],
         dataTypes: [],
         languages: [],
       },
@@ -98,7 +98,7 @@ describe('scaffolding a type', () => {
     const type = newType({ alias: 'brochure', kind: 'media' }, keys())
     const parsed = parseMediaType(
       'schema/media-types/brochure.toml',
-      writeDocumentType(type, 'media'),
+      writeContentType(type, 'media'),
     )
     expect(parsed.problems).toEqual([])
     expect(parsed.value?.alias).toBe('brochure')
@@ -164,7 +164,7 @@ describe('adding a property', () => {
     )
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    const parsed = parseDocumentType('article.toml', writeDocumentType(result.type))
+    const parsed = parseContentType('article.toml', writeContentType(result.type))
     expect(parsed.problems).toEqual([])
     const summary = allProperties(parsed.value as never).find((p) => p.alias === 'summary')
     expect(summary).toMatchObject({

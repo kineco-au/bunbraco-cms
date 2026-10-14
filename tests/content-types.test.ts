@@ -1,7 +1,7 @@
 /**
- * Phase 3: document types, data types and templates through the real API.
+ * Phase 3: content types, data types and templates through the real API.
  *
- * The exit criterion is that a document type with tabs, properties and a template
+ * The exit criterion is that a content type with tabs, properties and a template
  * survives a reload, so these tests write and then re-read rather than asserting
  * on the write response.
  */
@@ -26,7 +26,7 @@ async function harness(): Promise<Harness> {
 const TEXTSTRING = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
 const TEXTAREA = 'c6bac0dd-4ab9-45b1-8e30-e4b619ee5da3'
 
-interface DocumentTypeBody {
+interface ContentTypeBody {
   alias: string
   name: string
   icon?: string
@@ -38,7 +38,7 @@ interface DocumentTypeBody {
   [key: string]: unknown
 }
 
-function documentType(overrides: Partial<DocumentTypeBody> = {}): DocumentTypeBody {
+function contentType(overrides: Partial<ContentTypeBody> = {}): ContentTypeBody {
   return {
     alias: 'homePage',
     name: 'Home Page',
@@ -117,10 +117,10 @@ describe('seeded content schema', () => {
   })
 })
 
-describe('document types', () => {
+describe('content types', () => {
   test('creates one and reads it back', async () => {
     const h = await harness()
-    const response = await h.post(`${V1}/document-type`, documentType())
+    const response = await h.post(`${V1}/document-type`, contentType())
     expect(response.status).toBe(201)
     const key = response.headers.get('umb-generated-resource') as string
     expect(key).toBeTruthy()
@@ -148,7 +148,7 @@ describe('document types', () => {
     const seoTab = crypto.randomUUID()
     const response = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         containers: [
           { id: contentTab, parent: null, name: 'Content', type: 'Tab', sortOrder: 0 },
           { id: seoTab, parent: null, name: 'SEO', type: 'Tab', sortOrder: 1 },
@@ -223,8 +223,8 @@ describe('document types', () => {
 
   test('refuses a duplicate alias', async () => {
     const h = await harness()
-    await h.post(`${V1}/document-type`, documentType())
-    const second = await h.post(`${V1}/document-type`, documentType({ name: 'Another' }))
+    await h.post(`${V1}/document-type`, contentType())
+    const second = await h.post(`${V1}/document-type`, contentType({ name: 'Another' }))
     expect(second.status).toBe(400)
     const problem = await second.json()
     expect(problem.type).toBe('Error')
@@ -235,7 +235,7 @@ describe('document types', () => {
     const h = await harness()
     const created = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         properties: [
           {
             id: crypto.randomUUID(),
@@ -256,7 +256,7 @@ describe('document types', () => {
 
     const update = await h.put(
       `${V1}/document-type/${key}`,
-      documentType({
+      contentType({
         name: 'Renamed',
         icon: 'icon-newspaper',
         properties: [
@@ -293,7 +293,7 @@ describe('document types', () => {
     const h = await harness()
     const created = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         variesByCulture: true,
         properties: [
           {
@@ -335,10 +335,10 @@ describe('document types', () => {
 
   test('appears in the tree and in allowed-at-root', async () => {
     const h = await harness()
-    await h.post(`${V1}/document-type`, documentType())
+    await h.post(`${V1}/document-type`, contentType())
     await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'textPage', name: 'Text Page', allowedAsRoot: false }),
+      contentType({ alias: 'textPage', name: 'Text Page', allowedAsRoot: false }),
     )
 
     const tree = await h.json<{
@@ -364,7 +364,7 @@ describe('document types', () => {
     // A page type with a template and children, as an ordinary one has.
     const created = await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'article', name: 'Article', allowedAsRoot: true }),
+      contentType({ alias: 'article', name: 'Article', allowedAsRoot: true }),
     )
     const key = created.headers.get('umb-generated-resource') as string
 
@@ -398,7 +398,7 @@ describe('document types', () => {
     // requires both, and this is the step that is easy to miss.
     const created = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         alias: 'bulletList',
         name: 'Bullet List',
         allowedAsRoot: false,
@@ -435,17 +435,17 @@ describe('document types', () => {
     const h = await harness()
     await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'quote', name: 'Quote', isElement: true, allowedInLibrary: true }),
+      contentType({ alias: 'quote', name: 'Quote', isElement: true, allowedInLibrary: true }),
     )
     // An element type without the flag, and a flagged type that is not an
     // element: Umbraco requires both, so neither is offered.
     await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'banner', name: 'Banner', isElement: true, allowedInLibrary: false }),
+      contentType({ alias: 'banner', name: 'Banner', isElement: true, allowedInLibrary: false }),
     )
     await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'article', name: 'Article', isElement: false, allowedInLibrary: true }),
+      contentType({ alias: 'article', name: 'Article', isElement: false, allowedInLibrary: true }),
     )
 
     const library = await h.json<{
@@ -463,7 +463,7 @@ describe('document types', () => {
     for (const name of ['Alpha', 'Beta', 'Gamma'])
       await h.post(
         `${V1}/document-type`,
-        documentType({
+        contentType({
           alias: name.toLowerCase(),
           name,
           isElement: true,
@@ -493,12 +493,12 @@ describe('document types', () => {
     const h = await harness()
     const child = await h.post(
       `${V1}/document-type`,
-      documentType({ alias: 'textPage', name: 'Text Page' }),
+      contentType({ alias: 'textPage', name: 'Text Page' }),
     )
     const childKey = child.headers.get('umb-generated-resource') as string
     const parent = await h.post(
       `${V1}/document-type`,
-      documentType({ allowedDocumentTypes: [{ documentType: { id: childKey }, sortOrder: 0 }] }),
+      contentType({ allowedDocumentTypes: [{ documentType: { id: childKey }, sortOrder: 0 }] }),
     )
     const parentKey = parent.headers.get('umb-generated-resource') as string
 
@@ -512,7 +512,7 @@ describe('document types', () => {
     const h = await harness()
     const base = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         alias: 'seoComposition',
         name: 'SEO',
         isElement: true,
@@ -536,7 +536,7 @@ describe('document types', () => {
 
     const page = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         compositions: [{ documentType: { id: baseKey }, compositionType: 'Composition' }],
       }),
     )
@@ -550,7 +550,7 @@ describe('document types', () => {
 
   test('deletes one', async () => {
     const h = await harness()
-    const created = await h.post(`${V1}/document-type`, documentType())
+    const created = await h.post(`${V1}/document-type`, contentType())
     const key = created.headers.get('umb-generated-resource') as string
     expect((await h.del(`${V1}/document-type/${key}`)).status).toBe(200)
     expect((await h.call(`${V1}/document-type/${key}`)).status).toBe(404)
@@ -565,7 +565,7 @@ describe('document types', () => {
 
   test('item lookups hydrate pickers', async () => {
     const h = await harness()
-    const created = await h.post(`${V1}/document-type`, documentType())
+    const created = await h.post(`${V1}/document-type`, contentType())
     const key = created.headers.get('umb-generated-resource') as string
     const items = await h.json<Array<{ id: string; name: string; icon: string }>>(
       `${V1}/item/document-type?id=${key}`,
@@ -662,14 +662,14 @@ describe('templates', () => {
     expect(unlinked.masterTemplate).toBeNull()
   })
 
-  test('can be attached to a document type as its default', async () => {
+  test('can be attached to a content type as its default', async () => {
     const h = await harness()
     const template = await h.post(`${V1}/template`, { name: 'Home Page', alias: 'homePage' })
     const componentKey = template.headers.get('umb-generated-resource') as string
 
     const created = await h.post(
       `${V1}/document-type`,
-      documentType({
+      contentType({
         allowedTemplates: [{ id: componentKey }],
         defaultTemplate: { id: componentKey },
       }),

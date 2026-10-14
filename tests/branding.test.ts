@@ -235,7 +235,7 @@ describe('the logos', () => {
       // The registry icon, served in place of Umbraco's roundel.
       'icon-mark.js',
     ].map((file) => `${BRANDING_DIR}/${file}`)
-    files.push('packages/cli/templates/demo/bunbraco/files/components/shared/logo.tsx')
+    files.push('sites/bunbraco/components/shared/logo.tsx')
     const marks = await Promise.all(
       files.map(async (file) => {
         const svg = await Bun.file(file).text()
@@ -569,7 +569,7 @@ describe('the Umbraco mark in the icon registry', () => {
 
   test('is not offered by the icon picker', async () => {
     // The picker renders `icon.name` into the button's label and title, so the
-    // roundel sat among the document type icons under the name `icon-umbraco`.
+    // roundel sat among the content type icons under the name `icon-umbraco`.
     const source = await Bun.file(`${BRANDING_DIR}/icon-registry.js`).text()
     expect(source).toContain("new Set(['icon-umbraco'])")
     // `approvedIcons` is the list the picker reads; `icons` is left whole.

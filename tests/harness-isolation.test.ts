@@ -32,7 +32,7 @@ async function boot(): Promise<Harness> {
 describe.skipIf(!reachable)('a server booted twice over one database', () => {
   test('keeps none of the previous boot’s rows, and is seeded again', async () => {
     // A user rather than a document: a bare harness seeds the identity tables and
-    // the user groups, but no document type is allowed at root until a site's
+    // the user groups, but no content type is allowed at root until a site's
     // schema is loaded, so there would be nothing to create content under.
     const email = 'left-over@example.com'
     const users = (h: Harness) => h.json<{ items: { email: string }[] }>(`${V1}/user?take=100`)

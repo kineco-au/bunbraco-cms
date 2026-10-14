@@ -68,7 +68,7 @@ type = "textarea"
 `
 
 /**
- * A signed-in server whose only document type comes from `schema/*.toml`, with
+ * A signed-in server whose only content type comes from `schema/*.toml`, with
  * its view on disk before boot so the template reference validates.
  */
 async function scaffold(options: { view?: string; toml?: string } = {}) {

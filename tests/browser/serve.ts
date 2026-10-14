@@ -37,7 +37,7 @@ const root = mkdtempSync(join(repo, 'output', 'browser-site-'))
 cpSync(join(repo, 'apps/site/schema'), join(root, 'schema'), { recursive: true })
 cpSync(join(repo, 'apps/site/components'), join(root, 'components'), { recursive: true })
 
-// A document type with a property for every built-in data type, for the
+// A content type with a property for every built-in data type, for the
 // editor-coverage tests, and a view that renders a crop of its image picker.
 const editors = DEFAULT_DATA_TYPES.filter((d) => d.editorAlias !== 'Umbraco.ListView')
 writeFileSync(

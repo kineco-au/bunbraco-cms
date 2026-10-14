@@ -67,7 +67,7 @@ export interface SectionOptions {
    *
    * Off by default, and an install is refused while any file would be
    * replaced. These files are editable in the backoffice — a stylesheet, a
-   * template, a document type — so overwriting one destroys somebody's work,
+   * template, a content type — so overwriting one destroys somebody's work,
    * and this site may well have no git to recover it from.
    */
   replaceFiles?: boolean
@@ -315,7 +315,7 @@ export const carriesSections = (carried: CarriedSections): boolean =>
  *
  * Its own function rather than a condition inside the importer, because this is
  * the rule that stops an install destroying an editor's work: a stylesheet, a
- * template or a document type changed in the backoffice, on a site that may
+ * template or a content type changed in the backoffice, on a site that may
  * have no git behind it. `unchanged` is not a replacement, and a declined
  * section never reaches the plan.
  */

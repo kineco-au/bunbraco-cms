@@ -34,8 +34,8 @@ import {
   exportSchemaSet,
   fileNameFor,
   type SchemaSet,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
   writeMediaType,
   writeSchemaVersion,
@@ -80,7 +80,7 @@ const definition = (row: Bundle): PackageDefinition => ({
   mediaIds: row.mediaIds,
   mediaLoadChildNodes: row.mediaLoadChildNodes,
   elementIds: row.elementIds,
-  documentTypes: row.documentTypes,
+  contentTypes: row.contentTypes,
   mediaTypes: row.mediaTypes,
   dataTypes: row.dataTypes,
   // The wire format is Umbraco's, and it still has two fields. There is one
@@ -119,7 +119,7 @@ function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
   const put = (path: string, text: string) =>
     entries.push({ path: `${BUNDLE_SECTIONS.schema}/${path}`, text })
 
-  const documentTypes = set.documentTypes.filter(picks(from.documentTypes))
+  const contentTypes = set.contentTypes.filter(picks(from.contentTypes))
   const mediaTypes = (set.mediaTypes ?? []).filter(picks(from.mediaTypes))
   // Member types have no picker in the builder, and the contract's definition
   // has no field for them, so a bundle never carries one.
@@ -129,7 +129,7 @@ function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
   )
 
   if (
-    documentTypes.length === 0 &&
+    contentTypes.length === 0 &&
     mediaTypes.length === 0 &&
     dataTypes.length === 0 &&
     languages.length === 0
@@ -137,8 +137,8 @@ function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
     return entries
 
   put('schema.toml', writeSchemaVersion(set.version))
-  for (const type of documentTypes)
-    put(join('content-types', fileNameFor(type.alias)), writeDocumentType(type))
+  for (const type of contentTypes)
+    put(join('content-types', fileNameFor(type.alias)), writeContentType(type))
   for (const type of mediaTypes)
     put(join('media-types', fileNameFor(type.alias)), writeMediaType(type))
   for (const type of dataTypes)

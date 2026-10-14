@@ -7,8 +7,8 @@
  * TOML serialisers. `parse(write(x))` must equal `x` — the tests hold it to that.
  */
 import {
+  type SchemaContentType,
   type SchemaDataType,
-  type SchemaDocumentType,
   type SchemaLanguage,
   type SchemaProperty,
   type SchemaTypeKind,
@@ -69,10 +69,7 @@ function writeProperty(out: string[], header: string, p: SchemaProperty): void {
   line(out, 'since', p.since)
 }
 
-export function writeDocumentType(
-  t: SchemaDocumentType,
-  kind: SchemaTypeKind = 'document',
-): string {
+export function writeContentType(t: SchemaContentType, kind: SchemaTypeKind = 'document'): string {
   const out: string[] = [`[${TYPE_KIND_FILES[kind].header}]`]
   line(out, 'key', t.key)
   line(out, 'alias', t.alias)
@@ -124,12 +121,12 @@ export function writeDocumentType(
   return `${out.join('\n')}\n`
 }
 
-export function writeMediaType(t: SchemaDocumentType): string {
-  return writeDocumentType(t, 'media')
+export function writeMediaType(t: SchemaContentType): string {
+  return writeContentType(t, 'media')
 }
 
-export function writeMemberType(t: SchemaDocumentType): string {
-  return writeDocumentType(t, 'member')
+export function writeMemberType(t: SchemaContentType): string {
+  return writeContentType(t, 'member')
 }
 
 export function writeDataType(d: SchemaDataType): string {

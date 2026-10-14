@@ -175,7 +175,7 @@ now joins an enclosing transaction the way the SQLite one already did.
 
 **Schema at boot** — `tests/schema-boot.test.ts`, through `createServer`: the
 type from `schema/` exists with its template row and keys written back, a page
-publishes and renders through the view; a document type saved in the backoffice
+publishes and renders through the view; a content type saved in the backoffice
 appears as a canonical file and disappears with it, and a read-only environment
 answers 409 naming the file; removing a type file while content exists throws
 `SchemaBootError`; a broken file names its location. Postgres only: two servers
@@ -324,7 +324,7 @@ suite went red, none of them about elements. The fix guards the insert with
 
 **The create dialog's chain** — `tests/documents.test.ts` "the create dialog under a
 page reads its type's allowed children, not the root set". Three calls in order:
-`item/document` gives the parent's document type, that type's `allowed-children` is
+`item/document` gives the parent's content type, that type's `allowed-children` is
 what the dialog offers, and `allowed-at-root` is deliberately a different list. If
 the item response ever stopped carrying `documentType`, the client falls back to the
 root set — so a page-only child type would silently vanish from the dialog while
@@ -341,7 +341,7 @@ media-type shape and writes `schema/media-types/<alias>.toml` under
 `[media-type]`; update and delete follow the file; allowed children,
 compositions (keyed `mediaType`), allowed parents, composition references,
 the tree, items, search, configuration, folders and moves; media and
-document types kept apart but sharing one alias space; a file syncing at
+content types kept apart but sharing one alias space; a file syncing at
 boot; `templates` rejected in a media-type file.
 
 **Settings section** — `tests/settings.test.ts`: document-type configuration,
@@ -408,7 +408,7 @@ the container and CI use)
 against a throwaway copy of `apps/site`: its schema and views, a fresh SQLite
 file, a known admin password (`tests/browser/serve.ts`). It is not part of
 `bun test` or `bun run check`; specs are `tests/browser/*.browser.ts`. The
-site also gets an "Every editor" document type, generated at startup with a
+site also gets an "Every editor" content type, generated at startup with a
 property for every built-in data type, and a view that renders a crop of its
 image picker. The suite shares that one site, so every test names what it
 creates uniquely.
@@ -416,12 +416,12 @@ creates uniquely.
 | Spec                          | What it drives                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content.browser.ts`          | the create dialog; create, save and publish; rich text kept across a reload; the Info tab; and the create dialog under a page offering that type's allowed children rather than the root set                                                                                                                                                            |
-| `settings.browser.ts`         | a template added to a document type stays after save; a new template starts as a TSX view, a master template becomes its layout export, saves as TSX and reopens with its master; a new partial view starts from the TSX skeleton, and a stylesheet and a script save and are served; the log viewer's overview and search show the server's own events |
+| `settings.browser.ts`         | a template added to a content type stays after save; a new template starts as a TSX view, a master template becomes its layout export, saves as TSX and reopens with its master; a new partial view starts from the TSX skeleton, and a stylesheet and a script save and are served; the log viewer's overview and search show the server's own events |
 | `document-actions.browser.ts` | every action in a page's menu through its dialog: blueprint, notifications, hostnames, duplicate, move, sort, publish, unpublish, rollback, public access, trash, restore, delete, empty bin; save and preview; publish with descendants                                                                                                                |
 | `media.browser.ts`            | every property editor renders and an upload saves; an image dropped in Media, picked on a page and in its rich text, published, and its crop served                                                                                                                                                                                                     |
 | `users.browser.ts`            | a user created in the Users section and put in a group restricted to one branch; the group opened and saved; signed in, that editor sees only the way to their branch and is offered Create but never Delete. A dictionary item opened from the Translation tree and its translation saved                                                              |
 | `login.browser.ts`            | an invitation link followed on our login page, a password chosen, and a sign-in; then "Forgotten password?", the reset link, a new password and a sign-in                                                                                                                                                                                               |
-| `library.browser.ts`          | the Library section: Create offering the site's element types and not just Folder, then an element named, filled, published, and appearing in the tree; and the workspace hint that an element type is not in the Library until that flag is on, silent for one that is and for an ordinary document type                                               |
+| `library.browser.ts`          | the Library section: Create offering the site's element types and not just Folder, then an element named, filled, published, and appearing in the tree; and the workspace hint that an element type is not in the Library until that flag is on, silent for one that is and for an ordinary content type                                               |
 | `variants.browser.ts`         | a page that varies by culture written and published in English, then switched to Danish and published through the publish dialog; each rendered under its path-prefix hostname, Danish falling back to English                                                                                                                                          |
 
 ### In the pipeline
@@ -516,7 +516,7 @@ password now keeps sessions, and `start:local:watch` passes `--keep-admin`.
 The second test saves and publishes a page and checks it renders at its URL.
 
 The create dialog under a page listed only the root types: `item/document`
-answered an empty document type id, so the client asked for types allowed at
+answered an empty content type id, so the client asked for types allowed at
 root instead of the parent type's allowed children. Items now carry the type
 and each variant's real state.
 
@@ -533,7 +533,7 @@ The audit log now comes from the page's versions, which record who made them.
 References and redirects answer empty until relations and redirect tracking
 exist. The second test now opens the Info tab.
 
-A template added to a document type vanished on save. The client caches
+A template added to a content type vanished on save. The client caches
 entity details while connected to the event hub and clears an entry only when
 a server event names it, and the hub never sent any. Every change now
 announces itself. `settings.browser.ts` adds a template, saves, and checks it
@@ -570,7 +570,7 @@ method and path, and a running count.
 
 1. Settings opens with no error toast; every tree expands (Partial components,
    Scripts, Stylesheets, Dictionary, Media Types, Member Types are empty).
-2. Document Types → create a folder "Pages"; inside it a type with a tab,
+2. Content Types → create a folder "Pages"; inside it a type with a tab,
    three properties on three editors — one via *Select editor → create a new
    data type* — a composition, an allowed child, and *Create template* on.
    Save → `schema/content-types/<alias>.toml` has `folder = "Pages"`, the
@@ -586,7 +586,7 @@ method and path, and a running count.
 **WP-6.6 — variants and localisation**
 
 1. Settings → Languages: add Danish, falling back to English. Settings → a
-   document type: *Allow vary by culture*, and on its Title property too.
+   content type: *Allow vary by culture*, and on its Title property too.
 2. Content → create a page of that type in English, *Save and publish* → the
    dialog offers English only (Danish is not created); publish.
 3. Switch the workspace to Danish, name it, leave Title empty, *Save and

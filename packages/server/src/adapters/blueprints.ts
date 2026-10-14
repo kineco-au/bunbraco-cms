@@ -121,7 +121,7 @@ export function createBlueprintPort(
       return rows[0] ? String(rows[0].key).toLowerCase() : null
     },
 
-    async forDocumentType(contentTypeKey, paging) {
+    async forContentType(contentTypeKey, paging) {
       const rows = await db.query(
         `SELECT n.unique_id, n.text FROM node n JOIN content c ON c.node_id = n.id
          JOIN node t ON t.id = c.content_type_id

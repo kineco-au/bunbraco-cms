@@ -20,7 +20,7 @@ import {
 } from '@bunbraco/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
-import { allProperties, type SchemaDocumentType, type SchemaProperty } from './model.ts'
+import { allProperties, type SchemaContentType, type SchemaProperty } from './model.ts'
 import {
   emptySyncReport,
   type SyncNode,
@@ -63,7 +63,7 @@ export function conversionLedgerName(
 }
 
 export interface AffectedProperty {
-  type: SchemaDocumentType
+  type: SchemaContentType
   typeAggregate: ContentTypeAggregate
   property: SchemaProperty
   live: PropertyTypeModel | undefined
@@ -88,7 +88,7 @@ export async function affectedProperties(
     loaded.set.dataTypes.find((d) => d.alias === dataTypeAlias)?.editor ??
     BUILTIN_DATA_TYPES.find((b) => b.alias === dataTypeAlias)?.editor ??
     (await dataTypes.byAlias(dataTypeAlias))?.editorAlias
-  for (const t of loaded.set.documentTypes) {
+  for (const t of loaded.set.contentTypes) {
     const existing = t.key
       ? await types.byKey(t.key)
       : await types.byAlias(t.alias, { includeRetired: true })
@@ -214,7 +214,7 @@ export async function runCheck(
   const prepared = await latestPreparedState(db)
 
   // ---- types removed while they have content
-  const inFiles = new Set(loaded.set.documentTypes.map((t) => t.alias))
+  const inFiles = new Set(loaded.set.contentTypes.map((t) => t.alias))
   const dbTypes = await db.query<{ unique_id: string; alias: string }>(
     'SELECT n.unique_id, ct.alias FROM content_type ct JOIN node n ON n.id = ct.node_id WHERE ct.retired_at IS NULL',
   )
@@ -395,7 +395,7 @@ export async function runCheck(
 
   // ---- the site's value migrations
   for (const m of migrations) {
-    const fileType = loaded.set.documentTypes.find((t) => t.alias === m.from.type)
+    const fileType = loaded.set.contentTypes.find((t) => t.alias === m.from.type)
     const existing = await types.byAlias(m.from.type, { includeRetired: true })
     if (!fileType || !existing) continue
     const targets = m.to.map((x) => x.property)

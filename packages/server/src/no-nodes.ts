@@ -46,7 +46,7 @@ export function noNodesPage(options: { siteName: string; backOfficePath: string 
   <p>${site} is running. There is no published page for visitors to see, so this is what the site serves.</p>
   <ol>
     <li>Sign in to the backoffice.</li>
-    <li>Create a page from one of the document types in <code>schema/</code> — if there are none, add one there first.</li>
+    <li>Create a page from one of the content types in <code>schema/</code> — if there are none, add one there first.</li>
     <li>Publish it. This page goes away.</li>
   </ol>
   <p><a class="cta" href="${backoffice}">Open the backoffice</a></p>

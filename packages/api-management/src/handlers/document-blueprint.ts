@@ -131,7 +131,7 @@ export function registerDocumentBlueprintHandlers(
   router.handle('GetDocumentTypeByIdBlueprint', async (ctx) => {
     const page = paging(ctx)
     if (!page) return problemResponse(invalidSkipTake())
-    const result = await port.forDocumentType(ctx.params.id as string, page)
+    const result = await port.forContentType(ctx.params.id as string, page)
     return Response.json({
       total: result.total,
       items: result.items.map((b) => ({ id: b.key, name: b.name, flags: [] })),

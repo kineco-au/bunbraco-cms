@@ -5,9 +5,13 @@
  * holds the shipped templates to the rules a site is held to — valid schema, a
  * view for every template alias, a bundle that reads back — so a template that
  * would fail in somebody's terminal fails here first.
+ *
+ * The sites in `sites/` are checked as templates, staged exactly as packing the
+ * CLI stages the distributed ones — every site, so the product site is held to
+ * the same rules as the ones that ship.
  */
-import { describe, expect, test } from 'bun:test'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { afterAll, describe, expect, test } from 'bun:test'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import {
   findTemplate,
@@ -21,24 +25,39 @@ import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@bunbraco
 import { listComponents } from '@bunbraco/server'
 import { loadBundle } from '@bunbraco/transfer'
 import { ROOT } from '../scripts/packages.ts'
+import { listSites, stageTemplates } from '../scripts/sites.ts'
 
-const templates = listTemplates()
+mkdirSync(join(ROOT, 'output'), { recursive: true })
+const STAGED = mkdtempSync(join(ROOT, 'output', 'templates-'))
+stageTemplates(STAGED, listSites())
+afterAll(() => rmSync(STAGED, { recursive: true, force: true }))
+
+const templates = [...listTemplates(), ...listTemplates(STAGED)]
 const byId = (id: string): SiteTemplate => {
-  const found = findTemplate(id)
+  const found = findTemplate(id) ?? findTemplate(id, STAGED)
   if (!found) throw new Error(`no template "${id}"`)
   return found
 }
 
 describe('the starter templates', () => {
+  test('are only basic in the CLI itself; the rest are sites staged at pack time', () => {
+    expect(listTemplates().map((t) => t.id)).toEqual(['basic'])
+  })
+
   test('are listed with what they contain, and an unknown one is not invented', () => {
-    expect(templates.map((t) => t.id)).toEqual(['basic', 'demo/bunbraco', 'demo/harbourstone'])
+    expect(templates.map((t) => t.id)).toEqual([
+      'basic',
+      'demo/bunbraco',
+      'demo/harbourstone',
+      'starter',
+    ])
     for (const template of templates) {
       expect(template.name).not.toBe('')
       expect(template.description).not.toBe('')
     }
     // A family is a directory of templates, so more demos need no code.
     expect(byId('demo/harbourstone').id).toContain('/')
-    expect(findTemplate('demo')).toBeUndefined()
+    expect(findTemplate('demo', STAGED)).toBeUndefined()
     expect(findTemplate('nope')).toBeUndefined()
   })
 
@@ -58,7 +77,7 @@ describe('the starter templates', () => {
 
     // Keys in the files, or the first sync in a new site would assign its own
     // and the bundle's content types would match nothing.
-    for (const type of [...loaded.set.documentTypes, ...(loaded.set.mediaTypes ?? [])]) {
+    for (const type of [...loaded.set.contentTypes, ...(loaded.set.mediaTypes ?? [])]) {
       expect(type.key, type.alias).toBeTruthy()
       for (const property of allProperties(type)) expect(property.key, property.alias).toBeTruthy()
     }
@@ -78,7 +97,7 @@ describe('the starter templates', () => {
     if (!set) return
     // Every type the bundle needs is one this template's own files define.
     const aliases = new Set(
-      loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.documentTypes.map(
+      loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.contentTypes.map(
         (t) => t.alias,
       ),
     )
@@ -131,7 +150,7 @@ describe('the demo’s form', () => {
   })
 
   test('is reachable from a property the content type declares', () => {
-    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.documentTypes
+    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.contentTypes
     const property = types
       .flatMap((type) => allProperties(type))
       .find((candidate) => candidate.alias === 'enquiryForm')
@@ -276,13 +295,13 @@ describe('the demo’s element types, reused across page types', () => {
     // shape, so they are the same element type picked twice. If this ever
     // becomes two types, it is a decision somebody should have to make
     // deliberately rather than by adding a file.
-    const highlight = set.documentTypes.find((type) => type.alias === 'highlight')
+    const highlight = set.contentTypes.find((type) => type.alias === 'highlight')
     expect(highlight?.isElement).toBe(true)
 
     const picker = (set.dataTypes ?? []).find((type) => type.alias === 'highlightPicker')
     expect(picker?.config?.allowedContentTypes).toBe(highlight?.key)
 
-    const pickedBy = set.documentTypes
+    const pickedBy = set.contentTypes
       .filter((type) => allProperties(type).some((property) => property.type === 'highlightPicker'))
       .map((type) => type.alias)
       .sort()
@@ -292,7 +311,7 @@ describe('the demo’s element types, reused across page types', () => {
   test('every picker names a type that is in this template', () => {
     // A picker narrowed to a key that no longer exists offers nothing at all,
     // silently, and only in the dialog nobody opened.
-    const keys = new Set(set.documentTypes.map((type) => type.key))
+    const keys = new Set(set.contentTypes.map((type) => type.key))
     for (const dataType of set.dataTypes ?? []) {
       const allowed = dataType.config?.allowedContentTypes
       if (typeof allowed !== 'string') continue
@@ -390,7 +409,7 @@ describe('the Bunbraco product site', () => {
   })
 
   test('keeps the developer detail off the home page', () => {
-    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.documentTypes
+    const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.contentTypes
     const home = types.find((type) => type.alias === 'homePage')
     const developer = types.find((type) => type.alias === 'developerPage')
     expect(home?.allowChildren).toEqual(['developerPage'])
@@ -399,5 +418,41 @@ describe('the Bunbraco product site', () => {
       expect([alias, homeAliases.includes(alias)]).toEqual([alias, false])
     const developerAliases = developer ? allProperties(developer).map((p) => p.alias) : []
     expect(developerAliases).toContain('steps')
+  })
+})
+
+describe('the starter', () => {
+  const template = byId('starter')
+  const components = join(template.dir, 'files', 'components')
+  const read = (path: string) => readFileSync(join(components, path), 'utf8')
+  const nodes = loadBundle(join(template.dir, 'bundle')).set?.nodes ?? []
+
+  test('is a header, a footer and a layout every page shares', () => {
+    const layout = read('shared/layout.tsx')
+    expect(layout).toContain('<SiteHeader')
+    expect(layout).toContain('<SiteFooter')
+    expect(layout).toContain('<SeoHead')
+    // Named by the site's config, so `init --name` is what the header says.
+    expect(layout).toContain('seo.siteName')
+  })
+
+  test('builds its nav from the pages, so a new page needs no code', () => {
+    expect(read('shared/site-header.tsx')).toContain('nav.children(home')
+  })
+
+  test('has two columns only when there is something for the second', () => {
+    const page = read('pages/contentPage.tsx')
+    expect(page).toContain("model.hasValue('sidebarText')")
+    expect(page).toContain('<aside>')
+  })
+
+  test('ships placeholder pages that show both layouts', () => {
+    const pages = nodes.filter((node) => node.kind === 'document')
+    expect(pages.map((node) => node.variants[0]?.name).sort()).toEqual(['About', 'Contact', 'Home'])
+    const withSidebar = pages.filter((node) =>
+      node.values.some((value) => value.property === 'sidebarText'),
+    )
+    expect(withSidebar.length).toBeGreaterThan(0)
+    expect(withSidebar.length).toBeLessThan(pages.length)
   })
 })

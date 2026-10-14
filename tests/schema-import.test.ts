@@ -46,7 +46,7 @@ name = "${name}"
 allow-at-root = true
 ${extra}`
 
-/** A schema directory with one document type, and the server reading it. */
+/** A schema directory with one content type, and the server reading it. */
 async function site(options: { store?: boolean } = {}) {
   const schemaDir = temp('schema')
   mkdirSync(join(schemaDir, 'content-types'), { recursive: true })

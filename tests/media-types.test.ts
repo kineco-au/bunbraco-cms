@@ -1,6 +1,6 @@
 /**
  * Media types (the Settings half of WP-6.4): the same table, rules and files
- * as document types — `schema/media-types/*.toml` under `[media-type]` — with
+ * as content types — `schema/media-types/*.toml` under `[media-type]` — with
  * no templates or cleanup, and references keyed `mediaType`.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
@@ -224,7 +224,7 @@ describe('media types', () => {
     expect(inside.items.map((i) => i.id)).toEqual([image])
   })
 
-  test('media types and document types stay apart, but share one alias space', async () => {
+  test('media types and content types stay apart, but share one alias space', async () => {
     const { h } = await site()
     const media = await create(h, mediaType('asset'))
     expect((await h.call(`${V1}/document-type/${media}`)).status).toBe(404)

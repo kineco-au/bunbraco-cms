@@ -4,7 +4,7 @@
  * An element is publishable, versioned content with no URL and no template, so
  * this mirrors the document handlers without the parts a route needs — no URLs,
  * no preview, no schedules, no domains. The contract keys an element's type as
- * `documentType`, because an element type *is* a document type carrying
+ * `documentType`, because an element type *is* a content type carrying
  * `isElement`; the Library offers the ones that also carry `allowedInLibrary`,
  * which `document-type/allowed-in-library` answers.
  *

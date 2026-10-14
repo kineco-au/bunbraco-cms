@@ -129,7 +129,7 @@ let loaded
  *
  * Done on the first view to open rather than at boot, because monaco is several
  * megabytes and most sessions never open one. The types are asked for every time
- * instead of once, so a document type a colleague added is in this editor as
+ * instead of once, so a content type a colleague added is in this editor as
  * soon as the view is reopened; the endpoint tags them, so the browser fetches
  * them again only when they have changed.
  */

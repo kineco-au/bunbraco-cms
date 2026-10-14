@@ -64,7 +64,7 @@ const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? on
  * A name for an entity it names, or a plain statement that there is not one yet.
  *
  * A proposal often points at something another proposal in the same changeset
- * creates — a page whose document type does not exist until that one is approved.
+ * creates — a page whose content type does not exist until that one is approved.
  * Printing the id there tells a reviewer nothing; saying the thing is not there
  * yet tells them the order to approve in, which is what they actually need.
  */

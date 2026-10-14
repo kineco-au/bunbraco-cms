@@ -5,14 +5,14 @@
 import { SYSTEM_MEDIA_TYPES, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
 import {
   BUILTIN_DATA_TYPE_ALIASES,
-  checkSystemDocumentTypeFile,
+  checkSystemContentTypeFile,
   declaredProperties,
-  SYSTEM_DOCUMENT_TYPE_ALIASES,
+  SYSTEM_CONTENT_TYPE_ALIASES,
   SYSTEM_MEDIA_TYPE_ALIASES,
 } from './builtin.ts'
 import {
   allProperties,
-  type SchemaDocumentType,
+  type SchemaContentType,
   type SchemaProblem,
   type SchemaSet,
   TYPE_KIND_FILES,
@@ -50,8 +50,8 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
   // compositions and allowed children stay within a kind.
   const typeAliases = new Set<string>()
   const keys = new Map<string, string>()
-  const kinds: Array<{ types: readonly SchemaDocumentType[]; header: string; dir: string }> = [
-    { types: set.documentTypes, ...TYPE_KIND_FILES.document },
+  const kinds: Array<{ types: readonly SchemaContentType[]; header: string; dir: string }> = [
+    { types: set.contentTypes, ...TYPE_KIND_FILES.document },
     { types: set.mediaTypes ?? [], ...TYPE_KIND_FILES.media },
     { types: set.memberTypes ?? [], ...TYPE_KIND_FILES.member },
   ]
@@ -147,17 +147,17 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
 
     // References between types, once every alias is known. First occurrence wins,
     // so a duplicate alias (already reported) cannot shadow the real definition.
-    const byAlias = new Map<string, SchemaDocumentType>()
+    const byAlias = new Map<string, SchemaContentType>()
     for (const t of types) if (!byAlias.has(t.alias)) byAlias.set(t.alias, t)
     // System types exist whether or not a file defines them.
     const known = (alias: string) =>
       byAlias.has(alias) ||
       (dir === TYPE_KIND_FILES.media.dir && SYSTEM_MEDIA_TYPE_ALIASES.has(alias)) ||
-      (dir === TYPE_KIND_FILES.document.dir && SYSTEM_DOCUMENT_TYPE_ALIASES.has(alias))
+      (dir === TYPE_KIND_FILES.document.dir && SYSTEM_CONTENT_TYPE_ALIASES.has(alias))
     for (const t of types) {
       const file = `schema/${dir}/${t.alias}`
       if (dir === TYPE_KIND_FILES.document.dir)
-        for (const message of checkSystemDocumentTypeFile(t)) add(file, header, message)
+        for (const message of checkSystemContentTypeFile(t)) add(file, header, message)
       for (const c of t.compositions) {
         if (!known(c)) add(file, `${header}.compositions`, `unknown type "${c}"`)
         // Values are stored by the property's own variance, so a culture-varying
@@ -216,8 +216,8 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
   problems.push(
     ...validateForms(set.forms ?? [], {
       ...options,
-      documentTypeAliases:
-        options.documentTypeAliases ?? new Set(set.documentTypes.map((t) => t.alias)),
+      contentTypeAliases:
+        options.contentTypeAliases ?? new Set(set.contentTypes.map((t) => t.alias)),
     }),
   )
   return problems

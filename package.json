@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "sites/*"
   ],
   "scripts": {
     "brochureware:publish": "bun run scripts/publish-brochureware.ts",

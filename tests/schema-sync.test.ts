@@ -25,7 +25,7 @@ import {
   generateTypes,
   hashSchemaSet,
   loadSchemaDirectory,
-  type SchemaDocumentType,
+  type SchemaContentType,
   type SyncOptions,
   type SyncReport,
   syncSchema,
@@ -369,10 +369,10 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     expect(written).toEqual([join(dir, 'content-types', 'article.toml')])
     const again = loadSchemaDirectory(dir)
     expect(again.problems).toEqual([])
-    expect(again.set.documentTypes[0]?.key).toBeDefined()
-    expect(
-      allProperties(again.set.documentTypes[0] as SchemaDocumentType).every((p) => p.key),
-    ).toBe(true)
+    expect(again.set.contentTypes[0]?.key).toBeDefined()
+    expect(allProperties(again.set.contentTypes[0] as SchemaContentType).every((p) => p.key)).toBe(
+      true,
+    )
     // Same files, now keyed: production is happy, and nothing is applied twice
     const db2 = await prepared()
     expect((await syncSchema(db2, again, NODE, prod)).action).toBe('applied')

@@ -22,13 +22,13 @@ import {
   fileNameFor,
   loadSchemaDirectory,
   nextSchemaVersion,
+  parseContentType,
   parseDataType,
-  parseDocumentType,
   type SchemaProblem,
   TYPE_KIND_FILES,
   validateSchemaSet,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeSchemaVersion,
 } from '@bunbraco/schema'
 import type { BunbracoConfig } from '../config.ts'
@@ -78,20 +78,20 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
       return validateSchemaSet({ ...set, dataTypes })
     }
 
-    const parsed = parseDocumentType(file, toml)
-    const documentType = parsed.value
-    if (parsed.problems.length > 0 || !documentType) {
+    const parsed = parseContentType(file, toml)
+    const contentType = parsed.value
+    if (parsed.problems.length > 0 || !contentType) {
       return parsed.problems.length > 0
         ? parsed.problems
         : [{ file, path: '', message: 'the file defines no content type' }]
     }
     const set = loadSchemaDirectory(config.schemaDir).set
-    const documentTypes = [
-      ...set.documentTypes.filter((existing) => existing.alias !== documentType.alias),
-      documentType,
+    const contentTypes = [
+      ...set.contentTypes.filter((existing) => existing.alias !== contentType.alias),
+      contentType,
     ]
     return validateSchemaSet(
-      { ...set, documentTypes },
+      { ...set, contentTypes },
       { componentAliases: componentAliasesIn(config.componentsDir) },
     )
   }
@@ -174,7 +174,7 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
       const parsed = parseDataType(file, toml)
       return parsed.value ? writeDataType(parsed.value) : toml
     }
-    const parsed = parseDocumentType(file, toml)
-    return parsed.value ? writeDocumentType(parsed.value) : toml
+    const parsed = parseContentType(file, toml)
+    return parsed.value ? writeContentType(parsed.value) : toml
   }
 }

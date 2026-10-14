@@ -455,7 +455,7 @@ describe(`importing a bundle (${dialectUnderTest})`, () => {
     expect(roots[0]?.key).toBe(local)
   })
 
-  test('media travels, although its type lives outside the document types', async () => {
+  test('media travels, although its type lives outside the content types', async () => {
     if (!(await canConnect())) throw new Error(`no ${dialectUnderTest} to test against`)
     const source = await site()
     const upload = crypto.randomUUID()
@@ -490,7 +490,7 @@ describe(`importing a bundle (${dialectUnderTest})`, () => {
     expect(bundle.manifest.counts.media).toBe(1)
 
     // A media type is a different object type, so a check resolving content
-    // types only among document types refused this outright.
+    // types only among content types refused this outright.
     const target = await site()
     const result = await importBundle(target.h.server.db, bundle, { nodeId: 'target' })
     expect(result.check.findings.filter((f) => f.kind === 'blocking')).toEqual([])

@@ -1,0 +1,62 @@
+{
+  "key": "634dd948-cf83-4cad-9b7b-7c938b33da76",
+  "kind": "document",
+  "contentType": {
+    "key": "8491ffa4-9b2f-48b0-a3c0-f40c1034216e",
+    "alias": "contentPage"
+  },
+  "parent": "64d95359-d91a-4050-b440-3e5124a74999",
+  "sortOrder": 0,
+  "template": "pages/contentPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "About",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "bodyText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "intro",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "A sentence or two about who you are and what you do."
+    },
+    {
+      "property": "sidebarHeading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "At a glance"
+    },
+    {
+      "property": "sidebarText",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<ul><li>Founded: placeholder</li><li>Based in: placeholder</li><li>Team: placeholder</li></ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "About us"
+    }
+  ]
+}

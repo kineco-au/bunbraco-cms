@@ -214,7 +214,7 @@ content, 2 media, 3 element; `-1` the root). The verbs on a node are
 calculated per group — the nearest node on its path the group sets
 explicitly replaces the group's defaults — then unioned over groups. A
 document's explicit setting is one row per verb, or one empty verb for
-"nothing here"; a property's is keyed by its document type, with the verb
+"nothing here"; a property's is keyed by its content type, with the verb
 written `<property type key>|<verb>`, exactly as Umbraco stores both.
 
 A **member** is a node facet, exactly like a document: `node` + `content` +

@@ -96,7 +96,7 @@ That is the right way round — the diff is against the page as it stands now, a
 proposal whose baseline has moved is marked `stale` in the review rather than
 surprising the reviewer after they click Approve.
 
-**Types are TOML, and go a different way.** A document type is a file in
+**Types are TOML, and go a different way.** A content type is a file in
 `schema/`, and that file is what gets committed — so the proposal holds the file,
 the reviewer reads and edits the file, and approving writes it and imports it
 through `importSchema`. That is the same path a commit or another node's publish
@@ -144,7 +144,7 @@ cover everything the diff does not, or a change rides through unread:
   the change, and the field diff already says which ones differ
 
 `describeChange` writes the fixed parts as sentences, resolving ids to names. When
-something a proposal points at does not exist — a page whose document type another
+something a proposal points at does not exist — a page whose content type another
 proposal in the same changeset creates — it says so and says to approve that one
 first, which is the thing a reviewer needs and the one thing an id could never
 tell them.
@@ -376,7 +376,7 @@ backoffice mount — `/bunbraco` by default, not the fixed Management API prefix
 
 ## The assistant
 
-An optional AI helper in the backoffice that can build pages, document types, data
+An optional AI helper in the backoffice that can build pages, content types, data
 types and templates — and cannot do anything else, cannot change anything on its
 own, and cannot publish. Absent from the config it does not exist: no route, no
 tools, no model client, no extension in the backoffice.

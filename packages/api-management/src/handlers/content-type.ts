@@ -1,5 +1,5 @@
 /**
- * Document types: the tree, item lookups, and the aggregate CRUD the editor uses.
+ * Content types: the tree, item lookups, and the aggregate CRUD the editor uses.
  */
 
 import type { ResponseOf } from '@bunbraco/contracts'
@@ -7,7 +7,6 @@ import {
   type ContentTypeAggregate,
   invalidSkipTake,
   isSystemContentType,
-  isSystemDocumentType,
   isSystemMediaType,
   notFound,
   parseSkipTake,
@@ -48,7 +47,7 @@ export function toTreeItemResponse(item: TreeItem) {
   }
 }
 
-export function toDocumentTypeResponse(aggregate: ContentTypeAggregate): DocumentTypeResponse {
+export function toContentTypeResponse(aggregate: ContentTypeAggregate): DocumentTypeResponse {
   return {
     id: aggregate.key,
     alias: aggregate.alias,
@@ -117,7 +116,7 @@ export function toMediaTypeResponse(aggregate: ContentTypeAggregate) {
     allowedDocumentTypes,
     compositions,
     ...rest
-  } = toDocumentTypeResponse(aggregate) as DocumentTypeResponse & Record<string, unknown>
+  } = toContentTypeResponse(aggregate) as DocumentTypeResponse & Record<string, unknown>
   return {
     ...rest,
     compositions: (
@@ -145,7 +144,7 @@ export function toMemberTypeResponse(aggregate: ContentTypeAggregate) {
     compositions,
     properties,
     ...rest
-  } = toDocumentTypeResponse(aggregate) as DocumentTypeResponse & Record<string, unknown>
+  } = toContentTypeResponse(aggregate) as DocumentTypeResponse & Record<string, unknown>
   const flags = new Map(aggregate.properties.map((p) => [p.key, p]))
   return {
     ...rest,
@@ -164,7 +163,7 @@ export function toMemberTypeResponse(aggregate: ContentTypeAggregate) {
 }
 
 /** Maps a create/update request body onto the domain aggregate. */
-export function fromDocumentTypeRequest(
+export function fromContentTypeRequest(
   key: string,
   body: Record<string, unknown>,
   kind: ContentTypeKind = 'document',
@@ -307,7 +306,7 @@ export const RESERVED_FIELD_NAMES = [
 export const refOf = (value: unknown): string | null =>
   value && typeof value === 'object' && 'id' in value ? String((value as { id: unknown }).id) : null
 
-export function toDocumentTypeItem(aggregate: ContentTypeAggregate) {
+export function toContentTypeItem(aggregate: ContentTypeAggregate) {
   return {
     id: aggregate.key,
     name: aggregate.name,
@@ -319,7 +318,7 @@ export function toDocumentTypeItem(aggregate: ContentTypeAggregate) {
   }
 }
 
-/** The four folder operations, identical for document types and data types. */
+/** The four folder operations, identical for content types and data types. */
 export function registerFolderHandlers(
   router: ManagementApiRouter,
   area: 'DocumentType' | 'MediaType' | 'MemberType' | 'DataType' | 'DocumentBlueprint' | 'Element',
@@ -405,7 +404,7 @@ export function registerContentTypeHandlers(
   }
   const toResponse = (a: ContentTypeAggregate) =>
     kind === 'document'
-      ? toDocumentTypeResponse(a)
+      ? toContentTypeResponse(a)
       : kind === 'media'
         ? toMediaTypeResponse(a)
         : toMemberTypeResponse(a)
@@ -421,7 +420,7 @@ export function registerContentTypeHandlers(
           }
   const toItem = (a: ContentTypeAggregate) =>
     kind === 'document'
-      ? toDocumentTypeItem(a)
+      ? toContentTypeItem(a)
       : { id: a.key, name: a.name, icon: a.icon, flags: [] }
   handle(`Get${T}ById`, async ({ params }) => {
     const aggregate = await port.byKey(params.id as string)
@@ -433,7 +432,7 @@ export function registerContentTypeHandlers(
     const body = (await ctx.request.json()) as Record<string, unknown>
     const key = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID()
     const result = await port.create(
-      fromDocumentTypeRequest(key, body, kind),
+      fromContentTypeRequest(key, body, kind),
       ctx.principal as NonNullable<typeof ctx.principal>,
     )
     if (!result.ok) {
@@ -468,7 +467,7 @@ export function registerContentTypeHandlers(
           operationStatus: 'NotAllowed',
         }),
       )
-    const aggregate = fromDocumentTypeRequest(key, body, kind)
+    const aggregate = fromContentTypeRequest(key, body, kind)
     const violation =
       kind === 'document' ? systemFieldViolation(key, aggregate.properties) : undefined
     if (violation)
@@ -503,7 +502,7 @@ export function registerContentTypeHandlers(
   })
 
   handle(`Delete${T}ById`, async (ctx) => {
-    if (kind === 'document' && isSystemDocumentType(ctx.params.id as string))
+    if (kind === 'document' && isSystemContentType('document', ctx.params.id as string))
       return problemResponse(
         problemDetails({
           title: 'This content type cannot be deleted',

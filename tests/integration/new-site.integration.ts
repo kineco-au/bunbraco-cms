@@ -14,10 +14,16 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { listSites, stageTemplates, unstage } from '../../scripts/sites.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
 const TEMPLATES = join(ROOT, 'packages/cli/templates')
+/**
+ * The sites in `sites/`, staged into the CLI as packing stages the distributed
+ * ones — all of them, so the product site boots through `init` like the rest.
+ */
+let staged: string[] = []
 
 interface Run {
   code: number
@@ -152,6 +158,7 @@ describe('creating a site, end to end through the CLI', () => {
     JSON.parse(readFileSync(join(siteDir(site), file), 'utf8')) as Record<string, unknown>
 
   beforeAll(async () => {
+    staged = stageTemplates(TEMPLATES, listSites())
     // `output/` is gitignored, so a fresh checkout has not got one.
     mkdirSync(join(ROOT, 'output'), { recursive: true })
     dir = mkdtempSync(join(ROOT, 'output', 'new-site-'))
@@ -187,6 +194,7 @@ describe('creating a site, end to end through the CLI', () => {
   afterAll(async () => {
     for (const server of [...running]) await server.stop()
     if (dir) rmSync(dir, { recursive: true, force: true })
+    unstage(staged, TEMPLATES)
   })
 
   test('scaffolds a site that is a package, a config, a server and its schema', () => {
@@ -230,6 +238,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(list.code, list.out).toBe(0)
     expect(list.out).toContain('basic')
     expect(list.out).toContain('demo/harbourstone')
+    expect(list.out).toContain('starter')
 
     const unknown = await cli('bare', 'init', '--template', 'nope')
     expect(unknown.code).toBe(1)
@@ -447,7 +456,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(listed.code, listed.out).toBe(0)
     expect(listed.out).toContain('template  components/pages/homePage.tsx')
     expect(listed.out).toContain('← homePage')
-    // A template because a document type names it; the shared layout is named
+    // A template because a content type names it; the shared layout is named
     // by nothing, so it is a component wherever it sits.
     expect(listed.out).toContain('component components/shared/layout.tsx')
 
@@ -505,7 +514,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(again.code).toBe(1)
     expect(again.out).toContain('already exists')
 
-    // It is a component, not a template: no document type names it.
+    // It is a component, not a template: no content type names it.
     const listed = await cli('demo', 'components', 'list')
     expect(listed.out).toContain('component components/shared/header.tsx')
     // And the site still checks clean with them there.

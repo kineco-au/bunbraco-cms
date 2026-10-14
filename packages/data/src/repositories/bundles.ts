@@ -18,7 +18,7 @@ export interface Bundle {
   mediaIds: string[]
   mediaLoadChildNodes: boolean
   elementIds: string[] | null
-  documentTypes: string[]
+  contentTypes: string[]
   mediaTypes: string[]
   dataTypes: string[]
   components: string[]
@@ -41,7 +41,7 @@ interface Row {
   media_load_child_nodes: unknown
   media_ids: string
   element_ids: string | null
-  document_types: string
+  content_types: string
   media_types: string
   data_types: string
   components: string
@@ -54,7 +54,7 @@ interface Row {
 }
 
 const SELECT = `SELECT id, name, content_node_id, content_load_child_nodes,
-                       media_load_child_nodes, media_ids, element_ids, document_types,
+                       media_load_child_nodes, media_ids, element_ids, content_types,
                        media_types, data_types, components, stylesheets,
                        scripts, languages, dictionary_items, create_date, update_date
                   FROM bundle`
@@ -79,7 +79,7 @@ const hydrate = (row: Row): Bundle => ({
   mediaIds: list(row.media_ids),
   mediaLoadChildNodes: fromDbBool(row.media_load_child_nodes),
   elementIds: row.element_ids === null ? null : list(row.element_ids),
-  documentTypes: list(row.document_types),
+  contentTypes: list(row.content_types),
   mediaTypes: list(row.media_types),
   dataTypes: list(row.data_types),
   components: list(row.components),
@@ -128,7 +128,7 @@ export class BundleRepository {
     await this.#db.exec(
       `INSERT INTO bundle
          (id, name, content_node_id, content_load_child_nodes, media_load_child_nodes,
-          media_ids, element_ids, document_types, media_types, data_types, components,
+          media_ids, element_ids, content_types, media_types, data_types, components,
           stylesheets, scripts, languages, dictionary_items,
           create_date, update_date)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -140,7 +140,7 @@ export class BundleRepository {
         this.#db.dialect.boolValue(input.mediaLoadChildNodes),
         JSON.stringify(input.mediaIds),
         input.elementIds === null ? null : JSON.stringify(input.elementIds),
-        JSON.stringify(input.documentTypes),
+        JSON.stringify(input.contentTypes),
         JSON.stringify(input.mediaTypes),
         JSON.stringify(input.dataTypes),
         JSON.stringify(input.components),
@@ -160,7 +160,7 @@ export class BundleRepository {
       `UPDATE bundle
           SET name = ?, content_node_id = ?, content_load_child_nodes = ?,
               media_load_child_nodes = ?, media_ids = ?, element_ids = ?,
-              document_types = ?, media_types = ?, data_types = ?, components = ?,
+              content_types = ?, media_types = ?, data_types = ?, components = ?,
               stylesheets = ?, scripts = ?, languages = ?,
               dictionary_items = ?, update_date = ?
         WHERE id = ?`,
@@ -171,7 +171,7 @@ export class BundleRepository {
         this.#db.dialect.boolValue(input.mediaLoadChildNodes),
         JSON.stringify(input.mediaIds),
         input.elementIds === null ? null : JSON.stringify(input.elementIds),
-        JSON.stringify(input.documentTypes),
+        JSON.stringify(input.contentTypes),
         JSON.stringify(input.mediaTypes),
         JSON.stringify(input.dataTypes),
         JSON.stringify(input.components),

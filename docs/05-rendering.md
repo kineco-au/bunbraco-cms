@@ -7,7 +7,7 @@ fallback semantics, the same layout chain, the same routing.
 ## Components on disk
 
 Every `.tsx` a site renders lives under one root, `components/`, at whatever
-depth suits it. A **template** is one that a document type names; everything
+depth suits it. A **template** is one that a content type names; everything
 else is only ever reached by an `import`. That is the whole distinction, and it
 is recorded in the schema (`templates = ["pages/homePage"]`) rather than in the
 directory — so there is no second place that could disagree with it.
@@ -63,7 +63,7 @@ A view is compiled when a request renders it, so one that does not compile is a
 500 that waits to be found. `bunbraco components check` brings that forward: every
 `.tsx` under `components/` is transpiled — which gives the line a syntax error is on
 — and then imported, which is what a render does, so an import that does not
-resolve is caught as well. It also reports a template a document type declares
+resolve is caught as well. It also reports a template a content type declares
 with no file behind it, the `noTemplate` 404 seen from the other side.
 
 Types are a separate question, because they need the compiler and a site may not
@@ -71,7 +71,7 @@ have one: when `typescript` is installed the command also runs `tsc --noEmit`
 over the site, and when it is not it says so rather than quietly checking less.
 
 `templateAliasesIn` scans the whole tree and the schema validator checks against
-it, so a document type naming a template that no file provides is refused by
+it, so a content type naming a template that no file provides is refused by
 name. A component nobody declares is left alone: that is the normal case, not a
 suspicious one.
 
@@ -784,7 +784,7 @@ codec in `@bunbraco/server` `imaging.ts`.
 
 ## Components
 
-A view is reached only through a document type's template alias, and it is
+A view is reached only through a content type's template alias, and it is
 loaded when a request renders it — so a view that does not compile is a 500 that
 waits for a visitor to find it. `components check` is that failure brought forward:
 
@@ -800,7 +800,7 @@ Every `.tsx` is transpiled and then imported, which is what a render does, so an
 import that does not resolve is caught as well as a syntax error. Types need the
 compiler: when the site has `typescript` installed — `bunbraco init` puts it in
 `devDependencies` — it also runs `tsc --noEmit` over the site, and says so when
-it cannot. A component is a template only when a document type names it, so a shared one
+it cannot. A component is a template only when a content type names it, so a shared one
 belongs in a subdirectory, where the template scan never looks.
 
 ## Hostnames

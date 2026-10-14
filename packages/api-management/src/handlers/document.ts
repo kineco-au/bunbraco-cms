@@ -461,7 +461,7 @@ export function registerDocumentHandlers(
       key,
       {
         ...toSaveDocument(key, body),
-        // The document type never changes on update.
+        // The content type never changes on update.
         contentTypeKey: existing.contentTypeKey,
       },
       ctx.principal as NonNullable<typeof ctx.principal>,

@@ -7,7 +7,7 @@
  * are served as they are and cannot drift — with React's DOM types and the CSS
  * types under them, which the sources import for each tag's attributes. The one
  * generated file is the schema's `content-types.d.ts`, read fresh on every
- * request so a document type added a minute ago is already in the editor.
+ * request so a content type added a minute ago is already in the editor.
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'

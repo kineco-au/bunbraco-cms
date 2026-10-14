@@ -1,0 +1,41 @@
+[media-type]
+key = "c4b1efcf-a9d5-41c4-9621-e9d273b52a9c"
+alias = "umbracoMediaVectorGraphics"
+name = "Vector Graphics (SVG)"
+icon = "icon-origami"
+allow-at-root = true
+
+[[group]]
+name = "Vector Graphics"
+alias = "vectorGraphics"
+
+[[group.property]]
+key = "e2a2bdf2-971b-483e-95a1-4104cc06af26"
+alias = "umbracoFile"
+name = "Vector Graphics"
+type = "uploadVectorGraphics"
+mandatory = true
+
+[[group.property]]
+key = "0f25a89e-2eb7-49bc-a7b4-759a7e4c69f2"
+alias = "umbracoExtension"
+name = "File extension"
+type = "label"
+
+[[group.property]]
+key = "09a07aff-861d-4769-a2b0-c165ebd43d39"
+alias = "umbracoBytes"
+name = "File size"
+type = "labelBytes"
+
+[[group.property]]
+key = "5bc7e468-c53e-41a6-a522-2723f3b94514"
+alias = "umbracoWidth"
+name = "Width"
+type = "labelPixels"
+
+[[group.property]]
+key = "9e4c2b59-6bc6-4648-bb71-b0f45ddbc274"
+alias = "umbracoHeight"
+name = "Height"
+type = "labelPixels"

@@ -1,6 +1,6 @@
 /**
- * `bun run site <template>`: one command that scaffolds a starter template and
- * runs it, on localhost or in the compose stack.
+ * `bun run site <id>`: one command that runs a site from `sites/` in place, or
+ * scaffolds a starter template and runs that, on localhost or in the compose stack.
  *
  * The property worth holding is the safety one. A demo must never write to a
  * live database, so the dialect and the file are forced rather than resolved
@@ -10,16 +10,20 @@
 
 import { Database } from 'bun:sqlite'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ROOT } from '../scripts/packages.ts'
 
 const SCRIPT = join(ROOT, 'scripts/start-site.ts')
 const SANDBOX = join(ROOT, 'output', 'start-site-sites')
+const SITES = join(ROOT, 'output', 'start-site-repo-sites')
 
-afterEach(() => rmSync(SANDBOX, { recursive: true, force: true }))
+afterEach(() => {
+  rmSync(SANDBOX, { recursive: true, force: true })
+  rmSync(SITES, { recursive: true, force: true })
+})
 
-/** Runs the script without letting it reach the real `sites/` directory. */
+/** Runs the script without letting it reach the real `.scaffolds/` or `sites/`. */
 function run(args: string[]) {
   return runWith(args, {})
 }
@@ -27,7 +31,7 @@ function run(args: string[]) {
 function runWith(args: string[], env: Record<string, string>) {
   const proc = Bun.spawnSync(['bun', SCRIPT, ...args], {
     cwd: ROOT,
-    env: { ...process.env, BUNBRACO_SITES_DIR: SANDBOX, ...env },
+    env: { ...process.env, BUNBRACO_SCAFFOLDS_DIR: SANDBOX, BUNBRACO_SITES_DIR: SITES, ...env },
   })
   return {
     code: proc.exitCode,
@@ -35,19 +39,74 @@ function runWith(args: string[], env: Record<string, string>) {
   }
 }
 
-describe('choosing a template', () => {
+/** A site in the sandboxed `sites/`, with a database that has been used. */
+function repoSite(): string {
+  const dir = join(SITES, 'example')
+  mkdirSync(join(dir, 'bundles', 'demo-example'), { recursive: true })
+  mkdirSync(join(dir, 'media'), { recursive: true })
+  mkdirSync(join(dir, 'components'), { recursive: true })
+  writeFileSync(
+    join(dir, 'site.json'),
+    JSON.stringify({ id: 'demo/example', name: 'Example', description: 'an example site' }),
+  )
+  writeFileSync(join(dir, 'components', 'home.tsx'), '')
+  const db = new Database(join(dir, 'bunbraco.sqlite'))
+  db.run('CREATE TABLE node (id INTEGER PRIMARY KEY)')
+  db.run('INSERT INTO node (id) VALUES (1)')
+  db.close()
+  return dir
+}
+
+describe('choosing a site or a template', () => {
   test('lists the catalogue when none is named', () => {
-    const { code, out } = run([])
+    // The real sites, so the catalogue is what someone in this checkout sees.
+    const { code, out } = runWith([], { BUNBRACO_SITES_DIR: join(ROOT, 'sites') })
     expect(code).toBe(0)
+    expect(out).toContain('Sites:')
     expect(out).toContain('demo/harbourstone')
+    expect(out).toContain('demo/bunbraco')
+    expect(out).toContain('Templates:')
     expect(out).toContain('basic')
   })
 
   test('refuses one that does not exist, and says what there is', () => {
+    repoSite()
     const { code, out } = run(['demo/nope'])
     expect(code).toBe(1)
     expect(out).toContain('demo/nope')
-    expect(out).toContain('demo/harbourstone')
+    expect(out).toContain('demo/example')
+    expect(out).toContain('basic')
+  })
+})
+
+describe('a site in sites/', () => {
+  test('runs in place, by id or by directory, and imports its own bundle', () => {
+    const dir = repoSite()
+    for (const name of ['demo/example', 'example']) {
+      const { code, out } = run([name, '--dry-run'])
+      expect(code).toBe(0)
+      expect(out).toContain('in place')
+      expect(out).toContain(join(dir, 'bunbraco.sqlite'))
+      expect(out).toContain('--bundle bundles/demo-example --publish')
+    }
+    expect(existsSync(join(SANDBOX, 'demo-example'))).toBe(false)
+  })
+
+  test('starts against its own database without asking for --reuse', () => {
+    // It is meant to be run again and again; only a scaffold expects to be empty.
+    repoSite()
+    const { code, out } = run(['demo/example', '--dry-run'])
+    expect(code).toBe(0)
+    expect(out).toContain('holds 1 node(s), reused')
+  })
+
+  test('--fresh under --dry-run says what it would clear, and clears nothing', () => {
+    const dir = repoSite()
+    const { code, out } = run(['demo/example', '--fresh', '--dry-run'])
+    expect(code).toBe(0)
+    expect(out).toContain('would remove')
+    expect(existsSync(join(dir, 'bunbraco.sqlite'))).toBe(true)
+    expect(existsSync(join(dir, 'media'))).toBe(true)
   })
 })
 
@@ -87,7 +146,7 @@ describe('the database a demo is allowed to touch', () => {
       cwd: ROOT,
       env: {
         ...process.env,
-        BUNBRACO_SITES_DIR: SANDBOX,
+        BUNBRACO_SCAFFOLDS_DIR: SANDBOX,
         BUNBRACO_DB: 'postgres',
         BUNBRACO_POSTGRES_URL: 'postgres://nope@127.0.0.1:1/live',
         BUNBRACO_SQLITE_FILE: '/tmp/somewhere-else.sqlite',
@@ -104,7 +163,7 @@ describe('where a scaffolded site lives', () => {
   const script = readFileSync(SCRIPT, 'utf8')
 
   test('is gitignored, so a demo is never committed', () => {
-    expect(readFileSync(join(ROOT, '.gitignore'), 'utf8')).toMatch(/^sites\/$/m)
+    expect(readFileSync(join(ROOT, '.gitignore'), 'utf8')).toMatch(/^\.scaffolds\/$/m)
   })
 
   test('is not under output/, which the stack masks with a volume', () => {
@@ -112,15 +171,14 @@ describe('where a scaffolded site lives', () => {
     // a site scaffolded there would be invisible to `--docker`.
     const compose = readFileSync(join(ROOT, 'compose.yaml'), 'utf8')
     expect(compose).toContain('cms_output:/app/output')
-    expect(script).toContain("join(ROOT, 'sites')")
+    expect(script).toContain("join(ROOT, '.scaffolds')")
   })
 
   test('matches no workspace glob, so it joins no install', () => {
     const workspaces = (
       JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { workspaces: string[] }
     ).workspaces
-    expect(workspaces).not.toContain('sites/*')
-    for (const glob of workspaces) expect(glob.startsWith('sites')).toBe(false)
+    for (const glob of workspaces) expect(glob.startsWith('.scaffolds')).toBe(false)
   })
 })
 
@@ -150,7 +208,7 @@ describe('the compose invocation', () => {
   test('refuses a site outside the repository, which the container cannot see', () => {
     const proc = Bun.spawnSync(['bun', SCRIPT, 'basic', '--docker'], {
       cwd: ROOT,
-      env: { ...process.env, BUNBRACO_SITES_DIR: '/tmp/outside-the-repo' },
+      env: { ...process.env, BUNBRACO_SCAFFOLDS_DIR: '/tmp/outside-the-repo' },
     })
     const out = `${proc.stdout.toString()}${proc.stderr.toString()}`
     expect(proc.exitCode).toBe(1)
@@ -264,8 +322,8 @@ describe('what it runs', () => {
     expect(script).toContain("join(ROOT, 'packages/cli/bin/bunbraco.ts')")
   })
 
-  test('imports the template’s bundle, once', () => {
+  test('imports the site’s bundle, once', () => {
     expect(readFileSync(SCRIPT, 'utf8')).toContain("'--bundle'")
-    expect(existsSync(join(ROOT, 'packages/cli/templates/demo/harbourstone/bundle'))).toBe(true)
+    expect(existsSync(join(ROOT, 'sites/harbourstone/bundles/demo-harbourstone'))).toBe(true)
   })
 })

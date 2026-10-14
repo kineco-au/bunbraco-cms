@@ -33,7 +33,7 @@ tail of 1–3 each.
 - User groups: granular permissions, allowed sections, content/media start nodes, languages
 - `user-data`, current-user configuration
 
-### Document types (content types)
+### Content types (Umbraco's document types)
 - CRUD; alias, icon, description; folders and tree organisation
 - Property types and property groups (tabs/groups) with sort order
 - Composition/inheritance, allowed child types, allowed-at-root
@@ -102,7 +102,7 @@ tail of 1–3 each.
 ## Could have — high value, after core
 
 - **Delivery API** (`/umbraco/delivery/api/v2/**`) with API-key and preview auth
-- **ModelsBuilder equivalent**: generate TypeScript types per document type so TSX
+- **ModelsBuilder equivalent**: generate TypeScript types per content type so TSX
   templates are type-safe end to end. Natural fit for this stack; a differentiator.
 - SignalR-compatible server-events channel (the client peer-depends on
   `@microsoft/signalr`) for live tree refresh and user notifications

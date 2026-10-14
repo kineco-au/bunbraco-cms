@@ -216,10 +216,10 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
   test('the schema it wrote is valid, and every view compiles', async () => {
     const schema = await cli(site, 'schema', 'check', '--static')
     expect(schema.code, schema.out).toBe(0)
-    expect(schema.out).toContain('25 document type(s)')
+    expect(schema.out).toContain('25 content type(s)')
     const views = await cli(site, 'components', 'check')
     expect(views.code, views.out).toBe(0)
-    // 20 files, of which 17 are named by a document type. The other three are
+    // 20 files, of which 17 are named by a content type. The other three are
     // layouts another view names in `export const layout`, so nothing routes to
     // them — which is exactly what a component is.
     expect(views.out).toContain('20 file(s): 17 template(s), 3 component(s)')

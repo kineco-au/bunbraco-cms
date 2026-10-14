@@ -5,12 +5,12 @@
 import {
   ALL_SEEDED_DATA_TYPES,
   BUILT_IN_MEDIA_TYPES,
-  type BuiltInDocumentType,
+  type BuiltInContentType,
   type BuiltInMediaType,
-  SYSTEM_DOCUMENT_TYPES,
+  SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@bunbraco/data'
-import type { SchemaDataType, SchemaDocumentType, SchemaProperty } from './model.ts'
+import type { SchemaContentType, SchemaDataType, SchemaProperty } from './model.ts'
 import { fileNameFor, writeMediaType } from './write.ts'
 
 /** Every seeded data type, in the file vocabulary; the seed is the one definition. */
@@ -38,8 +38,8 @@ export const SYSTEM_MEDIA_TYPE_ALIASES: ReadonlySet<string> = new Set(
 export function builtInMediaTypeSchema(
   def: BuiltInMediaType,
   present: ReadonlySet<string> = new Set(BUILT_IN_MEDIA_TYPES.map((t) => t.alias)),
-): SchemaDocumentType {
-  const type: SchemaDocumentType = {
+): SchemaContentType {
+  const type: SchemaContentType = {
     key: def.key,
     alias: def.alias,
     name: def.name,
@@ -77,19 +77,19 @@ export function builtInMediaTypeSchema(
   return type
 }
 
-/** Document types the framework ships: always present, never deleted, alias fixed. */
-export const SYSTEM_DOCUMENT_TYPE_ALIASES: ReadonlySet<string> = new Set(
-  SYSTEM_DOCUMENT_TYPES.map((t) => t.alias),
+/** Content types the framework ships: always present, never deleted, alias fixed. */
+export const SYSTEM_CONTENT_TYPE_ALIASES: ReadonlySet<string> = new Set(
+  SYSTEM_CONTENT_TYPES.map((t) => t.alias),
 )
 
 const dataTypeAliasOf = (key: string): string => {
   const found = ALL_SEEDED_DATA_TYPES.find((d) => d.key === key)
-  if (!found) throw new Error(`system document types reference unknown data type "${key}"`)
+  if (!found) throw new Error(`system content types reference unknown data type "${key}"`)
   return found.alias
 }
 
-/** A system document type in the file vocabulary: what export compares a site's copy against. */
-export function builtInDocumentTypeSchema(def: BuiltInDocumentType): SchemaDocumentType {
+/** A system content type in the file vocabulary: what export compares a site's copy against. */
+export function builtInContentTypeSchema(def: BuiltInContentType): SchemaContentType {
   return {
     key: def.key,
     alias: def.alias,
@@ -128,7 +128,7 @@ export function builtInDocumentTypeSchema(def: BuiltInDocumentType): SchemaDocum
 }
 
 /** Every property a type file declares, wherever it sits. */
-export function declaredProperties(t: SchemaDocumentType): SchemaProperty[] {
+export function declaredProperties(t: SchemaContentType): SchemaProperty[] {
   return [
     ...t.properties,
     ...(t.groups ?? []).flatMap((g) => g.properties),
@@ -137,12 +137,12 @@ export function declaredProperties(t: SchemaDocumentType): SchemaProperty[] {
 }
 
 /**
- * What is wrong with a site's file for a system document type: it may add
+ * What is wrong with a site's file for a system content type: it may add
  * fields, relabel and move them, and vary them by culture, but every shipped
  * field keeps its key, alias and data type.
  */
-export function checkSystemDocumentTypeFile(t: SchemaDocumentType): string[] {
-  const def = SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === t.alias)
+export function checkSystemContentTypeFile(t: SchemaContentType): string[] {
+  const def = SYSTEM_CONTENT_TYPES.find((d) => d.alias === t.alias)
   if (!def) return []
   const findings: string[] = []
   if (t.key && t.key.toLowerCase() !== def.key)
@@ -167,9 +167,9 @@ export function checkSystemDocumentTypeFile(t: SchemaDocumentType): string[] {
   return findings
 }
 
-/** A system document type's shipped property keys by alias, for a file that omits them. */
+/** A system content type's shipped property keys by alias, for a file that omits them. */
 export function systemPropertyKeys(alias: string): ReadonlyMap<string, string> {
-  const def = SYSTEM_DOCUMENT_TYPES.find((d) => d.alias === alias)
+  const def = SYSTEM_CONTENT_TYPES.find((d) => d.alias === alias)
   return new Map((def?.properties ?? []).map((p) => [p.alias, p.key]))
 }
 

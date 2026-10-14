@@ -446,7 +446,7 @@ name = "File it"
     expect(document.values.find((v) => v.alias === 'fromAddress')?.value).toBe('a@example.com')
   })
 
-  test('a workflow naming a document type that does not exist never reaches the queue', async () => {
+  test('a workflow naming a content type that does not exist never reaches the queue', async () => {
     // The validator catches it at boot, which is the real protection: a site
     // does not start with a workflow that could never work. The runner's own
     // check stays as defence for a schema store that changes under a running

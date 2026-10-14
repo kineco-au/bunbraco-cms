@@ -20,8 +20,8 @@ import {
   type SchemaTypeKind,
   TYPE_KIND_FILES,
   validateSchemaSet,
+  writeContentType,
   writeDataType,
-  writeDocumentType,
   writeLanguages,
   writeSchemaFiles,
   writeSchemaVersion,
@@ -59,7 +59,7 @@ export interface SchemaFileWriter {
 }
 
 /**
- * A writer for one kind of content type: document types (the default) write
+ * A writer for one kind of content type: content types (the default) write
  * `schema/content-types/`, media types `schema/media-types/`. Data types,
  * languages and the rewrite are the same whichever kind asks.
  */
@@ -70,7 +70,7 @@ export function createSchemaFileWriter(
 ): SchemaFileWriter {
   const dir = join(files.schemaDir, TYPE_KIND_FILES[kind].dir)
   const fileFor = (alias: string) => join(dir, fileNameFor(alias))
-  const plural = { document: 'Document types', media: 'Media types', member: 'Member types' }[kind]
+  const plural = { document: 'Content types', media: 'Media types', member: 'Member types' }[kind]
   const managed = () => existsSync(files.schemaDir)
 
   /**
@@ -116,7 +116,7 @@ export function createSchemaFileWriter(
       const set = await exportSchemaSet(db, loadSchemaDirectory(files.schemaDir).set.version)
       const list =
         kind === 'document'
-          ? set.documentTypes
+          ? set.contentTypes
           : kind === 'media'
             ? (set.mediaTypes ?? [])
             : (set.memberTypes ?? [])
@@ -134,7 +134,7 @@ export function createSchemaFileWriter(
       mkdirSync(dir, { recursive: true })
       if (previousAlias && previousAlias !== aggregate.alias)
         rmSync(fileFor(previousAlias), { force: true })
-      writeFileSync(fileFor(aggregate.alias), writeDocumentType(type, kind))
+      writeFileSync(fileFor(aggregate.alias), writeContentType(type, kind))
       await settle()
     },
 
@@ -154,7 +154,7 @@ export function createSchemaFileWriter(
         await settle()
         return
       }
-      // The same guard `write` applies to a document type: a set that does not
+      // The same guard `write` applies to a content type: a set that does not
       // validate never reaches the disk, because the file is what every other
       // node reads and what a deploy boots from.
       const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })

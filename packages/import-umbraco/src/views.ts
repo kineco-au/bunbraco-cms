@@ -101,7 +101,7 @@ export function componentPathFor(razorPath: string): string {
 }
 
 /**
- * A stub for a Razor view that no document type names.
+ * A stub for a Razor view that no content type names.
  *
  * It is a plain function rather than a default export taking `PageProps`: a
  * template is routed to, and this is imported, so it takes whatever the thing

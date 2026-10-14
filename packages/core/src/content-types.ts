@@ -111,24 +111,20 @@ export function isSystemMemberType(key: string): boolean {
 }
 
 /**
- * Document types this CMS ships: always present, not deletable, alias fixed. A
+ * Content types this CMS ships: always present, not deletable, alias fixed. A
  * site may add fields to one, but not remove or change the ones it ships with.
  */
-export const SYSTEM_DOCUMENT_TYPE_KEYS: Readonly<Record<'SeoFields', string>> = {
+export const SYSTEM_CONTENT_TYPE_KEYS: Readonly<Record<'SeoFields', string>> = {
   SeoFields: '5e0f1c2a-7b3d-4c8e-9a61-0d2b4f6e8a13',
-}
-
-export function isSystemDocumentType(key: string): boolean {
-  return Object.values(SYSTEM_DOCUMENT_TYPE_KEYS).includes(key.toLowerCase())
 }
 
 export function isSystemContentType(kind: 'document' | 'media' | 'member', key: string): boolean {
   if (kind === 'media') return isSystemMediaType(key)
   if (kind === 'member') return isSystemMemberType(key)
-  return isSystemDocumentType(key)
+  return Object.values(SYSTEM_CONTENT_TYPE_KEYS).includes(key.toLowerCase())
 }
 
-/** A field a system document type ships with, which a site may not remove or change. */
+/** A field a system content type ships with, which a site may not remove or change. */
 export interface SystemPropertyModel {
   key: string
   alias: string
@@ -188,13 +184,13 @@ export const SEO_FIELDS_PROPERTIES: readonly SystemPropertyModel[] = [
   },
 ]
 
-/** The fields a system document type ships with, by the type's key. */
-export function systemDocumentTypeProperties(key: string): readonly SystemPropertyModel[] {
-  return key.toLowerCase() === SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields ? SEO_FIELDS_PROPERTIES : []
+/** The fields a system content type ships with, by the type's key. */
+export function systemContentTypeProperties(key: string): readonly SystemPropertyModel[] {
+  return key.toLowerCase() === SYSTEM_CONTENT_TYPE_KEYS.SeoFields ? SEO_FIELDS_PROPERTIES : []
 }
 
 /**
- * Why a change to a system document type's fields is refused, or undefined when
+ * Why a change to a system content type's fields is refused, or undefined when
  * it keeps every shipped field's key, alias and data type. Fields may be added,
  * relabelled, moved, and switched to vary by culture.
  */
@@ -202,7 +198,7 @@ export function systemFieldViolation(
   key: string,
   properties: ReadonlyArray<{ key: string; alias: string; dataTypeKey: string }>,
 ): string | undefined {
-  for (const shipped of systemDocumentTypeProperties(key)) {
+  for (const shipped of systemContentTypeProperties(key)) {
     const found = properties.find((p) => p.key.toLowerCase() === shipped.key)
     if (
       !found ||
@@ -251,7 +247,7 @@ export interface TreeItem {
   isFolder: boolean
   isElement?: boolean
   editorUiAlias?: string | null
-  /** The document type of a blueprint in the blueprint tree. */
+  /** The content type of a blueprint in the blueprint tree. */
   contentTypeKey?: string | null
 }
 

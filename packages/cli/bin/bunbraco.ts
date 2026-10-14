@@ -16,7 +16,7 @@
  *   bunbraco schema export          write the database's definitions as schema/ files
  *   bunbraco schema new             scaffold a type file, and the view it points at
  *   bunbraco schema add-property    append a property to a type, and apply it
- *   bunbraco generate               TypeScript for the document types in schema/
+ *   bunbraco generate               TypeScript for the content types in schema/
  *   bunbraco components check       compile every component before a visitor does
  *   bunbraco assets list            the stylesheets and scripts beside them
  *
@@ -70,14 +70,14 @@ import {
   loadSchemaDirectory,
   loadValueMigrations,
   newType,
-  type SchemaDocumentType,
+  type SchemaContentType,
   type SchemaTypeKind,
   type SyncReport,
   TYPE_KIND_FILES,
   type ValueMigration,
   validateSchemaSet,
   viewScaffold,
-  writeDocumentType,
+  writeContentType,
   writeSchemaFiles,
 } from '@bunbraco/schema'
 import {
@@ -206,7 +206,7 @@ async function start(): Promise<void> {
   await assertPortAvailable(config.port)
   const server = await createServer(config)
   // After the schema sync inside `createServer`, which is what gives the bundle
-  // document types to land on, and before anything is served.
+  // content types to land on, and before anything is served.
   const bundles = await importStartupBundles(server, config)
   const seededAdminPassword = server.seededAdminPassword
 
@@ -280,7 +280,7 @@ async function start(): Promise<void> {
  *
  * Imported once per bundle — a run still standing here means this site already
  * has that content — so a restart costs a query and a line in the banner. It
- * runs after the schema sync, which is what gives the bundle its document types,
+ * runs after the schema sync, which is what gives the bundle its content types,
  * and before anything is served. A refusal stops the boot: a site missing the
  * content the command line asked for is worse than a site that did not come up.
  */
@@ -557,7 +557,7 @@ async function schema(): Promise<void> {
         process.exit(1)
       }
       console.log(
-        `schema ${loaded.set.version}: ${loaded.set.documentTypes.length} document type(s), ${(loaded.set.mediaTypes ?? []).length} media type(s), ${loaded.set.dataTypes.length} data type(s), ${loaded.set.languages.length} language(s) — valid`,
+        `schema ${loaded.set.version}: ${loaded.set.contentTypes.length} content type(s), ${(loaded.set.mediaTypes ?? []).length} media type(s), ${loaded.set.dataTypes.length} data type(s), ${loaded.set.languages.length} language(s) — valid`,
       )
       if (flags.has('--static')) {
         const issues = staticProblems(loaded, await loadValueMigrations(config.schemaDir))
@@ -647,7 +647,7 @@ async function schemaNew(config: BunbracoConfig): Promise<void> {
 
   const loaded = loadSchemaDirectory(config.schemaDir)
   const existing = [
-    ...loaded.set.documentTypes,
+    ...loaded.set.contentTypes,
     ...(loaded.set.mediaTypes ?? []),
     ...(loaded.set.memberTypes ?? []),
   ]
@@ -666,20 +666,20 @@ async function schemaNew(config: BunbracoConfig): Promise<void> {
     allowAtRoot: flags.has('--at-root'),
     element,
     template: !flags.has('--no-view'),
-    // A document type with nothing in it cannot be published, so it starts with
+    // A content type with nothing in it cannot be published, so it starts with
     // the one property every page has; the other kinds get what they are given.
     tab: kind === 'document' ? (flagValue('--tab') ?? 'Content') : undefined,
   })
 
   const file = join(config.schemaDir, TYPE_KIND_FILES[kind].dir, fileNameFor(alias))
   await mkdir(join(file, '..'), { recursive: true })
-  await writeFile(file, writeDocumentType(type, kind))
+  await writeFile(file, writeContentType(type, kind))
   console.log(`  created  ${relative(cwd, file)}`)
 
   // A type nothing allows cannot be created anywhere, which is a confusing
   // first five minutes: the editor simply never offers it.
   if (kind === 'document' && !element && !type.allowAtRoot) {
-    const parents = loaded.set.documentTypes.filter((t) => t.allowChildren.includes(alias))
+    const parents = loaded.set.contentTypes.filter((t) => t.allowChildren.includes(alias))
     if (parents.length === 0)
       console.log(
         `  note     nothing allows a "${alias}" yet — add it to a parent's allow-children, or pass --at-root`,
@@ -716,8 +716,8 @@ async function schemaAddProperty(config: BunbracoConfig): Promise<void> {
     printProblems(loaded.problems)
     process.exit(1)
   }
-  const kinds: Array<[SchemaTypeKind, SchemaDocumentType[]]> = [
-    ['document', loaded.set.documentTypes],
+  const kinds: Array<[SchemaTypeKind, SchemaContentType[]]> = [
+    ['document', loaded.set.contentTypes],
     ['media', loaded.set.mediaTypes ?? []],
     ['member', loaded.set.memberTypes ?? []],
   ]
@@ -755,7 +755,7 @@ async function schemaAddProperty(config: BunbracoConfig): Promise<void> {
   // The whole file is re-emitted from the model, as `schema rewrite` does, so a
   // comment in it does not survive. Said out loud rather than discovered in a
   // diff; `--dry-run` prints the file instead of writing it.
-  const text = writeDocumentType(result.type, found.kind)
+  const text = writeContentType(result.type, found.kind)
   if (flags.has('--dry-run')) {
     console.log(text)
     return
@@ -793,7 +793,7 @@ function staticProblems(
   migrations: ValueMigration[],
 ): string[] {
   const problems: string[] = []
-  for (const t of loaded.set.documentTypes) {
+  for (const t of loaded.set.contentTypes) {
     if (!t.key)
       problems.push(
         `${t.alias}: no key — run \`bunbraco schema sync\` in development to assign one`,
@@ -802,9 +802,9 @@ function staticProblems(
   }
   for (const d of loaded.set.dataTypes) if (!d.key) problems.push(`data type ${d.alias}: no key`)
   for (const m of migrations) {
-    const type = loaded.set.documentTypes.find((t) => t.alias === m.from.type)
+    const type = loaded.set.contentTypes.find((t) => t.alias === m.from.type)
     if (!type) {
-      problems.push(`migration ${m.id}: no document type "${m.from.type}"`)
+      problems.push(`migration ${m.id}: no content type "${m.from.type}"`)
       continue
     }
     for (const target of m.to)
@@ -1693,13 +1693,13 @@ async function components(): Promise<void> {
   if (sub !== 'check' && sub !== 'list' && sub !== 'new') return help()
 
   const loaded = existsSync(config.schemaDir) ? loadSchemaDirectory(config.schemaDir) : undefined
-  const types = loaded?.set.documentTypes ?? []
+  const types = loaded?.set.contentTypes ?? []
 
   if (sub === 'list') {
     const found = listComponents(config.componentsDir)
     if (found.length === 0) console.log(`Nothing in ${relative(cwd, config.componentsDir) || '.'}.`)
     for (const component of found) {
-      // A component is a template because a document type names it, not
+      // A component is a template because a content type names it, not
       // because of where it sits — so the label is read off the schema.
       const declaredBy = types
         .filter((type) => type.components.includes(component.alias))
@@ -1726,12 +1726,12 @@ async function components(): Promise<void> {
       console.error(`${relative(cwd, file)} already exists.`)
       process.exit(1)
     }
-    // A document type that names this alias gets the page scaffold, which takes
+    // A content type that names this alias gets the page scaffold, which takes
     // PageProps; anything else gets the plain one. Nothing turns on the folder.
     const type = types.find((candidate) => candidate.components.includes(alias))
     if (!type)
       console.log(
-        `  note     no document type declares the template "${alias}" — add it to one's templates, or \`bunbraco schema new\``,
+        `  note     no content type declares the template "${alias}" — add it to one's templates, or \`bunbraco schema new\``,
       )
     await mkdir(join(file, '..'), { recursive: true })
     await writeFile(file, type ? viewScaffold(type) : componentScaffold(alias))

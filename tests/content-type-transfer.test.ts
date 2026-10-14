@@ -29,7 +29,7 @@ async function harness(): Promise<Harness> {
 
 const TAB = 'b1a2c3d4-0000-4000-8000-00000000ab01'
 
-function documentType(overrides: Record<string, unknown> = {}) {
+function contentType(overrides: Record<string, unknown> = {}) {
   return {
     alias: 'article',
     name: 'Article',
@@ -95,9 +95,9 @@ async function upload(h: Harness, xml: string, name = 'article.udt'): Promise<st
 }
 
 describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
-  test('exports a document type as a .udt the reader understands again', async () => {
+  test('exports a content type as a .udt the reader understands again', async () => {
     const h = await harness()
-    const key = (await h.post(`${V1}/document-type`, documentType())).headers.get(
+    const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
       'umb-generated-resource',
     ) as string
 
@@ -122,7 +122,7 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
 
   test('analyses an uploaded file before anything is imported', async () => {
     const h = await harness()
-    const key = (await h.post(`${V1}/document-type`, documentType())).headers.get(
+    const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
       'umb-generated-resource',
     ) as string
     const xml = await (await h.call(`${V1}/document-type/${key}/export`)).text()
@@ -146,7 +146,7 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
 
   test('imports a file as a new type, and refuses one whose alias is taken', async () => {
     const h = await harness()
-    const key = (await h.post(`${V1}/document-type`, documentType())).headers.get(
+    const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
       'umb-generated-resource',
     ) as string
     const xml = await (await h.call(`${V1}/document-type/${key}/export`)).text()
@@ -180,11 +180,11 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
 
   test('imports over an existing type, and refuses a file describing another one', async () => {
     const h = await harness()
-    const key = (await h.post(`${V1}/document-type`, documentType())).headers.get(
+    const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
       'umb-generated-resource',
     ) as string
     const other = (
-      await h.post(`${V1}/document-type`, documentType({ alias: 'other', name: 'Other' }))
+      await h.post(`${V1}/document-type`, contentType({ alias: 'other', name: 'Other' }))
     ).headers.get('umb-generated-resource') as string
     const xml = await (await h.call(`${V1}/document-type/${key}/export`)).text()
 
@@ -224,7 +224,7 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
     ).toBe(404)
   })
 
-  test('refuses a media type file aimed at document types', async () => {
+  test('refuses a media type file aimed at content types', async () => {
     const h = await harness()
     const media = `<?xml version="1.0" encoding="utf-8"?>
 <MediaType><Info><Name>Photo</Name><Alias>photo</Alias></Info></MediaType>`
@@ -256,9 +256,9 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
 })
 
 describe(`JSON schemas (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
-  test('describe a document type as an object of its properties', async () => {
+  test('describe a content type as an object of its properties', async () => {
     const h = await harness()
-    const key = (await h.post(`${V1}/document-type`, documentType())).headers.get(
+    const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
       'umb-generated-resource',
     ) as string
 

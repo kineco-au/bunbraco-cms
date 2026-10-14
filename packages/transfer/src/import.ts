@@ -131,7 +131,7 @@ export async function importBundle(
       const runs = new TransferRunRepository(tx)
       const types = new ContentTypeRepository(tx)
       // A media node's type is a different object type, invisible to a
-      // repository reading document types. See the same pairing in `check.ts`.
+      // repository reading content types. See the same pairing in `check.ts`.
       const mediaTypes = new ContentTypeRepository(tx, { kind: 'media' })
       const typesFor = (kind: BundleKind): ContentTypeRepository =>
         CONTENT_KIND[kind] === 'media' ? mediaTypes : types

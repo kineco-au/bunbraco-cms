@@ -1,5 +1,5 @@
 /**
- * The Settings section's document type editor, against the real backoffice.
+ * The Settings section's content type editor, against the real backoffice.
  */
 import type { Page } from '@playwright/test'
 import { expect, signIn, test } from './fixtures.ts'
@@ -49,7 +49,7 @@ async function openView(page: Page): Promise<EditorState> {
   })
 }
 
-test('a template added to a document type is still shown after save', async ({ page }) => {
+test('a template added to a content type is still shown after save', async ({ page }) => {
   // Its own template, so a rerun against the same site adds something new
   const alias = `extra${Math.random().toString(36).slice(2, 7)}`
   await signIn(page)
@@ -240,7 +240,7 @@ test('the log viewer shows the overview and searches the log, with no error', as
  *
  * The split exists in Umbraco because Razor needed a master-template concept; a
  * TSX layout is an import, so here the only thing that makes a component a
- * template is that a document type names it. The tree that survived is the
+ * template is that a content type names it. The tree that survived is the
  * partial-view one, because it is path-addressed and understands folders — the
  * template tree is id-addressed and cannot show one.
  */

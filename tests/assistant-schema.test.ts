@@ -1,7 +1,7 @@
 /**
  * Type proposals as the TOML file they become.
  *
- * A document type is a file in `schema/`, and that file is what gets committed —
+ * A content type is a file in `schema/`, and that file is what gets committed —
  * so the proposal holds the file, the reviewer reads and edits the file, and
  * approving writes it and imports it. That is the same path a commit or another
  * node's publish takes, which is the point: one writer, one direction.
@@ -129,7 +129,7 @@ describe('proposing a type as TOML', () => {
     const { h, model, schemaDir } = await site()
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: ARTICLE, summary: 'Add an Article type' },
       }),
     )
@@ -153,7 +153,7 @@ describe('proposing a type as TOML', () => {
     const untidy = '[content-type]\n\n\nname   =   "Article"\nalias="article"\n'
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: untidy, summary: 'Add it' },
       }),
     )
@@ -171,7 +171,7 @@ describe('proposing a type as TOML', () => {
     const { h, model, schemaDir } = await site()
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: ARTICLE, summary: 'Add it' },
       }),
     )
@@ -190,7 +190,7 @@ describe('proposing a type as TOML', () => {
     const { h, model } = await site()
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'broken', toml: '[document-type\nalias = ', summary: 'Add it' },
       }),
     )
@@ -207,7 +207,7 @@ describe('proposing a type as TOML', () => {
     const bad = `${ARTICLE.replace('textstring', 'noSuchEditor')}`
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: bad, summary: 'Add it' },
       }),
     )
@@ -221,7 +221,7 @@ describe('proposing a type as TOML', () => {
     const changed = HOME.replace('Home Page', 'Renamed Home')
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'homePage', toml: changed, summary: 'Rename it' },
       }),
     )
@@ -240,7 +240,7 @@ describe('proposing a type as TOML', () => {
     const { h, model, schemaDir } = await site()
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'homePage', toml: HOME.replace('Home Page', 'A'), summary: 'Rename' },
       }),
     )
@@ -261,7 +261,7 @@ describe('who may apply a type proposal', () => {
     const { h, model } = await site()
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: ARTICLE, summary: 'Add it' },
       }),
     )
@@ -317,7 +317,7 @@ describe('who may apply a type proposal', () => {
     open.push(h)
     model.program(
       uses({
-        name: 'propose_document_type',
+        name: 'propose_content_type',
         input: { alias: 'article', toml: ARTICLE, summary: 'Add it' },
       }),
     )

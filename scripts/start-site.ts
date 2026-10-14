@@ -1,51 +1,55 @@
 #!/usr/bin/env bun
 /**
- * Starts a starter template as a running site, in one command.
+ * Starts one of this repository's sites, or a starter template, in one command.
  *
  *   bun run site                            the catalogue
  *   bun run site demo/harbourstone          on localhost
  *   bun run site demo/harbourstone --docker in the compose stack
- *   bun run site demo/harbourstone --fresh  scrap the site and scaffold it again
+ *   bun run site demo/harbourstone --fresh  clear its database and media, and begin again
  *   bun run site demo/harbourstone --dry-run  say what it would do, start nothing
  *
  * Ctrl-C ends it, including the container `--docker` runs it in: see
  * `runToCompletion` for why that needs a handler rather than bun's default.
  *
- * The site is scaffolded into `sites/<slug>` — gitignored, disposable, and
+ * A site in `sites/` runs in place: it is a private workspace, so its `bunbraco`
+ * is a symlink to the working tree, and what it writes as it runs is gitignored.
+ * A template the CLI ships (`basic`) is scaffolded first, exactly as `bunbraco
+ * init` would, into `.scaffolds/<slug>` — gitignored, disposable, and
  * deliberately **not** under `output/`: the compose stack mounts a named volume
  * over `/app/output`, so a site scaffolded there is invisible inside the
- * container. `sites/` is inside the bind mount and matches no workspace glob, so
- * it is visible in both places and joins no `bun install`.
- *
- * Nothing is installed into the site. Its `package.json` pins published versions
- * for anyone who copies it, but resolution walks up to the repository's own
- * `node_modules`, where every `@bunbraco/*` name is a workspace symlink — so what
- * runs is the working tree, which is the point of a dev stack. The CLI is invoked
- * from `packages/cli/bin` for the same reason.
+ * container. `.scaffolds/` is inside the bind mount and matches no workspace
+ * glob, so it is visible in both places and joins no `bun install`; nothing is
+ * installed into it, and resolution walks up to the repository's own
+ * `node_modules`. The CLI is invoked from `packages/cli/bin` for the same reason:
+ * what runs is the working tree, which is the point of a dev stack.
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { findTemplate, listTemplates, type SiteTemplate, scaffoldFiles } from '@bunbraco/cli'
 import { connect } from '@bunbraco/data'
 import { portInUse } from '@bunbraco/server'
+import { findSite, listSites, runState, SITES_DIR, slugOf } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
 /**
  * Inside the bind mount, outside every workspace glob and every named volume.
- * Overridable so the suite can scaffold somewhere disposable; `--docker` refuses
- * an override outside the repository, because the container only sees `/app`.
+ * Both are overridable so the suite can work somewhere disposable; `--docker`
+ * refuses an override outside the repository, because the container only sees `/app`.
  */
-const SITES = Bun.env.BUNBRACO_SITES_DIR ? resolve(Bun.env.BUNBRACO_SITES_DIR) : join(ROOT, 'sites')
+const SCAFFOLDS = Bun.env.BUNBRACO_SCAFFOLDS_DIR
+  ? resolve(Bun.env.BUNBRACO_SCAFFOLDS_DIR)
+  : join(ROOT, '.scaffolds')
+const SITES = Bun.env.BUNBRACO_SITES_DIR ? resolve(Bun.env.BUNBRACO_SITES_DIR) : SITES_DIR
 const CONTAINER_ROOT = '/app'
 
 const args = Bun.argv.slice(2)
 const flags = new Set(args.filter((arg) => arg.startsWith('--')))
 const [requested] = args.filter((arg) => !arg.startsWith('--'))
 
-const slugOf = (id: string) => id.replaceAll('/', '-')
-
 function catalogue(): never {
-  console.log('Templates:\n')
+  console.log('Sites:\n')
+  for (const site of listSites(SITES)) console.log(`  ${site.id.padEnd(20)} ${site.description}`)
+  console.log('\nTemplates:\n')
   for (const template of listTemplates())
     console.log(`  ${template.id.padEnd(20)} ${template.description}`)
   console.log('\nStart one:\n  bun run site demo/harbourstone [--docker] [--fresh]')
@@ -53,14 +57,17 @@ function catalogue(): never {
 }
 
 if (!requested) catalogue()
-const template = findTemplate(requested)
-if (!template) {
-  console.error(`There is no template "${requested}".\n`)
+const site = findSite(requested, SITES)
+const template = site ? undefined : findTemplate(requested)
+if (!site && !template) {
+  console.error(`There is no site or template "${requested}".\n`)
   catalogue()
 }
 
-const slug = slugOf(template.id)
-const siteDir = join(SITES, slug)
+const id = (site ?? template)?.id as string
+const slug = slugOf(id)
+const siteDir = site ? site.dir : join(SCAFFOLDS, slug)
+const bundle = site ? site.bundle : template?.bundle
 
 /** Writes the template out, exactly as `bunbraco init` does. */
 function scaffold(into: string, which: SiteTemplate): void {
@@ -72,16 +79,28 @@ function scaffold(into: string, which: SiteTemplate): void {
   }
 }
 
-if (flags.has('--fresh') && existsSync(siteDir)) {
-  rmSync(siteDir, { recursive: true, force: true })
-  console.log(`  removed  ${relative(ROOT, siteDir)}`)
-}
-if (!existsSync(siteDir)) {
-  mkdirSync(siteDir, { recursive: true })
-  scaffold(siteDir, template)
-  console.log(`  created  ${relative(ROOT, siteDir)} from ${template.id}`)
-} else {
-  console.log(`  reusing  ${relative(ROOT, siteDir)} (--fresh to scaffold it again)`)
+if (site) {
+  if (flags.has('--fresh'))
+    for (const path of runState(siteDir)) {
+      // A dry run says what it would clear; the database may be someone's afternoon.
+      if (!flags.has('--dry-run')) rmSync(path, { recursive: true, force: true })
+      console.log(
+        `  ${flags.has('--dry-run') ? 'would remove' : 'removed'}  ${relative(ROOT, path)}`,
+      )
+    }
+  console.log(`  running  ${relative(ROOT, siteDir)} in place`)
+} else if (template) {
+  if (flags.has('--fresh') && existsSync(siteDir)) {
+    rmSync(siteDir, { recursive: true, force: true })
+    console.log(`  removed  ${relative(ROOT, siteDir)}`)
+  }
+  if (!existsSync(siteDir)) {
+    mkdirSync(siteDir, { recursive: true })
+    scaffold(siteDir, template)
+    console.log(`  created  ${relative(ROOT, siteDir)} from ${template.id}`)
+  } else {
+    console.log(`  reusing  ${relative(ROOT, siteDir)} (--fresh to scaffold it again)`)
+  }
 }
 
 /**
@@ -112,7 +131,9 @@ async function existingContent(file: string): Promise<number | undefined> {
 }
 
 const held = await existingContent(sqliteFile)
-if (held !== undefined && held > 0 && !flags.has('--reuse')) {
+// A site in `sites/` is meant to be run again and again against its own database;
+// only a scaffold, which a fresh demo expects to be empty, stops here.
+if (!site && held !== undefined && held > 0 && !flags.has('--reuse')) {
   console.error(
     `\n${relative(ROOT, sqliteFile)} already holds ${held} node(s).\n` +
       'Pass --reuse to start against it anyway, or --fresh to scrap the site and begin again.',
@@ -126,7 +147,7 @@ console.log(
 )
 
 /** `--bundle` is idempotent: the CLI imports once per bundle and says so. */
-const startArgs = template.bundle ? ['--bundle', template.bundle, '--publish'] : []
+const startArgs = bundle ? ['--bundle', bundle, '--publish'] : []
 const passThrough = args.filter(
   (arg) => arg.startsWith('--') && !['--docker', '--fresh', '--reuse', '--dry-run'].includes(arg),
 )
@@ -191,7 +212,7 @@ if (flags.has('--docker')) {
   if (relative(ROOT, siteDir).startsWith('..')) {
     console.error(
       `\n${siteDir} is outside the repository, and the container only mounts it at ${CONTAINER_ROOT}.\n` +
-        '  Drop BUNBRACO_SITES_DIR, or run without --docker.',
+        '  Drop BUNBRACO_SITES_DIR and BUNBRACO_SCAFFOLDS_DIR, or run without --docker.',
     )
     process.exit(1)
   }

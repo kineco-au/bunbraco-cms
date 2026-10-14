@@ -70,7 +70,7 @@ test('the workspace hints that an element type is not in the Library until that 
   await workspace('3f2a9c17-6d84-4b0e-9a55-1c7e2d40b8f3')
   await expect(hint.getByText(/Not in the Library/)).toHaveCount(0)
 
-  // …and neither does an ordinary document type, which the hint must never nag.
+  // …and neither does an ordinary content type, which the hint must never nag.
   await workspace('bf568bcf-9e04-4ef2-ba37-e582717178e3')
   await expect(page.locator('umb-workspace-editor')).toBeVisible()
   await expect(hint.getByText(/Not in the Library/)).toHaveCount(0)

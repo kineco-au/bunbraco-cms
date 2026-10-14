@@ -8,7 +8,7 @@
  */
 import type { Principal } from '@bunbraco/api-management'
 import { hasSection } from '@bunbraco/api-management'
-import { SYSTEM_DOCUMENT_TYPE_KEYS } from '@bunbraco/core'
+import { SYSTEM_CONTENT_TYPE_KEYS } from '@bunbraco/core'
 import { ContentTypeRepository, type Db, readKeyValue, writeKeyValue } from '@bunbraco/data'
 import {
   effectiveMeta,
@@ -291,7 +291,7 @@ export function createSeoHost(options: SeoHostOptions): SeoHost {
     return content ? { content, culture } : undefined
   }
 
-  /** Whether a document type has the "Search & sharing" fields, itself or by composition. */
+  /** Whether a content type has the "Search & sharing" fields, itself or by composition. */
   const composesSeoFields = async (alias: string): Promise<boolean> => {
     const repo = new ContentTypeRepository(db)
     const seen = new Set<string>()
@@ -300,7 +300,7 @@ export function createSeoHost(options: SeoHostOptions): SeoHost {
       const next: string[] = []
       for (const key of pending) {
         const normal = key.toLowerCase()
-        if (normal === SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields) return true
+        if (normal === SYSTEM_CONTENT_TYPE_KEYS.SeoFields) return true
         if (seen.has(normal)) continue
         seen.add(normal)
         const type = await repo.byKey(key)

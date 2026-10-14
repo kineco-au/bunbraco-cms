@@ -1,0 +1,35 @@
+{
+  "key": "3b2ff4af-b93b-4c28-bf5c-f7ccdc434948",
+  "kind": "element",
+  "contentType": {
+    "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
+    "alias": "feature"
+  },
+  "parent": null,
+  "sortOrder": 9,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Search and sharing built in",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Set the title, description and image each page shows in search results and when it is shared, and see how it will look as you edit. The sitemap keeps itself up to date."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Search and sharing built in"
+    }
+  ]
+}

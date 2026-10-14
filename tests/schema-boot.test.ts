@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { parseDocumentType } from '@bunbraco/schema'
+import { parseContentType } from '@bunbraco/schema'
 import { createServer, loadConfig, SchemaBootError } from '@bunbraco/server'
 import { dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -139,7 +139,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     expect(template?.key).toBe(type?.defaultComponentKey as string)
 
     // Keys were written back into the file (development).
-    const written = parseDocumentType(
+    const written = parseContentType(
       'article',
       readFileSync(join(s.schemaDir, 'content-types', 'article.toml'), 'utf8'),
     )
@@ -159,7 +159,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
     expect(await page.text()).toContain('<h1>Hi</h1>')
   })
 
-  test('a document type created in the backoffice appears as a file, and is refused when read-only', async () => {
+  test('a content type created in the backoffice appears as a file, and is refused when read-only', async () => {
     const s = site('1.0.0', { 'schema/content-types/article.toml': ARTICLE('', false) })
     const h = await boot(s)
     const textstring = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
@@ -211,7 +211,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
 
     const file = join(s.schemaDir, 'content-types', 'landing-page.toml')
     expect(existsSync(file)).toBe(true)
-    const parsed = parseDocumentType('landing-page', readFileSync(file, 'utf8'))
+    const parsed = parseContentType('landing-page', readFileSync(file, 'utf8'))
     expect(parsed.problems).toEqual([])
     expect(parsed.value).toMatchObject({
       key,

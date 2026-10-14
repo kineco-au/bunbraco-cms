@@ -1,0 +1,49 @@
+{
+  "formatVersion": 1,
+  "id": "da9fd74e-b964-44b4-8d61-afa7f65a28d2",
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "createdBy": "bun run build:template",
+  "integrity": "sha256-3ef21d4b047d85bfef8aeaac90255348bf636ba6ff3c0d0e155a06a2225269de",
+  "snapshot": "published",
+  "provenance": {
+    "siteName": "Starter",
+    "schemaVersion": "1.0.0",
+    "schemaRevision": "0",
+    "schemaHash": "81d3ebeb2c46ec1a17f0bf253e1bf711c47390ac49eb3f32a60b23e3ace89b16"
+  },
+  "selector": {
+    "roots": [
+      "64d95359-d91a-4050-b440-3e5124a74999",
+      "634dd948-cf83-4cad-9b7b-7c938b33da76",
+      "d2997ebb-36ca-47cb-bbc8-31fefca787c0"
+    ],
+    "descendants": true,
+    "asGiven": [
+      "starter"
+    ]
+  },
+  "counts": {
+    "document": 3
+  },
+  "dependencies": {
+    "carried": [
+      "634dd948-cf83-4cad-9b7b-7c938b33da76",
+      "64d95359-d91a-4050-b440-3e5124a74999",
+      "d2997ebb-36ca-47cb-bbc8-31fefca787c0"
+    ],
+    "expected": [],
+    "schema": {
+      "contentTypes": [
+        {
+          "key": "8491ffa4-9b2f-48b0-a3c0-f40c1034216e",
+          "alias": "contentPage"
+        }
+      ],
+      "components": [
+        "pages/contentPage"
+      ],
+      "languages": []
+    }
+  },
+  "blobs": []
+}

@@ -185,7 +185,7 @@ describe('the schema it writes', () => {
         componentAliases: componentAliasesIn(join(site, 'components')),
       }),
     ).toEqual([])
-    expect(loaded.set.documentTypes.length).toBe(25)
+    expect(loaded.set.contentTypes.length).toBe(25)
     expect(loaded.set.languages.map((l) => [l.iso, l.default, l.fallback])).toEqual([
       ['en-US', true, undefined],
       ['nb', false, 'en-US'],
@@ -194,7 +194,7 @@ describe('the schema it writes', () => {
 
   test('carries keys, folders, compositions, templates and collections', () => {
     const { set } = loadSchemaDirectory(join(site, 'schema'))
-    const home = set.documentTypes.find((t) => t.alias === 'homePage')
+    const home = set.contentTypes.find((t) => t.alias === 'homePage')
     expect(home).toMatchObject({
       key: '4aafecde-1139-4823-a8ca-fcd293909ab1',
       name: 'Home Page',
@@ -205,14 +205,14 @@ describe('the schema it writes', () => {
       defaultComponent: 'HomePage',
     })
     expect(home?.compositions).toContain('pageComp')
-    const products = set.documentTypes.find((t) => t.alias === 'productsPage')
+    const products = set.contentTypes.find((t) => t.alias === 'productsPage')
     expect(products?.collection).toBe('listViewProductsPage')
-    expect(set.documentTypes.find((t) => t.alias === 'pageComp')?.folder).toBe('Compositions')
+    expect(set.contentTypes.find((t) => t.alias === 'pageComp')?.folder).toBe('Compositions')
   })
 
   test('keeps tabs and groups, and each property under the one it was in', () => {
     const { set } = loadSchemaDirectory(join(site, 'schema'))
-    const page = set.documentTypes.find((t) => t.alias === 'pageComp')
+    const page = set.contentTypes.find((t) => t.alias === 'pageComp')
     const groups = (page?.groups ?? []).map((g) => [g.alias, g.properties.map((p) => p.alias)])
     expect(groups.map(([alias]) => alias)).toEqual(['metaData', 'advanced'])
     expect(groups.flatMap(([, properties]) => properties).length).toBeGreaterThan(0)
@@ -220,7 +220,7 @@ describe('the schema it writes', () => {
 
   test('an element type loses the route settings Umbraco let it keep', () => {
     const { set } = loadSchemaDirectory(join(site, 'schema'))
-    for (const type of set.documentTypes.filter((t) => t.isElement)) {
+    for (const type of set.contentTypes.filter((t) => t.isElement)) {
       expect(type.components).toEqual([])
       expect(type.allowAtRoot).toBe(false)
       expect(type.allowChildren).toEqual([])

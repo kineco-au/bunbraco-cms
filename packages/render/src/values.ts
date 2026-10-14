@@ -21,7 +21,7 @@ export interface ValueContext<Content = unknown, Media = unknown> {
   media?(key: string): Media | undefined
   /** A published library element by key; absent until the cache knows them. */
   element?(key: string): PublishedElement | undefined
-  /** A document type's alias by key, which is all a block records of its element type. */
+  /** A content type's alias by key, which is all a block records of its element type. */
   contentTypeAlias?(key: string): string | undefined
   /** A content URL, for links. */
   urlOf(content: Content): string

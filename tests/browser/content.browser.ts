@@ -1,6 +1,6 @@
 /**
  * WP-6.1's journey in the real backoffice: the Content section's create
- * action offers the site's document type and opens the editor for it.
+ * action offers the site's content type and opens the editor for it.
  */
 import type { Page } from '@playwright/test'
 import { expect, expectEveryPropertyEditorRenders, signIn, test } from './fixtures.ts'
@@ -25,7 +25,7 @@ async function openCreateDialog(page: Page) {
 }
 
 /**
- * Opens the create dialog and chooses a document type there. The dialog closes
+ * Opens the create dialog and chooses a content type there. The dialog closes
  * if the backoffice's router moves while it is open, so the pair is retried.
  */
 async function createFromDialog(page: Page, typeName: string) {

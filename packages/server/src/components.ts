@@ -5,7 +5,7 @@ import { join, relative, resolve, sep } from 'node:path'
  * A `.tsx` under the site's `components/` directory.
  *
  * There is one root and one kind of file. What makes a component a *template*
- * is that a document type names it — `components = ["pages/homePage"]` — not
+ * is that a content type names it — `components = ["pages/homePage"]` — not
  * where it sits, which is why this carries no kind: the schema already records
  * that, and a directory that restated it could disagree with it.
  *
@@ -16,7 +16,7 @@ import { join, relative, resolve, sep } from 'node:path'
 export interface ComponentFile {
   /**
    * Its path under the root without the extension, slash-separated — which is
-   * exactly the alias a document type names.
+   * exactly the alias a content type names.
    */
   alias: string
   path: string
@@ -63,7 +63,7 @@ export interface ComponentProblem {
 
 export interface ComponentCheckReport {
   components: ComponentFile[]
-  /** The aliases a document type names; the rest are only ever imported. */
+  /** The aliases a content type names; the rest are only ever imported. */
   declared: readonly string[]
   /** One that does not compile, or a template a type declares and nothing provides. */
   problems: ComponentProblem[]

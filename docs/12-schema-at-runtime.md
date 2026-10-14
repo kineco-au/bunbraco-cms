@@ -41,7 +41,7 @@ true.
 
 Materialising is a **mirror, not a merge**: a file the store no longer has is
 removed locally, so a node restarting with yesterday's cache cannot resurrect a
-deleted document type. Publishing back is a mirror in the same direction, and
+deleted content type. Publishing back is a mirror in the same direction, and
 skips unchanged files so that a `rewriteAll` — every file, after a move — does not
 rewrite the whole bucket.
 
@@ -156,7 +156,7 @@ through all of it for no gain. The local copy is a cache, the store is the truth
 and "the files are the schema" stays literally true.
 
 Configuring a store turns `schemaWritable` on, because that is what it is for: an
-editor changes a document type on a deployed site, the canonical TOML is published
+editor changes a content type on a deployed site, the canonical TOML is published
 back, and the next node to boot has it. A store is any `MediaStore`, so the S3 and
 Azure implementations serve both with nothing duplicated.
 

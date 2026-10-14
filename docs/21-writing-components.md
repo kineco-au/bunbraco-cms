@@ -343,7 +343,7 @@ export default function ShowcasePage({ model, nav }: PageProps<Page>) {
 ```
 
 `PageProps<Page>` types the page by the interface `bunbraco generate` writes for
-its document type, so `model.value('title')` is a `string` and a misspelt alias
+its content type, so `model.value('title')` is a `string` and a misspelt alias
 is a type error.
 
 ## Interactive parts

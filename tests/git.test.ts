@@ -1,7 +1,7 @@
 /**
  * Source control from the backoffice.
  *
- * The point is that an editor who changed a document type on a running site can
+ * The point is that an editor who changed a content type on a running site can
  * see what the repository is missing and send it, without meeting git. So what
  * these hold to is the diff being right, the commit carrying the whole change as
  * one, and the feature not existing at all when it is not configured.

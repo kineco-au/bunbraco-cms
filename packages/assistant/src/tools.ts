@@ -130,7 +130,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        documentTypeId: { type: 'string' },
+        contentTypeId: { type: 'string' },
         parentId: {
           type: ['string', 'null'],
           description: 'Omit or null to create at the root, which the type must allow.',
@@ -140,7 +140,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
         templateId: { type: ['string', 'null'] },
         values: VALUES,
       },
-      required: ['documentTypeId', 'name', 'summary'],
+      required: ['contentTypeId', 'name', 'summary'],
     },
   },
   {
@@ -163,9 +163,9 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
     },
   },
   {
-    name: 'propose_document_type',
+    name: 'propose_content_type',
     description:
-      'Propose a document type as the TOML file it is stored in \u2014 the file that gets committed. Write it as it should read: aliases rather than ids, one [[property]] table per property. Call read_schema first for a type that exists and change what it gives you.',
+      'Propose a content type as the TOML file it is stored in \u2014 the file that gets committed. Write it as it should read: aliases rather than ids, one [[property]] table per property. Call read_schema first for a type that exists and change what it gives you.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -200,7 +200,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   {
     name: 'read_schema',
     description:
-      'The TOML of a document type or data type as it is on disk now, so it can be changed rather than rewritten from nothing. Empty when the type does not exist yet.',
+      'The TOML of a content type or data type as it is on disk now, so it can be changed rather than rewritten from nothing. Empty when the type does not exist yet.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -370,11 +370,11 @@ export function createToolHost(options: ToolHostOptions) {
   }
 
   const proposeDocumentCreate = async (input: Record<string, unknown>): Promise<ToolResult> => {
-    const documentTypeId = str(input, 'documentTypeId')
+    const contentTypeId = str(input, 'contentTypeId')
     const name = str(input, 'name')
     const summary = str(input, 'summary')
-    if (!documentTypeId || !name || !summary) {
-      return fail('documentTypeId, name and summary are required')
+    if (!contentTypeId || !name || !summary) {
+      return fail('contentTypeId, name and summary are required')
     }
     const parentId = str(input, 'parentId')
     const values = Array.isArray(input.values) ? (input.values as ValueEntry[]) : []
@@ -384,7 +384,7 @@ export function createToolHost(options: ToolHostOptions) {
     // type's default; an omitted template does the same rather than sending null.
     let templateId = str(input, 'templateId')
     if (!templateId) {
-      const type = await read('GetDocumentTypeById', { id: documentTypeId })
+      const type = await read('GetDocumentTypeById', { id: contentTypeId })
       if (!('error' in type) && type.status === 200) {
         // The management API's own field name, which is Umbraco's contract.
         templateId = (type.body as { defaultTemplate?: { id?: string } | null }).defaultTemplate?.id
@@ -395,7 +395,7 @@ export function createToolHost(options: ToolHostOptions) {
       summary,
       params: {},
       body: {
-        documentType: { id: documentTypeId },
+        documentType: { id: contentTypeId },
         parent: parentId ? { id: parentId } : null,
         template: templateId ? { id: templateId } : null,
         values: values.map((entry) => ({
@@ -509,7 +509,7 @@ export function createToolHost(options: ToolHostOptions) {
           toml: toml ?? '',
         })
       }
-      case 'propose_document_type':
+      case 'propose_content_type':
         return await proposeSchema(input, 'document-type')
       case 'propose_data_type':
         return await proposeSchema(input, 'data-type')

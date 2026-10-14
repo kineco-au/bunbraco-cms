@@ -26,6 +26,7 @@ import {
   uploadCall,
   VARIABLES,
 } from '../scripts/publish-brochureware.ts'
+import { findSite, SITES_DIR } from '../scripts/sites.ts'
 
 const TARGET: Target = {
   url: 'https://console.bunbraco.com',
@@ -111,11 +112,11 @@ describe('the configuration', () => {
 })
 
 describe('the archive', () => {
-  test('is the committed template bundle, not a scaffolded site', () => {
-    // `sites/` is gitignored and disposable, so publishing from there would put
-    // whatever a laptop had on the live site.
-    expect(BUNDLE_DIR).toContain(join('templates', TEMPLATE, 'bundle'))
-    expect(BUNDLE_DIR).not.toContain(`${join('cms', 'sites')}`)
+  test('is the product site’s committed bundle, not its database', () => {
+    // What a laptop's copy of the site holds is whatever was last done to it, so
+    // publishing anything but the committed bundle would put that on the live site.
+    expect(BUNDLE_DIR).toBe(join(SITES_DIR, 'bunbraco', 'bundles', 'demo-bunbraco'))
+    expect(findSite(TEMPLATE)?.dir).toBe(join(SITES_DIR, 'bunbraco'))
     const files = bundleFiles(BUNDLE_DIR)
     expect(files).toContain('bundle.json')
     expect(files.some((path) => path.startsWith('nodes/'))).toBe(true)

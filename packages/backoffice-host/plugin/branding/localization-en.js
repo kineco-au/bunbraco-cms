@@ -88,7 +88,7 @@ export default {
   },
   treeHeaders: {
     // One tree over one directory: templates and partial views are the same
-    // kind of file here, and what makes one a template is that a document type
+    // kind of file here, and what makes one a template is that a content type
     // names it, not where it sits.
     partialViews: 'Components',
   },

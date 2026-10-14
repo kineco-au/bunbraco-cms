@@ -1,11 +1,11 @@
 /**
- * `bunbraco generate`: TypeScript for the document types in a schema set, so a
+ * `bunbraco generate`: TypeScript for the content types in a schema set, so a
  * view can name a property and have the compiler check it. Umbraco's
  * ModelsBuilder, minus the DLL.
  */
-import { SYSTEM_DOCUMENT_TYPES } from '@bunbraco/data'
-import { BUILTIN_DATA_TYPES, builtInDocumentTypeSchema, storageTypeFor } from './builtin.ts'
-import { allProperties, type SchemaDocumentType, type SchemaSet } from './model.ts'
+import { SYSTEM_CONTENT_TYPES } from '@bunbraco/data'
+import { BUILTIN_DATA_TYPES, builtInContentTypeSchema, storageTypeFor } from './builtin.ts'
+import { allProperties, type SchemaContentType, type SchemaSet } from './model.ts'
 
 function pascal(alias: string): string {
   const cleaned = alias.replace(/[^A-Za-z0-9]+(.)?/g, (_, next: string | undefined) =>
@@ -21,7 +21,7 @@ function blockElements(set: SchemaSet, config: Record<string, unknown>) {
     : []
   const aliasOf = (key: unknown) =>
     typeof key === 'string'
-      ? set.documentTypes.find((t) => t.key?.toLowerCase() === key.toLowerCase())?.alias
+      ? set.contentTypes.find((t) => t.key?.toLowerCase() === key.toLowerCase())?.alias
       : undefined
   const content = blocks.flatMap((b) => aliasOf(b.contentElementTypeKey) ?? [])
   const settings = blocks.flatMap((b) => aliasOf(b.settingsElementTypeKey) ?? [])
@@ -61,7 +61,7 @@ function tsTypeFor(set: SchemaSet, dataTypeAlias: string): string {
         .filter(Boolean)
         .flatMap(
           (key) =>
-            set.documentTypes.find((t) => t.key?.toLowerCase() === key.toLowerCase())?.alias ?? [],
+            set.contentTypes.find((t) => t.key?.toLowerCase() === key.toLowerCase())?.alias ?? [],
         )
       // `Array<>` not `[]`: a union of two element types would otherwise bind as
       // `A | (B[])`.
@@ -96,16 +96,16 @@ function tsTypeFor(set: SchemaSet, dataTypeAlias: string): string {
 }
 
 /** Every property a type carries, including those from its compositions. */
-function effectiveProperties(set: SchemaSet, type: SchemaDocumentType, seen = new Set<string>()) {
+function effectiveProperties(set: SchemaSet, type: SchemaContentType, seen = new Set<string>()) {
   if (seen.has(type.alias)) return []
   seen.add(type.alias)
   const out = [...allProperties(type)]
   for (const alias of type.compositions) {
     // A built-in type such as `seoFields` has no file until a site extends it.
-    const shipped = SYSTEM_DOCUMENT_TYPES.find((t) => t.alias === alias)
+    const shipped = SYSTEM_CONTENT_TYPES.find((t) => t.alias === alias)
     const composed =
-      set.documentTypes.find((t) => t.alias === alias) ??
-      (shipped ? builtInDocumentTypeSchema(shipped) : undefined)
+      set.contentTypes.find((t) => t.alias === alias) ??
+      (shipped ? builtInContentTypeSchema(shipped) : undefined)
     if (composed) out.push(...effectiveProperties(set, composed, seen))
   }
   return out
@@ -117,12 +117,12 @@ export function generateTypes(set: SchemaSet): string {
     '',
     'export interface ContentTypeProperties {',
   ]
-  for (const t of [...set.documentTypes].sort((a, b) => a.alias.localeCompare(b.alias))) {
+  for (const t of [...set.contentTypes].sort((a, b) => a.alias.localeCompare(b.alias))) {
     out.push(`  ${JSON.stringify(t.alias)}: ${pascal(t.alias)}`)
   }
   out.push('}', '')
   out.push('export type ContentTypeAlias = keyof ContentTypeProperties', '')
-  for (const t of [...set.documentTypes].sort((a, b) => a.alias.localeCompare(b.alias))) {
+  for (const t of [...set.contentTypes].sort((a, b) => a.alias.localeCompare(b.alias))) {
     out.push(`/** ${t.name}${t.description ? ` — ${t.description}` : ''} */`)
     out.push(`export interface ${pascal(t.alias)} {`)
     const properties = effectiveProperties(set, t)

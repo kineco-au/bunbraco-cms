@@ -1,0 +1,29 @@
+[media-type]
+key = "a43e3414-9599-4230-a7d3-943a21b20122"
+alias = "umbracoMediaArticle"
+name = "Article"
+icon = "icon-article"
+allow-at-root = true
+
+[[group]]
+name = "Article"
+alias = "article"
+
+[[group.property]]
+key = "e5c8c2d0-2d82-4f01-b53a-45a1d1cbf19c"
+alias = "umbracoFile"
+name = "Article"
+type = "uploadArticle"
+mandatory = true
+
+[[group.property]]
+key = "ef1b4af7-36de-45eb-8c18-a2de07319227"
+alias = "umbracoExtension"
+name = "File extension"
+type = "label"
+
+[[group.property]]
+key = "aab7d00c-7209-4337-be3f-a4421c8d79a0"
+alias = "umbracoBytes"
+name = "File size"
+type = "labelBytes"

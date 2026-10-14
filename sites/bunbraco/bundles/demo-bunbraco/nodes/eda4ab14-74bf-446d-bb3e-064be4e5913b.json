@@ -1,0 +1,35 @@
+{
+  "key": "eda4ab14-74bf-446d-bb3e-064be4e5913b",
+  "kind": "element",
+  "contentType": {
+    "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
+    "alias": "feature"
+  },
+  "parent": null,
+  "sortOrder": 15,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Checks before production",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "bunbraco components check compiles every template in CI, so a broken page is caught before a visitor sees it."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Checks before production"
+    }
+  ]
+}

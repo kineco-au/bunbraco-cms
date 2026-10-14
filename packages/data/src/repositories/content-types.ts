@@ -44,7 +44,7 @@ export interface RetiredProperty {
   retiredAt: Date
 }
 
-/** Document types and media types share one table, told apart by node object type. */
+/** Content types and media types share one table, told apart by node object type. */
 export type ContentTypeKind = 'document' | 'media' | 'member'
 
 export const CONTENT_TYPE_OBJECT_TYPES: Record<

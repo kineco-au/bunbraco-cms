@@ -1,6 +1,6 @@
 # Adding a page
 
-A page on a Bunbraco site is three things: a **document type** that says what an
+A page on a Bunbraco site is three things: a **content type** that says what an
 editor fills in, a **component** that turns it into HTML, and the **content** an
 editor creates from that type. The first two are files in the site and go through
 source control; the third lives in the database.
@@ -9,12 +9,12 @@ This walks through all three for an events page: a title, an introduction, and a
 list of upcoming events fetched from another service while the page renders.
 
 ```
-schema/content-types/events-page.toml   the document type
+schema/content-types/events-page.toml   the content type
 components/eventsPage.tsx                the page component
 components/shared/layout.tsx             the layout it renders inside
 ```
 
-## 1. The document type
+## 1. The content type
 
 `schema new` writes the type file, with its keys already filled in, and the
 component it points at:
@@ -82,7 +82,7 @@ or pass `--at-root` to `schema new` (`allow-at-root = true` in the file) for a
 page that sits at the top of the tree. To share fields between types, such as the
 Search & sharing tab, list them in `compositions = ["seoFields"]`.
 
-The document type can also be built in the backoffice under Settings → Document
+The content type can also be built in the backoffice under Settings → Document
 Types. In development, saving it there writes the same file.
 [`09-schema-as-code.md`](09-schema-as-code.md) has the whole format.
 
@@ -96,7 +96,7 @@ First generate the types, so the component can name the page's properties and
 have the compiler check them:
 
 ```bash
-bunx bunbraco generate   # schema/content-types.d.ts: an interface per document type
+bunx bunbraco generate   # schema/content-types.d.ts: an interface per content type
 ```
 
 Then replace the starter with one that renders inside a shared layout and
@@ -248,5 +248,5 @@ in each environment, or moved with a content bundle
 A production node only applies schema files carrying a newer version, so bump
 `schema/schema.toml` with the change, or deploy with a newer
 `BUNBRACO_SCHEMA_REVISION`. In production the backoffice cannot change a
-document type: it says the type lives in `schema/` and must be changed there.
+content type: it says the type lives in `schema/` and must be changed there.
 [`10-packaging-and-upgrades.md`](10-packaging-and-upgrades.md) has the details.

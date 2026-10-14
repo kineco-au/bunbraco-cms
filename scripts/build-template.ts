@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 /**
- * Regenerates a starter template's content bundle, and the demo's images.
+ * Regenerates the content bundle of a starter template or of a site in `sites/`,
+ * and the demo's images.
  *
- *   bun run build:template                    every template
+ *   bun run build:template                    every one
  *   bun run build:template demo/harbourstone  one of them
  *
  * The content is created through the repositories in a throwaway SQLite site
- * built from the template's own schema files, then exported through the same
+ * built from its own schema files, then exported through the same
  * path `bunbraco content export` uses. So the committed bundle is a real export:
  * its integrity hash comes from the shipping writer and every value is in the
  * shape the editors actually store. Node keys are fixed below, so regenerating
@@ -14,7 +15,7 @@
  */
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { findTemplate, listTemplates, type SiteTemplate } from '@bunbraco/cli'
+import { listTemplates, type SiteTemplate } from '@bunbraco/cli'
 import {
   ComponentRepository,
   ContentTypeRepository,
@@ -32,6 +33,7 @@ import {
   syncSchemaDirectory,
 } from '@bunbraco/server'
 import { exportBundle, writeBundle } from '@bunbraco/transfer'
+import { copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
 
@@ -41,10 +43,34 @@ delete process.env.BUNBRACO_POSTGRES_URL
 
 // --------------------------------------------------------------- the site
 
+/** What a bundle is built for: a template in the CLI, or a site in `sites/`. */
+interface Target {
+  id: string
+  name: string
+  /** Puts the schema and components into the throwaway site. */
+  copyInto(dir: string): void
+  /** Where the bundle is written. */
+  bundleDir: string
+}
+
+const fromTemplate = (template: SiteTemplate): Target => ({
+  id: template.id,
+  name: template.name,
+  copyInto: (dir) => cpSync(join(template.dir, 'files'), dir, { recursive: true }),
+  bundleDir: join(template.dir, 'bundle'),
+})
+
+const fromSite = (site: RepoSite): Target => ({
+  id: site.id,
+  name: site.name,
+  copyInto: (dir) => copyTemplateFiles(site, dir),
+  bundleDir: join(site.dir, site.bundle),
+})
+
 interface Site {
   db: Db
   config: BunbracoConfig
-  template: SiteTemplate
+  template: Target
   dir: string
   /** The keys to export, in the order they should be read. */
   roots: string[]
@@ -52,11 +78,11 @@ interface Site {
 
 type Builder = (site: Site) => Promise<void>
 
-async function throwawaySite(template: SiteTemplate): Promise<Site> {
+async function throwawaySite(template: Target): Promise<Site> {
   const dir = join(ROOT, 'output', 'template-build', template.id.replaceAll('/', '-'))
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
-  cpSync(join(template.dir, 'files'), dir, { recursive: true })
+  template.copyInto(dir)
   const config = loadConfig(
     {
       siteName: template.name,
@@ -253,6 +279,66 @@ const BASIC: Builder = async (site) => {
           '<p>Add a property to the TOML, run <code>bunbraco schema check</code> to see what it would ' +
           'do to this page, then <code>bunbraco start</code> to apply it.</p>',
       ),
+    },
+  })
+}
+
+const LOREM =
+  '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor ' +
+  'incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud ' +
+  'exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>' +
+  '<p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat ' +
+  'nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia ' +
+  'deserunt mollit anim id est laborum.</p>'
+
+const STARTER: Builder = async (site) => {
+  const { page } = await writers(site)
+  const home = await page({
+    key: '64d95359-d91a-4050-b440-3e5124a74999',
+    type: 'contentPage',
+    name: 'Home',
+    values: {
+      title: 'Welcome to your new site',
+      intro:
+        'This is placeholder text. Replace it in the back office, then make the layout your own.',
+      bodyText: richtext(
+        '<h2>A place to start</h2>' +
+          '<p>Every page here is a Content Page: a title, an introduction, a main column and a ' +
+          'sidebar. Add pages under this one and they appear in the header.</p>' +
+          LOREM,
+      ),
+      sidebarHeading: 'In the sidebar',
+      sidebarText: richtext(
+        '<p>Use the sidebar for a short note, contact details or links. Leave it empty and ' +
+          'the main column takes the full width.</p>',
+      ),
+    },
+  })
+  await page({
+    key: '634dd948-cf83-4cad-9b7b-7c938b33da76',
+    type: 'contentPage',
+    parent: home,
+    name: 'About',
+    values: {
+      title: 'About us',
+      intro: 'A sentence or two about who you are and what you do.',
+      bodyText: richtext(LOREM + LOREM),
+      sidebarHeading: 'At a glance',
+      sidebarText: richtext(
+        '<ul><li>Founded: placeholder</li><li>Based in: placeholder</li>' +
+          '<li>Team: placeholder</li></ul>',
+      ),
+    },
+  })
+  await page({
+    key: 'd2997ebb-36ca-47cb-bbc8-31fefca787c0',
+    type: 'contentPage',
+    parent: home,
+    name: 'Contact',
+    values: {
+      title: 'Get in touch',
+      intro: 'Tell visitors how to reach you.',
+      bodyText: richtext(LOREM),
     },
   })
 }
@@ -657,6 +743,11 @@ const BUNBRACO: Builder = async (site) => {
       'When a page moves, its old address follows it. Add your own redirects without raising a ticket.',
     ),
     await feature(
+      '3b2ff4af-b93b-4c28-bf5c-f7ccdc434948',
+      'Search and sharing built in',
+      'Set the title, description and image each page shows in search results and when it is shared, and see how it will look as you edit. The sitemap keeps itself up to date.',
+    ),
+    await feature(
       '6a683488-cad5-4765-b253-044090a86505',
       'An AI assistant that asks first',
       'Optional help building pages and content. It proposes changes for you to review, and it can never publish.',
@@ -672,7 +763,7 @@ const BUNBRACO: Builder = async (site) => {
     await feature(
       '566477d3-97a4-446b-b9f1-d9b0f810caa8',
       'Your content model in Git',
-      'Document types are readable TOML files you can diff and review, and bunbraco generate turns them into TypeScript types.',
+      'Content types are readable TOML files you can diff and review, and bunbraco generate turns them into TypeScript types.',
     ),
     await feature(
       '6bd08968-76a1-4f96-a7bf-453bad090fdc',
@@ -728,12 +819,12 @@ const BUNBRACO: Builder = async (site) => {
     await step(
       '05b6bdcb-2635-4a84-96e3-aa51980f368a',
       'Model your content',
-      'Sign in at http://localhost:8080/bunbraco and create your document types. Each one is saved as a TOML file under schema/, ready to commit.',
+      'Sign in at http://localhost:8080/bunbraco and create your content types. Each one is saved as a TOML file under schema/, ready to commit.',
     ),
     await step(
       'a90cf801-2632-4000-85e6-14056ccacbb4',
       'Write a template',
-      'Add a component under components/, or create one from the back office. Generate types for your document types to get autocomplete as you write.',
+      'Add a component under components/, or create one from the back office. Generate types for your content types to get autocomplete as you write.',
       'bunx bunbraco components new pages/article\nbunx bunbraco generate',
     ),
     await step(
@@ -810,6 +901,7 @@ const BUILDERS: Record<string, Builder> = {
   basic: BASIC,
   'demo/bunbraco': BUNBRACO,
   'demo/harbourstone': HARBOURSTONE,
+  starter: STARTER,
 }
 
 /**
@@ -821,6 +913,7 @@ const BUNDLE_IDS: Record<string, string> = {
   basic: '2de473a2-d391-4161-801e-e34b202759b8',
   'demo/bunbraco': 'ffc7145b-99fa-48da-9daf-12cd61454a22',
   'demo/harbourstone': 'af030aee-ba70-4bed-8a27-a3806a79100d',
+  starter: 'da9fd74e-b964-44b4-8d61-afa7f65a28d2',
 }
 
 /**
@@ -832,11 +925,11 @@ const PROVENANCE = { createdBy: 'bun run build:template', createdAt: '2026-10-01
 
 // ------------------------------------------------------------------- main
 
-async function build(template: SiteTemplate): Promise<void> {
+async function build(template: Target): Promise<void> {
   const builder = BUILDERS[template.id]
   if (!builder) throw new Error(`no content builder for "${template.id}" in ${import.meta.file}`)
 
-  rmSync(join(template.dir, 'bundle'), { recursive: true, force: true })
+  rmSync(template.bundleDir, { recursive: true, force: true })
 
   const site = await throwawaySite(template)
   try {
@@ -882,7 +975,7 @@ async function build(template: SiteTemplate): Promise<void> {
       throw new Error(`built media that is not in the store: ${read.missing.join(', ')}`)
 
     for (const file of writeBundle(stable, read.bytes)) {
-      const target = join(template.dir, 'bundle', file.path)
+      const target = join(template.bundleDir, file.path)
       mkdirSync(join(target, '..'), { recursive: true })
       writeFileSync(target, file.bytes ?? (file.text as string))
     }
@@ -895,14 +988,15 @@ async function build(template: SiteTemplate): Promise<void> {
   }
 }
 
+const all = [...listTemplates().map(fromTemplate), ...listSites().map(fromSite)]
 const requested = Bun.argv.slice(2).filter((arg) => !arg.startsWith('--'))
 const templates =
   requested.length > 0
     ? requested.map((id) => {
-        const found = findTemplate(id)
-        if (!found) throw new Error(`no template "${id}"`)
+        const found = all.find((target) => target.id === id)
+        if (!found) throw new Error(`no template or site "${id}"`)
         return found
       })
-    : listTemplates()
+    : all
 
 for (const template of templates) await build(template)

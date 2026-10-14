@@ -38,7 +38,7 @@ const VIEW = `export default function Page({ model }) {
 }
 `
 
-/** A site whose only document type nests under itself, so paths have depth. */
+/** A site whose only content type nests under itself, so paths have depth. */
 export function pageSite(): { schemaDir: string; componentsDir: string; root: string } {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-ref-'))
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })

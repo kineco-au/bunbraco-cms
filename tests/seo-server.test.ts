@@ -6,11 +6,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SEO_FIELDS_PROPERTIES, SYSTEM_DOCUMENT_TYPE_KEYS } from '@bunbraco/core'
+import { SEO_FIELDS_PROPERTIES, SYSTEM_CONTENT_TYPE_KEYS } from '@bunbraco/core'
 import {
   ComponentRepository,
   ContentTypeRepository,
-  ensureSystemDocumentTypes,
+  ensureSystemContentTypes,
 } from '@bunbraco/data'
 import { exportSchemaSet, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
 import type { BunbracoConfig } from '@bunbraco/server'
@@ -27,7 +27,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const SEO_KEY = SYSTEM_DOCUMENT_TYPE_KEYS.SeoFields
+const SEO_KEY = SYSTEM_CONTENT_TYPE_KEYS.SeoFields
 
 const PAGE_TOML = `[content-type]
 alias = "page"
@@ -120,7 +120,7 @@ describe('the Search & sharing type', () => {
     expect(seo?.properties.map((p) => p.alias)).toEqual(SEO_FIELDS_PROPERTIES.map((p) => p.alias))
     const page = await new ContentTypeRepository(h.server.db).byKey(await typeKey('page'))
     expect(page?.compositions.map((c) => c.contentTypeKey.toLowerCase())).toEqual([SEO_KEY])
-    expect(await ensureSystemDocumentTypes(h.server.db)).toEqual([])
+    expect(await ensureSystemContentTypes(h.server.db)).toEqual([])
   })
 
   test('cannot be deleted or renamed', async () => {
@@ -199,7 +199,7 @@ describe('the Search & sharing type', () => {
   test('export writes no file until a site has extended it', async () => {
     const { h } = await site()
     const set = await exportSchemaSet(h.server.db, '1.0.0')
-    expect(set.documentTypes.map((t) => t.alias)).not.toContain('seoFields')
+    expect(set.contentTypes.map((t) => t.alias)).not.toContain('seoFields')
   })
 })
 

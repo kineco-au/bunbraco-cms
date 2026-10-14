@@ -472,7 +472,7 @@ a container can bring its own content with it. It imports **once per bundle** �
 an import run still standing here means this site has that content already, so a
 restart is a query and a line in the banner — and a refusal stops the boot rather
 than serving a site missing the content the command line asked for. The import
-runs after the schema sync, which is what gives the bundle its document types.
+runs after the schema sync, which is what gives the bundle its content types.
 
 ### What travels, and what did not
 
@@ -483,7 +483,7 @@ Two things a bundle carries were being dropped on import, and are not any more:
   among themselves in the bundle's order; siblings that were already there keep
   their places, so an import still appends rather than rearranging a tree.
 - **Media types.** A media node's type is a different object type, and both the
-  check and the importer resolved content types only among document types — so
+  check and the importer resolved content types only among content types — so
   any bundle carrying real media was refused with `missing-content-type` for a
   type the destination had all along. Both now ask the media repository too.
 

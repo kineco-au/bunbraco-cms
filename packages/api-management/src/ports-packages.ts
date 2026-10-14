@@ -17,7 +17,7 @@ export interface PackageDefinitionInput {
   mediaLoadChildNodes: boolean
   /** Null and empty mean the same thing; the contract allows both. */
   elementIds: string[] | null
-  documentTypes: string[]
+  contentTypes: string[]
   mediaTypes: string[]
   dataTypes: string[]
   templates: string[]

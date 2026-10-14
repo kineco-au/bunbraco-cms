@@ -302,7 +302,7 @@ describe('proposing a page edit', () => {
       uses({
         name: 'propose_document_create',
         // No templateId: a page created without one has nothing to render with.
-        input: { documentTypeId: typeKey, name: 'Fresh', summary: 'Add it' },
+        input: { contentTypeId: typeKey, name: 'Fresh', summary: 'Add it' },
       }),
     )
     await chat(h, 'add a page')
@@ -323,7 +323,7 @@ describe('proposing a page edit', () => {
       uses({
         name: 'propose_document_create',
         input: {
-          documentTypeId: typeKey,
+          contentTypeId: typeKey,
           templateId: componentKey,
           name: 'Fresh',
           summary: 'Add a Fresh page',
@@ -653,7 +653,7 @@ describe('reviewing before approving', () => {
       uses({
         name: 'propose_document_create',
         input: {
-          documentTypeId: typeKey,
+          contentTypeId: typeKey,
           name: 'Fresh',
           summary: 'Add it',
           values: [{ alias: 'title', value: 'Fresh' }],
@@ -902,7 +902,7 @@ describe('describing what a proposal does', () => {
       uses({
         name: 'propose_document_create',
         input: {
-          documentTypeId: typeKey,
+          contentTypeId: typeKey,
           templateId: componentKey,
           name: 'Fresh',
           summary: 'Add a page',
@@ -1002,7 +1002,7 @@ describe('describing what a proposal does', () => {
     model.program(
       uses({
         name: 'propose_document_create',
-        input: { documentTypeId: typeKey, parentId: parent, name: 'Child', summary: 'Add it' },
+        input: { contentTypeId: typeKey, parentId: parent, name: 'Child', summary: 'Add it' },
       }),
     )
     await chat(h, 'add a page')
@@ -1022,7 +1022,7 @@ describe('describing what a proposal does', () => {
       uses({
         name: 'propose_document_create',
         input: {
-          documentTypeId: crypto.randomUUID(),
+          contentTypeId: crypto.randomUUID(),
           templateId: crypto.randomUUID(),
           name: 'Fresh',
           summary: 'Add a page of the new type',

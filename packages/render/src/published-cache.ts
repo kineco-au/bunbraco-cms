@@ -75,7 +75,7 @@ export interface PublishedContentSource {
   loadRedirects?(): Promise<RedirectRule[]>
   /** Published library elements, for the pickers that point at them; none when omitted. */
   loadElements?(): Promise<PublishedElementNode[]>
-  /** Document type aliases by key, so a block knows its element type; none when omitted. */
+  /** Content type aliases by key, so a block knows its element type; none when omitted. */
   loadContentTypeAliases?(): Promise<Map<string, string>>
 }
 
@@ -132,7 +132,7 @@ export interface CacheSnapshot {
   media: Map<string, PublishedMedia>
   /** Item key (lowercase) → culture (lowercase) → translation. */
   dictionary: Map<string, Map<string, string>>
-  /** Document type key (lowercase) → alias. */
+  /** Content type key (lowercase) → alias. */
   contentTypeAliases: Map<string, string>
 }
 

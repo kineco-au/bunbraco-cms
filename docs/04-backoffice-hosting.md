@@ -455,7 +455,7 @@ Every Management API call is authorized before its handler runs, by one table
 policies:
 
 - **Sections.** Each area demands sections, any one of a set and every set:
-  documents need Content; document types are readable from Content, Library or
+  documents need Content; content types are readable from Content, Library or
   Settings but changed only from Settings; data types likewise; templates are
   readable from Settings or Content; media needs Media; the dictionary,
   Translation (its tree Translation or Settings); users and groups, Users;

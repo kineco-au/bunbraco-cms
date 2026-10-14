@@ -10,7 +10,7 @@ What is included:
 
 | Part | Where |
 | --- | --- |
-| Per-page fields: title, description, sharing image, preferred address, hide from search engines, hide from sitemap | the `seoFields` composition, shipped as a system document type |
+| Per-page fields: title, description, sharing image, preferred address, hide from search engines, hide from sitemap | the `seoFields` composition, shipped as a system content type |
 | `<SeoHead>`: `<title>`, description, canonical, Open Graph, Twitter card, `hreflang` alternates, `noindex` | `@bunbraco/render`, exported by `bunbraco` |
 | `/sitemap.xml` and `/robots.txt` | the server, before the renderer |
 | Site-wide defaults: site name, title suffix, sharing image, robots rules, indexable, sitemap on/off | `bunbraco.config.ts`, overridable in Settings → Search & sharing |

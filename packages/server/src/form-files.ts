@@ -1,7 +1,7 @@
 /**
  * Writing a form definition back to `schema/forms/`. `docs/18-forms.md`.
  *
- * The designer saves a form the way the type editors save a document type: the
+ * The designer saves a form the way the type editors save a content type: the
  * file is the truth, so the write goes to the file and `onChanged` publishes it
  * to a shared schema store when one is configured. A site whose schema is a
  * read-only directory refuses the save rather than appearing to take it.
@@ -201,13 +201,13 @@ export async function saveForm(
   const form = reparsed.value
 
   // Against the whole set, because an alias has to be unique across forms and a
-  // workflow is held to a document type that exists.
+  // workflow is held to a content type that exists.
   const loaded = loadSchemaDirectory(options.schemaDir)
   const others = (loaded.set.forms ?? []).filter(
     (candidate) => candidate.alias.toLowerCase() !== form.alias.toLowerCase(),
   )
   const problems = validateForms([...others, form], {
-    documentTypeAliases: new Set(loaded.set.documentTypes.map((type) => type.alias)),
+    contentTypeAliases: new Set(loaded.set.contentTypes.map((type) => type.alias)),
   })
   if (problems.length > 0) return { ok: false, status: 'invalid', problems }
 

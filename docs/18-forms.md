@@ -9,7 +9,7 @@ and structure lives in files here. Umbraco Forms stores definitions in the
 database only — the file option was removed in v9 and the migration is explicitly
 irreversible — so an Umbraco site cannot diff a form in a pull request, cannot
 review a change to one, and cannot deploy a form with the code that renders it.
-That is the same gap `schema/` closed for document types, and the same gap uSync
+That is the same gap `schema/` closed for content types, and the same gap uSync
 and Deploy exist to paper over.
 
 ## Placement
@@ -28,7 +28,7 @@ The obvious objection is that editors create forms in production, where
 `schemaWritable` defaults off. [`12-schema-at-runtime.md`](12-schema-at-runtime.md)
 already answered that: with `s3SchemaStore` or `azureSchemaStore` the store is the
 truth, materialised locally at boot and published back on write. A form is created
-in the backoffice and lands in the store exactly as a document type does.
+in the backoffice and lands in the store exactly as a content type does.
 
 Without a schema store configured, forms are developer-owned and read-only in
 production — the same trade the rest of `schema/` makes, and the backoffice says so
@@ -203,7 +203,7 @@ itself and against the rest of the set. The rules worth knowing:
   a submission does nothing; approval without stored entries has nothing to
   approve.
 - **Workflow settings are per type**, required ones checked and unknown ones
-  named. `saveAsContent` is held to a document type that exists and to the
+  named. `saveAsContent` is held to a content type that exists and to the
   form's own field aliases, and a `pattern` has to compile.
 
 A broken form file fails the boot, like any other broken schema file: the files
@@ -323,7 +323,7 @@ resolves the stored key to the definition — so a view gets the form, not a UUI
 `bunbraco generate` is what removes the cast.
 
 The demo template is the worked example:
-`templates/demo/harbourstone/files/schema/forms/contact.toml` is pointed at by the
+`sites/harbourstone/schema/forms/contact.toml` is pointed at by the
 Contact page's `enquiryForm` property and rendered by `components/contactPage.tsx`. It
 is also where the conditional-field rule is exercised: `company` appears only for
 a trade enquiry, and the server discards its value when the condition does not

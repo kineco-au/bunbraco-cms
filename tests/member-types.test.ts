@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import { parseDocumentType, parseMemberType, validateSchemaSet } from '@bunbraco/schema'
+import { parseContentType, parseMemberType, validateSchemaSet } from '@bunbraco/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -223,7 +223,7 @@ describe('member types', () => {
         .value?.folder,
     ).toBe('Shop')
 
-    // Not a document type, and the member-type contract has no allowed children
+    // Not a content type, and the member-type contract has no allowed children
     expect((await h.call(`${V1}/document-type/${customer}`)).status).toBe(404)
     expect((await h.call(`${V1}/member-type/${customer}/allowed-children`)).status).toBe(404)
   })
@@ -246,14 +246,14 @@ describe('member types', () => {
         '[member-type]\nalias = "x"\nname = "X"\nallow-children = ["y"]\n',
       ).problems.map((p) => p.message),
     ).toEqual([expect.stringContaining('unknown key')])
-    const onDocument = parseDocumentType(
+    const onDocument = parseContentType(
       'page',
       '[content-type]\nalias = "page"\nname = "Page"\n\n[[property]]\nalias = "t"\nname = "T"\ntype = "textstring"\nsensitive = true\n',
     )
     expect(onDocument.problems).toEqual([])
     const problems = validateSchemaSet({
       version: '1.0.0',
-      documentTypes: [onDocument.value as NonNullable<typeof onDocument.value>],
+      contentTypes: [onDocument.value as NonNullable<typeof onDocument.value>],
       dataTypes: [],
       languages: [],
     })
