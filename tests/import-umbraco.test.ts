@@ -14,21 +14,26 @@ import { join } from 'node:path'
 import { DocumentRepository } from '@crombolo/data'
 import {
   componentName,
+  type ImportOptions,
   type ImportPlan,
   MINIMUM_MAJOR,
   openSource,
-  planImport,
+  planImport as planImportFor,
   reportMarkdown,
   UPGRADE_STATES,
   versionForState,
   viewStub,
 } from '@crombolo/import-umbraco'
 import { loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
-import { componentAliasesIn } from '@crombolo/server'
+import { componentAliasesIn, VERSION } from '@crombolo/server'
 import { type BundleNode, importBundle, loadBundle } from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
 import { DEMO_STORE, writePlan } from './support/umbraco-import.ts'
+
+/** The importer, for a site running this release. */
+const planImport = (options: Omit<ImportOptions, 'coreVersion'>) =>
+  planImportFor({ ...options, coreVersion: VERSION })
 
 const work = mkdtempSync(join(process.cwd(), 'output', 'import-umbraco-'))
 afterAll(() => rmSync(work, { recursive: true, force: true }))
@@ -47,14 +52,14 @@ beforeAll(async () => {
 const finding = (p: ImportPlan, code: string) => p.report.findings.filter((f) => f.code === code)
 const node = (p: ImportPlan, name: string, kind: BundleNode['kind'] = 'document'): BundleNode => {
   const nodes = p.files
-    .filter((f) => f.path.startsWith('bundles/umbraco-import/nodes/'))
+    .filter((f) => f.path.startsWith('bundles/umbraco-import/bundle/nodes/'))
     .map((f) => JSON.parse(f.text as string) as BundleNode)
   return nodes.find((n) => n.kind === kind && n.variants[0]?.name === name) as BundleNode
 }
 /** A value by page name and property; two pages can share a name, so the one with the property is meant. */
 const storedValue = (p: ImportPlan, name: string, property: string) =>
   p.files
-    .filter((f) => f.path.startsWith('bundles/umbraco-import/nodes/'))
+    .filter((f) => f.path.startsWith('bundles/umbraco-import/bundle/nodes/'))
     .map((f) => JSON.parse(f.text as string) as BundleNode)
     .filter((n) => n.variants[0]?.name === name)
     .flatMap((n) => n.values)
@@ -291,7 +296,7 @@ describe('the schema it writes', () => {
 
 describe('the content it writes', () => {
   test('is a bundle `content import` reads, intact', () => {
-    const loaded = loadBundle(join(site, 'bundles', 'umbraco-import'))
+    const loaded = loadBundle(join(site, 'bundles', 'umbraco-import', 'bundle'))
     expect(loaded.problems).toEqual([])
     expect(loaded.set?.manifest.counts).toEqual({ media: 255, document: 181 })
     expect(loaded.set?.manifest.snapshot).toBe('published')
@@ -354,7 +359,9 @@ describe('the content it writes', () => {
 
   test('--drafts takes the working copy instead of what is published', async () => {
     const drafts = await planImport({ source: staging, drafts: true })
-    const manifest = JSON.parse(fileText(drafts, 'bundles/umbraco-import/bundle.json') as string)
+    const manifest = JSON.parse(
+      fileText(drafts, 'bundles/umbraco-import/bundle/bundle.json') as string,
+    )
     expect(manifest.snapshot).toBe('drafts')
     expect(finding(drafts, 'pending-changes')).toEqual([])
   })
@@ -568,7 +575,7 @@ describe(`importing the result (${dialectUnderTest})`, () => {
     })
     open.push(h)
 
-    const { set, problems } = loadBundle(join(site, 'bundles', 'umbraco-import'))
+    const { set, problems } = loadBundle(join(site, 'bundles', 'umbraco-import', 'bundle'))
     expect(problems).toEqual([])
     const result = await importBundle(h.server.db, set as never, {
       nodeId: 'test',

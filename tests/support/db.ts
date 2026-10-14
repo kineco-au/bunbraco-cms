@@ -179,6 +179,13 @@ async function emptyMigratedSchema(db: Db): Promise<boolean> {
   )
     .map((row) => row.table_name)
     .filter((name) => !MIGRATION_OWNED.includes(name))
+  // A bundle's tables are not core's: a fresh install has none, so they are
+  // dropped with their ledger rows rather than emptied, and the bundle's chain
+  // starts again exactly as it would on a new database.
+  for (const name of tables.filter((table) => table.startsWith('bundle_')))
+    await db.exec(`DROP TABLE "${name}"`)
+  await db.exec('DELETE FROM migration_history WHERE bundle IS NOT NULL')
+  tables.splice(0, tables.length, ...tables.filter((table) => !table.startsWith('bundle_')))
   if (tables.length === 0) return false
 
   // Read from the catalogue rather than listed here, so a migration that adds a

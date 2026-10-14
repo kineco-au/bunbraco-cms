@@ -51,6 +51,7 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_MEMBER_SESSION_MINUTES`           | `20160` (14 days)                              | how long a member's sign-in is good for                                                                |
 | `CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
 | `CROMBOLO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
+| `CROMBOLO_APPLY_BUNDLE_CONTENT`             | `true`                                         | whether a Marketplace install also applies the schema, components and content the bundle carries       |
 | `CROMBOLO_INDEXABLE`                        | `true`                                         | `false` keeps search engines out: `Disallow: /`, no sitemap, `noindex` on every page (staging)        |
 | `CROMBOLO_SITEMAP`                          | `true`                                         | whether `/sitemap.xml` is served                                                                       |
 | `CROMBOLO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Bundles section sends someone browsing for bundles                                       |

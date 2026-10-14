@@ -9,10 +9,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { inflateRawSync } from 'node:zlib'
 import { packageFileName } from '@crombolo/api-management'
+import { readBundle, VERSION } from '@crombolo/server'
 import { loadBundle } from '@crombolo/transfer'
-import { type Harness, signedInServer, V1 } from './support/harness.ts'
+import { BACKOFFICE, type Harness, signedInServer, V1 } from './support/harness.ts'
+import { untar } from './support/tar.ts'
 
 const open: Harness[] = []
 const temporary: string[] = []
@@ -109,42 +110,25 @@ async function site() {
   return { h, create, contentType }
 }
 
-/** The archive's entries, by path. */
-function unzip(archive: Uint8Array): Map<string, Uint8Array> {
-  const view = new DataView(archive.buffer, archive.byteOffset, archive.byteLength)
-  const decoder = new TextDecoder()
-  let end = archive.length - 22
-  while (end >= 0 && view.getUint32(end, true) !== 0x06054b50) end -= 1
-  if (end < 0) throw new Error('not a zip')
-  const count = view.getUint16(end + 10, true)
-  let cursor = view.getUint32(end + 16, true)
-  const found = new Map<string, Uint8Array>()
-  for (let index = 0; index < count; index += 1) {
-    const method = view.getUint16(cursor + 10, true)
-    const compressedSize = view.getUint32(cursor + 20, true)
-    const nameLength = view.getUint16(cursor + 28, true)
-    const extraLength = view.getUint16(cursor + 30, true)
-    const commentLength = view.getUint16(cursor + 32, true)
-    const localOffset = view.getUint32(cursor + 42, true)
-    const path = decoder.decode(archive.subarray(cursor + 46, cursor + 46 + nameLength))
-    const dataStart =
-      localOffset +
-      30 +
-      view.getUint16(localOffset + 26, true) +
-      view.getUint16(localOffset + 28, true)
-    const stored = archive.subarray(dataStart, dataStart + compressedSize)
-    found.set(path, method === 0 ? stored : new Uint8Array(inflateRawSync(stored)))
-    cursor += 46 + nameLength + extraLength + commentLength
-  }
-  return found
-}
+/** The payload's files, by path inside it: what is under `bundle/` in the package. */
+const payloadOf = (entries: Map<string, Uint8Array>): Map<string, Uint8Array> =>
+  new Map(
+    [...entries]
+      .filter(([path]) => path.startsWith('bundle/'))
+      .map(([path, bytes]) => [path.slice('bundle/'.length), bytes]),
+  )
 
-const download = async (h: Harness, id: string): Promise<Map<string, Uint8Array>> => {
+/** The whole package, by path inside it. */
+const downloadPackage = async (h: Harness, id: string): Promise<Map<string, Uint8Array>> => {
   const response = await h.call(`${PACKAGES}/created/${id}/download`)
   expect(response.status).toBe(200)
-  expect(response.headers.get('content-type')).toBe('application/zip')
-  return unzip(new Uint8Array(await response.arrayBuffer()))
+  expect(response.headers.get('content-type')).toBe('application/gzip')
+  return untar(new Uint8Array(await response.arrayBuffer()))
 }
+
+/** The payload a download carries, by path inside it. */
+const download = async (h: Harness, id: string): Promise<Map<string, Uint8Array>> =>
+  payloadOf(await downloadPackage(h, id))
 
 const text = (entries: Map<string, Uint8Array>, path: string): string => {
   const bytes = entries.get(path)
@@ -195,7 +179,7 @@ describe('created-package definitions', () => {
     )
     expect(read.id).toBe(id)
     expect(read.name).toBe('Blog')
-    expect(read.packagePath).toBe('blog.zip')
+    expect(read.packagePath).toBe('blog-1.0.0.tgz')
 
     expect(
       (
@@ -279,10 +263,11 @@ describe('the download', () => {
     const response = await h.call(`${PACKAGES}/created/${id}/download`)
     expect(response.status).toBe(200)
     expect(response.headers.get('content-disposition')).toBe(
-      'attachment; filename="nothing-picked.zip"',
+      'attachment; filename="nothing-picked-1.0.0.tgz"',
     )
-    const entries = unzip(new Uint8Array(await response.arrayBuffer()))
-    expect([...entries.keys()]).toEqual(['bundle.json'])
+    const packed = untar(new Uint8Array(await response.arrayBuffer()))
+    expect([...packed.keys()]).toEqual(['package.json', 'bundle/bundle.json'])
+    const entries = payloadOf(packed)
     const manifest = JSON.parse(text(entries, 'bundle.json')) as {
       label: string
       formatVersion: number
@@ -627,9 +612,87 @@ describe('the files half of a package', () => {
 })
 
 describe('packageFileName', () => {
-  test('slugs a name into something a browser will save', () => {
-    expect(packageFileName('Starter Kit')).toBe('starter-kit.zip')
-    expect(packageFileName('  Blog/2024  ')).toBe('blog-2024.zip')
-    expect(packageFileName('***')).toBe('package.zip')
+  test('names a tarball as npm pack does, scope folded in', () => {
+    expect(packageFileName('Starter Kit')).toBe('starter-kit-1.0.0.tgz')
+    expect(packageFileName('  Blog/2024  ', '2.1.0')).toBe('blog-2024-2.1.0.tgz')
+    expect(packageFileName('@acme/tasks', '1.2.3')).toBe('acme-tasks-1.2.3.tgz')
+    expect(packageFileName('***')).toBe('package-1.0.0.tgz')
+  })
+})
+
+describe('the download is an npm package', () => {
+  const PACKAGE_API = `${BACKOFFICE}/crombolo/api/bundles/created`
+
+  test('its package.json names it, keys it for the marketplace, and declares the core', async () => {
+    const { h, create } = await site()
+    const json = JSON.parse(
+      text(await downloadPackage(h, await create({ name: 'Starter Kit' })), 'package.json'),
+    )
+    expect(json).toEqual({
+      name: 'starter-kit',
+      version: '1.0.0',
+      keywords: ['crombolo-bundle'],
+      files: ['bundle'],
+      peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+      crombolo: { id: 'starter-kit', name: 'Starter Kit', content: 'bundle' },
+    })
+  })
+
+  test('unpacked, it is a bundle the installer accepts', async () => {
+    const { h, create } = await site()
+    const entries = await downloadPackage(h, await create({ name: 'Installable' }))
+    const dir = mkdtempSync(join(tmpdir(), 'crombolo-package-'))
+    temporary.push(dir)
+    for (const [path, bytes] of entries) {
+      await mkdir(dirname(join(dir, path)), { recursive: true })
+      writeFileSync(join(dir, path), bytes)
+    }
+    const resolved = readBundle(dir, dir)
+    expect(resolved.package.packageName).toBe('installable')
+    expect(resolved.set.manifest.label).toBe('Installable')
+  })
+
+  test('takes the npm name and version set on the definition, and refuses one npm would not', async () => {
+    const { h, create } = await site()
+    const id = await create({ name: 'Named' })
+    const route = `${PACKAGE_API}/${id}/package`
+    expect(await h.json<Record<string, unknown>>(route)).toEqual({
+      name: 'named',
+      version: '1.0.0',
+      set: { name: false, version: false },
+    })
+
+    const refused = await h.call(route, {
+      method: 'PUT',
+      body: JSON.stringify({ name: 'Not A Name', version: '1' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(refused.status).toBe(400)
+
+    const saved = await h.call(route, {
+      method: 'PUT',
+      body: JSON.stringify({ name: '@acme/named', version: '2.3.0' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(saved.status).toBe(200)
+    const response = await h.call(`${PACKAGES}/created/${id}/download`)
+    expect(response.headers.get('content-disposition')).toBe(
+      'attachment; filename="acme-named-2.3.0.tgz"',
+    )
+    const json = JSON.parse(
+      text(untar(new Uint8Array(await response.arrayBuffer())), 'package.json'),
+    )
+    expect([json.name, json.version, json.crombolo.id]).toEqual(['@acme/named', '2.3.0', 'named'])
+
+    // An empty value goes back to the default.
+    await h.call(route, {
+      method: 'PUT',
+      body: JSON.stringify({ name: '', version: '' }),
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(await h.json<Record<string, unknown>>(route)).toMatchObject({
+      name: 'named',
+      version: '1.0.0',
+    })
   })
 })

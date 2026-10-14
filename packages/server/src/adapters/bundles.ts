@@ -1,5 +1,5 @@
 /**
- * Bundles: the definitions, and the zip a download builds from one.
+ * Bundles: the definitions, and the npm package a download builds from one.
  * `docs/bundles.md`.
  *
  * Nothing new is serialized here. Schema travels as the canonical TOML
@@ -48,14 +48,27 @@ import {
   type BundleKind,
   type BundleNode,
   type BundleSection,
+  bundleIdFor,
   type ContentSet,
   exportBundle,
+  isPackageName,
+  packageNameFor,
   writeBundle,
+  writeBundlePackage,
 } from '@crombolo/transfer'
+import { VERSION } from '../config.ts'
 import { dictionaryToUdt, writeDictionaryUdt } from '../dictionary-transfer.ts'
 import { readBlobs } from '../media-files.ts'
 import type { MediaStore } from '../media-store.ts'
-import { writeZip, type ZipEntry } from '../zip.ts'
+import { writeNpmTarball } from '../tar.ts'
+
+/** The npm package a definition is built as: what was set on it, or what its name gives. */
+export function bundlePackageOf(row: Bundle): { name: string; version: string } {
+  return {
+    name: row.packageName ?? packageNameFor(row.name),
+    version: row.packageVersion ?? '1.0.0',
+  }
+}
 
 /** The content kinds a bundle's picks can name. */
 const CONTENT_OBJECT_TYPES = [ObjectTypes.Document, ObjectTypes.Media, ObjectTypes.Element]
@@ -376,17 +389,19 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
     },
 
     /**
-     * The definition as one bundle, zipped.
+     * The definition as one bundle, packed as the npm package it is.
      *
      * Everything goes through `writeBundle` so there is a single manifest over
-     * the whole artifact: it declares the sections, carries the hash that covers
-     * them, and names the package — a zip of loose directories would have no
-     * record of what it was or whether it arrived whole.
+     * the whole payload: it declares the sections, carries the hash that covers
+     * them, and names the bundle. The package around it is what gives it a
+     * name, a version and the core it was written for, so the download is
+     * something `bun add ./file.tgz` and `bun publish` take as it is.
      */
     async build(id): Promise<BuiltPackage | undefined> {
       const row = await bundles.byId(id)
       if (!row) return undefined
       const from = definition(row)
+      const pkg = bundlePackageOf(row)
 
       // The schema version the site is actually at, so the files a package
       // carries say where they came from rather than claiming version 0.
@@ -422,11 +437,71 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
 
       const labelled: ContentSet = { ...set, manifest: { ...set.manifest, label: from.name } }
       const encoder = new TextEncoder()
-      const entries: ZipEntry[] = writeBundle(labelled, content.blobs, sections).map((file) => ({
+      const files = writeBundlePackage(writeBundle(labelled, content.blobs, sections), {
+        name: pkg.name,
+        version: pkg.version,
+        id: bundleIdFor(pkg.name.replace(/^@[^/]+\//, '')),
+        label: from.name,
+        peerRange: `^${VERSION}`,
+      })
+      const entries = files.map((file) => ({
         path: file.path,
         bytes: file.bytes ?? encoder.encode(file.text ?? ''),
       }))
-      return { fileName: packageFileName(from.name), bytes: writeZip(entries) }
+      return {
+        fileName: packageFileName(pkg.name, pkg.version),
+        contentType: 'application/gzip',
+        bytes: writeNpmTarball(entries),
+      }
     },
   }
+}
+
+/** A created bundle's npm package as the Created view edits it. */
+export interface CreatedBundlePackage {
+  name: string
+  version: string
+  /** Whether each was set, rather than derived from the definition's name. */
+  set: { name: boolean; version: boolean }
+}
+
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+
+/** The npm package a definition builds as, or undefined when it is gone. */
+export async function readCreatedBundlePackage(
+  db: Db,
+  id: string,
+): Promise<CreatedBundlePackage | undefined> {
+  const row = await new BundleRepository(db).byId(id)
+  if (!row) return undefined
+  return {
+    ...bundlePackageOf(row),
+    set: { name: row.packageName !== null, version: row.packageVersion !== null },
+  }
+}
+
+/**
+ * Sets the npm package a definition builds as. An empty value goes back to its
+ * default; anything else must be what npm itself would accept.
+ */
+export async function writeCreatedBundlePackage(
+  db: Db,
+  id: string,
+  input: { name?: unknown; version?: unknown },
+): Promise<{ ok: true; package: CreatedBundlePackage } | { ok: false; message: string }> {
+  const bundles = new BundleRepository(db)
+  if (!(await bundles.byId(id))) return { ok: false, message: 'That bundle no longer exists.' }
+  const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
+  const name = text(input.name)
+  const version = text(input.version)
+  if (name && !isPackageName(name))
+    return {
+      ok: false,
+      message:
+        'A package name is lowercase letters, digits, dots, hyphens and underscores, optionally with an @scope/ in front.',
+    }
+  if (version && !SEMVER.test(version))
+    return { ok: false, message: 'A version is three numbers, like 1.0.0.' }
+  await bundles.setPackage(id, { name: name || null, version: version || null })
+  return { ok: true, package: (await readCreatedBundlePackage(db, id)) as CreatedBundlePackage }
 }

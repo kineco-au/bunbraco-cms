@@ -6,6 +6,9 @@
  * Findings arrive from two sources — a pending upgrade and an arriving content
  * bundle — so they are grouped rather than pooled: the counts of one say nothing
  * about the other, and the actions that resolve them are different.
+ *
+ * Below them, each installed bundle that keeps data of its own lists the
+ * changes it has made to its storage here, and any still to make.
  */
 import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external/lit'
 import { fetchReport } from './report-client.js'
@@ -57,7 +60,7 @@ export default class CromboloChangesDashboardElement extends LitElement {
   render() {
     if (this._error) return html`<uui-box headline="Changes"><p>${this._error}</p></uui-box>`
     if (!this._report) return html`<uui-box headline="Changes"><uui-loader></uui-loader></uui-box>`
-    const { health, findings, counts } = this._report
+    const { health, findings, counts, bundles = [] } = this._report
     const shown = findings.filter((f) => this._showResolved || f.status === 'open')
     return html`
       <uui-box headline="Changes">
@@ -86,7 +89,41 @@ export default class CromboloChangesDashboardElement extends LitElement {
             ? html`<p class="empty">Nothing outstanding. <code>crombolo upgrade check</code> and <code>crombolo content check</code> write findings here.</p>`
             : this.#group(shown).map((group) => this.#renderGroup(group))
         }
+        ${bundles.map((bundle) => this.#renderBundle(bundle))}
       </uui-box>
+    `
+  }
+
+  #renderBundle(bundle) {
+    const steps = [
+      ...bundle.pending.map((step) => ({ ...step, done: false })),
+      ...bundle.applied.map((step) => ({ ...step, done: true })).reverse(),
+    ]
+    return html`
+      <h4>${bundle.name} <small>data storage</small></h4>
+      ${
+        bundle.pending.length > 0
+          ? html`<p><uui-tag color="warning">${bundle.pending.length} change(s) waiting for the next upgrade</uui-tag></p>`
+          : nothing
+      }
+      <uui-table>
+        <uui-table-head>
+          <uui-table-head-cell>Change</uui-table-head-cell>
+          <uui-table-head-cell>Release</uui-table-head-cell>
+          <uui-table-head-cell>State</uui-table-head-cell>
+        </uui-table-head>
+        ${steps.map(
+          (step) => html`<uui-table-row>
+            <uui-table-cell>${step.name}${step.kind === 'contract' ? html`<small>removes data</small>` : nothing}</uui-table-cell>
+            <uui-table-cell>${step.release ?? ''}</uui-table-cell>
+            <uui-table-cell>${
+              step.done
+                ? html`<uui-tag color="positive">done ${step.appliedAt?.slice(0, 10) ?? ''}</uui-tag>`
+                : html`<uui-tag color="warning">waiting</uui-tag>`
+            }</uui-table-cell>
+          </uui-table-row>`,
+        )}
+      </uui-table>
     `
   }
 

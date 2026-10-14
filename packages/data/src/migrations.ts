@@ -29,7 +29,24 @@ export interface Migration {
   release?: string
   /** For a contract: the name of the expand migration it removes. */
   contracts?: string
+  /** Recorded in the ledger, and compared when the plan verifies what ran. Defaults to `name`. */
+  checksum?: string
   up(db: Db): Promise<void>
+  /**
+   * Writes data once `up` has run, in the same transaction. `planUpgrade` cannot
+   * predict what it writes, so a step that has one is reported as unplannable.
+   */
+  backfill?(db: Db): Promise<void>
+}
+
+/** Where a chain keeps its state, and what it calls itself in the ledger. */
+export interface ChainOptions {
+  /** The `key_value` key holding the chain's state. */
+  stateKey?: string
+  /** The state before the first step. */
+  initialState?: string
+  /** A bundle's id, for a bundle's chain; absent for core's. */
+  bundle?: string
 }
 
 function compareRelease(a: string, b: string): number {
@@ -71,10 +88,16 @@ export function isMajorRelease(release: string): boolean {
 
 export class MigrationPlan {
   readonly migrations: readonly Migration[]
+  readonly stateKey: string
+  readonly initialState: string
+  readonly bundle: string | undefined
 
-  constructor(migrations: readonly Migration[]) {
+  constructor(migrations: readonly Migration[], options: ChainOptions = {}) {
     this.migrations = migrations
-    let expected = INITIAL_STATE
+    this.stateKey = options.stateKey ?? MIGRATION_STATE_KEY
+    this.initialState = options.initialState ?? INITIAL_STATE
+    this.bundle = options.bundle
+    let expected = this.initialState
     const seen = new Map<string, Migration>()
     for (const migration of migrations) {
       if (migration.from !== expected) {
@@ -111,7 +134,14 @@ export class MigrationPlan {
   }
 
   get finalState(): string {
-    return this.migrations.at(-1)?.to ?? INITIAL_STATE
+    return this.migrations.at(-1)?.to ?? this.initialState
+  }
+
+  /** The steps that have run when the chain is at a state; undefined when the state is not in it. */
+  appliedAt(state: string): Migration[] | undefined {
+    if (state === this.initialState) return []
+    const index = this.migrations.findIndex((m) => m.to === state)
+    return index < 0 ? undefined : this.migrations.slice(0, index + 1)
   }
 
   /** The steps still to run from a state; empty when current. Undefined when the state is not in the plan. */
@@ -123,7 +153,11 @@ export class MigrationPlan {
   }
 }
 
+/** Connections whose ledger tables are known to exist with every column. */
+const ensured = new WeakSet<Db>()
+
 async function ensureTables(db: Db): Promise<void> {
+  if (ensured.has(db)) return
   const t = db.dialect.types
   await db.exec(
     `CREATE TABLE IF NOT EXISTS key_value (
@@ -143,34 +177,60 @@ async function ensureTables(db: Db): Promise<void> {
        duration_ms ${t.integer} NOT NULL,
        checksum ${t.varchar(64)},
        applied_by ${t.varchar(255)},
-       note ${t.text}
+       note ${t.text},
+       bundle ${t.varchar(64)}
      )`,
   )
+  // A ledger from before bundles could own tables has no `bundle` column. It is
+  // added here, where the table is, rather than by a core migration: the ledger
+  // has to be able to record a bundle's step whatever state core is at.
+  if (!(await hasColumn(db, 'migration_history', 'bundle')))
+    await db.exec(`ALTER TABLE migration_history ADD COLUMN bundle ${t.varchar(64)}`)
+  ensured.add(db)
 }
 
-export async function readState(db: Db): Promise<string> {
+async function hasColumn(db: Db, table: string, column: string): Promise<boolean> {
+  const rows =
+    db.dialect.name === 'sqlite'
+      ? await db.query<{ name: string }>(`SELECT name FROM pragma_table_info('${table}')`)
+      : await db.query<{ name: string }>(
+          'SELECT column_name AS name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ?',
+          [table],
+        )
+  return rows.some((row) => row.name === column)
+}
+
+/** A chain's state: core's unless a plan says otherwise. */
+export async function readState(
+  db: Db,
+  chain: Pick<MigrationPlan, 'stateKey' | 'initialState'> = {
+    stateKey: MIGRATION_STATE_KEY,
+    initialState: INITIAL_STATE,
+  },
+): Promise<string> {
   await ensureTables(db)
   const rows = await db.query<{ value: string }>('SELECT value FROM key_value WHERE key = ?', [
-    MIGRATION_STATE_KEY,
+    chain.stateKey,
   ])
-  return rows[0]?.value ?? INITIAL_STATE
+  return rows[0]?.value ?? chain.initialState
 }
 
-async function writeState(db: Db, state: string): Promise<void> {
+async function writeState(db: Db, state: string, key = MIGRATION_STATE_KEY): Promise<void> {
   const now = db.dialect.now()
-  await db.query(`UPDATE key_value SET value = ?, update_date = ${now} WHERE key = ?`, [
-    state,
-    MIGRATION_STATE_KEY,
-  ])
-  const rows = await db.query<{ value: string }>('SELECT value FROM key_value WHERE key = ?', [
-    MIGRATION_STATE_KEY,
-  ])
+  await db.query(`UPDATE key_value SET value = ?, update_date = ${now} WHERE key = ?`, [state, key])
+  const rows = await db.query<{ value: string }>('SELECT value FROM key_value WHERE key = ?', [key])
   if (rows.length === 0) {
     await db.exec(
       `INSERT INTO key_value (key, value, update_date) VALUES (${db.dialect.placeholder(1)}, ${db.dialect.placeholder(2)}, ${now})`,
-      [MIGRATION_STATE_KEY, state],
+      [key, state],
     )
   }
+}
+
+/** Forgets a setting entirely, as a purged bundle's state is forgotten. */
+export async function deleteKeyValue(db: Db, key: string): Promise<void> {
+  await ensureTables(db)
+  await db.exec('DELETE FROM key_value WHERE key = ?', [key])
 }
 
 export interface LedgerEntry {
@@ -183,6 +243,8 @@ export interface LedgerEntry {
   checksum?: string | null
   appliedBy?: string | null
   note?: string | null
+  /** The bundle whose chain this step belongs to; null for core. */
+  bundle?: string | null
 }
 
 /**
@@ -226,8 +288,8 @@ export async function ensureKeyValue(db: Db, key: string, create: () => string):
 export async function recordInLedger(db: Db, entry: LedgerEntry): Promise<void> {
   await ensureTables(db)
   await db.exec(
-    `INSERT INTO migration_history (name, kind, from_state, to_state, applied_at, duration_ms, checksum, applied_by, note)
-     VALUES (?, ?, ?, ?, ${db.dialect.now()}, ?, ?, ?, ?)`,
+    `INSERT INTO migration_history (name, kind, from_state, to_state, applied_at, duration_ms, checksum, applied_by, note, bundle)
+     VALUES (?, ?, ?, ?, ${db.dialect.now()}, ?, ?, ?, ?, ?)`,
     [
       entry.name,
       entry.kind,
@@ -237,6 +299,7 @@ export async function recordInLedger(db: Db, entry: LedgerEntry): Promise<void> 
       entry.checksum ?? null,
       entry.appliedBy ?? null,
       entry.note ?? null,
+      entry.bundle ?? null,
     ],
   )
 }
@@ -248,10 +311,14 @@ export async function latestLedgerId(db: Db): Promise<number> {
   return Number(rows[0]?.n ?? 0)
 }
 
-/** How many contract steps — framework contracts and site purges — were ledgered after a row id. */
+/**
+ * How many contract steps — framework contracts and site purges — were ledgered
+ * after a row id. A bundle's contract is not counted: it removes only the
+ * bundle's own tables, which no read of core's depends on.
+ */
 export async function contractsLedgeredAfter(db: Db, afterId: number): Promise<number> {
   const rows = await db.query<{ n: number }>(
-    "SELECT COUNT(*) AS n FROM migration_history WHERE id > ? AND kind = 'contract'",
+    "SELECT COUNT(*) AS n FROM migration_history WHERE id > ? AND kind = 'contract' AND bundle IS NULL",
     [afterId],
   )
   return Number(rows[0]?.n ?? 0)
@@ -265,7 +332,7 @@ export interface LedgerRow extends LedgerEntry {
 export async function readLedger(db: Db): Promise<LedgerRow[]> {
   await ensureTables(db)
   const rows = await db.query(
-    'SELECT id, name, kind, from_state, to_state, applied_at, duration_ms, checksum, applied_by, note FROM migration_history ORDER BY id',
+    'SELECT id, name, kind, from_state, to_state, applied_at, duration_ms, checksum, applied_by, note, bundle FROM migration_history ORDER BY id',
   )
   return rows.map((row) => ({
     id: Number(row.id),
@@ -278,6 +345,7 @@ export async function readLedger(db: Db): Promise<LedgerRow[]> {
     checksum: (row.checksum as string | null) ?? null,
     appliedBy: (row.applied_by as string | null) ?? null,
     note: (row.note as string | null) ?? null,
+    bundle: (row.bundle as string | null) ?? null,
   }))
 }
 
@@ -286,20 +354,64 @@ export class UpgradeStateError extends Error {
   constructor(
     readonly databaseState: string,
     readonly codeState: string,
+    /** The bundle whose chain it is, when it is not core's. */
+    readonly bundle?: string,
   ) {
     super(
-      `The database is at migration state ${databaseState}, which this version of crombolo (plan ends at ${codeState}) does not know. ` +
-        'It was upgraded by a newer version; run that version, or restore the backup taken before the upgrade.',
+      bundle
+        ? `The database holds the bundle "${bundle}"'s tables at state ${databaseState}, which this version of the bundle (its steps end at ${codeState}) does not know. ` +
+            'A newer release of the bundle wrote them; install that release, or restore the backup taken before the upgrade.'
+        : `The database is at migration state ${databaseState}, which this version of crombolo (plan ends at ${codeState}) does not know. ` +
+            'It was upgraded by a newer version; run that version, or restore the backup taken before the upgrade.',
+    )
+  }
+}
+
+/** A bundle step changed after it ran here: what is in the database is not what the code says made it. */
+export class BundleStepEditedError extends Error {
+  constructor(
+    readonly bundle: string,
+    readonly step: string,
+  ) {
+    super(
+      `The bundle "${bundle}"'s step "${step}" is not the step that ran on this database: it was edited after it shipped. ` +
+        'A shipped step is never changed; put the change in a new step.',
     )
   }
 }
 
 /** Steps pending on this database, in order. Throws when the database is ahead of the code. */
 export async function pendingMigrations(db: Db, plan: MigrationPlan): Promise<Migration[]> {
-  const state = await readState(db)
+  const state = await readState(db, plan)
   const pending = plan.pendingFrom(state)
-  if (!pending) throw new UpgradeStateError(state, plan.finalState)
+  if (!pending) throw new UpgradeStateError(state, plan.finalState, plan.bundle)
   return pending
+}
+
+/**
+ * Refuses a bundle chain whose applied steps no longer match the code. Only the
+ * rows since the bundle was last purged count: a purge starts its chain again.
+ */
+async function verifyApplied(db: Db, plan: MigrationPlan, state: string): Promise<void> {
+  if (!plan.bundle) return
+  const applied = plan.appliedAt(state) ?? []
+  if (applied.length === 0) return
+  const rows = await db.query<{ name: string; kind: string; checksum: string | null }>(
+    'SELECT name, kind, checksum FROM migration_history WHERE bundle = ? ORDER BY id',
+    [plan.bundle],
+  )
+  const purged = rows.map((row) => row.kind).lastIndexOf('purge')
+  const ran = new Map(
+    rows
+      .slice(purged + 1)
+      .filter((row) => row.kind === 'expand' || row.kind === 'contract')
+      .map((row) => [row.name, row.checksum]),
+  )
+  for (const step of applied) {
+    const recorded = ran.get(step.name)
+    if (recorded !== undefined && recorded !== (step.checksum ?? step.name))
+      throw new BundleStepEditedError(plan.bundle, step.name)
+  }
 }
 
 export interface MigrateResult {
@@ -320,27 +432,30 @@ export async function migrate(
   options: MigrateOptions = {},
 ): Promise<MigrateResult> {
   return db.locks.withLock(Locks.KeyValues, async () => {
-    const from = await readState(db)
+    const from = await readState(db, plan)
     let state = from
     const applied: string[] = []
     const pending = plan.pendingFrom(state)
-    if (!pending) throw new UpgradeStateError(state, plan.finalState)
+    if (!pending) throw new UpgradeStateError(state, plan.finalState, plan.bundle)
+    await verifyApplied(db, plan, state)
     for (const next of pending) {
       const started = performance.now()
       await db.transaction(async (tx) => {
         await next.up(tx)
+        await next.backfill?.(tx)
       })
       state = next.to
-      await writeState(db, state)
+      await writeState(db, state, plan.stateKey)
       await recordInLedger(db, {
         name: next.name,
         kind: next.kind ?? 'expand',
         fromState: next.from,
         toState: next.to,
         durationMs: Math.round(performance.now() - started),
-        checksum: next.name,
+        checksum: next.checksum ?? next.name,
         appliedBy: options.by ?? null,
         note: next.release ? `release ${next.release}` : null,
+        bundle: plan.bundle ?? null,
       })
       applied.push(next.name)
     }
@@ -351,7 +466,7 @@ export async function migrate(
 /** A fresh install stamps the final state so no migrations then run. */
 export async function stampFinalState(db: Db, plan: MigrationPlan): Promise<void> {
   await ensureTables(db)
-  await writeState(db, plan.finalState)
+  await writeState(db, plan.finalState, plan.stateKey)
 }
 
 // ---------------------------------------------------------------- the plan
@@ -421,6 +536,7 @@ export async function planUpgrade(db: Db, plan: MigrationPlan): Promise<PlannedS
     try {
       await migration.up(recorder)
       step.statements = recorder.statements
+      if (migration.backfill) step.unplannable = 'backfills data, which only running it can show'
     } catch (error) {
       if (error instanceof UnplannableError) step.unplannable = error.message
       else throw error

@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/contracts",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "The Umbraco Management API OpenAPI document and the TypeScript types generated from it.",
   "license": "MIT",
   "author": "Crombolo",

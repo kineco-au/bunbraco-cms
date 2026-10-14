@@ -1,0 +1,16 @@
+{
+  "name": "basic",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "bundle"
+  ],
+  "peerDependencies": {
+    "@crombolo/crombolo": "^0.10.0"
+  },
+  "crombolo": {
+    "id": "basic",
+    "name": "Basic",
+    "content": "bundle"
+  }
+}

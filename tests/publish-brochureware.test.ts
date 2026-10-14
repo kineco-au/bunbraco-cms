@@ -118,8 +118,9 @@ describe('the archive', () => {
     expect(BUNDLE_DIR).toBe(join(SITES_DIR, 'crombolo', 'bundles', 'demo-crombolo'))
     expect(findSite(TEMPLATE)?.dir).toBe(join(SITES_DIR, 'crombolo'))
     const files = bundleFiles(BUNDLE_DIR)
-    expect(files).toContain('bundle.json')
-    expect(files.some((path) => path.startsWith('nodes/'))).toBe(true)
+    expect(files).toContain('package.json')
+    expect(files).toContain('bundle/bundle.json')
+    expect(files.some((path) => path.startsWith('bundle/nodes/'))).toBe(true)
   })
 
   test('lists files sorted, with forward slashes whatever the platform', () => {
@@ -138,8 +139,9 @@ describe('the archive', () => {
     expect(first.sha256).toMatch(/^[0-9a-f]{64}$/)
   })
 
-  test('refuses a directory that is not a bundle', () => {
-    expect(() => archiveOf(join(BUNDLE_DIR, 'nodes'))).toThrow(/bundle\.json/)
+  test('refuses a directory that is not a bundle package, a bare payload included', () => {
+    expect(() => archiveOf(join(BUNDLE_DIR, 'bundle', 'nodes'))).toThrow(/not a bundle package/)
+    expect(() => archiveOf(join(BUNDLE_DIR, 'bundle'))).toThrow(/not a bundle package/)
   })
 })
 

@@ -14,6 +14,7 @@ import {
   type CarriedSections,
   carriedSections,
   carriesSections,
+  contentExport,
   planSections,
   promoteBackups,
   RUN_BACKUP_DIR,
@@ -21,15 +22,24 @@ import {
   restoreSectionFiles,
   stageBackups,
 } from '@crombolo/cli'
-import { ContentTypeRepository, DictionaryRepository } from '@crombolo/data'
+import { ContentTypeRepository, DictionaryRepository, TransferRunRepository } from '@crombolo/data'
+import {
+  CommandError,
+  installBundleContent,
+  readBundle,
+  syncSchemaDirectory,
+  VERSION,
+} from '@crombolo/server'
 import {
   type BundleFile,
+  type BundlePackageInfo,
   type ContentSet,
   exportBundle,
   loadBundle,
   writeBundle,
+  writeBundlePackage,
 } from '@crombolo/transfer'
-import { type Harness, signedInServer } from './support/harness.ts'
+import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const PAGE_TOML = `[content-type]
 alias = "brochure"
@@ -59,9 +69,10 @@ afterEach(async () => {
 })
 
 /** A site with its own schema, views, css and scripts directories. */
-async function site() {
+async function site(dependencies: Record<string, string> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'bundle-install-'))
   dirs.push(root)
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'a-site', dependencies }))
   mkdirSync(join(root, 'schema'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   mkdirSync(join(root, 'css'), { recursive: true })
@@ -69,6 +80,7 @@ async function site() {
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   const h = await signedInServer({
     config: {
+      siteDir: root,
       schemaDir: join(root, 'schema'),
       componentsDir: join(root, 'components'),
       stylesheetsDir: join(root, 'css'),
@@ -431,5 +443,211 @@ describe('reverting the files an install wrote', () => {
     // these have to outlive a restart to be worth taking.
     expect(RUN_BACKUP_DIR).toBe(join('.crombolo', 'transfer'))
     expect(RUN_BACKUP_DIR.startsWith(join('.crombolo', 'components'))).toBe(false)
+  })
+})
+
+const KIT: BundlePackageInfo = {
+  name: '@acme/kit',
+  version: '1.4.0',
+  id: 'acme-kit',
+  label: 'Kit',
+  peerRange: `^${VERSION}`,
+}
+
+/** A bundle package carrying these sections, written where `dir` says. */
+async function packageAt(
+  h: Harness,
+  dir: string,
+  sections: BundleFile[],
+  info: BundlePackageInfo = KIT,
+): Promise<string> {
+  const { set } = await exportBundle(h.server.db, {
+    roots: [],
+    asGiven: [],
+    descendants: false,
+    snapshot: 'published',
+    blueprints: false,
+    withBlobs: false,
+    siteName: 'Source',
+    nodeId: 'source',
+  })
+  for (const file of writeBundlePackage(
+    writeBundle(set as ContentSet, undefined, sections),
+    info,
+  )) {
+    const target = join(dir, file.path)
+    mkdirSync(join(target, '..'), { recursive: true })
+    writeFileSync(target, file.bytes ?? (file.text as string))
+  }
+  return dir
+}
+
+const outputDir = (prefix: string) => {
+  const dir = mkdtempSync(join(process.cwd(), 'output', prefix))
+  dirs.push(dir)
+  return dir
+}
+
+const refusal = (run: () => unknown): string => {
+  try {
+    run()
+  } catch (error) {
+    if (error instanceof CommandError) return [error.message, ...error.problems].join('\n')
+    throw error
+  }
+  throw new Error('it was not refused')
+}
+
+describe('a bundle is found as a package', () => {
+  test('a package directory installs in place, and the site does not come to depend on it', async () => {
+    const { h, root, config, db } = await site()
+    const dir = await packageAt(h, outputDir('kit-'), SECTIONS())
+    const before = readFileSync(join(root, 'package.json'), 'utf8')
+    const result = await installBundleContent(db, config, { bundle: dir, backupTaken: true })
+    expect(result.problems).toEqual([])
+    expect(result.runId).toBeDefined()
+    expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(true)
+    expect(readFileSync(join(root, 'package.json'), 'utf8')).toBe(before)
+    expect(result.bundle.package).toEqual({ name: '@acme/kit', version: '1.4.0' })
+  })
+
+  test('the run records the package and version that brought the content', async () => {
+    const { h, config, db } = await site()
+    const dir = await packageAt(h, outputDir('kit-'), [])
+    const result = await installBundleContent(db, config, { bundle: dir, backupTaken: true })
+    const run = await new TransferRunRepository(db).byId(result.runId as string)
+    expect([run?.packageName, run?.packageVersion]).toEqual(['@acme/kit', '1.4.0'])
+    expect((await new TransferRunRepository(db).appliedForPackage('@acme/kit'))?.id).toBe(
+      result.runId as string,
+    )
+  })
+
+  test('a dependency installs by its package name', async () => {
+    const { h, root, config, db } = await site({ '@acme/kit': '^1.4.0' })
+    await packageAt(h, join(root, 'node_modules', '@acme', 'kit'), SECTIONS())
+    const result = await installBundleContent(db, config, {
+      bundle: '@acme/kit',
+      backupTaken: true,
+    })
+    expect(result.runId).toBeDefined()
+    expect(existsSync(join(root, 'components', 'brochure.tsx'))).toBe(true)
+  })
+
+  test('a name the site does not depend on is refused, naming how to add it', async () => {
+    const { config } = await site()
+    expect(refusal(() => readBundle('@acme/kit', config.siteDir))).toContain('bun add @acme/kit')
+  })
+
+  test('a bare payload with no package around it is refused', async () => {
+    const { h } = await site()
+    const { set } = await exportBundle(h.server.db, {
+      roots: [],
+      asGiven: [],
+      descendants: false,
+      snapshot: 'published',
+      blueprints: false,
+      withBlobs: false,
+      siteName: 'Source',
+      nodeId: 'source',
+    })
+    const dir = outputDir('bare-')
+    for (const file of writeBundle(set as ContentSet))
+      writeFileSync(join(dir, file.path), file.text as string)
+    expect(refusal(() => readBundle(dir, dir))).toContain('Every bundle is an npm package')
+  })
+
+  test('a package written for another core is refused, naming both', async () => {
+    const { h } = await site()
+    const dir = await packageAt(h, outputDir('kit-'), [], { ...KIT, peerRange: '^0.1.0' })
+    const message = refusal(() => readBundle(dir, dir))
+    expect(message).toContain('^0.1.0')
+    expect(message).toContain(VERSION)
+  })
+
+  test('a package that carries no content has nothing to install', async () => {
+    const dir = outputDir('no-content-')
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: '@acme/screens',
+        version: '1.0.0',
+        peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+        crombolo: { id: 'acme-screens', extensions: [{ type: 'dashboard' }] },
+      }),
+    )
+    expect(refusal(() => readBundle(dir, dir))).toContain('carries no content')
+  })
+})
+
+describe('an environment’s export', () => {
+  /**
+   * `content export` opens its own connection, so the source site is a file on
+   * SQLite (an in-memory database is a different one per connection) and is the
+   * same database on Postgres. The destination is booted afterwards, which on
+   * Postgres resets the schema: the export is already on disk by then.
+   */
+  test('is a private package that installs on another site, and round trips', async () => {
+    const root = mkdtempSync(join(process.cwd(), 'output', 'export-source-'))
+    dirs.push(root)
+    mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
+    mkdirSync(join(root, 'components'), { recursive: true })
+    writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
+    writeFileSync(join(root, 'schema', 'content-types', 'brochure.toml'), PAGE_TOML)
+    const source = await signedInServer({
+      config: {
+        siteDir: root,
+        sqliteFile: join(root, 'source.sqlite'),
+        schemaDir: join(root, 'schema'),
+        componentsDir: join(root, 'components'),
+      },
+    })
+    const type = await new ContentTypeRepository(source.server.db).byAlias('brochure')
+    const created = await source.post(`${V1}/document`, {
+      documentType: { id: type?.key },
+      template: null,
+      parent: null,
+      values: [],
+      variants: [{ culture: null, segment: null, name: 'Autumn' }],
+    })
+    expect(created.status).toBe(201)
+    const key = created.headers.get('umb-generated-resource') as string
+    const exported = await contentExport(source.server.config, {
+      roots: [key],
+      drafts: true,
+      package: { name: 'autumn-campaign' },
+    })
+    await source.db.close()
+
+    expect(exported.package).toEqual({ name: 'autumn-campaign', version: '1.0.0' })
+    const out = outputDir('export-')
+    for (const file of exported.files) {
+      const target = join(out, file.path)
+      mkdirSync(join(target, '..'), { recursive: true })
+      writeFileSync(target, file.bytes ?? (file.text as string))
+    }
+    const json = JSON.parse(readFileSync(join(out, 'package.json'), 'utf8'))
+    expect(json.private).toBe(true)
+    expect(json.keywords).toBeUndefined()
+    expect(json.crombolo.content).toBe('bundle')
+    expect(existsSync(join(out, 'bundle', 'bundle.json'))).toBe(true)
+
+    const destination = await site()
+    // The destination has the type already, as a deploy would have given it.
+    mkdirSync(join(destination.root, 'schema', 'content-types'), { recursive: true })
+    writeFileSync(join(destination.root, 'schema', 'content-types', 'brochure.toml'), PAGE_TOML)
+    await syncSchemaDirectory(destination.db, destination.config, {
+      nodeId: destination.config.nodeId,
+      revision: destination.config.schemaRevision,
+    })
+    const installed = await installBundleContent(destination.db, destination.config, {
+      bundle: out,
+      withoutFiles: true,
+      backupTaken: true,
+    })
+    expect(installed.problems).toEqual([])
+    expect(installed.runId).toBeDefined()
+    expect(installed.bundle.package).toEqual({ name: 'autumn-campaign', version: '1.0.0' })
+    const read = await destination.h.json<{ variants: { name: string }[] }>(`${V1}/document/${key}`)
+    expect(read.variants[0]?.name).toBe('Autumn')
   })
 })

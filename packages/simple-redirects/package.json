@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/simple-redirects",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Manage redirects in the Crombolo backoffice: a Settings screen over the redirect engine in core.",
   "license": "MIT",
   "author": "Crombolo",
@@ -36,8 +36,9 @@
     "access": "public"
   },
   "crombolo": {
-    "id": "Crombolo.SimpleRedirects",
+    "id": "redirects",
     "name": "Redirects",
+    "server": "redirects",
     "extensions": [
       {
         "type": "menuItem",
@@ -66,5 +67,8 @@
   },
   "dependencies": {
     "@crombolo/server": "workspace:*"
+  },
+  "peerDependencies": {
+    "@crombolo/crombolo": "^0.10.0"
   }
 }

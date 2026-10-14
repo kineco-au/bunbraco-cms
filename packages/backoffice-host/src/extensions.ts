@@ -10,8 +10,13 @@
  * transitive dependency cannot put an extension into a backoffice that never
  * asked for it.
  */
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, normalize, sep } from 'node:path'
+import { join, normalize, sep } from 'node:path'
+import {
+  type BundlePackage,
+  type DiscoveredBundles,
+  discoverBundles,
+  readBundlePackage,
+} from './bundle-package.ts'
 import type { PackageManifest, PackageManifestImportmap } from './manifests.ts'
 
 /** Where an installed bundle's assets are served from. */
@@ -20,26 +25,14 @@ export const EXTENSION_PATH = '/bundles'
 /** The npm keyword a bundle publishes so the marketplace can find it. */
 export const EXTENSION_KEYWORD = 'crombolo-bundle'
 
-/**
- * What a dependency declares to become a backoffice extension. The shape is
- * Umbraco's manifest minus the parts the server owns — the name and version
- * come from the package itself.
- */
-export interface CromboloField {
-  id?: string
-  name?: string
-  allowPublicAccess?: boolean
-  allowTelemetry?: boolean
-  extensions?: unknown[]
-  importmap?: PackageManifestImportmap
-}
-
+/** A bundle's backoffice half, as the manifest endpoint serves it. */
 export interface InstalledExtension {
   /** The npm package name, which is also its segment in the asset path. */
   packageName: string
   version: string
   directory: string
   manifest: PackageManifest
+  bundle: BundlePackage
 }
 
 /**
@@ -47,39 +40,6 @@ export interface InstalledExtension {
  * every string would corrupt labels and aliases that happen to look like one.
  */
 const ASSET_KEYS = new Set(['element', 'api', 'js', 'loader'])
-
-interface PackageJson {
-  name?: string
-  version?: string
-  dependencies?: Record<string, string>
-  crombolo?: CromboloField
-}
-
-function readJson(file: string): PackageJson | undefined {
-  try {
-    const parsed = JSON.parse(readFileSync(file, 'utf8')) as unknown
-    return parsed && typeof parsed === 'object' ? (parsed as PackageJson) : undefined
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * The directory a dependency resolves to, walking up as Node does, so a
- * workspace root's hoisted `node_modules` is found from a site inside it.
- */
-export function resolvePackageDir(from: string, name: string): string | undefined {
-  // A name may not climb out of node_modules, whatever a package.json says.
-  if (name.includes('..') || name.startsWith('/') || name.startsWith('.')) return undefined
-  let dir = normalize(from)
-  for (;;) {
-    const candidate = join(dir, 'node_modules', name)
-    if (existsSync(join(candidate, 'package.json'))) return candidate
-    const parent = dirname(dir)
-    if (parent === dir) return undefined
-    dir = parent
-  }
-}
 
 /** `dist/seo.js` inside `@acme/seo` becomes `/bundles/@acme/seo/dist/seo.js`. */
 const assetPath = (packageName: string, target: string): string =>
@@ -118,42 +78,39 @@ function rewriteImportmap(
   return Object.keys(scopes).length > 0 ? { imports, scopes } : { imports }
 }
 
-/** One dependency's manifest, or undefined when it declares no extensions. */
-export function readExtension(
-  directory: string,
-  packageName: string,
-): InstalledExtension | undefined {
-  const json = readJson(join(directory, 'package.json'))
-  const field = json?.crombolo
-  if (!field || !Array.isArray(field.extensions) || field.extensions.length === 0) return undefined
+/** A bundle's backoffice half, or undefined when it declares no extensions. */
+export function extensionOf(bundle: BundlePackage): InstalledExtension | undefined {
+  const field = bundle.field
+  if (!bundle.carries.extensions) return undefined
+  const packageName = bundle.packageName
   return {
     packageName,
-    version: json?.version ?? '0.0.0',
-    directory,
+    version: bundle.version,
+    directory: bundle.directory,
+    bundle,
     manifest: {
-      name: field.name ?? packageName,
-      id: field.id ?? packageName,
-      version: json?.version ?? '0.0.0',
+      name: bundle.name,
+      id: bundle.id,
+      version: bundle.version,
       allowPublicAccess: field.allowPublicAccess ?? false,
       allowTelemetry: field.allowTelemetry ?? false,
-      extensions: field.extensions.map((extension) => rewriteAssets(extension, packageName)),
+      extensions: (field.extensions ?? []).map((extension) =>
+        rewriteAssets(extension, packageName),
+      ),
       importmap: rewriteImportmap(field.importmap, packageName),
     },
   }
 }
 
-/** Every declared dependency of the site that is a backoffice extension. */
+/** One dependency's backoffice half, or undefined when it is no bundle or declares no extensions. */
+export function readExtension(directory: string): InstalledExtension | undefined {
+  const { bundle } = readBundlePackage(directory)
+  return bundle ? extensionOf(bundle) : undefined
+}
+
+/** Every declared dependency of the site that is a bundle with a backoffice half. */
 export function discoverExtensions(siteDir: string): InstalledExtension[] {
-  const json = readJson(join(siteDir, 'package.json'))
-  if (!json?.dependencies) return []
-  const found: InstalledExtension[] = []
-  for (const name of Object.keys(json.dependencies).sort()) {
-    const directory = resolvePackageDir(siteDir, name)
-    if (!directory) continue
-    const extension = readExtension(directory, name)
-    if (extension) found.push(extension)
-  }
-  return found
+  return discoverBundles(siteDir).bundles.flatMap((bundle) => extensionOf(bundle) ?? [])
 }
 
 /**
@@ -197,6 +154,8 @@ export function resolveExtensionFile(
 
 export interface ExtensionRegistry {
   list(): readonly InstalledExtension[]
+  /** Every bundle the site depends on, whatever it carries, and the ones that are malformed. */
+  bundles(): DiscoveredBundles
   /** Called after an install or an uninstall, so the next read sees it. */
   invalidate(): void
 }
@@ -213,14 +172,16 @@ export function createExtensionRegistry(
   siteDir: string,
   options: { cache?: boolean } = {},
 ): ExtensionRegistry {
-  let cached: InstalledExtension[] | undefined
+  let cached: DiscoveredBundles | undefined
   const cache = options.cache ?? true
+  const discovered = () => {
+    if (!cache) return discoverBundles(siteDir)
+    cached ??= discoverBundles(siteDir)
+    return cached
+  }
   return {
-    list() {
-      if (!cache) return discoverExtensions(siteDir)
-      cached ??= discoverExtensions(siteDir)
-      return cached
-    },
+    list: () => discovered().bundles.flatMap((bundle) => extensionOf(bundle) ?? []),
+    bundles: discovered,
     invalidate() {
       cached = undefined
     },

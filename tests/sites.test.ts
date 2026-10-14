@@ -56,7 +56,8 @@ describe('the sites', () => {
       expect(manifest.private).toBe(true)
       for (const range of Object.values(manifest.dependencies)) expect(range).toBe('workspace:*')
       expect(manifest.scripts.start).toBe(`crombolo start --bundle ${site.bundle} --publish`)
-      expect(existsSync(join(site.dir, site.bundle, 'bundle.json'))).toBe(true)
+      expect(existsSync(join(site.dir, site.bundle, 'package.json'))).toBe(true)
+      expect(existsSync(join(site.dir, site.bundle, 'bundle', 'bundle.json'))).toBe(true)
     },
   )
 
@@ -106,7 +107,7 @@ describe('staging a site as a template', () => {
     const dir = join(into, 'demo', 'harbourstone')
     expect(readdirSync(dir).sort()).toEqual(['CREDITS.md', 'bundle', 'files', 'template.json'])
     expect(readdirSync(join(dir, 'files')).sort()).toEqual(['components', 'css', 'schema'])
-    expect(readdirSync(join(dir, 'bundle'))).toContain('bundle.json')
+    expect(readdirSync(join(dir, 'bundle')).sort()).toEqual(['bundle', 'package.json'])
   })
 
   test('leaves out the media types init writes for itself', () => {

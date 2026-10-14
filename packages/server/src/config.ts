@@ -249,6 +249,13 @@ export interface CromboloConfig {
    */
   bundles: ServerBundle[]
   /**
+   * Whether installing a bundle from the Marketplace also applies the content it
+   * carries — its schema, components and content — straight after `bun add`. On
+   * by default; a load-balanced site that wants content to arrive only with a
+   * deploy turns it off, and an install can decline it for itself.
+   */
+  applyBundleContentOnInstall: boolean
+  /**
    * Where the Packages section's Marketplace sends someone browsing for
    * extensions. Never framed — npm refuses to be framed — so the native view
    * uses it as the link out while listing the registry itself.
@@ -463,6 +470,7 @@ export function loadConfig(
     ),
     redirects: [],
     trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
+    applyBundleContentOnInstall: Bun.env.CROMBOLO_APPLY_BUNDLE_CONTENT !== 'false',
     seo: stripUndefined({
       sitemap: envFlag(Bun.env.CROMBOLO_SITEMAP),
       indexable: envFlag(Bun.env.CROMBOLO_INDEXABLE),
@@ -545,4 +553,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.9.1'
+export const VERSION = '0.10.0'

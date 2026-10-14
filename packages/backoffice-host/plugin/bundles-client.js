@@ -27,8 +27,14 @@ export const searchMarketplace = (query) =>
 
 export const listInstalled = () => json('/installed')
 
-export const installBundle = (name, version) =>
-  json('/install', { method: 'POST', body: JSON.stringify({ name, version }) })
+export const installBundle = (name, version, applyContent = true) =>
+  json('/install', { method: 'POST', body: JSON.stringify({ name, version, applyContent }) })
 
 export const uninstallBundle = (name) =>
   json('/uninstall', { method: 'POST', body: JSON.stringify({ name }) })
+
+/** The npm package a created bundle downloads as. */
+export const readCreatedPackage = (id) => json(`/created/${encodeURIComponent(id)}/package`)
+
+export const saveCreatedPackage = (id, pkg) =>
+  json(`/created/${encodeURIComponent(id)}/package`, { method: 'PUT', body: JSON.stringify(pkg) })

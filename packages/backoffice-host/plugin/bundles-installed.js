@@ -7,12 +7,32 @@
  * (`docs/bundles.md`), so the view would be a list of nothing with a button
  * that cannot apply.
  *
- * What it lists instead is the site's declared `crombolo` dependencies, which is
- * what "installed" means here, and where each one came from.
+ * What it lists instead is the site's bundle dependencies, which is what
+ * "installed" means here: what each one adds, whether its content has been
+ * added to this site, and whether its server features are switched on.
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
+import { carriesTags } from './bundles-carries.js'
 import { listInstalled, uninstallBundle } from './bundles-client.js'
+
+/** Where each part of a bundle stands on this site, in the words of someone running it. */
+function status(item) {
+  const parts = []
+  if (item.carries?.content)
+    parts.push(
+      item.contentApplied
+        ? html`<span>Content added (${item.contentApplied})</span>`
+        : html`<span>Content not added yet</span>`,
+    )
+  if (item.carries?.server)
+    parts.push(
+      item.wired
+        ? html`<span>Server features on</span>`
+        : html`<span>Server features off until the site's configuration includes it</span>`,
+    )
+  return parts.length > 0 ? parts : html`<span>Ready</span>`
+}
 
 export default class CromboloBundlesInstalledElement extends UmbLitElement {
   static properties = {
@@ -70,8 +90,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
             <uui-box headline="No bundles installed">
               <p>
                 A bundle is one of this site's npm dependencies. Install one from the
-                Marketplace tab, or with <code>bun add</code> in the site directory — a dependency
-                that declares a <code>crombolo</code> field appears here.
+                Marketplace tab, or with <code>bun add</code> in the site directory, and it
+                appears here.
               </p>
             </uui-box>
           `
@@ -82,7 +102,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
                   <uui-table-head-cell>Name</uui-table-head-cell>
                   <uui-table-head-cell>npm package</uui-table-head-cell>
                   <uui-table-head-cell>Version</uui-table-head-cell>
-                  <uui-table-head-cell>Extensions</uui-table-head-cell>
+                  <uui-table-head-cell>Adds</uui-table-head-cell>
+                  <uui-table-head-cell>On this site</uui-table-head-cell>
                   <uui-table-head-cell></uui-table-head-cell>
                 </uui-table-head>
                 ${repeat(
@@ -93,7 +114,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
                       <uui-table-cell>${item.name}</uui-table-cell>
                       <uui-table-cell><code>${item.packageName}</code></uui-table-cell>
                       <uui-table-cell>${item.version}</uui-table-cell>
-                      <uui-table-cell>${item.extensionCount}</uui-table-cell>
+                      <uui-table-cell class="carries">${carriesTags(item.carries)}</uui-table-cell>
+                      <uui-table-cell class="status">${status(item)}</uui-table-cell>
                       <uui-table-cell>
                         <uui-button
                           look="secondary"
@@ -135,6 +157,13 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     p {
       max-width: 60ch;
       line-height: 1.5;
+    }
+    .carries {
+      display: flex;
+      gap: var(--uui-size-space-2, 6px);
+    }
+    .status span {
+      display: block;
     }
     .note {
       margin-top: var(--uui-size-space-5, 18px);

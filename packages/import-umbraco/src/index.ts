@@ -18,7 +18,7 @@ import {
   writeMemberType,
   writeSchemaVersion,
 } from '@crombolo/schema'
-import { writeBundle } from '@crombolo/transfer'
+import { writeBundle, writeBundlePackage } from '@crombolo/transfer'
 import { convertContent } from './content.ts'
 import { Findings } from './findings.ts'
 import { type DictionaryItem, type DomainEntry, takeInventory } from './inventory.ts'
@@ -66,6 +66,11 @@ export interface ImportOptions {
   drafts?: boolean
   /** Keep the staging database here instead of in a temporary directory. */
   staging?: string
+  /**
+   * The crombolo release the new site runs, which its content package declares
+   * as its peer range. The importer does not know it itself: the CLI does.
+   */
+  coreVersion: string
 }
 
 /** One file of the new site: literal text, or a file to copy. */
@@ -295,8 +300,16 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
       count: files?.assets.length ?? 0,
     })
 
-    // The bundle, in the format `content import` already reads.
-    for (const file of writeBundle(content.set))
+    // The content, as the private bundle package `content import` reads.
+    const imported = writeBundlePackage(writeBundle(content.set), {
+      name: 'umbraco-import',
+      version: '1.0.0',
+      id: 'umbraco-import',
+      label: `Content imported from ${siteName}`,
+      private: true,
+      peerRange: `^${options.coreVersion}`,
+    })
+    for (const file of imported)
       out.push({ path: `${IMPORT_BUNDLE}/${file.path}`, text: file.text, bytes: file.bytes })
 
     if (inventory.urls.length > 0)

@@ -10,7 +10,8 @@
  *
  *   site.json     id, name, description; `distribute` and the server `bundles`
  *                 its scaffold wires, as in a template's `template.json`
- *   bundles/      the content bundle, at `bundles/<slug>` as a scaffold puts it
+ *   bundles/      the content bundle, a private package at `bundles/<slug>` as a
+ *                 scaffold puts it
  *   CREDITS.md    where its images came from, shipped beside the template
  */
 import {
@@ -25,6 +26,8 @@ import {
 } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { siteMediaTypeFiles } from '@crombolo/schema'
+import { VERSION } from '@crombolo/server'
+import { type BundlePackageInfo, bundleIdFor } from '@crombolo/transfer'
 import { ROOT } from './packages.ts'
 
 export const SITES_DIR = join(ROOT, 'sites')
@@ -52,6 +55,23 @@ export interface RepoSite {
 }
 
 export const slugOf = (id: string): string => id.replaceAll('/', '-')
+
+/**
+ * The private package a template's or a site's content is committed as. Never
+ * published — it is applied from its directory by `start --bundle` — so its
+ * name only has to say what it is.
+ */
+export function contentPackage(target: { id: string; name: string }): BundlePackageInfo {
+  const slug = slugOf(target.id)
+  return {
+    name: slug,
+    version: '1.0.0',
+    id: bundleIdFor(slug),
+    label: target.name,
+    private: true,
+    peerRange: `^${VERSION}`,
+  }
+}
 
 function read(dir: string): RepoSite | undefined {
   const manifest = join(dir, MANIFEST)

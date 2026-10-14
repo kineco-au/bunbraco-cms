@@ -5,7 +5,7 @@
  *
  *   crombolo start                  boot the site; resets and prints the admin password
  *   crombolo start --keep-admin     boot without touching the admin password
- *   crombolo start --bundle <dir>   apply a content bundle, once, then serve
+ *   crombolo start --bundle <pkg>   apply a bundle's content, once, then serve
  *   crombolo init                   scaffold a site in the current directory
  *   crombolo init --template <id>   …from a starter template, content included
  *   crombolo status                 what this environment is, without starting it
@@ -20,9 +20,9 @@
  *   crombolo components check       compile every component before a visitor does
  *   crombolo assets list            the stylesheets and scripts beside them
  *
- *   crombolo content export         write a subtree as a bundle, to move to another environment
- *   crombolo content check          read-only: what importing a bundle here would do
- *   crombolo content import         apply a bundle, in one transaction, and record the run
+ *   crombolo content export         write a subtree as a private bundle package, to move to another environment
+ *   crombolo content check          read-only: what installing a bundle's content here would do
+ *   crombolo content import         apply a bundle's content, in one transaction, and record the run
  *   crombolo content runs           the imports applied here
  *   crombolo content revert         put an import back, restoring what the site served
  *
@@ -35,13 +35,14 @@
  *   crombolo upgrade --plan         print the DDL each pending framework migration would run
  *   crombolo upgrade                back up, apply pending framework migrations, record them
  *   crombolo upgrade ledger         print migration_history
+ *   crombolo bundle purge <id>      back up, drop a bundle's tables and clear its state
  *
  *   crombolo maintenance pause      refuse editors' saves cluster-wide; readers unaffected
  *   crombolo maintenance resume     let editors save again
  */
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { basename, join, relative, resolve } from 'node:path'
 import { AuthStore, resetAdminPassword } from '@crombolo/auth'
 import { ObjectTypes } from '@crombolo/core'
 import {
@@ -112,6 +113,7 @@ import {
   syncDomainsFile,
   syncSchemaDirectory,
   undoDomainsFile,
+  VERSION,
   withoutNode,
   writeDictionaryUdt,
   writeDomains,
@@ -122,7 +124,7 @@ import {
   importBundle,
   isResolution,
   isRevertResolution,
-  loadBundle,
+  packageNameFor,
   RESOLUTIONS,
   RESOLUTIONS_FILE,
   REVERT_RESOLUTIONS,
@@ -288,20 +290,24 @@ async function importStartupBundles(
   server: ServerHandle,
   config: CromboloConfig,
 ): Promise<string[]> {
-  const dirs = flagValues('--bundle')
-  if (dirs.length === 0) return []
+  const targets = flagValues('--bundle')
+  if (targets.length === 0) return []
 
   const lines: string[] = []
   const db = server.db
   let imported = false
-  for (const dir of dirs) {
-    const loaded = loadBundle(dir)
-    for (const problem of loaded.problems) console.error(`  ${problem.file}: ${problem.message}`)
-    if (!loaded.set || loaded.problems.length > 0) {
-      console.error(`\n${dir} cannot be read. The site has not started.`)
+  for (const target of targets) {
+    let resolved: ops.ResolvedBundle
+    try {
+      resolved = ops.readBundle(target, config.siteDir)
+    } catch (error) {
+      if (!(error instanceof ops.CommandError)) throw error
+      console.error(`  ${error.message}`)
+      for (const problem of error.problems) console.error(`    ${problem}`)
+      console.error(`\n${target} cannot be read. The site has not started.`)
       process.exit(1)
     }
-    const set = loaded.set
+    const set = resolved.set
     const standing = await new TransferRunRepository(db).appliedFor(set.manifest.id)
     if (standing) {
       lines.push(`  bundle      ${set.manifest.id} already imported (run ${standing.id})`)
@@ -319,7 +325,7 @@ async function importStartupBundles(
       if (backup.path) console.log(`  backup   ${backup.path}`)
     }
 
-    const prepared = await ops.transferOptions(db, config, set, transferInput(dir))
+    const prepared = await ops.transferOptions(db, config, resolved, transferInput(target))
     for (const problem of prepared.problems) console.error(`  ${problem}`)
     const started = performance.now()
     const result = await importBundle(db, set, {
@@ -327,19 +333,22 @@ async function importStartupBundles(
       publish: flags.has('--publish'),
       nodeId: config.nodeId,
       label: flagValue('--label'),
+      package: { name: resolved.package.packageName, version: resolved.package.version },
     })
     await writeReport(db, result.check.findings, { source: 'transfer', scope: set.manifest.id })
     if (!result.runId) {
       printTransferFindings(result.check)
       console.error(
-        `\n${dir} was refused: ${result.check.outstanding.length} finding(s) outstanding. ` +
+        `\n${target} was refused: ${result.check.outstanding.length} finding(s) outstanding. ` +
           'Nothing was written, and the site has not started.',
       )
       process.exit(1)
     }
     const c = result.check.counts
     const placed = describePlaced(
-      loaded.blobs.size > 0 ? await placeBlobs(await mediaStoreFor(config), loaded.blobs) : null,
+      resolved.blobs.size > 0
+        ? await placeBlobs(await mediaStoreFor(config), resolved.blobs)
+        : null,
     )
     lines.push(
       `  bundle      ${set.manifest.id}: ${c.create} created, ${c.update} updated` +
@@ -353,7 +362,7 @@ async function importStartupBundles(
       kind: 'transfer',
       durationMs: Math.round(performance.now() - started),
       appliedBy: config.nodeId,
-      note: `run ${result.runId} (start --bundle)`,
+      note: `run ${result.runId}, ${resolved.package.packageName}@${resolved.package.version} (start --bundle)`,
     })
     imported = true
   }
@@ -992,14 +1001,14 @@ function describePlaced(placed: { placed: number; bytes: number } | null): strin
 }
 
 /** The flags `check` and `import` share: resolutions, placement, blobs. */
-function transferInput(dir: string): ops.TransferInput {
+function transferInput(bundle: string): ops.TransferInput {
   const allFlag = flagValue('--resolve-all')
   if (allFlag !== undefined && !isResolution(allFlag)) {
     console.error(`  "${allFlag}" is not one of ${RESOLUTIONS.join(', ')}`)
     process.exit(1)
   }
   return {
-    dir,
+    bundle,
     under: flagValue('--under'),
     resolutions: parseResolutions(),
     resolveAll: allFlag as Resolution | undefined,
@@ -1058,7 +1067,9 @@ function describeBundle(bundle: ops.BundleSummary): void {
 async function contentImport(config: CromboloConfig): Promise<void> {
   const dir = positional[1]
   if (!dir) {
-    console.error('content import needs the bundle directory.')
+    console.error(
+      'content import needs a bundle: a package directory, or the name of a bundle this site depends on.',
+    )
     process.exit(1)
   }
   const result = await ops.contentImport(config, {
@@ -1285,7 +1296,9 @@ function printTransferFindings(check: TransferCheck): void {
 async function contentCheck(config: CromboloConfig): Promise<void> {
   const dir = positional[1]
   if (!dir) {
-    console.error('content check needs the bundle directory.')
+    console.error(
+      'content check needs a bundle: a package directory, or the name of a bundle this site depends on.',
+    )
     process.exit(1)
   }
   const result = await ops.contentCheck(config, transferInput(dir))
@@ -1296,7 +1309,7 @@ async function contentCheck(config: CromboloConfig): Promise<void> {
   printTransferFindings(result.check)
 
   if (flags.has('--save')) {
-    const target = join(dir, RESOLUTIONS_FILE)
+    const target = join(result.payloadDir, RESOLUTIONS_FILE)
     await writeFile(
       target,
       writeResolutions({
@@ -1331,6 +1344,11 @@ async function contentExport(config: CromboloConfig): Promise<void> {
     drafts: flags.has('--drafts'),
     withBlobs: flags.has('--with-blobs'),
     withBlueprints: flags.has('--with-blueprints'),
+    // An export is a private package; without --name it is named for its directory.
+    package: {
+      name: flagValue('--name') ?? packageNameFor(basename(resolve(out))),
+      version: flagValue('--package-version'),
+    },
   })
   for (const key of result.blobs.missing)
     console.error(`  missing  ${key} is not in this environment's media store`)
@@ -1341,6 +1359,7 @@ async function contentExport(config: CromboloConfig): Promise<void> {
   }
   const counts = Object.entries(result.counts)
   console.log(`  wrote    ${relative(cwd, out) || '.'}`)
+  console.log(`  package  ${result.package.name}@${result.package.version} (private)`)
   console.log(
     `  bundle   ${result.bundleId} (${result.snapshot}): ${
       counts.length > 0 ? counts.map(([kind, n]) => `${n} ${kind}`).join(', ') : 'nothing selected'
@@ -1604,6 +1623,7 @@ async function importSite(): Promise<void> {
       siteName: flagValue('--name'),
       drafts: flags.has('--drafts'),
       staging: flagValue('--staging'),
+      coreVersion: VERSION,
     })
   } catch (error) {
     console.error(`  ${error instanceof Error ? error.message : error}`)
@@ -1827,7 +1847,7 @@ async function upgrade(): Promise<void> {
       try {
         for (const row of await readLedger(db))
           console.log(
-            `  ${row.appliedAt}  ${row.kind.padEnd(8)} ${row.name}  ${row.durationMs}ms${row.appliedBy ? `  by ${row.appliedBy}` : ''}${row.note ? `  (${row.note})` : ''}`,
+            `  ${row.appliedAt}  ${row.kind.padEnd(8)} ${row.bundle ? `[${row.bundle}] ` : ''}${row.name}  ${row.durationMs}ms${row.appliedBy ? `  by ${row.appliedBy}` : ''}${row.note ? `  (${row.note})` : ''}`,
           )
       } finally {
         await db.close()
@@ -1837,6 +1857,11 @@ async function upgrade(): Promise<void> {
     case 'check': {
       if (!flags.has('--fix')) {
         const report = await ops.upgradeCheck(config, { set: parseSet() })
+        for (const bundle of report.bundles)
+          if (bundle.pending.length > 0)
+            console.log(
+              `  bundle   ${bundle.id}: ${bundle.pending.map((step) => `${step.name} (${step.kind})`).join(', ')}`,
+            )
         printFindings(report)
         if (!report.siteChecked)
           console.log(
@@ -1867,12 +1892,20 @@ async function upgrade(): Promise<void> {
       if (flags.has('--plan')) {
         const plan = await ops.upgradePlan(config)
         if (plan.steps.length === 0) console.log('No framework migration is pending.')
-        for (const step of plan.steps) {
+        const printStep = (step: ops.PlannedStepResult, indent = '') => {
           console.log(
-            `\n== ${step.name} (${step.kind}${step.release ? `, release ${step.release}` : ''})`,
+            `\n${indent}== ${step.name} (${step.kind}${step.release ? `, release ${step.release}` : ''})`,
           )
-          if (step.unplannable) console.log(`  unplannable: ${step.unplannable}`)
-          for (const sql of step.statements) console.log(`  ${sql};`)
+          if (step.unplannable) console.log(`${indent}  unplannable: ${step.unplannable}`)
+          for (const sql of step.statements) console.log(`${indent}  ${sql};`)
+        }
+        for (const step of plan.steps) printStep(step)
+        // After core's, in the order `bundles` lists them, because that is the order they run.
+        for (const bundle of plan.bundles) {
+          console.log(
+            `\nbundle ${bundle.id} (${bundle.name}): ${bundle.steps.length === 0 ? 'nothing pending' : `${bundle.steps.length} step(s)`}`,
+          )
+          for (const step of bundle.steps) printStep(step, '  ')
         }
         console.log(
           plan.site.checked
@@ -1900,6 +1933,8 @@ async function upgrade(): Promise<void> {
       if (result.action === 'nothing')
         return console.log('Nothing to upgrade: the database is at this version.')
       for (const name of result.frameworkApplied) console.log(`  applied  ${name}`)
+      for (const bundle of result.bundlesApplied)
+        for (const name of bundle.applied) console.log(`  applied  [${bundle.id}] ${name}`)
       console.log(
         `  schema   ${result.schema?.action} ${result.schema?.version ?? ''}+${result.schema?.revision ?? ''}`,
       )
@@ -1908,6 +1943,37 @@ async function upgrade(): Promise<void> {
     default:
       return help()
   }
+}
+
+/**
+ * `bundle purge <id>`: drops a bundle's tables and forgets its state. Taking a
+ * bundle out of `bundles` leaves them in place, so re-adding it resumes; this is
+ * the deliberate act that does not.
+ */
+async function bundlePurge(): Promise<void> {
+  const config = await siteConfig()
+  const id = positional[1]
+  if (!id) {
+    console.error('bundle purge needs the bundle id.')
+    process.exit(1)
+  }
+  const plan = await ops.bundlePurgePlan(config, id)
+  if (plan.tables.length === 0) console.log(`  The bundle "${id}" has no tables in this database.`)
+  else {
+    console.log(`  This drops ${plan.tables.length} table(s), and every row in them:`)
+    for (const table of plan.tables) console.log(`    ${table}`)
+  }
+  if (!flags.has('--yes')) {
+    const answer = prompt(`  Purge the bundle "${id}"? Type its id to confirm:`)
+    if (answer?.trim() !== id) {
+      console.log('  Nothing was dropped.')
+      process.exit(1)
+    }
+  }
+  const result = await ops.bundlePurge(config, id, { backupTaken: flags.has('--backup-taken') })
+  if (result.backup.path) console.log(`  backup   ${result.backup.path}`)
+  for (const table of result.dropped) console.log(`  dropped  ${table}`)
+  console.log(`  The bundle "${id}"'s state is cleared; adding it again starts its tables afresh.`)
 }
 
 /**
@@ -1948,7 +2014,7 @@ function help(): void {
   console.log(`crombolo <command>
 
   start [--keep-admin]        boot the site in the current directory
-        [--bundle <dir>]      apply a content bundle first, once per bundle, then serve;
+        [--bundle <pkg>]      apply a bundle's content first, once per bundle, then serve;
                               takes the \`content import\` flags (--publish, --under, …)
   init [--force] [--name <site name>] [--postgres] [--template <id>]
                               scaffold a site here; --template list prints the
@@ -1977,22 +2043,25 @@ function help(): void {
   assets new <stylesheet|script> <name>
                               write an empty one in the place the backoffice edits
   content export --root <path|uuid> --out <dir>
-                              write a content bundle: the subtree, its dependencies
-                              and what the destination must already have
+                              write a private bundle package: the subtree, its
+                              dependencies and what the destination must already have
                               [--only] [--drafts] [--with-blobs] [--with-blueprints]
-  content check <dir>         what importing the bundle here would do, and what it
+                              [--name <npm name>] [--package-version <version>]
+  A bundle is an npm package. <pkg> is its directory, or the name of one this
+  site depends on.
+  content check <pkg>         what installing its content here would do, and what it
                               needs from a person first; writes to the Changes dashboard
                               [--under <path|uuid>] [--resolve <key>=take-bundle|keep-local|skip]
                               [--resolve-all <choice>] [--allow-missing-blobs] [--save]
-  content import <dir>        re-check, back up, then apply: documents and elements
+  content import <pkg>        re-check, back up, then apply: documents and elements
                               arrive as drafts, media is live. One transaction, so a
                               failure leaves nothing behind
                               [--publish] [--label <text>] [--backup-taken] + the check flags
                               [--no-schema] [--no-files] decline a section it carries
                               [--replace-files] allow replacing files this site has;
                               refused without it, and the originals are kept for a revert
-  bundle check <dir>          the same as content check
-  bundle install <dir>        the same as content import; a bundle carrying its own
+  bundle check <pkg>          the same as content check
+  bundle install <pkg>        the same as content import; a bundle carrying its own
                               schema and views installs into a site that has neither
   content runs [--limit N]    the imports applied here, newest first
   content publish <path|uuid> take it live; --descendants for the branch below it,
@@ -2031,6 +2100,8 @@ function help(): void {
   upgrade [--force <reason>]  re-check, back up, apply framework steps, cut over, ledger
   upgrade --plan              the DDL pending framework migrations would run
   upgrade ledger              print migration_history
+  bundle purge <id> [--yes]   back up, then drop a bundle's tables and clear its state;
+                              refused while crombolo.config.ts still wires it
   maintenance pause [--reason <text>]
                               refuse every editor's save, on every node, until resumed;
                               readers are unaffected and no node drains
@@ -2078,6 +2149,10 @@ async function dispatch(): Promise<void> {
      * artifact, so this is the same code path, not a second one.
      */
     case 'bundle':
+      if (positional[0] === 'purge') {
+        await bundlePurge()
+        break
+      }
       if (positional[0] === 'install') positional[0] = 'import'
       await content()
       break

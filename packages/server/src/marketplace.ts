@@ -6,14 +6,25 @@
  * the only thing registry search will match, and it *declares* itself with a
  * `crombolo` field in its `package.json`. Search for the keyword, then read each
  * hit's packument — custom fields survive there — and offer only the packages
- * that actually declare extensions. A keyword squatter never reaches the list.
+ * whose manifest is a valid bundle. A keyword squatter never reaches the list.
+ *
+ * An install is `bun add`, and then — unless the site or the request says not
+ * to — the content the bundle carries, through the same installer as
+ * `crombolo bundle install`. A bundle's server half is never loaded by an
+ * install: that still takes an edit to `crombolo.config.ts` and a deploy.
  *
  * The search is proxied rather than done in the browser: it works where the
  * browser cannot reach npm, and the backoffice keeps making same-origin
  * requests only.
  */
 import { join } from 'node:path'
-import { EXTENSION_KEYWORD, type ExtensionRegistry } from '@crombolo/backoffice-host'
+import {
+  type BundlePackage,
+  EXTENSION_KEYWORD,
+  type ExtensionRegistry,
+  type PackageJson,
+  validateBundlePackage,
+} from '@crombolo/backoffice-host'
 import { logger } from './logging.ts'
 
 const log = logger('packages')
@@ -27,12 +38,12 @@ export interface MarketplaceListing {
   description: string
   publisher: string | null
   links: { npm: string; homepage: string | null; repository: string | null }
-  /** Whether the latest version declares backoffice extensions. */
-  declaresExtensions: boolean
+  /** What the latest version carries; only a valid bundle is listed at all. */
+  carries: BundlePackage['carries']
   installedVersion: string | null
 }
 
-/** An installed extension as the Installed view lists it. */
+/** A bundle the site depends on, as the Installed view lists it. */
 export interface InstalledListing {
   /** The npm package name, which is what an uninstall names. */
   packageName: string
@@ -41,6 +52,19 @@ export interface InstalledListing {
   id: string
   version: string
   extensionCount: number
+  carries: BundlePackage['carries']
+  /** Whether its server half is imported into `crombolo.config.ts`; only meaningful when it carries one. */
+  wired: boolean
+  /** The version whose content was applied here, or null when none has been. */
+  contentApplied: string | null
+}
+
+/** What became of the content half of an install. */
+export interface ContentOutcome {
+  applied: boolean
+  /** Set when it was applied: the transfer run that can revert it. */
+  runId?: string
+  message: string
 }
 
 export interface MarketplaceOptions {
@@ -53,6 +77,17 @@ export interface MarketplaceOptions {
   siteDir: string
   /** Overridden by tests; the real one shells out to Bun. */
   install?: PackageInstaller
+  /** The ids of the bundles whose server half this node has mounted. */
+  wired?: () => readonly string[]
+  /** The version of a package whose content has been applied here. */
+  contentApplied?: (packageName: string) => Promise<string | null>
+  /**
+   * Installs the content half of a bundle the site now depends on. Absent where
+   * content cannot be applied, which declines it for every install.
+   */
+  applyContent?: (packageName: string) => Promise<ContentOutcome>
+  /** The site's `applyBundleContentOnInstall`. */
+  applyContentOnInstall?: boolean
 }
 
 export interface InstallOutcome {
@@ -64,6 +99,8 @@ export interface InstallOutcome {
    */
   dependency?: { name: string; range: string; version: string }
   message: string
+  /** What happened to the content the bundle carries; absent when it carries none. */
+  content?: ContentOutcome
 }
 
 export type PackageInstaller = (
@@ -102,8 +139,12 @@ export interface Marketplace {
   /** Where someone browsing should be sent, when they want more than this list. */
   url(): string
   search(query: string | undefined): Promise<MarketplaceListing[]>
-  installed(): InstalledListing[]
-  install(name: string, version: string | undefined): Promise<InstallOutcome>
+  installed(): Promise<InstalledListing[]>
+  install(
+    name: string,
+    version: string | undefined,
+    options?: { applyContent?: boolean },
+  ): Promise<InstallOutcome>
   uninstall(name: string): Promise<InstallOutcome>
 }
 
@@ -156,24 +197,35 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
   let cached: { at: number; query: string; listings: MarketplaceListing[] } | undefined
 
   const installedVersion = (name: string): string | null =>
-    options.extensions.list().find((extension) => extension.packageName === name)?.version ?? null
+    options.extensions.bundles().bundles.find((bundle) => bundle.packageName === name)?.version ??
+    null
 
-  /** Whether the registry says this package's latest version declares extensions. */
-  const declares = async (name: string): Promise<boolean> => {
+  /** What the registry says this package's latest version carries, when it is a valid bundle. */
+  const declares = async (name: string): Promise<BundlePackage['carries'] | undefined> => {
     try {
       const response = await call(`${options.registry}/${encodeURIComponent(name)}`, {
         headers: { accept: 'application/json' },
       })
-      if (!response.ok) return false
+      if (!response.ok) return undefined
       const packument = (await response.json()) as {
         'dist-tags'?: { latest?: string }
-        versions?: Record<string, { crombolo?: { extensions?: unknown[] } }>
+        versions?: Record<string, PackageJson>
       }
       const latest = packument['dist-tags']?.latest
       const version = latest ? packument.versions?.[latest] : undefined
-      return Array.isArray(version?.crombolo?.extensions) && version.crombolo.extensions.length > 0
+      if (!version || validateBundlePackage(version).length > 0) return undefined
+      const field = version.crombolo as {
+        extensions?: unknown[]
+        content?: string
+        server?: string
+      }
+      return {
+        extensions: Array.isArray(field.extensions) && field.extensions.length > 0,
+        content: field.content !== undefined,
+        server: field.server !== undefined,
+      }
     } catch {
-      return false
+      return undefined
     }
   }
 
@@ -213,8 +265,10 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
           .filter((pkg): pkg is NonNullable<typeof pkg> =>
             Boolean(pkg?.name && isValidPackageName(pkg.name)),
           )
-          .map(async (pkg): Promise<MarketplaceListing> => {
+          .map(async (pkg): Promise<MarketplaceListing | undefined> => {
             const name = pkg.name as string
+            const carries = await declares(name)
+            if (!carries) return undefined
             return {
               name,
               version: pkg.version ?? '0.0.0',
@@ -225,29 +279,35 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
                 homepage: pkg.links?.homepage ?? null,
                 repository: pkg.links?.repository ?? null,
               },
-              declaresExtensions: await declares(name),
+              carries,
               installedVersion: installedVersion(name),
             }
           }),
       )
-      // Only what really declares extensions: the keyword is a claim, the field
-      // is the thing itself.
-      const offered = listings.filter((listing) => listing.declaresExtensions)
+      // Only what really is a bundle: the keyword is a claim, the manifest is
+      // the thing itself.
+      const offered = listings.filter((listing): listing is MarketplaceListing => Boolean(listing))
       cached = { at: Date.now(), query: text, listings: offered }
       return offered
     },
 
-    installed() {
-      return options.extensions.list().map((extension) => ({
-        packageName: extension.packageName,
-        name: extension.manifest.name,
-        id: extension.manifest.id ?? extension.packageName,
-        version: extension.version,
-        extensionCount: extension.manifest.extensions.length,
-      }))
+    async installed() {
+      const wired = new Set(options.wired?.() ?? [])
+      return Promise.all(
+        options.extensions.bundles().bundles.map(async (bundle) => ({
+          packageName: bundle.packageName,
+          name: bundle.name,
+          id: bundle.id,
+          version: bundle.version,
+          extensionCount: bundle.field.extensions?.length ?? 0,
+          carries: bundle.carries,
+          wired: wired.has(bundle.id),
+          contentApplied: (await options.contentApplied?.(bundle.packageName)) ?? null,
+        })),
+      )
     },
 
-    async install(name, version) {
+    async install(name, version, request = {}) {
       if (!isValidPackageName(name))
         return { ok: false, message: `'${name}' is not a package name npm would accept.` }
       if (version !== undefined && !isValidVersion(version))
@@ -263,19 +323,44 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
         }
 
       const range = (await rangeFor(name)) ?? version ?? 'latest'
-      const found = options.extensions.list().find((extension) => extension.packageName === name)
+      const found = options.extensions
+        .bundles()
+        .bundles.find((bundle) => bundle.packageName === name)
       if (!found)
         return {
           ok: true,
           dependency: { name, range, version: version ?? range },
-          message: `${name} was installed, but it declares no backoffice extensions, so nothing was added to the backoffice.`,
+          message: `${name} was installed, but it is not a valid bundle, so nothing was added to the backoffice.`,
         }
+
+      // The content half lands after the dependency, so a refused check leaves
+      // the package installed and says why, rather than undoing an install that
+      // succeeded.
+      let content: ContentOutcome | undefined
+      if (found.carries.content) {
+        const declined = request.applyContent === false || options.applyContentOnInstall === false
+        content =
+          declined || !options.applyContent
+            ? {
+                applied: false,
+                message: `Its content was not applied. Run \`crombolo bundle install ${name}\` to apply it.`,
+              }
+            : await options.applyContent(name).catch((error: unknown) => ({
+                applied: false,
+                message: `Its content could not be applied: ${error instanceof Error ? error.message : String(error)}`,
+              }))
+      }
       return {
         ok: true,
         dependency: { name, range, version: found.version },
         // The install lives in this node's node_modules until the dependency is
         // committed; saying so is the difference between a surprise and a plan.
-        message: `${name}@${found.version} is installed and active. Commit the changed package.json and bun.lock to keep it across deployments.`,
+        message: `${name}@${found.version} is installed. Commit the changed package.json and bun.lock to keep it across deployments.${
+          found.carries.server
+            ? ' Its server half runs only once crombolo.config.ts imports it and the site is deployed.'
+            : ''
+        }`,
+        ...(content ? { content } : {}),
       }
     },
 

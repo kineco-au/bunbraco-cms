@@ -22,6 +22,8 @@ export {
   type ConverseInput,
   type ConverseResult,
 } from '@crombolo/assistant'
+// What a bundle's package.json declares; see `docs/bundles.md`.
+export type { BundlePackage, CromboloField } from '@crombolo/backoffice-host'
 // A view reads a form definition and a submission's state; both are domain
 // types, so they come from core rather than from the renderer.
 export type {
@@ -36,7 +38,18 @@ export type {
   SubmittedValues,
 } from '@crombolo/core'
 export { allFormFields, formFieldType, storingFormFields } from '@crombolo/core'
-export { type LiveNode, liveNodes } from '@crombolo/data'
+export {
+  assertBundleTables,
+  type BundleStep,
+  type BundleTables,
+  type BundleTablesCapability,
+  bundleTablesCompatibility,
+  defineBundleTables,
+  type LiveNode,
+  liveNodes,
+  type TableHandle,
+  type Where,
+} from '@crombolo/data'
 export type {
   BlockGridArea,
   BlockGridItem,

@@ -41,11 +41,13 @@ import {
 } from '@crombolo/core'
 import {
   appendCacheInstruction,
+  createTablesCapability,
   type Db,
   FormEntryRepository,
   FormWorkflowRepository,
   RedirectRepository,
   readReport,
+  TransferRunRepository,
   type WritesPaused,
 } from '@crombolo/data'
 import {
@@ -63,9 +65,12 @@ import {
 import type { SyncReport } from '@crombolo/schema'
 import type { Server } from 'bun'
 import { createNodeLookup, loadAccess } from './access.ts'
+import { readCreatedBundlePackage, writeCreatedBundlePackage } from './adapters/bundles.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
-import { createBundleRedirects, createServerBundles } from './bundles.ts'
+import { installBundleContent } from './bundle-install.ts'
+import { bundleChains, bundleTablesReport } from './bundle-tables.ts'
+import { createBundleRedirects, createServerBundles, validateServerBundles } from './bundles.ts'
 import { type CromboloConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
@@ -207,6 +212,26 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     marketplaceUrl: config.marketplaceUrl,
     extensions,
     siteDir: config.siteDir,
+    wired: () => bundles?.mounted.map((bundle) => bundle.id) ?? [],
+    contentApplied: async (packageName) =>
+      (await new TransferRunRepository(db).appliedForPackage(packageName))?.packageVersion ?? null,
+    applyContentOnInstall: config.applyBundleContentOnInstall,
+    applyContent: async (packageName) => {
+      const result = await installBundleContent(db, config, { bundle: packageName })
+      if (!result.runId) {
+        const reasons = [
+          ...result.problems,
+          ...result.check.outstanding.map((finding) => finding.message),
+        ]
+        return {
+          applied: false,
+          message: `Its content was not applied: ${reasons.join('; ') || 'the check refused it'}. Resolve that, then run \`crombolo bundle install ${packageName}\`.`,
+        }
+      }
+      // The content landed under a cache this process had already constructed.
+      cache.invalidate()
+      return { applied: true, runId: result.runId, message: 'Its content was applied.' }
+    },
   })
   const paths = createBackOfficePaths({ backOfficePath: config.backOfficePath })
   // Two questions, not one: what this process answers, and what it is
@@ -214,8 +239,17 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   // `all` and `web` serve the public site.
   const servesBackOffice = config.role !== 'web'
   const owns = config.role !== 'web'
+  // Bundles are checked before the database is touched, because a bundle that
+  // owns tables is migrated at boot, and a bad declaration must not get that far.
+  const bundlePackages = servesBackOffice ? extensions.bundles().bundles : []
+  if (servesBackOffice) {
+    const problems = validateServerBundles(config.bundles, bundlePackages, VERSION)
+    if (problems.length > 0)
+      throw new Error(`The configured bundles cannot be mounted:\n- ${problems.join('\n- ')}`)
+  }
+  const chains = servesBackOffice ? bundleChains(config.bundles, bundlePackages) : []
   const { db, seededAdminPassword } = owns
-    ? await bootstrapDatabase(config)
+    ? await bootstrapDatabase(config, chains)
     : await attachDatabase(config)
   // A configured schema store is copied down before anything reads `schema/`, and
   // becomes the schema directory for this boot. Everything after here — loading,
@@ -351,6 +385,12 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   const bundles = servesBackOffice
     ? createServerBundles({
         bundles: config.bundles,
+        packages: bundlePackages,
+        coreVersion: VERSION,
+        tables: (bundle) => {
+          const chain = chains.find((candidate) => candidate.id === bundle.id)
+          return chain ? createTablesCapability(db, chain.compiled.schema) : undefined
+        },
         pluginApiPath: `${paths.pluginPath}/api`,
         host: {
           redirects: createBundleRedirects({ db, cache }),
@@ -847,24 +887,44 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         return Response.json({
           url: marketplace.url(),
           keyword: config.packageKeyword,
+          appliesContent: config.applyBundleContentOnInstall,
           items: await marketplace.search(url.searchParams.get('q') ?? undefined),
         })
       }
 
+      // A created bundle's npm name and version: not in Umbraco's definition, so
+      // not in the contract, and set from the Created view beside it.
+      const created = /^created\/([0-9a-f-]{36})\/package$/i.exec(action)
+      if (created) {
+        const id = created[1] as string
+        if (request.method === 'GET') {
+          const found = await readCreatedBundlePackage(db, id)
+          return found ? Response.json(found) : new Response('Not Found', { status: 404 })
+        }
+        if (request.method === 'PUT') {
+          const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+          const outcome = await writeCreatedBundlePackage(db, id, body)
+          return Response.json(outcome, { status: outcome.ok ? 200 : 400 })
+        }
+      }
+
       if (action === 'installed' && request.method === 'GET') {
-        return Response.json({ items: marketplace.installed() })
+        return Response.json({ items: await marketplace.installed() })
       }
 
       if ((action === 'install' || action === 'uninstall') && request.method === 'POST') {
         const body = (await request.json().catch(() => ({}))) as {
           name?: unknown
           version?: unknown
+          applyContent?: unknown
         }
         const name = typeof body.name === 'string' ? body.name : ''
         const version = typeof body.version === 'string' ? body.version : undefined
         const outcome =
           action === 'install'
-            ? await marketplace.install(name, version)
+            ? await marketplace.install(name, version, {
+                applyContent: body.applyContent !== false,
+              })
             : await marketplace.uninstall(name)
         log.info('{user} {action} the package {name}: {outcome}', {
           user: principal.email,
@@ -1122,7 +1182,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         source[f.kind] = (source[f.kind] ?? 0) + 1
         bySource[f.source] = source
       }
-      return Response.json({ health: health(), counts, bySource, findings })
+      // A bundle's tables are part of what an upgrade changes, so the dashboard
+      // that shows an upgrade's findings shows their steps too.
+      const bundles = await bundleTablesReport(db, chains)
+      return Response.json({ health: health(), counts, bySource, findings, bundles })
     }
 
     const staticMatch = resolveStaticFile(paths, pathname, {

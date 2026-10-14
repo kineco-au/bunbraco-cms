@@ -59,6 +59,8 @@ export interface ImportOptions extends CheckOptions {
   nodeId?: string
   /** A human label for the run listing. */
   label?: string | undefined
+  /** The npm package the bundle arrived in, recorded on the run. */
+  package?: { name: string; version: string } | undefined
 }
 
 export interface ImportResult {
@@ -158,6 +160,8 @@ export async function importBundle(
         id: runId,
         bundleId: set.manifest.id,
         bundleLabel: options.label ?? null,
+        packageName: options.package?.name ?? null,
+        packageVersion: options.package?.version ?? null,
         direction: 'import',
         revertsRunId: null,
         schemaStateId: state.id,

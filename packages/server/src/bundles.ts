@@ -28,12 +28,20 @@
  * - A handler that throws becomes a 500 and a log line naming the bundle, never a
  *   broken request path.
  *
- * Deliberately not offered: migrations, raw SQL, and anything that writes the
- * site's files. A bundle that needs a table of its own needs a release of this
- * CMS, because a migration that arrives with a dependency is a schema no
- * `migration_history` can account for.
+ * - Every wired bundle belongs to an npm package the site declares, whose
+ *   `crombolo` manifest names the same id and declares a server half. Its name,
+ *   version and peer range come from there, and a peer range that excludes this
+ *   release refuses the boot.
+ *
+ * - A bundle that declares `tables` owns them: its own ledgered chain, written
+ *   with the declarative builder in `@crombolo/data`, and a `tables`
+ *   capability confined to them (`docs/bundles.md`, Part 4).
+ *
+ * Deliberately not offered: raw SQL, a `Db`, and anything that writes the
+ * site's files.
  */
 import { hasCultureAccess, hasSection, type Principal } from '@crombolo/api-management'
+import { BUNDLE_ID, type BundlePackage, peerRangeProblem } from '@crombolo/backoffice-host'
 import {
   type AppAlias,
   type ExtensionSectionAlias,
@@ -41,6 +49,10 @@ import {
   SECTION_ALIASES,
 } from '@crombolo/core'
 import {
+  type BundleTables,
+  type BundleTablesCapability,
+  bundleTablesCompatibility,
+  compileBundleTables,
   type Db,
   type RedirectMatchKind,
   RedirectRepository,
@@ -51,12 +63,6 @@ import { normaliseRedirectPath, type PublishedCache } from '@crombolo/render'
 
 /** The segment every bundle's routes hang below, inside the plugin API. */
 export const BUNDLE_API_SEGMENT = 'bundle'
-
-/**
- * A bundle's id, which is also its URL segment: lowercase, no dots or slashes, so
- * it cannot climb out of its namespace however it is spelled.
- */
-const BUNDLE_ID = /^[a-z][a-z0-9-]{1,38}$/
 
 /**
  * A route path below the bundle's namespace. Literal segments, optionally one
@@ -133,6 +139,8 @@ export interface BundleHost {
   redirects: BundleRedirects
   documents: BundleDocuments
   log: BundleLog
+  /** The bundle's own tables, and only for a bundle that declares some. */
+  tables: BundleTablesCapability
 }
 
 export type BundleCapability = keyof BundleHost
@@ -166,9 +174,26 @@ export type { AppAlias, ExtensionSectionAlias, Principal }
 export { hasCultureAccess, hasSection }
 
 /** Every capability name, for validating what a bundle asked for. */
-export const BUNDLE_CAPABILITIES: readonly BundleCapability[] = ['redirects', 'documents', 'log']
+export const BUNDLE_CAPABILITIES: readonly BundleCapability[] = [
+  'redirects',
+  'documents',
+  'log',
+  'tables',
+]
 
-export interface BundleRequest<C extends BundleCapability = BundleCapability> {
+/** What a handler is handed: the declared capabilities, with `tables` typed from the declaration. */
+export type HostFor<C extends BundleCapability, T extends BundleTables> = Pick<
+  BundleHost,
+  Exclude<C, 'tables'>
+> &
+  ('tables' extends C
+    ? { tables: T extends BundleTables<infer S> ? BundleTablesCapability<S> : never }
+    : unknown)
+
+export interface BundleRequest<
+  C extends BundleCapability = BundleCapability,
+  T extends BundleTables = BundleTables,
+> {
   request: Request
   url: URL
   /** Already authenticated, and already holding the bundle's declared section. */
@@ -176,34 +201,45 @@ export interface BundleRequest<C extends BundleCapability = BundleCapability> {
   /** The `:name` segments of the matched route. */
   params: Record<string, string>
   /** Only what the bundle declared, frozen. */
-  host: Pick<BundleHost, C>
+  host: HostFor<C, T>
 }
 
-export interface ServerBundleRoute<C extends BundleCapability = BundleCapability> {
+export interface ServerBundleRoute<
+  C extends BundleCapability = BundleCapability,
+  T extends BundleTables = BundleTables,
+> {
   method: BundleMethod
   /** Below the bundle's namespace; `''` is the namespace root. */
   path: string
-  handler(context: BundleRequest<C>): Response | Promise<Response>
+  handler(context: BundleRequest<C, T>): Response | Promise<Response>
 }
 
-export interface ServerBundle<C extends BundleCapability = BundleCapability> {
-  /** URL segment and log name; unique across the site's bundles. */
+export interface ServerBundle<
+  C extends BundleCapability = BundleCapability,
+  T extends BundleTables = BundleTables,
+> {
+  /**
+   * URL segment and log name: the `crombolo.id` of the package that exports
+   * this bundle, which is where its name and version are read from.
+   */
   id: string
-  /** What the boot log and an error message call it. */
-  name: string
   /**
    * The section a caller must have access to. Every route is gated on it; there
    * is no per-route override and no public route.
    */
   section: BundleSection
   capabilities: readonly C[]
-  routes: readonly ServerBundleRoute<C>[]
+  routes: readonly ServerBundleRoute<C, T>[]
+  /** Tables the bundle owns, from `defineBundleTables`, under its own id. */
+  tables?: T
 }
 
 /** A bundle as mounted, with the prefix its routes answer below. */
 export interface MountedBundle {
   id: string
+  /** From its package's manifest. */
   name: string
+  package: { name: string; version: string; peerRange: string }
   section: BundleSection
   capabilities: readonly BundleCapability[]
   /** `<backoffice>/crombolo/api/bundle/<id>`. */
@@ -216,19 +252,40 @@ export interface MountedBundle {
  * thrown so the boot can report all of them at once; `createServerBundles`
  * turns a non-empty list into a failed boot, because a bundle that is half
  * mounted is worse than one that is absent.
+ *
+ * `packages` are the bundles the site declares as dependencies. A wired bundle
+ * must be one of them, so its version and peer range are always known.
  */
-export function validateServerBundles(bundles: readonly ServerBundle[]): string[] {
+export function validateServerBundles(
+  bundles: readonly ServerBundle[],
+  packages: readonly BundlePackage[],
+  coreVersion: string,
+): string[] {
   const problems: string[] = []
   const seen = new Set<string>()
   for (const bundle of bundles) {
-    const label = bundle.id || bundle.name || '<unnamed>'
+    const label = bundle.id || '<unnamed>'
     if (!BUNDLE_ID.test(bundle.id))
       problems.push(
         `Bundle "${label}" has the id "${bundle.id}", which is not 2–39 characters of lowercase letters, digits and hyphens starting with a letter.`,
       )
     else if (seen.has(bundle.id)) problems.push(`Two bundles claim the id "${bundle.id}".`)
-    else seen.add(bundle.id)
-    if (!bundle.name) problems.push(`Bundle "${label}" has no name.`)
+    else {
+      seen.add(bundle.id)
+      const owner = packages.find((pkg) => pkg.id === bundle.id)
+      if (!owner)
+        problems.push(
+          `Bundle "${label}" is wired in crombolo.config.ts, but no package the site depends on declares the bundle id "${bundle.id}". Add the package to package.json.`,
+        )
+      else if (!owner.carries.server)
+        problems.push(
+          `Bundle "${label}" is wired in crombolo.config.ts, but ${owner.packageName} declares no "server" in its crombolo manifest.`,
+        )
+      else {
+        const peer = peerRangeProblem(owner, coreVersion)
+        if (peer) problems.push(`Bundle "${label}" cannot run here: ${peer}.`)
+      }
+    }
     if (!(bundle.section in SECTION_ALIASES) && !isExtensionSectionAlias(bundle.section))
       problems.push(
         `Bundle "${label}" is gated on the section "${bundle.section}", which is neither a core section nor a manifest alias of the form Vendor.Section.Name.`,
@@ -238,6 +295,28 @@ export function validateServerBundles(bundles: readonly ServerBundle[]): string[
         problems.push(
           `Bundle "${label}" asked for the capability "${capability}", which no host offers.`,
         )
+    if (bundle.capabilities.includes('tables') && !bundle.tables)
+      problems.push(
+        `Bundle "${label}" asked for the capability "tables", but declares no tables of its own.`,
+      )
+    if (bundle.tables) {
+      if (bundle.tables.id !== bundle.id)
+        problems.push(
+          `Bundle "${label}" declares its tables under the id "${bundle.tables.id}"; a bundle's tables are under its own id.`,
+        )
+      const owner = packages.find((pkg) => pkg.id === bundle.id)
+      for (const problem of compileBundleTables(bundle.tables, owner?.version).problems)
+        problems.push(`Bundle "${label}" tables: ${problem}.`)
+      // Read by an operator's tooling before anything is installed, so it must
+      // say what the plan does — derived, not asserted, as core's is.
+      if (owner) {
+        const derived = bundleTablesCompatibility(bundle.tables, owner.version)
+        if (owner.field.migrations !== derived)
+          problems.push(
+            `Bundle "${label}"'s package.json declares "crombolo.migrations": ${JSON.stringify(owner.field.migrations ?? null)}, but its tables make ${owner.version} "${derived}".`,
+          )
+      }
+    }
     const routes = new Set<string>()
     for (const route of bundle.routes) {
       if (route.path !== '' && !ROUTE_PATH.test(route.path))
@@ -404,11 +483,17 @@ export function createBundleRedirects(options: {
 
 export interface ServerBundlesOptions {
   bundles: readonly ServerBundle[]
+  /** The bundle packages the site depends on, from discovery. */
+  packages: readonly BundlePackage[]
+  /** The running release, which every bundle's peer range must admit. */
+  coreVersion: string
   /** `<backoffice>/crombolo/api`, from `createBackOfficePaths`. */
   pluginApiPath: string
-  host: BundleHost
+  host: Omit<BundleHost, 'tables'>
   /** Named per bundle, so a log line says which one wrote it. */
   log(bundleId: string): BundleLog
+  /** A bundle's own tables, resolved against its schema alone; absent where none are offered. */
+  tables?(bundle: ServerBundle): BundleTablesCapability | undefined
 }
 
 export interface ServerBundles {
@@ -430,7 +515,7 @@ export interface ServerBundles {
  * would fail on its first request rather than at boot.
  */
 export function createServerBundles(options: ServerBundlesOptions): ServerBundles {
-  const problems = validateServerBundles(options.bundles)
+  const problems = validateServerBundles(options.bundles, options.packages, options.coreVersion)
   if (problems.length > 0)
     throw new Error(`The configured bundles cannot be mounted:\n- ${problems.join('\n- ')}`)
 
@@ -438,21 +523,37 @@ export function createServerBundles(options: ServerBundlesOptions): ServerBundle
   const byId = new Map(options.bundles.map((bundle) => [bundle.id, bundle]))
   const logs = new Map(options.bundles.map((bundle) => [bundle.id, options.log(bundle.id)]))
 
-  const mounted: MountedBundle[] = options.bundles.map((bundle) => ({
-    id: bundle.id,
-    name: bundle.name,
-    section: bundle.section,
-    capabilities: bundle.capabilities,
-    prefix: `${basePath}${bundle.id}`,
-    routes: bundle.routes.map((route) => ({ method: route.method, path: route.path })),
-  }))
+  const owners = new Map(options.packages.map((pkg) => [pkg.id, pkg]))
+  const mounted: MountedBundle[] = options.bundles.map((bundle) => {
+    const owner = owners.get(bundle.id) as BundlePackage
+    return {
+      id: bundle.id,
+      name: owner.name,
+      package: { name: owner.packageName, version: owner.version, peerRange: owner.peerRange },
+      section: bundle.section,
+      capabilities: bundle.capabilities,
+      prefix: `${basePath}${bundle.id}`,
+      routes: bundle.routes.map((route) => ({ method: route.method, path: route.path })),
+    }
+  })
+  const names = new Map(mounted.map((bundle) => [bundle.id, bundle.name]))
 
   /** Only the declared capabilities, frozen, so a handler cannot reach further. */
+  // Built once per bundle, each over that bundle's schema alone.
+  const tables = new Map(
+    options.bundles
+      .filter((bundle) => bundle.capabilities.includes('tables'))
+      .map((bundle) => [bundle.id, options.tables?.(bundle)]),
+  )
   const contextFor = (bundle: ServerBundle): Pick<BundleHost, BundleCapability> => {
     const host: Record<string, unknown> = {}
     for (const capability of bundle.capabilities)
       host[capability] =
-        capability === 'log' ? (logs.get(bundle.id) as BundleLog) : options.host[capability]
+        capability === 'log'
+          ? (logs.get(bundle.id) as BundleLog)
+          : capability === 'tables'
+            ? tables.get(bundle.id)
+            : options.host[capability]
     return Object.freeze(host) as Pick<BundleHost, BundleCapability>
   }
 
@@ -492,7 +593,7 @@ export function createServerBundles(options: ServerBundlesOptions): ServerBundle
           // A bundle's mistake is its own 500, named, rather than an unhandled
           // rejection in the request path.
           logs.get(bundle.id)?.error('The bundle {bundle} failed to answer {method} {path}', {
-            bundle: bundle.name,
+            bundle: names.get(bundle.id),
             method,
             path: pathname,
             error,

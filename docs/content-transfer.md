@@ -35,13 +35,25 @@ artifact, a commit, an object store.
 
 ## The bundle
 
+A bundle is an npm package ([`bundles.md`](bundles.md)), and an export is one
+too: a **private** package, never published or depended on, applied from its
+directory. Its `package.json` names it and declares the payload; the payload is
+everything below.
+
 ```
 bundles/campaign-x/
-├── bundle.json          manifest, including an integrity hash over everything
-├── nodes/<uuid>.json    one file per node, every kind
-├── blobs/<key>          the media bytes, with --with-blobs
-└── resolutions.json     conflict decisions, once check has been run
+├── package.json             "private": true, and "crombolo": { "id", "name", "content": "bundle" }
+└── bundle/
+    ├── bundle.json          manifest, including an integrity hash over everything
+    ├── nodes/<uuid>.json    one file per node, every kind
+    ├── blobs/<key>          the media bytes, with --with-blobs
+    └── resolutions.json     conflict decisions, once check has been run
 ```
+
+`--name` and `--package-version` set the package's name and version; the name
+defaults to the output directory's. A directory holding a `bundle.json` and no
+`package.json` is refused by every reader, with a message describing the layout:
+there is one kind of bundle, not two.
 
 One file per node, so a bundle is reviewable in a diff and committable — the
 same reasoning that puts schema in files. JSON rather than TOML because TOML was
@@ -427,11 +439,13 @@ and comes off at 1.0.
 crombolo content export --root <path|uuid> [--root …] --out <dir>
                         [--only] [--drafts] [--with-blobs] [--with-blueprints]
 
-crombolo content check <dir>
+crombolo content export … [--name <npm name>] [--package-version <version>]
+
+crombolo content check <pkg>          a package directory, or a bundle this site depends on
                         [--under <path|uuid>] [--resolve <key>=<choice>]
                         [--resolve-all <choice>] [--allow-missing-blobs] [--save]
 
-crombolo content import <dir>
+crombolo content import <pkg>
                         [--publish] [--label <text>] [--backup-taken] + the check flags
                         [--no-schema] [--no-files]  decline a section the bundle carries
                         [--replace-files]           allow replacing files this site has
@@ -440,8 +454,8 @@ crombolo content revert <run-id>
                         [--resolve <key>=discard|skip] [--resolve-all <choice>]
                         [--force] [--backup-taken]
 
-crombolo bundle check   <dir>     alias of `content check`
-crombolo bundle install <dir>     alias of `content import`
+crombolo bundle check   <pkg>     alias of `content check`
+crombolo bundle install <pkg>     alias of `content import`
 
 crombolo dictionary export --out <file.udt> [--key <uuid>]
 crombolo dictionary import <file.udt>
@@ -451,7 +465,7 @@ crombolo content publish <path|uuid>
 crombolo content unpublish <path|uuid>
                         [--descendants] [--culture <iso>]...
 
-crombolo start --bundle <dir>
+crombolo start --bundle <pkg>
                         [--publish] [--label <text>] + the check flags
 ```
 
@@ -524,9 +538,9 @@ rather than leaving it to be discovered at the other end.
 ## Moving content between environments
 
 A deploy promotes files, never content. Moving content is a separate, explicit
-act producing a **bundle**: one JSON file per node plus a manifest, reviewable
-in a diff, committable, and carrying no integer ids — only keys and aliases
-(`docs/content-transfer.md`). There is no connection between environments and
+act producing a **bundle**: a private npm package holding one JSON file per node
+plus a manifest, reviewable in a diff, committable, and carrying no integer ids —
+only keys and aliases (`docs/content-transfer.md`). There is no connection between environments and
 no credentials for one stored in another; the bundle travels as a file does.
 
 ```bash

@@ -15,6 +15,10 @@ export interface ColumnTypes {
   textCi: string
   text: string
   varchar: (n: number) => string
+  /** A varchar that compares case-sensitively on both dialects, as a bundle's tables do. */
+  varcharExact: (n: number) => string
+  /** JSON, held as text and parsed by whoever reads it. */
+  json: string
   timestamp: string
   numeric: string
   blob: string
@@ -53,6 +57,8 @@ export const sqliteDialect: Dialect = {
     textCi: 'TEXT COLLATE NOCASE',
     text: 'TEXT',
     varchar: (n) => `VARCHAR(${n}) COLLATE NOCASE`,
+    varcharExact: (n) => `VARCHAR(${n})`,
+    json: 'TEXT',
     timestamp: 'TEXT',
     // REAL would be lossy for decimal property values.
     numeric: 'TEXT',
@@ -80,6 +86,8 @@ export const postgresDialect: Dialect = {
     textCi: 'CITEXT',
     text: 'TEXT',
     varchar: (n) => `VARCHAR(${n})`,
+    varcharExact: (n) => `VARCHAR(${n})`,
+    json: 'TEXT',
     timestamp: 'TIMESTAMPTZ',
     numeric: 'NUMERIC',
     blob: 'BYTEA',

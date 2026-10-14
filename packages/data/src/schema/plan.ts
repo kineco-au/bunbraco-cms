@@ -14,6 +14,7 @@
 import { MigrationPlan } from '../migrations.ts'
 import { assistantMigration } from './assistant.ts'
 import { bundleComponentsMigration } from './bundle-components.ts'
+import { bundlePackageMigration } from './bundle-package.ts'
 import { bundlesRenameMigration } from './bundles-rename.ts'
 import { changeReportMigration } from './change-report.ts'
 import { clientIdPrefixMigration } from './client-id-prefix.ts'
@@ -36,6 +37,7 @@ import { redirectsMigration } from './redirects.ts'
 import { richTextUiMigration } from './rich-text-ui.ts'
 import { serverRoleMigration } from './server-role.ts'
 import { sinceVersionMigration } from './since-version.ts'
+import { transferRunPackageMigration } from './transfer-run-package.ts'
 import { transferRunsMigration } from './transfer-runs.ts'
 import { upgradeReportMigration } from './upgrade-report.ts'
 import { usersLocalisationMigration } from './users-localisation.ts'
@@ -70,4 +72,6 @@ export const cromboloPlan = new MigrationPlan([
   formPermissionPrefixMigration,
   bundlesRenameMigration,
   bundleComponentsMigration,
+  bundlePackageMigration,
+  transferRunPackageMigration,
 ])

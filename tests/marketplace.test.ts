@@ -12,10 +12,12 @@ import { join } from 'node:path'
 import { createExtensionRegistry } from '@crombolo/backoffice-host'
 import {
   bunInstaller,
+  type ContentOutcome,
   createMarketplace,
   isValidPackageName,
   isValidVersion,
   type PackageInstaller,
+  VERSION,
 } from '@crombolo/server'
 import {
   BACKOFFICE,
@@ -56,23 +58,37 @@ function site(installed: Record<string, { declares: boolean }> = {}): string {
   return root
 }
 
-function addPackage(root: string, name: string, declares: boolean, version = '1.2.3'): void {
+/** A bundle id from a package name: `@acme/seo` is `acme-seo`. */
+const idOf = (name: string) => name.replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '')
+
+/** The manifest of a valid bundle, as a package.json or a packument version holds it. */
+const manifest = (name: string, version: string, field: Record<string, unknown> = {}) => ({
+  name,
+  version,
+  peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+  crombolo: {
+    id: idOf(name),
+    extensions: [{ type: 'dashboard', alias: `${name}.d`, name, element: 'd.js' }],
+    ...field,
+  },
+})
+
+function addPackage(
+  root: string,
+  name: string,
+  declares: boolean,
+  version = '1.2.3',
+  field: Record<string, unknown> = {},
+): void {
   const dir = join(root, 'node_modules', name)
   mkdirSync(dir, { recursive: true })
+  if (field.content) {
+    mkdirSync(join(dir, String(field.content)), { recursive: true })
+    writeFileSync(join(dir, String(field.content), 'bundle.json'), '{}')
+  }
   writeFileSync(
     join(dir, 'package.json'),
-    JSON.stringify({
-      name,
-      version,
-      ...(declares
-        ? {
-            crombolo: {
-              id: name,
-              extensions: [{ type: 'dashboard', alias: `${name}.d`, name, element: 'd.js' }],
-            },
-          }
-        : {}),
-    }),
+    JSON.stringify(declares ? manifest(name, version, field) : { name, version }),
   )
 }
 
@@ -105,8 +121,9 @@ function registry(options: {
       'dist-tags': { latest: '1.2.3' },
       versions: {
         '1.2.3': options.declaring.includes(name)
-          ? { crombolo: { extensions: [{ type: 'dashboard' }] } }
-          : {},
+          ? manifest(name, '1.2.3')
+          : // Claims the field, but is no valid bundle: no id, no peer range.
+            { name, version: '1.2.3', crombolo: { extensions: [{ type: 'dashboard' }] } },
       },
     })
   }) as unknown as typeof fetch
@@ -126,6 +143,8 @@ function marketplace(options: {
   calls?: Call[]
   installs?: (call: Call) => { ok: boolean; output: string }
   onSearch?: (text: string) => void
+  applyContent?: (name: string) => Promise<ContentOutcome>
+  applyContentOnInstall?: boolean
 }) {
   const root = options.root ?? site()
   const extensions = createExtensionRegistry(root, { cache: false })
@@ -150,6 +169,8 @@ function marketplace(options: {
         onSearch: options.onSearch,
       }),
       install: installer,
+      applyContent: options.applyContent,
+      applyContentOnInstall: options.applyContentOnInstall,
     }),
   }
 }
@@ -173,15 +194,15 @@ describe('searching the registry', () => {
     expect(seen).toEqual(['keywords:crombolo-bundle seo'])
   })
 
-  /** The keyword is a claim; the `crombolo` field is the thing itself. */
-  test('offers only the hits whose packument declares extensions', async () => {
+  /** The keyword is a claim; a valid manifest is the thing itself. */
+  test('offers only the hits whose packument is a valid bundle', async () => {
     const { market } = marketplace({
       hits: ['@acme/seo', '@squatter/keyword-only'],
       declaring: ['@acme/seo'],
     })
     const found = await market.search(undefined)
     expect(found.map((item) => item.name)).toEqual(['@acme/seo'])
-    expect(found[0]?.declaresExtensions).toBe(true)
+    expect(found[0]?.carries).toEqual({ extensions: true, content: false, server: false })
     expect(found[0]?.description).toBe('@acme/seo does a thing')
     expect(found[0]?.publisher).toBe('someone')
   })
@@ -210,15 +231,18 @@ describe('searching the registry', () => {
 })
 
 describe('listing what is installed', () => {
-  test('lists the declared extensions and leaves plain dependencies out', () => {
+  test('lists the bundles and leaves plain dependencies out', async () => {
     const root = site({ '@acme/seo': { declares: true }, lodash: { declares: false } })
     const { market } = marketplace({ root })
-    const items = market.installed()
+    const items = await market.installed()
     expect(items).toHaveLength(1)
     expect(items[0]).toMatchObject({
       packageName: '@acme/seo',
       version: '1.2.3',
       extensionCount: 1,
+      carries: { extensions: true, content: false, server: false },
+      wired: false,
+      contentApplied: null,
     })
   })
 })
@@ -280,7 +304,7 @@ describe('installing', () => {
     expect(extensions.list()).toHaveLength(1)
   })
 
-  test('says so when the package declares no extensions', async () => {
+  test('says so when the package is not a bundle', async () => {
     const root = site()
     const { market } = marketplace({
       root,
@@ -295,7 +319,98 @@ describe('installing', () => {
     })
     const outcome = await market.install('lodash', undefined)
     expect(outcome.ok).toBe(true)
-    expect(outcome.message).toContain('declares no backoffice extensions')
+    expect(outcome.message).toContain('is not a valid bundle')
+  })
+
+  /** Stands in for `bun add` leaving a bundle that carries content behind. */
+  const withContent = (root: string) => () => {
+    addPackage(root, '@acme/kit', true, '1.0.0', { content: 'bundle' })
+    writeFileSync(
+      join(root, 'package.json'),
+      JSON.stringify({ name: 'a-site', dependencies: { '@acme/kit': '^1.0.0' } }),
+    )
+    return { ok: true, output: '' }
+  }
+
+  test('applies the content a bundle carries, straight after the install', async () => {
+    const root = site()
+    const applied: string[] = []
+    const { market } = marketplace({
+      root,
+      installs: withContent(root),
+      applyContent: async (name) => {
+        applied.push(name)
+        return { applied: true, runId: 'run-1', message: 'Its content was applied.' }
+      },
+    })
+    const outcome = await market.install('@acme/kit', undefined)
+    expect(applied).toEqual(['@acme/kit'])
+    expect(outcome.content).toEqual({
+      applied: true,
+      runId: 'run-1',
+      message: 'Its content was applied.',
+    })
+  })
+
+  test('leaves the content alone when the install declines it', async () => {
+    const root = site()
+    const applied: string[] = []
+    const { market } = marketplace({
+      root,
+      installs: withContent(root),
+      applyContent: async (name) => {
+        applied.push(name)
+        return { applied: true, message: '' }
+      },
+    })
+    const outcome = await market.install('@acme/kit', undefined, { applyContent: false })
+    expect(applied).toEqual([])
+    expect(outcome.content?.applied).toBe(false)
+    expect(outcome.content?.message).toContain('crombolo bundle install @acme/kit')
+  })
+
+  test('leaves the content alone when the site turns it off, whatever the request says', async () => {
+    const root = site()
+    const applied: string[] = []
+    const { market } = marketplace({
+      root,
+      installs: withContent(root),
+      applyContentOnInstall: false,
+      applyContent: async (name) => {
+        applied.push(name)
+        return { applied: true, message: '' }
+      },
+    })
+    const outcome = await market.install('@acme/kit', undefined, { applyContent: true })
+    expect(applied).toEqual([])
+    expect(outcome.content?.applied).toBe(false)
+  })
+
+  test('a refused content check leaves the dependency installed, and says why', async () => {
+    const root = site()
+    const { market } = marketplace({
+      root,
+      installs: withContent(root),
+      applyContent: async () => ({ applied: false, message: 'Its content was not applied: no.' }),
+    })
+    const outcome = await market.install('@acme/kit', undefined)
+    expect(outcome.ok).toBe(true)
+    expect(outcome.dependency?.name).toBe('@acme/kit')
+    expect(outcome.content).toEqual({ applied: false, message: 'Its content was not applied: no.' })
+  })
+
+  test('a content install that throws is reported, not raised', async () => {
+    const root = site()
+    const { market } = marketplace({
+      root,
+      installs: withContent(root),
+      applyContent: async () => {
+        throw new Error('backup required')
+      },
+    })
+    const outcome = await market.install('@acme/kit', undefined)
+    expect(outcome.ok).toBe(true)
+    expect(outcome.content?.message).toContain('backup required')
   })
 
   test("reports the installer's own output when it fails", async () => {

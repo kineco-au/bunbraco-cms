@@ -7,20 +7,25 @@
  * lives there instead and this file leaves it alone.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { authorize, type NodeLookup, type Principal, sectionsOf } from '@crombolo/api-management'
 import { AuthService, type AuthStore, hashPassword } from '@crombolo/auth'
 import { listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 import { localReturnUrl, sectionKey, toSectionAliases } from '@crombolo/core'
 import { loadConfig, type ServerBundle } from '@crombolo/server'
+import { siteDeclaring } from './support/bundles.ts'
 import { BACKOFFICE, type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
+const dirs: string[] = []
 afterEach(async () => {
   while (open.length > 0)
     await open
       .pop()
       ?.db.close()
       .catch(() => {})
+  while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
 const site = async (config: Record<string, unknown> = {}) => {
@@ -165,14 +170,17 @@ describe('a section an extension registers', () => {
   const SECTION = 'Acme.Section.Design'
   const bundle: ServerBundle = {
     id: 'acme',
-    name: 'Acme',
     section: SECTION,
     capabilities: [],
     routes: [{ method: 'GET', path: '', handler: () => Response.json({ ok: true }) }],
   }
 
   test('can be granted to a group, reaches the signed-in user, and opens the bundle', async () => {
-    const h = await site({ bundles: [bundle] })
+    const siteDir = siteDeclaring('extension-section', {
+      '@acme/design': { json: { crombolo: { id: 'acme', server: 'acme' } } },
+    })
+    dirs.push(siteDir)
+    const h = await site({ bundles: [bundle], siteDir, componentsDir: join(siteDir, 'components') })
     const created = await h.post(`${V1}/user-group`, {
       name: 'Designers',
       alias: 'designers',

@@ -132,7 +132,8 @@ not cover.
 |---|---|---|---|---|---|
 | `060` | Provenance: where a bundle's code came from | should | M | ready | 010 |
 | `061` | Reviewed publishers | could | M | backlog | 060 |
-| `062` | Tables a bundle owns | should | L | ready | — |
+| `062` | Tables a bundle owns | should | L | done | 063 |
+| `063` | A bundle is an npm package | should | L | done | — |
 
 ### Epic H — Importing an Umbraco site
 

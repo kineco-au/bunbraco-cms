@@ -1,7 +1,7 @@
 # 062 — Tables a bundle owns
 
 **Epic:** G — Trusting and extending bundles · **Priority:** should · **Size:** L
-**Depends on:** —
+**Depends on:** 063
 
 ## Story
 
@@ -47,134 +47,159 @@ from running against code that does not know its state.
 - Runtime access goes through a scoped capability, with the guards below.
 - A removed bundle's tables are kept until an explicit `purge`.
 
+## Decisions
+
+Taken before starting, 2026-10-14:
+
+- **The capability is `context.host.tables`**, beside the other capabilities,
+  offered, frozen and typed the same way. The examples below use it.
+- **The `bundle` column is part of `migration_history` itself**, not a core
+  migration: the ledger tables are created with it, and a table that predates
+  it gains it the first time the ledger is read.
+- **A backfill is the step's own `backfill(data)`**, not a second argument to
+  `up`. `up(s)` returns the builder's operations and nothing else, so a step's
+  checksum and its plan never depend on data, and the final table shapes can
+  be worked out from the declaration's types.
+- **A step's checksum is a hash of its recorded operations**, not of the SQL
+  they render to, so it is the same on both dialects and survives a change to
+  how core maps a column type.
+- **`json` is TEXT on both dialects**, serialised and parsed by the capability.
+  A filter on a `json` column is refused, bar `isNull` and `notNull`.
+- **The guarantee test's early half** creates the fixture's tables and rows
+  from its builder steps at core's first state, without the ledger, and walks
+  the whole core plan forward from there.
+
 ## Acceptance criteria
 
 **Declaring tables**
 
-- [ ] `ServerBundle` gains an optional `tables`, built with `defineBundleTables`,
+- [x] `ServerBundle` gains an optional `tables`, built with `defineBundleTables`,
       which `@crombolo/crombolo` exports beside the other bundle types.
-- [ ] The builder is the only way to write schema, with no raw-SQL escape hatch:
-  - [ ] Expands: `createTable`, `addColumn` (nullable or defaulted only),
+- [x] The builder is the only way to write schema, with no raw-SQL escape hatch:
+  - [x] Expands: `createTable`, `addColumn` (nullable or defaulted only),
         `addIndex` and `widenColumn`.
-  - [ ] Contracts: `dropTable`, `dropColumn` and `dropIndex`.
-  - [ ] Column types come from the dialect seam: `uuid`, `varchar(n)`, `text`,
+  - [x] Contracts: `dropTable`, `dropColumn` and `dropIndex`.
+  - [x] Column types come from the dialect seam: `uuid`, `varchar(n)`, `text`,
         `integer`, `bigint`, `boolean`, `timestamp`, `json`.
-- [ ] Each step's state is derived from its `name` and position, and its
+- [x] Each step's state is derived from its `name` and position, and its
       checksum is a hash of the step's recorded statements. A step edited after
       it shipped makes the next upgrade refuse, naming the step.
-- [ ] A step may take the scoped data API as a second argument, for backfills.
+- [x] A step may declare a `backfill(data)` over the scoped data API.
       `upgrade --plan` reports such a step as unplannable.
 
 **Names**
 
-- [ ] Physical tables are `bundle_<id>__<table>`, with the id's hyphens written
+- [x] Physical tables are `bundle_<id>__<table>`, with the id's hyphens written
       as underscores.
-- [ ] An id may not contain `--`, and a table or column name may not contain
+- [x] An id may not contain `--`, and a table or column name may not contain
       `__`. Names are `[a-z][a-z0-9_]*`.
-- [ ] Index names are generated as `bundle_<id>__ix_<hash>`, never chosen by the
+- [x] Index names are generated as `bundle_<id>__ix_<hash>`, never chosen by the
       author.
-- [ ] `validateServerBundles` refuses at boot any physical name longer than
+- [x] `validateServerBundles` refuses at boot any physical name longer than
       Postgres's 63-character identifier limit.
-- [ ] Core reserves the `bundle_` prefix. A test records every core migration's
+- [x] Core reserves the `bundle_` prefix. A test records every core migration's
       statements through the recording `Db` and fails if any statement names a
       `bundle_` table.
 
 **The ledger**
 
-- [ ] Each bundle's state lives in `key_value` under `Crombolo.Bundle.<id>.State`.
-- [ ] Its steps are recorded in `migration_history`, in a new nullable `bundle`
-      column. That column is itself a core expand, so it ships in a minor.
-- [ ] The ledger writes reuse `recordInLedger`. `migrate` is generalised over
+- [x] Each bundle's state lives in `key_value` under `Crombolo.Bundle.<id>.State`.
+- [x] Its steps are recorded in `migration_history`, in a new nullable `bundle`
+      column, created with the table (see Decisions).
+- [x] The ledger writes reuse `recordInLedger`. `migrate` is generalised over
       the state key and runs under the same lock as core.
 
 **Expand and contract, per bundle**
 
-- [ ] `MigrationPlan`'s lint runs over each bundle's steps, with `release` read
+- [x] `MigrationPlan`'s lint runs over each bundle's steps, with `release` read
       as the **bundle's** version. A contract may only ship in a bundle major,
       and may only remove what an earlier bundle release added.
-- [ ] The bundle's `package.json` declares
+- [x] The bundle's `package.json` declares
       `"crombolo": { …, "migrations": "compatible" | "breaking" }`, derived
-      from the plan the same way core's declaration is.
-- [ ] `assertBundleTables(tables, version)` is exported, so a bundle's own test
+      from the plan the same way core's declaration is. Its manifest is read and
+      validated in `backoffice-host/src/bundle-package.ts` (story 063).
+- [x] `assertBundleTables(tables, version)` is exported, so a bundle's own test
       suite can enforce the same rules.
 
 **Which core a bundle runs against**
 
-- [ ] A bundle with tables must declare
-      `peerDependencies["@crombolo/crombolo"]`.
-- [ ] Boot refuses to mount a bundle whose range excludes the running `VERSION`,
-      naming the bundle, its range and the running version. Nothing checks this
-      today.
+- [x] A bundle with tables must declare
+      `peerDependencies["@crombolo/crombolo"]`. Story 063 requires it of every
+      bundle.
+- [x] Boot refuses to mount a bundle whose range excludes the running `VERSION`,
+      naming the bundle, its range and the running version. Built in 063
+      (`validateServerBundles`, `peerRangeProblem`); the bundle's version is
+      on `MountedBundle.package`.
 
 **Order and gates**
 
-- [ ] `crombolo upgrade` applies core's pending steps first, then each bundle's,
+- [x] `crombolo upgrade` applies core's pending steps first, then each bundle's,
       in the order `bundles` lists them.
-- [ ] `upgrade --plan` and `upgrade check` list bundle steps under their bundle.
+- [x] `upgrade --plan` and `upgrade check` list bundle steps under their bundle.
       The upgrade dashboard and `/status` (`status.bundles[id].pending`) show
       them.
-- [ ] In production, boot refuses while any bundle step is pending, with
+- [x] In production, boot refuses while any bundle step is pending, with
       `UpgradePendingError` naming the bundle. Development applies them
       automatically.
-- [ ] A database ahead of a bundle's code refuses with `UpgradeStateError`,
+- [x] A database ahead of a bundle's code refuses with `UpgradeStateError`,
       naming the bundle and both states.
-- [ ] The pre-upgrade backup covers bundle tables. It does already, because they
+- [x] The pre-upgrade backup covers bundle tables. It does already, because they
       are in the same database; the test proves it.
 
 **Runtime access: the `tables` capability**
 
-- [ ] A fourth capability, offered only to a bundle that declares `tables`, and
+- [x] A fourth capability, offered only to a bundle that declares `tables`, and
       resolved against that bundle's schema alone.
-- [ ] Operations: `select`, `count`, `insert`, `update`, `delete` and
+- [x] Operations: `select`, `count`, `insert`, `update`, `delete` and
       `transaction`.
-- [ ] Filters: equality, `in`, `lt`/`lte`/`gt`/`gte` and `isNull`/`notNull`,
+- [x] Filters: equality, `in`, `lt`/`lte`/`gt`/`gte` and `isNull`/`notNull`,
       combined with `and`/`or`.
-- [ ] `update` and `delete` require a `where`. Unfiltered writes go through an
+- [x] `update` and `delete` require a `where`. Unfiltered writes go through an
       explicit `truncate`.
-- [ ] The table set is the final shape of the plan, worked out once at boot and
-      typed from the declaration. So `context.tables.task` is typed, and
-      `context.tables.node` does not exist.
+- [x] The table set is the final shape of the plan, worked out once at boot and
+      typed from the declaration. So `context.host.tables.task` is typed, and
+      `context.host.tables.node` does not exist.
 
 **Guards**
 
 The requirement is that the capability can never reach outside the bundle's own
 tables, and never reach a core table.
 
-- [ ] No identifier comes from the caller. Every table and column name is looked
+- [x] No identifier comes from the caller. Every table and column name is looked
       up in the bundle's resolved schema and quoted from there, and an unknown
       name is refused before any SQL is built. Values are always bound
       parameters.
-- [ ] No `Db` is reachable. The capability, every table handle and the
+- [x] No `Db` is reachable. The capability, every table handle and the
       transaction handle are frozen objects over a closure, with no connection,
       dialect, `raw` or `exec`. A test walks each object's own and prototype
       properties to prove it.
-- [ ] Every statement the capability or the builder emits passes through one
+- [x] Every statement the capability or the builder emits passes through one
       guard function. It asserts that every table identifier carries the
       bundle's own prefix, and refuses the statement if not.
-- [ ] A hostile-input suite. Each of these is refused, or bound as a value, and
+- [x] A hostile-input suite. Each of these is refused, or bound as a value, and
       never reaches SQL as an identifier:
-  - [ ] another bundle's logical and physical table names
-  - [ ] core table names: `node`, `umbraco_user`, `key_value`,
+  - [x] another bundle's logical and physical table names
+  - [x] core table names: `node`, `umbraco_user`, `key_value`,
         `migration_history`
-  - [ ] quoted and escaped identifiers, `;`, comments and Unicode look-alikes
-  - [ ] `__proto__` and `constructor` keys in `where` and `set`
-  - [ ] nested filters at depth
-- [ ] A property-based test generates arbitrary filter objects and asserts on
+  - [x] quoted and escaped identifiers, `;`, comments and Unicode look-alikes
+  - [x] `__proto__` and `constructor` keys in `where` and `set`
+  - [x] nested filters at depth
+- [x] A property-based test generates arbitrary filter objects and asserts on
       the guard function's view of every emitted statement.
 
 **Where it runs, and removal**
 
-- [ ] The capability and bundle migrations run only on nodes that mount bundles,
+- [x] The capability and bundle migrations run only on nodes that mount bundles,
       which are the ones that serve the backoffice. A `web` node neither
       applies bundle migrations nor checks their state at boot.
-- [ ] Taking a bundle out of `bundles` leaves its tables, state and ledger rows
+- [x] Taking a bundle out of `bundles` leaves its tables, state and ledger rows
       in place. Re-adding it resumes from its recorded state.
-- [ ] `crombolo bundle purge <id>` drops the bundle's tables and clears its
+- [x] `crombolo bundle purge <id>` drops the bundle's tables and clears its
       state.
-  - [ ] It runs after the same backup `upgrade` takes, and is ledgered as kind
+  - [x] It runs after the same backup `upgrade` takes, and is ledgered as kind
         `purge` against the bundle.
-  - [ ] It refuses while the bundle is still wired.
-  - [ ] It lists what it will drop and asks for confirmation, unless `--yes` is
+  - [x] It refuses while the bundle is still wired.
+  - [x] It lists what it will drop and asks for confirmation, unless `--yes` is
         given.
 
 **Tests**
@@ -182,25 +207,25 @@ tables, and never reach a core table.
 The tests use a fixture bundle with two releases (an expand-only `1.x`, and a
 `2.0.0` with a contract), run under both dialects.
 
-- [ ] The lint refuses a contract in a bundle minor, and a step edited after it
+- [x] The lint refuses a contract in a bundle minor, and a step edited after it
       shipped.
-- [ ] `upgrade --plan` shows the bundle's statements, and `upgrade` applies core
+- [x] `upgrade --plan` shows the bundle's statements, and `upgrade` applies core
       and then the bundle.
-- [ ] Production boot refuses while a bundle step is pending. A bundle
+- [x] Production boot refuses while a bundle step is pending. A bundle
       downgrade refuses, naming both states.
-- [ ] **The core-upgrade guarantee.** The fixture bundle is installed against the
+- [x] **The core-upgrade guarantee.** The fixture bundle is installed against the
       earliest core state the plan supports, then the whole core plan is
       walked forward from there. The bundle's tables and data come through
       untouched. The reverse order is tested too: the bundle installed at the
       final state.
-- [ ] A bundle whose peer range excludes the running version does not mount.
-- [ ] `purge` drops exactly the bundle's tables and nothing else.
-- [ ] **Exit:** the fixture bundle declares tables, upgrades across its own
+- [x] A bundle whose peer range excludes the running version does not mount.
+- [x] `purge` drops exactly the bundle's tables and nothing else.
+- [x] **Exit:** the fixture bundle declares tables, upgrades across its own
       minor and major, and survives a walk of the entire core plan untouched,
       under both dialects. A deliberately escaping query is refused, whether
       it escapes by name, by injection or by reflection. `upgrade --plan` and
       the dashboard show bundle steps alongside core's.
-- [ ] [`bundles.md`](../../bundles.md) gets a Part 4 describing this as built,
+- [x] [`bundles.md`](../../bundles.md) gets a Part 4 describing this as built,
       and "Deliberately not offered" is updated.
 
 ## Technical notes
@@ -232,12 +257,12 @@ export const tables = defineBundleTables('acme-tasks', [
 And a handler using the capability looks like this:
 
 ```ts
-const open = await context.tables.task.select({
+const open = await context.host.tables.task.select({
   where: { status: 'open', due: { lt: now } },
   orderBy: { due: 'asc' },
   limit: 50,
 })
-await context.tables.transaction(async (t) => {
+await context.host.tables.transaction(async (t) => {
   await t.task.update({ where: { id }, set: { status: 'done' } })
 })
 ```
@@ -278,6 +303,46 @@ await context.tables.transaction(async (t) => {
   - That the guard can check statements token by token. It only ever sees SQL
     produced by the builder and the capability, which is regular enough for
     that, so it should need no general SQL parser.
+
+## What was built
+
+- **`data/src/bundle-tables/`** — `builder.ts` (the operations as data, and the
+  types that work out each table's row from a declaration), `schema.ts`
+  (`defineBundleTables`, `compileBundleTables` with every rule,
+  `assertBundleTables`, `bundleTablesCompatibility`), `names.ts`, `ddl.ts`
+  (operations to SQL on the dialect seam, which gained `varcharExact` and
+  `json`), `guard.ts` (the token-by-token statement guard), `capability.ts`
+  (the `tables` capability) and `chain.ts` (`bundlePlan`, purge, and the
+  unledgered apply the guarantee test uses). Exported from `@crombolo/data`,
+  and the authoring API from `@crombolo/crombolo`.
+- **`migrations.ts`** — `MigrationPlan` takes a state key, an initial state and
+  a bundle id; `migrate`, `readState`, `pendingMigrations`, `planUpgrade` and
+  `stampFinalState` follow the plan's. `Migration` gained `checksum` and
+  `backfill`. A bundle's applied steps are verified against their ledgered
+  checksums (since its last purge) before it runs (`BundleStepEditedError`).
+  `UpgradeStateError` names a bundle. `migration_history.bundle` is created
+  with the table, and added to one that predates it; core's contract count
+  ignores bundle rows.
+- **Server** — `ServerBundle.tables`, the `tables` capability (typed through
+  `ServerBundle<C, T>` and `HostFor`), and validation of the declaration, its
+  id, and the package's `crombolo.migrations` against the plan.
+  `server/src/bundle-tables.ts` builds the chains and plans, migrates and
+  reports them. `bootstrapDatabase` and `installDatabase` take the chains;
+  `UpgradePendingError` names bundles. Boot validates bundles before the
+  database is touched, and only a node serving the backoffice builds chains.
+  `/status` reports `bundles`, and the change report and Changes dashboard
+  list each bundle's steps.
+- **CLI** — `upgrade --plan`, `upgrade check` and `upgrade` show bundle steps
+  under their bundle, `upgrade ledger` marks a bundle's rows, and
+  `crombolo bundle purge <id> [--yes]` backs up, refuses while wired, lists
+  and asks.
+- **Tests** — `bundle-tables-rules.test.ts` (no database),
+  `bundle-tables.test.ts` (both dialects: chain, capability, guards with the
+  hostile-input suite and a seeded property test, the core-upgrade guarantee,
+  the `bundle_` reservation, purge, boot and backup) and
+  `bundle-tables-site.test.ts` (a real site wiring the fixture bundle in
+  `tests/support/fixture-bundle.ts`). The Postgres test harness now drops
+  `bundle_` tables when it resets a migrated schema.
 
 ## Out of scope
 

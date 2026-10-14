@@ -153,6 +153,10 @@ than sequence numbers) and hardened:
 - **Schema operations on the dialect seam.** `addColumn`, `addIndex`,
   `renameTable`, `dropColumn` — with SQLite's copy-table dance for the ones it
   cannot `ALTER` — so migration authors stop writing raw DDL twice.
+- **A bundle's own chain.** A wired bundle that owns tables has a chain of its
+  own, under its own state key and ledgered with its id in the `bundle` column,
+  held to the same expand/contract rules against its own version and run after
+  core's in every upgrade ([`bundles.md`](bundles.md), Part 4).
 
 ### What a release may change, and what it declares
 

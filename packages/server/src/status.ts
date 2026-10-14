@@ -27,6 +27,7 @@ import {
   TransferRunRepository,
 } from '@crombolo/data'
 import { loadSchemaDirectory } from '@crombolo/schema'
+import { BundleConfigurationError, bundleChainsFor, pendingBundleSteps } from './bundle-tables.ts'
 import { type CromboloConfig, describeDatabase, VERSION } from './config.ts'
 import { type EmailAvailability, emailAvailability, resolveEmailPort } from './email.ts'
 import { assertViewRuntime } from './view-runtime.ts'
@@ -60,6 +61,12 @@ export interface SiteStatus {
     pending: boolean
   }
   framework: { pending: string[] }
+  /**
+   * Each wired bundle that owns tables, by id: its chain's state and the steps
+   * still to run. Only a node that mounts bundles applies them, so this is what
+   * such a node would refuse to boot over in production.
+   */
+  bundles: Record<string, { name: string; state: string | null; pending: string[] }>
   content: { documents: number; media: number; elements: number; lastImport?: string }
   /**
    * Open findings by kind. `auto` ones are reported, not counted against the
@@ -140,6 +147,7 @@ export async function siteStatus(config: CromboloConfig): Promise<SiteStatus> {
       pending: false,
     },
     framework: { pending: [] },
+    bundles: {},
     content: { documents: 0, media: 0, elements: 0 },
     findings: { blocking: 0, person: 0, auto: 0, resolved: 0 },
     versions: { crombolo: VERSION, backoffice: backofficeVersion(), bun: Bun.version },
@@ -188,6 +196,27 @@ export async function siteStatus(config: CromboloConfig): Promise<SiteStatus> {
       status.problems.push(
         `${status.framework.pending.length} framework migration(s) pending: run \`crombolo upgrade\``,
       )
+
+    try {
+      const chains = bundleChainsFor(config)
+      for (const chain of chains)
+        status.bundles[chain.id] = { name: chain.name, state: null, pending: [] }
+      for (const bundle of await pendingBundleSteps(db, chains)) {
+        status.bundles[bundle.id] = {
+          name: bundle.name,
+          state: bundle.state,
+          pending: bundle.pending.map((step) => step.name),
+        }
+        if (bundle.pending.length > 0 && !config.development)
+          status.problems.push(
+            `the bundle "${bundle.id}" has ${bundle.pending.length} step(s) pending: run \`crombolo upgrade\``,
+          )
+      }
+    } catch (error) {
+      if (error instanceof BundleConfigurationError)
+        for (const problem of error.problems) status.problems.push(problem)
+      else status.problems.push((error as Error).message)
+    }
 
     const state = await currentSchemaState(db)
     status.schema.database = { version: state.version, revision: state.revision }

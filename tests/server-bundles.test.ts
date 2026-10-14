@@ -18,10 +18,12 @@ import {
   createServerBundles,
   loadConfig,
   type ServerBundle,
+  VERSION,
   validateRedirectInput,
   validateServerBundles,
 } from '@crombolo/server'
 import { ROOT } from '../scripts/packages.ts'
+import { stubBundlePackage } from './support/bundles.ts'
 
 const PLUGIN_API = '/umbraco/crombolo/api'
 const BASE = `${PLUGIN_API}/${BUNDLE_API_SEGMENT}/`
@@ -41,7 +43,7 @@ const admin: Principal = {
 const editor: Principal = { ...admin, isAdmin: false, allowedSections: ['content'] }
 
 /** Enough of a host to see what a handler is given, without a database. */
-const stubHost = (): BundleHost => ({
+const stubHost = (): Omit<BundleHost, 'tables'> => ({
   redirects: {
     list: async () => ({ total: 0, items: [] }),
     byKey: async () => undefined,
@@ -55,9 +57,19 @@ const stubHost = (): BundleHost => ({
 
 const silent = () => ({ info: () => {}, warn: () => {}, error: () => {} })
 
+/** The packages a site wiring these bundles would depend on. */
+const packagesFor = (bundles: readonly ServerBundle[]) =>
+  bundles.map((bundle) => stubBundlePackage(bundle.id))
+
+/** Validation against the packages the bundles' own ids would come from. */
+const validate = (bundles: ServerBundle[]) =>
+  validateServerBundles(bundles, packagesFor(bundles), VERSION)
+
 function mount(bundles: ServerBundle[]) {
   return createServerBundles({
     bundles,
+    packages: packagesFor(bundles),
+    coreVersion: VERSION,
     pluginApiPath: PLUGIN_API,
     host: stubHost(),
     log: silent,
@@ -69,7 +81,6 @@ const ok = (body: unknown = { ok: true }) => Response.json(body)
 const simple = (overrides: Partial<ServerBundle> = {}): ServerBundle =>
   ({
     id: 'demo',
-    name: 'Demo',
     section: 'settings',
     capabilities: ['log'],
     routes: [{ method: 'GET', path: 'things', handler: () => ok() }],
@@ -88,36 +99,36 @@ const call = (
 
 describe('what a bundle may declare', () => {
   test('accepts an ordinary bundle', () => {
-    expect(validateServerBundles([simple()])).toEqual([])
+    expect(validate([simple()])).toEqual([])
   })
 
   test('refuses an id that could escape its own namespace', () => {
     // The id is a URL segment, so a dot, a slash or an upper-case letter is not
     // a cosmetic objection: `../` in a segment is a different route entirely.
     for (const id of ['../other', 'a/b', 'Demo', 'demo.thing', '', 'a', 'x'.repeat(40)])
-      expect(validateServerBundles([simple({ id })]), id).not.toBeEmpty()
+      expect(validate([simple({ id })]), id).not.toBeEmpty()
   })
 
   test('refuses two bundles claiming one id', () => {
-    const problems = validateServerBundles([simple(), simple({ name: 'Other' })])
+    const problems = validate([simple(), simple()])
     expect(problems.join('\n')).toContain('Two bundles claim the id "demo"')
   })
 
   test('accepts a core section or a section the bundle’s own manifests register', () => {
-    expect(validateServerBundles([simple({ section: 'content' })])).toEqual([])
-    expect(validateServerBundles([simple({ section: 'Acme.Section.Design' })])).toEqual([])
+    expect(validate([simple({ section: 'content' })])).toEqual([])
+    expect(validate([simple({ section: 'Acme.Section.Design' })])).toEqual([])
   })
 
   test('refuses a section that is neither, so a typo cannot gate a route on nothing', () => {
     for (const section of ['Design', 'design', '', 'Acme Section', '.Section.Design'])
       expect(
-        validateServerBundles([simple({ section: section as ServerBundle['section'] })]),
+        validate([simple({ section: section as ServerBundle['section'] })]),
         section,
       ).not.toBeEmpty()
   })
 
   test('refuses a capability no host offers', () => {
-    const problems = validateServerBundles([
+    const problems = validate([
       simple({ capabilities: ['filesystem'] as unknown as ServerBundle['capabilities'] }),
     ])
     expect(problems.join('\n')).toContain('filesystem')
@@ -126,14 +137,14 @@ describe('what a bundle may declare', () => {
   test('refuses a route path that is not a plain path', () => {
     for (const path of ['../../etc', '/leading', 'trailing/', 'has space', 'UPPER'])
       expect(
-        validateServerBundles([simple({ routes: [{ method: 'GET', path, handler: () => ok() }] })]),
+        validate([simple({ routes: [{ method: 'GET', path, handler: () => ok() }] })]),
         path,
       ).not.toBeEmpty()
   })
 
   test('allows the namespace root and a parameter segment', () => {
     expect(
-      validateServerBundles([
+      validate([
         simple({
           routes: [
             { method: 'GET', path: '', handler: () => ok() },
@@ -145,7 +156,7 @@ describe('what a bundle may declare', () => {
   })
 
   test('refuses the same method and path twice', () => {
-    const problems = validateServerBundles([
+    const problems = validate([
       simple({
         routes: [
           { method: 'GET', path: 'things', handler: () => ok() },
@@ -154,6 +165,50 @@ describe('what a bundle may declare', () => {
       }),
     ])
     expect(problems.join('\n')).toContain('declares "GET things" twice')
+  })
+
+  test('refuses a wired bundle that no declared package owns', () => {
+    // The server half is wired by hand, but what it is — its name, version and
+    // the core it was written for — is read from the package it came from.
+    const problems = validateServerBundles([simple()], [], VERSION)
+    expect(problems.join('\n')).toContain(
+      'no package the site depends on declares the bundle id "demo"',
+    )
+  })
+
+  test('refuses a package that does not declare a server half', () => {
+    const owner = stubBundlePackage('demo', {
+      carries: { extensions: true, content: false, server: false },
+    })
+    expect(validateServerBundles([simple()], [owner], VERSION).join('\n')).toContain(
+      'declares no "server"',
+    )
+  })
+
+  test('refuses a bundle whose peer range excludes the running release, naming both', () => {
+    const owner = stubBundlePackage('demo', { peerRange: '^0.1.0' })
+    const problems = validateServerBundles([simple()], [owner], VERSION).join('\n')
+    expect(problems).toContain('@acme/demo')
+    expect(problems).toContain('^0.1.0')
+    expect(problems).toContain(VERSION)
+  })
+
+  test('takes its name and version from the package', () => {
+    const owner = stubBundlePackage('demo', { name: 'The Demo', version: '2.3.4' })
+    const bundles = createServerBundles({
+      bundles: [simple()],
+      packages: [owner],
+      coreVersion: VERSION,
+      pluginApiPath: PLUGIN_API,
+      host: stubHost(),
+      log: silent,
+    })
+    expect(bundles.mounted[0]?.name).toBe('The Demo')
+    expect(bundles.mounted[0]?.package).toEqual({
+      name: '@acme/demo',
+      version: '2.3.4',
+      peerRange: `^${VERSION}`,
+    })
   })
 
   test('fails the boot rather than mounting half of a bad set', () => {
@@ -398,6 +453,8 @@ describe('what a handler is given', () => {
           ],
         }),
       ],
+      packages: [stubBundlePackage('demo')],
+      coreVersion: VERSION,
       pluginApiPath: PLUGIN_API,
       host: stubHost(),
       log: (id) => {
@@ -446,6 +503,8 @@ describe('a bundle that misbehaves', () => {
           ],
         }),
       ],
+      packages: [stubBundlePackage('demo')],
+      coreVersion: VERSION,
       pluginApiPath: PLUGIN_API,
       host: stubHost(),
       log: () => ({ info: () => {}, warn: () => {}, error: (message) => errors.push(message) }),
@@ -467,7 +526,7 @@ describe('a bundle that misbehaves', () => {
           },
         ],
       }),
-      simple({ id: 'other', name: 'Other' }),
+      simple({ id: 'other' }),
     ])
     expect((await call(bundles, `${BASE}demo/things`))?.status).toBe(500)
     expect((await call(bundles, `${BASE}other/things`))?.status).toBe(200)
@@ -493,7 +552,9 @@ describe('nothing mounts a bundle except the site’s own configuration', () => 
     // An installed bundle's client half is read as JSON out of its
     // `package.json`. If discovery ever evaluated a module from the package, an
     // install would be enough to run its code in this process.
-    const discovery = read('packages/backoffice-host/src/extensions.ts')
+    const discovery = ['extensions.ts', 'bundle-package.ts']
+      .map((file) => read(`packages/backoffice-host/src/${file}`))
+      .join('\n')
     expect(discovery).toContain('JSON.parse')
     expect(discovery).not.toMatch(/\bimport\s*\(/)
     expect(discovery).not.toContain('require(')

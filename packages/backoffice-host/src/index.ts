@@ -1,3 +1,4 @@
+export * from './bundle-package.ts'
 export * from './extensions.ts'
 export * from './graphics.ts'
 export * from './login-assets.ts'

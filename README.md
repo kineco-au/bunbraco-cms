@@ -107,7 +107,7 @@ Crombolo is in active development. What is built and planned is tracked as [stor
 | **Schema as code** | Document and media types as TOML in `schema/`. The backoffice writes the files; `schema sync` applies them |
 | **Upgrades** | Check, fix, then cut over, with old nodes serving reads throughout a rolling deploy |
 | **Content transfer** | Export, check and import content between environments as a bundle of files |
-| **Bundles** | Build a bundle from a slice of the site — schema, views, content and media — and install it into another with `bundle install`. Installable bundles are npm dependencies in the site's `package.json`, published under the `crombolo-bundle` keyword. A bundle may also carry server endpoints, which run only once the site imports it into `crombolo.config.ts` |
+| **Bundles** | Every bundle is an npm package whose `crombolo` field declares what it adds: backoffice screens, content (schema, views, content and media) and server endpoints. Build one from a slice of the site and download it as a `.tgz`, install one from the Marketplace or with `bun add`, and apply its content with `bundle install`. Server endpoints run only once the site imports them into `crombolo.config.ts` |
 | **Storage** | SQLite by default, Postgres as an option. Media on the file system, S3 or Azure |
 | **Forms** | Form building in core, not an add-on: definitions as TOML in `schema/forms/`, a Forms section with a designer and an entries view, rendering and submission with no JavaScript required, and workflows on a retrying queue |
 | **E-mail** | Opt-in, over a provider's HTTPS API — Resend, Postmark, Amazon SES, or an endpoint of your own. Off by default, and what needs it says so rather than failing |
@@ -282,14 +282,14 @@ The database is forced to SQLite inside the site, whatever the environment says.
 how distribution works and the safety rules.
 
 A template brings `schema/`, `components/`, a stylesheet, its images — and its content as
-a **bundle**, the same artifact `crombolo content export` writes. `init` puts it in
-`bundles/` and wires the import into the scaffolded `start` script:
+a **bundle**: a private npm package, the same artifact `crombolo content export` writes.
+`init` puts it in `bundles/` and wires the import into the scaffolded `start` script:
 
 ```json
 "scripts": { "start": "crombolo start --bundle bundles/demo-harbourstone --publish" }
 ```
 
-`start --bundle <dir>` is not template-only: it applies any bundle before the site
+`start --bundle <pkg>` is not template-only: it applies any bundle before the site
 serves anything, taking the flags `content import` takes. It imports **once per
 bundle** — a run still standing here means this site already has that content, so
 restarts cost a query and a line in the banner — and if the import is refused it
@@ -489,16 +489,16 @@ crombolo/
 │   │                              #    templates/ holds `basic`; the distributed sites are staged in at pack time
 │   ├── server/                    # the composition root: config, ports, adapters, createServer;
 │   │                              #    background jobs, oEmbed, the event hubs, member sign-in and public access,
-│   │                              #    the media store seam (file system, S3, Azure) and imaging
+│   │                              #    the media store seam (file system, S3, Azure), imaging and the bundle installer
 │   ├── core/                      # domain primitives — problem details, notifications, paging
 │   ├── contracts/                 # OpenApi.json (vendored from Umbraco release-18.2.0) + generated types
-│   ├── data/                      # dialect seam, drivers, migrations, repositories
+│   ├── data/                      # dialect seam, drivers, migrations, repositories, bundle tables
 │   ├── auth/                      # OAuth2 + PKCE, reference tokens, cookie redaction
 │   ├── api-management/            # contract-first router, authorization, ports, handlers
 │   ├── assistant/                 # optional AI helper: tool definitions, guardrails, changesets,
 │   │                              #    the agent loop, the MCP server and the Bedrock provider
 │   │                              #    (server/ also holds the optional schema store and git integration)
-│   ├── backoffice-host/           # SPA shells, import map, static serving, graphics, npm extension discovery;
+│   ├── backoffice-host/           # SPA shells, import map, static serving, graphics, bundle manifest and discovery;
 │   │                              #    plugin/ = the Changes dashboard, the Bundles views, the banner,
 │   │                              #    the template editor's TSX scaffold and layout, and the assistant drawer;
 │   │                              #    plugin/seo/ = Settings → Search & sharing and the page preview
@@ -508,7 +508,7 @@ crombolo/
 │   ├── schema/                    # schema-as-code: TOML model, parser, validator, writer, sync, export, generate, check/fix/upgrade
 │   ├── transfer/                  # content transfer: the bundle format, canonical writer, reader, exporter
 │   ├── import-umbraco/            # opt-in: an Umbraco backup → a compatibility report, schema files,
-│   │                              #    a content bundle and view stubs; reads a .bacpac without .NET
+│   │                              #    a content bundle package and view stubs; reads a .bacpac without .NET
 │   ├── simple-redirects/          # opt-in bundle: manage redirects in Settings; the reference example
 │   │                              #    of a bundle with a server half (docs/bundles.md)
 │   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed

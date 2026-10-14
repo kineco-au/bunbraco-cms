@@ -13,6 +13,7 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { readBundlePackage } from '@crombolo/backoffice-host'
 import {
   findTemplate,
   listTemplates,
@@ -23,7 +24,7 @@ import {
 import { allFormFields, type SchemaForm } from '@crombolo/core'
 import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
 import { listComponents } from '@crombolo/server'
-import { loadBundle } from '@crombolo/transfer'
+import { type LoadedBundle, loadBundle } from '@crombolo/transfer'
 import { ROOT } from '../scripts/packages.ts'
 import { listSites, stageTemplates } from '../scripts/sites.ts'
 
@@ -37,6 +38,13 @@ const byId = (id: string): SiteTemplate => {
   const found = findTemplate(id) ?? findTemplate(id, STAGED)
   if (!found) throw new Error(`no template "${id}"`)
   return found
+}
+
+/** A template's bundle: the package at `bundle/`, and the payload it names. */
+function templateBundle(dir: string): LoadedBundle {
+  const { bundle, problems } = readBundlePackage(join(dir, 'bundle'))
+  if (!bundle?.contentDir) throw new Error(`${dir}/bundle is not a bundle package: ${problems}`)
+  return loadBundle(bundle.contentDir)
 }
 
 describe('the starter templates', () => {
@@ -87,7 +95,7 @@ describe('the starter templates', () => {
   test.each(templates.map((t) => [t.id] as const))('%s ships a bundle that reads back', (id) => {
     const template = byId(id)
     expect(template.bundle).toBe(`bundles/${id.replaceAll('/', '-')}`)
-    const loaded = loadBundle(join(template.dir, 'bundle'))
+    const loaded = templateBundle(template.dir)
     // Integrity is over the node files' text, so this also catches a formatter
     // or an editor having been let loose on a committed artifact.
     expect(loaded.problems.map((p) => `${p.file}: ${p.message}`)).toEqual([])
@@ -110,7 +118,7 @@ describe('the starter templates', () => {
 
   test('the demo carries the bytes for every media file its bundle names', () => {
     const template = byId('demo/harbourstone')
-    const loaded = loadBundle(join(template.dir, 'bundle'))
+    const loaded = templateBundle(template.dir)
     // Integrity covers the bytes, so a loaded bundle is one whose images are
     // the images it was built with.
     expect(loaded.problems).toEqual([])
@@ -139,7 +147,7 @@ describe('the demo’s form', () => {
   test('is pointed at by the page that renders it', () => {
     // A `formPicker` stores a UUID, so a key that matches no file renders
     // nothing at all — silently, and only on the page nobody checked.
-    const set = loadBundle(join(template.dir, 'bundle')).set
+    const set = templateBundle(template.dir).set
     const picked = (set?.nodes ?? []).flatMap((node) =>
       (node.values ?? [])
         .filter((value) => value.editor === 'Crombolo.FormPicker')
@@ -259,10 +267,12 @@ describe('what init writes', () => {
     expect(paths).toContain('components/pages/homePage.tsx')
     expect(paths).toContain('schema/content-types/home-page.toml')
     expect(paths).toContain('css/site.css')
-    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/nodes/'))).toBe(true)
-    expect(paths).toContain('bundles/demo-harbourstone/bundle.json')
+    // The content arrives as the private package every bundle is.
+    expect(paths).toContain('bundles/demo-harbourstone/package.json')
+    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/bundle/nodes/'))).toBe(true)
+    expect(paths).toContain('bundles/demo-harbourstone/bundle/bundle.json')
     // The images travel inside the bundle, not as a directory of their own.
-    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/blobs/'))).toBe(true)
+    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/bundle/blobs/'))).toBe(true)
     expect(paths.some((p) => p.startsWith('media/'))).toBe(false)
     // Everything from the template is copied, not rewritten.
     for (const file of files.filter((f) => f.path.startsWith('bundles/')))
@@ -329,7 +339,7 @@ describe('the demo’s photographs', () => {
     // `build:template` copies the bytes through rather than re-encoding them:
     // re-encoding an already-compressed JPEG would churn the committed bundle
     // on every build and lose a little more of the image each time.
-    const blobs = join(template.dir, 'bundle', 'blobs')
+    const blobs = join(template.dir, 'bundle', 'bundle', 'blobs')
     const shipped = readdirSync(blobs, { recursive: true, encoding: 'utf8' }).filter((file) =>
       file.endsWith('.jpg'),
     )
@@ -383,7 +393,7 @@ describe('the demo’s typography', () => {
 describe('the Crombolo product site', () => {
   const template = byId('demo/crombolo')
   const components = join(template.dir, 'files', 'components')
-  const nodes = loadBundle(join(template.dir, 'bundle')).set?.nodes ?? []
+  const nodes = templateBundle(template.dir).set?.nodes ?? []
   const storedValue = (type: string, alias: string) =>
     nodes
       .find((node) => node.contentType.alias === type)
@@ -425,7 +435,7 @@ describe('the starter', () => {
   const template = byId('starter')
   const components = join(template.dir, 'files', 'components')
   const read = (path: string) => readFileSync(join(components, path), 'utf8')
-  const nodes = loadBundle(join(template.dir, 'bundle')).set?.nodes ?? []
+  const nodes = templateBundle(template.dir).set?.nodes ?? []
 
   test('is a header, a footer and a layout every page shares', () => {
     const layout = read('shared/layout.tsx')

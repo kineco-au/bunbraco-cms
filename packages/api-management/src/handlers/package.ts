@@ -26,14 +26,18 @@ import { created } from './content-type.ts'
 
 const packageNotFound = () => problemResponse(notFound('The package could not be found'))
 
-/** A download filename from a package name: no separators, no surprises. */
-export function packageFileName(name: string): string {
+/**
+ * A download filename, as `npm pack` names one: the package name with its scope
+ * folded in, then the version. No separators, no surprises.
+ */
+export function packageFileName(name: string, version = '1.0.0'): string {
   const slug = name
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^@/, '')
+    .replace(/[^a-z0-9.]+/g, '-')
     .replace(/^-+|-+$/g, '')
-  return `${slug || 'package'}.zip`
+  return `${slug || 'package'}-${version}.tgz`
 }
 
 const toResponse = (definition: PackageDefinition) => ({
@@ -161,7 +165,7 @@ export function registerPackageHandlers(router: ManagementApiRouter, port: Packa
     if (!built) return packageNotFound()
     return new Response(built.bytes, {
       headers: {
-        'content-type': 'application/zip',
+        'content-type': built.contentType,
         'content-disposition': `attachment; filename="${built.fileName}"`,
       },
     })

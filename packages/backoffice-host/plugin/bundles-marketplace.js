@@ -7,11 +7,13 @@
  * an Umbraco package does not install into this CMS anyway.
  *
  * What it shows instead is the npm registry, searched for the keyword a crombolo
- * bundle publishes, and filtered to the ones that really declare backoffice
- * extensions. Installing runs `bun add` on the server.
+ * bundle publishes, and filtered to the ones whose manifest is a valid bundle.
+ * Installing runs `bun add` on the server, then adds the content the bundle
+ * carries unless the site or the person installing declines it.
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
+import { carriesTags } from './bundles-carries.js'
 import { installBundle, searchMarketplace } from './bundles-client.js'
 
 export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
@@ -23,6 +25,8 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     _notice: { state: true },
     _keyword: { state: true },
     _url: { state: true },
+    _appliesContent: { state: true },
+    _declined: { state: true },
   }
 
   constructor() {
@@ -35,6 +39,8 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     this._keyword = 'crombolo-bundle'
     this._url = ''
     this._query = ''
+    this._appliesContent = true
+    this._declined = new Set()
   }
 
   connectedCallback() {
@@ -50,6 +56,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
       this._items = result.items ?? []
       this._keyword = result.keyword ?? this._keyword
       this._url = result.url ?? ''
+      this._appliesContent = result.appliesContent !== false
     } catch (error) {
       this._error = error instanceof Error ? error.message : String(error)
     } finally {
@@ -66,19 +73,39 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     this._busy = item.name
     this._notice = ''
     try {
-      const outcome = await installBundle(item.name, item.version)
+      const outcome = await installBundle(item.name, item.version, !this._declined.has(item.name))
       // The dependency line is what there is to commit, so it is shown rather
       // than described: the install lives in this node's node_modules until it
       // is in the site's repository.
-      this._notice = outcome.dependency
+      const installed = outcome.dependency
         ? `${outcome.message} — "${outcome.dependency.name}": "${outcome.dependency.range}"`
         : (outcome.message ?? '')
+      this._notice = outcome.content ? `${installed} ${outcome.content.message}` : installed
       if (outcome.ok) await this.#load()
     } catch (error) {
       this._notice = error instanceof Error ? error.message : String(error)
     } finally {
       this._busy = ''
     }
+  }
+
+  #toggleContent(item, event) {
+    const declined = new Set(this._declined)
+    if (event.target.checked) declined.delete(item.name)
+    else declined.add(item.name)
+    this._declined = declined
+  }
+
+  #contentChoice(item) {
+    if (!item.carries?.content || item.installedVersion) return nothing
+    if (!this._appliesContent)
+      return html`<p class="meta">Its content is added separately on this site.</p>`
+    return html`
+      <uui-toggle
+        label="Add its content when installing"
+        .checked=${!this._declined.has(item.name)}
+        @change=${(event) => this.#toggleContent(item, event)}></uui-toggle>
+    `
   }
 
   #empty() {
@@ -120,6 +147,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
                   <uui-box>
                     <div slot="headline">${item.name} <small>${item.version}</small></div>
                     <p>${item.description || 'No description.'}</p>
+                    <p class="carries">${carriesTags(item.carries)}</p>
                     <p class="meta">
                       ${item.publisher ? html`<span>by ${item.publisher}</span>` : nothing}
                       <a href=${item.links.npm} target="_blank" rel="noopener">npm</a>
@@ -129,6 +157,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
                           : nothing
                       }
                     </p>
+                    ${this.#contentChoice(item)}
                     ${
                       item.installedVersion
                         ? html`<uui-tag look="positive">Installed ${item.installedVersion}</uui-tag>`
@@ -192,6 +221,14 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     small {
       opacity: 0.7;
       font-weight: normal;
+    }
+    .carries {
+      display: flex;
+      gap: var(--uui-size-space-2, 6px);
+    }
+    uui-toggle {
+      display: block;
+      margin-bottom: var(--uui-size-space-4, 12px);
     }
   `
 }

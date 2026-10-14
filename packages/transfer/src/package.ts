@@ -1,0 +1,84 @@
+/**
+ * A written bundle as the npm package every bundle is: a `package.json` whose
+ * `crombolo` field declares the payload, and the payload under `bundle/`.
+ * `docs/bundles.md`.
+ *
+ * The payload is `writeBundle`'s output unchanged, so its manifest, integrity
+ * hash and sections mean what they always did. The package is what gives it a
+ * name, a version and a core it was written for.
+ */
+import type { BundleFile } from './write.ts'
+
+/** The directory inside a package that holds the `bundle.json` payload. */
+export const PAYLOAD_DIR = 'bundle'
+
+/** The npm keyword a bundle publishes so the marketplace can find it. */
+export const BUNDLE_KEYWORD = 'crombolo-bundle'
+
+export interface BundlePackageInfo {
+  /** The npm package name. */
+  name: string
+  version: string
+  /** `crombolo.id`. */
+  id: string
+  /** `crombolo.name`, what a person calls it. */
+  label: string
+  description?: string
+  /** A package that is never published: an environment's export. */
+  private?: boolean
+  /** The range on `@crombolo/crombolo` it is written for. */
+  peerRange: string
+}
+
+const NPM_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/
+
+/** Lowercase words joined by hyphens, from whatever someone named a thing. */
+const slug = (text: string): string =>
+  text
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+/** A name npm would accept. */
+export function isPackageName(name: string): boolean {
+  return NPM_NAME.test(name) && name.length <= 214
+}
+
+/** A bundle id, 2–39 characters, derived from a name: what an unset definition defaults to. */
+export function bundleIdFor(text: string): string {
+  let id = slug(text).replace(/^[^a-z]+/, '')
+  if (id.length < 2) id = `bundle-${id}`.replace(/-$/, '')
+  return id.slice(0, 39).replace(/-+$/, '')
+}
+
+/** An unscoped package name derived from a name. */
+export function packageNameFor(text: string): string {
+  return bundleIdFor(text)
+}
+
+/** The `package.json` a bundle package is written with. */
+export function bundlePackageJson(info: BundlePackageInfo): Record<string, unknown> {
+  return {
+    name: info.name,
+    version: info.version,
+    ...(info.description ? { description: info.description } : {}),
+    ...(info.private ? { private: true } : { keywords: [BUNDLE_KEYWORD] }),
+    files: [PAYLOAD_DIR],
+    peerDependencies: { '@crombolo/crombolo': info.peerRange },
+    crombolo: { id: info.id, name: info.label, content: PAYLOAD_DIR },
+  }
+}
+
+/** A payload's files, placed into a package under `bundle/` beside its `package.json`. */
+export function writeBundlePackage(
+  payload: readonly BundleFile[],
+  info: BundlePackageInfo,
+): BundleFile[] {
+  if (!isPackageName(info.name)) throw new Error(`"${info.name}" is not a package name npm accepts`)
+  return [
+    { path: 'package.json', text: `${JSON.stringify(bundlePackageJson(info), null, 2)}\n` },
+    ...payload.map((file) => ({ ...file, path: `${PAYLOAD_DIR}/${file.path}` })),
+  ]
+}

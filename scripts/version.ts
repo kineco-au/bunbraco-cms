@@ -40,6 +40,32 @@ function backOfficeManifests(): string[] {
   }
   return found
 }
+/**
+ * Every bundle package this repository commits: the published ones under
+ * `packages/`, and the private content packages of the sites and templates.
+ * Each declares the core it is written for, and that range has to move with
+ * the release or the next boot refuses every one of them.
+ */
+function bundleManifests(): string[] {
+  const found: string[] = []
+  const add = (file: string) => {
+    if (!existsSync(file)) return
+    const json = JSON.parse(readFileSync(file, 'utf8')) as { crombolo?: { id?: string } }
+    if (json.crombolo?.id) found.push(file)
+  }
+  for (const pkg of workspacePackages()) add(join(pkg.dir, 'package.json'))
+  const sites = join(ROOT, 'sites')
+  for (const site of existsSync(sites) ? readdirSync(sites) : []) {
+    const bundles = join(sites, site, 'bundles')
+    for (const entry of existsSync(bundles) ? readdirSync(bundles) : [])
+      add(join(bundles, entry, 'package.json'))
+  }
+  const templates = join(ROOT, 'packages/cli/templates')
+  for (const entry of existsSync(templates) ? readdirSync(templates) : [])
+    add(join(templates, entry, 'bundle', 'package.json'))
+  return found
+}
+const PEER_RANGE = /("peerDependencies":\s*\{[^}]*"@crombolo\/crombolo":\s*)"[^"]*"/
 const CONFIG = join(ROOT, 'packages/server/src/config.ts')
 const VERSION_LINE = /^export const VERSION = '.*'$/m
 const VERSION_FIELD = /^(\s*"version":\s*)"[^"]*"/m
@@ -121,6 +147,14 @@ if (version) {
   // it in the manifest response — so leaving them behind means the editor tells
   // you it is running a version that was never released. They are not npm
   // packages, so `publishablePackages()` does not see them.
+  for (const file of bundleManifests()) {
+    const source = readFileSync(file, 'utf8')
+    if (!PEER_RANGE.test(source))
+      throw new Error(`${file} declares no peerDependencies["@crombolo/crombolo"]`)
+    writeFileSync(file, source.replace(PEER_RANGE, `$1"^${version}"`))
+    console.log(`${relative(ROOT, file)} peer -> ^${version}`)
+  }
+
   for (const file of backOfficeManifests()) {
     const source = readFileSync(file, 'utf8')
     if (!VERSION_FIELD.test(source)) throw new Error(`No version field in ${file}`)

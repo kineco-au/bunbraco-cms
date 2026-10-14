@@ -17,7 +17,7 @@ import {
   resolvePackageDir,
   resolveStaticFile,
 } from '@crombolo/backoffice-host'
-import { warnAboutAppPlugins } from '@crombolo/server'
+import { VERSION, warnAboutAppPlugins } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -70,7 +70,12 @@ function siteWith(
     mkdirSync(dir, { recursive: true })
     writeFileSync(
       join(dir, 'package.json'),
-      JSON.stringify({ name, version: '1.2.3', ...fixture.json }),
+      JSON.stringify({
+        name,
+        version: '1.2.3',
+        peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+        ...fixture.json,
+      }),
     )
     for (const [path, content] of Object.entries(fixture.files ?? {})) {
       const file = join(dir, path)
@@ -83,7 +88,7 @@ function siteWith(
 
 const extension = (over: Record<string, unknown> = {}) => ({
   crombolo: {
-    id: 'Acme.Seo',
+    id: 'acme-seo',
     extensions: [
       { type: 'dashboard', alias: 'Acme.Dashboard.Seo', name: 'SEO', element: 'dist/seo.js' },
     ],
@@ -98,7 +103,7 @@ describe('discovery', () => {
     expect(found).toHaveLength(1)
     expect(found[0]?.packageName).toBe('@acme/seo')
     expect(found[0]?.version).toBe('1.2.3')
-    expect(found[0]?.manifest.id).toBe('Acme.Seo')
+    expect(found[0]?.manifest.id).toBe('acme-seo')
   })
 
   test('ignores a dependency that declares nothing', () => {
@@ -119,7 +124,7 @@ describe('discovery', () => {
     const root = siteWith(
       {
         '@acme/seo': { json: extension() },
-        '@other/sneaky': { json: extension({ id: 'Sneaky' }) },
+        '@other/sneaky': { json: extension({ id: 'sneaky' }) },
       },
       { declared: ['@acme/seo'] },
     )
@@ -174,6 +179,7 @@ describe('asset paths', () => {
       tool: {
         json: {
           crombolo: {
+            id: 'tool',
             extensions: [
               {
                 type: 'propertyEditorUi',
@@ -203,6 +209,7 @@ describe('asset paths', () => {
       tool: {
         json: {
           crombolo: {
+            id: 'tool',
             extensions: [{ type: 'dashboard', alias: 'a', name: 'a', element: 'a.js' }],
             importmap: { imports: { '@acme/lib': 'dist/lib.js' } },
           },
@@ -290,7 +297,12 @@ describe('the registry', () => {
     mkdirSync(added, { recursive: true })
     writeFileSync(
       join(added, 'package.json'),
-      JSON.stringify({ name: 'later', version: '2.0.0', ...extension({ id: 'Later' }) }),
+      JSON.stringify({
+        name: 'later',
+        version: '2.0.0',
+        peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+        ...extension({ id: 'later' }),
+      }),
     )
     writeFileSync(
       join(root, 'package.json'),
@@ -314,7 +326,7 @@ describe('manifests', () => {
   test('an installed extension joins the framework manifests', () => {
     const root = siteWith({ '@acme/seo': { json: extension() } })
     const set = collectManifests(createBackOfficePaths(), discoverExtensions(root))
-    expect(set.all.some((manifest) => manifest.id === 'Acme.Seo')).toBe(true)
+    expect(set.all.some((manifest) => manifest.id === 'acme-seo')).toBe(true)
     // And the framework's own is still there.
     expect(set.all.some((manifest) => manifest.id === 'Crombolo.Core')).toBe(true)
   })
@@ -338,7 +350,7 @@ describe('over HTTP', () => {
     open.push(h)
 
     const manifests = await h.json<Array<{ id?: string | null }>>(`${V1}/manifest/manifest`)
-    expect(manifests.some((manifest) => manifest.id === 'Acme.Seo')).toBe(true)
+    expect(manifests.some((manifest) => manifest.id === 'acme-seo')).toBe(true)
 
     const asset = await h.call(`${EXTENSION_PATH}/@acme/seo/dist/seo.js`)
     expect(asset.status).toBe(200)

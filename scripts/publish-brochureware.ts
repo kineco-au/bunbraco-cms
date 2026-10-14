@@ -24,6 +24,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
+import { readBundlePackage } from '@crombolo/backoffice-host'
 import { writeZip, type ZipEntry } from '../packages/server/src/zip.ts'
 import { SITES_DIR, slugOf } from './sites.ts'
 
@@ -109,7 +110,7 @@ export interface Archive {
 }
 
 /**
- * The bundle as one zip.
+ * The bundle package as one zip: its `package.json` and the payload beside it.
  *
  * Deterministic: `writeZip` fixes every timestamp, and the entries are sorted,
  * so unchanged content produces identical bytes and the hash below is a real
@@ -117,8 +118,11 @@ export interface Archive {
  */
 export function archiveOf(dir = BUNDLE_DIR): Archive {
   const files = bundleFiles(dir)
-  if (!files.includes('bundle.json'))
-    throw new Error(`${dir} has no bundle.json, so it is not a bundle.`)
+  const { bundle, problems } = readBundlePackage(dir)
+  if (!bundle?.carries.content)
+    throw new Error(
+      `${dir} is not a bundle package with content${problems.length > 0 ? `: ${problems.join('; ')}` : ''}.`,
+    )
   const entries: ZipEntry[] = files.map((path) => ({
     path,
     bytes: new Uint8Array(readFileSync(join(dir, path))),

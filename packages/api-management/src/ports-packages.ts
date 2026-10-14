@@ -41,6 +41,7 @@ export type PackageWriteStatus = 'NotFound' | 'DuplicateName' | 'InvalidName'
 /** A built package, ready to send. */
 export interface BuiltPackage {
   fileName: string
+  contentType: string
   /** Owns its buffer, so it can be a response body without a copy. */
   bytes: Uint8Array<ArrayBuffer>
 }
@@ -53,6 +54,6 @@ export interface PackagePort {
   create(input: PackageDefinitionInput, id: string | undefined): Promise<PackageWriteResult>
   update(id: string, input: PackageDefinitionInput): Promise<PackageWriteResult>
   remove(id: string): Promise<'deleted' | 'notFound'>
-  /** Serializes and zips the definition now; undefined when it is gone. */
+  /** Serializes and packs the definition now; undefined when it is gone. */
   build(id: string): Promise<BuiltPackage | undefined>
 }

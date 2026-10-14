@@ -26,12 +26,21 @@ export interface Bundle {
   scripts: string[]
   languages: string[]
   dictionaryItems: string[]
+  /**
+   * The npm package the bundle is built as. Not in Umbraco's definition, so the
+   * contract never writes these; null until someone sets them.
+   */
+  packageName: string | null
+  packageVersion: string | null
   createDate: Date
   updateDate: Date
 }
 
 /** A definition to store; `id` is assigned when it is new, the dates always. */
-export type BundleInput = Omit<Bundle, 'id' | 'createDate' | 'updateDate'>
+export type BundleInput = Omit<
+  Bundle,
+  'id' | 'createDate' | 'updateDate' | 'packageName' | 'packageVersion'
+>
 
 interface Row {
   id: string
@@ -49,6 +58,8 @@ interface Row {
   scripts: string
   languages: string
   dictionary_items: string
+  package_name: string | null
+  package_version: string | null
   create_date: unknown
   update_date: unknown
 }
@@ -56,7 +67,8 @@ interface Row {
 const SELECT = `SELECT id, name, content_node_id, content_load_child_nodes,
                        media_load_child_nodes, media_ids, element_ids, content_types,
                        media_types, data_types, components, stylesheets,
-                       scripts, languages, dictionary_items, create_date, update_date
+                       scripts, languages, dictionary_items, package_name, package_version,
+                       create_date, update_date
                   FROM bundle`
 
 const list = (value: string | null): string[] => {
@@ -87,6 +99,8 @@ const hydrate = (row: Row): Bundle => ({
   scripts: list(row.scripts),
   languages: list(row.languages),
   dictionaryItems: list(row.dictionary_items),
+  packageName: row.package_name ?? null,
+  packageVersion: row.package_version ?? null,
   createDate: DbDate.fromDb(row.create_date) ?? new Date(0),
   updateDate: DbDate.fromDb(row.update_date) ?? new Date(0),
 })
@@ -152,7 +166,14 @@ export class BundleRepository {
         DbDate.toDb(now),
       ],
     )
-    return { ...input, id, createDate: now, updateDate: now }
+    return {
+      ...input,
+      id,
+      packageName: null,
+      packageVersion: null,
+      createDate: now,
+      updateDate: now,
+    }
   }
 
   async update(id: string, input: BundleInput): Promise<void> {
@@ -182,6 +203,17 @@ export class BundleRepository {
         DbDate.toDb(new Date()),
         id,
       ],
+    )
+  }
+
+  /** The npm package a definition is built as; null clears a value back to its default. */
+  async setPackage(
+    id: string,
+    pkg: { name: string | null; version: string | null },
+  ): Promise<void> {
+    await this.#db.exec(
+      'UPDATE bundle SET package_name = ?, package_version = ?, update_date = ? WHERE id = ?',
+      [pkg.name, pkg.version, DbDate.toDb(new Date()), id],
     )
   }
 

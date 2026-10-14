@@ -24,6 +24,9 @@ export interface TransferRun {
   id: string
   bundleId: string
   bundleLabel: string | null
+  /** The npm package the content arrived in, and its version. */
+  packageName: string | null
+  packageVersion: string | null
   direction: TransferDirection
   revertsRunId: string | null
   schemaStateId: number
@@ -57,12 +60,14 @@ export class TransferRunRepository {
   async start(run: Omit<TransferRun, 'finishedAt' | 'status'>): Promise<void> {
     await this.#db.exec(
       `INSERT INTO content_transfer_run
-         (id, bundle_id, bundle_label, direction, reverts_run_id, schema_state_id, started_at, applied_by, node_count, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied')`,
+         (id, bundle_id, bundle_label, package_name, package_version, direction, reverts_run_id, schema_state_id, started_at, applied_by, node_count, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied')`,
       [
         run.id,
         run.bundleId,
         run.bundleLabel,
+        run.packageName,
+        run.packageVersion,
         run.direction,
         run.revertsRunId,
         run.schemaStateId,
@@ -121,6 +126,17 @@ export class TransferRunRepository {
     return rows[0] ? mapRun(rows[0]) : undefined
   }
 
+  /** The latest standing import of a package's content, whichever version brought it. */
+  async appliedForPackage(packageName: string): Promise<TransferRun | undefined> {
+    const rows = await this.#db.query(
+      `SELECT * FROM content_transfer_run
+         WHERE package_name = ? AND direction = 'import' AND status = 'applied'
+         ORDER BY started_at DESC, id DESC LIMIT 1`,
+      [packageName],
+    )
+    return rows[0] ? mapRun(rows[0]) : undefined
+  }
+
   /** Runs, newest first. */
   async recent(limit = 20): Promise<TransferRun[]> {
     const rows = await this.#db.query(
@@ -164,6 +180,8 @@ function mapRun(row: Record<string, unknown>): TransferRun {
     id: String(row.id),
     bundleId: String(row.bundle_id),
     bundleLabel: (row.bundle_label as string | null) ?? null,
+    packageName: (row.package_name as string | null) ?? null,
+    packageVersion: (row.package_version as string | null) ?? null,
     direction: String(row.direction) as TransferDirection,
     revertsRunId: (row.reverts_run_id as string | null) ?? null,
     schemaStateId: Number(row.schema_state_id),

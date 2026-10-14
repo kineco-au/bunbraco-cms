@@ -20,13 +20,27 @@ import {
   seedContent,
   seedIdentity,
 } from '@crombolo/data'
+import { type BundleChain, migrateBundles, pendingBundleSteps } from './bundle-tables.ts'
 import type { CromboloConfig } from './config.ts'
 
 /** Production never auto-upgrades: an existing database with steps pending refuses to boot. */
 export class UpgradePendingError extends Error {
-  constructor(readonly steps: string[]) {
+  constructor(
+    readonly steps: string[],
+    /** Each bundle with steps pending, and those steps. */
+    readonly bundles: { id: string; steps: string[] }[] = [],
+  ) {
+    const parts: string[] = []
+    if (steps.length > 0)
+      parts.push(
+        `${steps.length} framework migration(s) pending on this database: ${steps.join(', ')}.`,
+      )
+    for (const bundle of bundles)
+      parts.push(
+        `The bundle "${bundle.id}" has ${bundle.steps.length} step(s) pending on this database: ${bundle.steps.join(', ')}.`,
+      )
     super(
-      `${steps.length} framework migration(s) pending on this database: ${steps.join(', ')}. ` +
+      `${parts.join(' ')} ` +
         'Production does not upgrade at boot; run `crombolo upgrade check`, then `crombolo upgrade`.',
     )
   }
@@ -65,16 +79,35 @@ export async function attachDatabase(config: CromboloConfig): Promise<Bootstrap>
   return { db, seededAdminPassword: undefined }
 }
 
-export async function bootstrapDatabase(config: CromboloConfig): Promise<Bootstrap> {
+/**
+ * `chains` are the wired bundles' tables, which only a node that mounts bundles
+ * passes: a bundle's steps pending in production refuse the boot just as
+ * core's do, and a database ahead of a bundle's code refuses it by name.
+ */
+export async function bootstrapDatabase(
+  config: CromboloConfig,
+  chains: readonly BundleChain[] = [],
+): Promise<Bootstrap> {
   const db = await connect({ file: config.sqliteFile })
-  // pendingMigrations throws when the database is newer than this code.
-  const pending = await pendingMigrations(db, cromboloPlan)
-  const fresh = (await readState(db)) === INITIAL_STATE
-  if (pending.length > 0 && !fresh && !config.development) {
+  try {
+    // pendingMigrations throws when the database is newer than this code.
+    const pending = await pendingMigrations(db, cromboloPlan)
+    const fresh = (await readState(db)) === INITIAL_STATE
+    const bundles = fresh ? [] : await pendingBundleSteps(db, chains)
+    const bundlesPending = bundles.filter((bundle) => bundle.pending.length > 0)
+    if ((pending.length > 0 || bundlesPending.length > 0) && !fresh && !config.development)
+      throw new UpgradePendingError(
+        pending.map((m) => m.name),
+        bundlesPending.map((bundle) => ({
+          id: bundle.id,
+          steps: bundle.pending.map((m) => m.name),
+        })),
+      )
+  } catch (error) {
     await db.close()
-    throw new UpgradePendingError(pending.map((m) => m.name))
+    throw error
   }
-  return { db, seededAdminPassword: await installDatabase(db, config) }
+  return { db, seededAdminPassword: await installDatabase(db, config, chains) }
 }
 
 /**
@@ -83,8 +116,14 @@ export async function bootstrapDatabase(config: CromboloConfig): Promise<Bootstr
  * steps is exactly its job. Returns the admin password when this run created
  * the account and none was configured.
  */
-export async function installDatabase(db: Db, config: CromboloConfig): Promise<string | undefined> {
+export async function installDatabase(
+  db: Db,
+  config: CromboloConfig,
+  chains: readonly BundleChain[] = [],
+): Promise<string | undefined> {
   await migrate(db, cromboloPlan, { by: config.nodeId })
+  // Core first, so a bundle step always runs against a core it declared itself compatible with.
+  await migrateBundles(db, chains, { by: config.nodeId })
 
   const password = config.adminPassword ?? crypto.randomUUID().replaceAll('-', '').slice(0, 20)
   const seeded = await seedIdentity(db, {

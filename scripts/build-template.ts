@@ -32,8 +32,8 @@ import {
   readBlobs,
   syncSchemaDirectory,
 } from '@crombolo/server'
-import { exportBundle, writeBundle } from '@crombolo/transfer'
-import { copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
+import { exportBundle, PAYLOAD_DIR, writeBundle, writeBundlePackage } from '@crombolo/transfer'
+import { contentPackage, copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
 
@@ -974,7 +974,10 @@ async function build(template: Target): Promise<void> {
     if (read.missing.length > 0)
       throw new Error(`built media that is not in the store: ${read.missing.join(', ')}`)
 
-    for (const file of writeBundle(stable, read.bytes)) {
+    // The payload is replaced whole, so a node the content no longer has does not linger.
+    rmSync(join(template.bundleDir, PAYLOAD_DIR), { recursive: true, force: true })
+    const files = writeBundlePackage(writeBundle(stable, read.bytes), contentPackage(template))
+    for (const file of files) {
       const target = join(template.bundleDir, file.path)
       mkdirSync(join(target, '..'), { recursive: true })
       writeFileSync(target, file.bytes ?? (file.text as string))

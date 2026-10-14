@@ -11,6 +11,57 @@ document keeps them apart:
   `App_Plugins` directory convention inherited from Umbraco; it is now npm
   dependencies, and `App_Plugins` has been removed.
 
+## One artifact: a bundle is an npm package
+
+Every bundle is an npm package, with no exceptions: the Created view's
+download, an environment's content export, a starter template's content, and
+anything published to the registry. Its `package.json` carries the **bundle
+manifest** in its `crombolo` field, and the manifest declares the bundle's three
+possible halves:
+
+```json
+{
+  "name": "@acme/tasks",
+  "version": "1.1.0",
+  "keywords": ["crombolo-bundle"],
+  "peerDependencies": { "@crombolo/crombolo": "^0.10.0" },
+  "crombolo": {
+    "id": "acme-tasks",
+    "name": "Tasks",
+    "extensions": [],
+    "content": "bundle",
+    "server": "tasks"
+  }
+}
+```
+
+| Field | What it is |
+| --- | --- |
+| `id` | the bundle's one identity: its route segment, its log name, and the prefix of anything else it owns. 2–39 lowercase letters, digits and hyphens, starting with a letter |
+| `name` | what a person calls it; the package name when absent |
+| `extensions` | the backoffice half, Umbraco extension manifests (Part 2) |
+| `content` | a directory inside the package holding a `bundle.json` payload: schema, components, styles, scripts, dictionary items and content (Part 1) |
+| `server` | the factory the package exports for its server half (Part 3). A declaration only: core never imports it |
+
+A manifest with none of the three halves is refused, because it declares a
+bundle that does nothing. `peerDependencies["@crombolo/crombolo"]` is required of
+every bundle, and a bundle whose range excludes the running release is refused,
+naming the bundle, its range and the running version. `bun run release:version`
+moves the range of every bundle this repository commits.
+
+The one module that reads and validates the field is
+`backoffice-host/src/bundle-package.ts`, so discovery, the marketplace, the
+server half and the installer cannot disagree about what a bundle is.
+`@crombolo/crombolo`'s own package carries a `crombolo` field too, its release
+declaration, and is never read as a bundle.
+
+**The payload keeps its own format.** `bundle.json` and the directories beside
+it are exactly what [`content-transfer.md`](content-transfer.md) describes, with
+the same integrity hash and the same installer. The package is what gives the
+payload a name, a version and the core it was written for. `bundle.json`'s own
+`id` identifies the export it came from, which is what the transfer ledger keys
+on, so it stays distinct from `crombolo.id`.
+
 ## What the backoffice calls them
 
 The section reads **Bundles**. One word for one thing: the artifact the builder
@@ -97,26 +148,35 @@ error toast, and the Marketplace view sat on its spinner forever waiting for a
 
 ## The artifact: a created package *is* a bundle
 
-There is one artifact format, and it is the bundle
-([`content-transfer.md`](content-transfer.md)). A created package is a
-bundle that carries its own structure — so one writer produces it, one reader
-validates it, one manifest covers it and one importer applies it.
+There is one artifact format, and it is the bundle: an npm package whose
+payload is a transfer bundle ([`content-transfer.md`](content-transfer.md)).
+A created package is a bundle that carries its own structure, so one writer
+produces it, one reader validates it, one manifest covers it and one importer
+applies it.
 
 It is **not** an Umbraco package: an Umbraco install cannot read it, and that is
 a deliberate trade for carrying everything the builder UI offers using exporters
 that already exist and are already tested.
 
 ```
-package.zip
-├── bundle.json            the manifest: what this is, and which sections it carries
-├── nodes/<uuid>.json      picked content, media and element nodes   ┐
-├── blobs/<key>            the media bytes                          │
-├── schema/*.toml          types and languages, canonical TOML       │ each
-├── components/…           components, at whatever depth             │ optional
-├── styles/…               stylesheets                               │
-├── scripts/…              scripts                                   │
-└── dictionary.udt         dictionary items                          ┘
+acme-tasks-1.0.0.tgz
+└── package/
+    ├── package.json           name, version, keyword, peer range, and the crombolo manifest
+    └── bundle/
+        ├── bundle.json        the payload's manifest: what it is, and which sections it carries
+        ├── nodes/<uuid>.json  picked content, media and element nodes   ┐
+        ├── blobs/<key>        the media bytes                          │
+        ├── schema/*.toml      types and languages, canonical TOML       │ each
+        ├── components/…       components, at whatever depth             │ optional
+        ├── styles/…           stylesheets                               │
+        ├── scripts/…          scripts                                   │
+        └── dictionary.udt     dictionary items                          ┘
 ```
+
+The download is laid out as `npm pack` lays out a package, so `bun add
+./acme-tasks-1.0.0.tgz` installs it and `bun publish` publishes it as it is. Its
+`package.json` names the package, carries the `crombolo-bundle` keyword, and
+declares a peer range on the release it was built by.
 
 **The section names are logical, not the destination's directory names.** A site
 holds its components wherever `componentsDir` points, so the artifact says what a
@@ -182,13 +242,25 @@ package is loadable by the importer that already exists. The schema half is
 canonical TOML, so it is applied by copying it into `schema/` and running the
 sync that a deploy already runs. Nothing here needs a bespoke installer.
 
-### Zipping
+### Packing
 
-No dependency. Bun's `node:zlib` provides both `deflateRawSync` and `crc32`
-(verified), which is everything a zip writer needs — roughly 60 lines for local
-headers, the central directory and the end record. It belongs in
-`packages/server/src/zip.ts` with its own unit test, because a zip we write
-wrongly fails in the user's unzip tool rather than in our suite.
+No dependency. A package tarball is a gzipped ustar archive: 512-byte headers
+and padded file bodies, every entry under `package/`, which `server/src/tar.ts`
+writes in under 100 lines and `Bun.gzipSync` compresses. Timestamps are fixed at
+the one npm writes, so the same selection packs to the same bytes. Its test
+unpacks the result with the system's own `tar`, because a tarball we write
+wrongly fails in somebody's package manager rather than in our suite.
+
+### The package's name and version
+
+Umbraco's definition has no field for either, so the `bundle` table stores
+them beside the columns the contract names (`package_name` and
+`package_version`, migration 029 in 0.10.0). The builder workspace has no seam
+for a field of its own, so they are set from the Created overview instead: each
+row shows the `name@version` it downloads as, and **Package details** edits
+them, through `<backoffice>/crombolo/api/bundles/created/<id>/package`. Until
+they are set, the name is derived from the definition's name and the version is
+`1.0.0`; an empty field goes back to that default.
 
 ## Where definitions live
 
@@ -211,9 +283,9 @@ Columns follow the contract's model: `id`, `name`, `content_node_id`,
 types, components, stylesheets, scripts, languages, dictionary items. The lists are JSON text; they are read and written whole and never
 queried into, so a column each would be columns for nothing.
 
-## The zip is built on download, never stored
+## The package is built on download, never stored
 
-`GetPackageCreatedByIdDownload` serializes and zips on the spot. The definition
+`GetPackageCreatedByIdDownload` serializes and packs on the spot. The definition
 is the only stored state.
 
 This is the difference that matters in practice: a stored artifact goes stale
@@ -231,7 +303,7 @@ in the response is a derived filename rather than a real path.
 | `GetPackageCreatedById` | the definition, 404 otherwise |
 | `PutPackageCreatedById` | update |
 | `DeletePackageCreatedById` | delete |
-| `GetPackageCreatedByIdDownload` | build and stream the zip |
+| `GetPackageCreatedByIdDownload` | build and stream the package tarball |
 | `GetPackageConfiguration` | `{ marketplaceUrl }` — see Part 2 |
 | `GetPackageMigrationStatus` | `{ total: 0, items: [] }`, honestly |
 | `PostPackageByNameRunMigration` | 404 for every name |
@@ -292,21 +364,29 @@ at 1.0.
 
 ## `package.json` is the source of truth
 
-A site's extensions are its dependencies. Discovery reads the site's
-`package.json`, resolves each dependency, and reads a `crombolo` field from the
-dependency's own `package.json`:
+A site's bundles are its dependencies. Discovery reads the site's
+`package.json`, resolves each dependency, and reads the bundle manifest from the
+dependency's own `package.json`. A bundle's backoffice half is its
+`extensions`:
 
 ```json
 {
   "name": "@acme/seo-tools",
+  "version": "1.0.0",
+  "peerDependencies": { "@crombolo/crombolo": "^0.10.0" },
   "crombolo": {
-    "id": "Acme.SeoTools",
+    "id": "acme-seo-tools",
     "extensions": [
       { "type": "dashboard", "alias": "Acme.Dashboard.Seo", "element": "dist/seo.js" }
     ]
   }
 }
 ```
+
+A dependency without a `crombolo` field is an ordinary dependency and is
+ignored. One that has the field and fails validation is reported by package and
+left out, so one malformed bundle cannot take the backoffice's manifest down
+with it.
 
 One file, no second artifact, and discovery reads a file it is opening anyway.
 Asset paths are relative to the package root; the server rewrites them to its
@@ -370,13 +450,18 @@ an install button.
 
 It is fed by a server-side proxy rather than a browser fetch: it works where the
 browser cannot reach npm, keeps the backoffice making same-origin requests only,
-caches briefly, and keeps the keyword in config. `marketplaceUrl` from
+caches briefly, and keeps the keyword in config. A hit is listed only when its
+latest version's manifest validates, and each card says what the bundle adds:
+screens, content, server features. `marketplaceUrl` from
 `GetPackageConfiguration` stays in the contract and points at that view, so a
 site that wants the Umbraco marketplace back can set it.
 
 `Umb.SectionView.Packages.Installed` is overwritten too — it is built around
 pending package migrations, which do not exist here. The native view lists the
-declared `crombolo` dependencies with their versions.
+site's bundle dependencies with their versions, what each adds, whether its
+content has been added here (from the transfer runs, which record the package
+and version that brought them, migration 030), and whether its server features
+are switched on by `crombolo.config.ts`.
 
 ## Runtime install
 
@@ -388,6 +473,15 @@ hand-maintaining a lockfile, and a lockfile maintained badly is worse than none.
 
 Then discovery is invalidated and the next manifest read picks the extension up.
 No restart.
+
+**Then its content, unless declined.** A bundle that carries content has it
+applied straight after `bun add`, through the same installer and overlay check
+as `crombolo bundle install` (`server/src/bundle-install.ts`), with the server's
+own connection. The site turns this off with `applyBundleContentOnInstall: false`
+(`CROMBOLO_APPLY_BUNDLE_CONTENT=false`), and the Marketplace card has a toggle
+that declines it for one install. A refused check or a backup the site cannot
+take leaves the dependency installed and says why, naming the command that
+applies the content later; the install that succeeded is not undone.
 
 **`package.json` is the install ledger.** There is no separate record of what was
 installed at runtime, because the dependency list already is one. "Incorporate
@@ -405,13 +499,18 @@ what there is to commit.
 - **It needs a writable site directory and network egress.** Both fail cleanly:
   a read-only filesystem and an unreachable registry each get a specific error,
   not a subprocess stack trace.
-- **A runtime install is client-side only.** A package whose code must run in
-  the server process is a dependency plus a deploy — see
+- **A runtime install never loads a bundle's code.** A package whose code must
+  run in the server process is a dependency plus a deploy — see
   [Part 3](#part-3--server-side-bundles), which is what that turned into.
   Loading third-party JS into a running node has no isolation story and a
-  `role: web` node would never see it, so an install writes `package.json` and
-  stops there. A package that installs but declares nothing is reported as
-  exactly that rather than as a success.
+  `role: web` node would never see it, so an install writes `package.json`,
+  applies the content (which is files and data, never code), and stops there. A
+  package that installs but is not a valid bundle is reported as exactly that
+  rather than as a success.
+- **Content applied at runtime is this node's too.** It writes `schema/` and the
+  component directories on the node that served the request. On a
+  load-balanced site, turn `applyBundleContentOnInstall` off and let the content
+  arrive with the deploy that commits it.
 - **Uninstall** is `bun remove`, the same path in reverse.
 
 Supply chain: the install runs third-party JS in the backoffice origin with the
@@ -427,13 +526,20 @@ reviewed — is not built yet: stories `060` and `061`.
 
 ## Installing one
 
-A package is a bundle, so it installs through the bundle's own commands — there
-is no second importer:
+A bundle's content installs through the bundle's own commands — there is no
+second importer:
 
 ```
-crombolo bundle check  <dir>      # read-only: what it would do here
-crombolo bundle install <dir>     # apply it
+crombolo bundle check   <pkg>     # read-only: what it would do here
+crombolo bundle install <pkg>     # apply it
 ```
+
+`<pkg>` is either the name of a bundle the site depends on, resolved exactly as
+discovery resolves it, or a package directory, applied in place without being
+added to `package.json` — which is how an environment's export arrives. A
+directory holding a bare `bundle.json` with no `package.json` is refused, as is
+a package whose manifest names no `content` or whose peer range excludes this
+release. The transfer run records the package's name and version.
 
 `bundle` is the artifact's name and `install` reads better for one that brings
 its own structure, but these are aliases: `content check` and `content import`
@@ -514,17 +620,18 @@ repeat install is not a silent no-op the way re-importing unchanged content is.
 | Piece | Where |
 | --- | --- |
 | The nine operations | `api-management/src/handlers/package.ts`, `ports-packages.ts` |
-| Definitions | `data/src/schema/created-packages.ts` (migration, release 0.5.0), `data/src/repositories/created-packages.ts` |
-| The build | `server/src/adapters/packages.ts` — composition of `exportSchemaSet`, `exportBundle`/`writeBundle`, `FileSystemPort` and `dictionaryToUdt` |
-| The zip | `server/src/zip.ts` |
-| The format | `transfer/src/model.ts` (`carries`, `label`, sections), `write.ts`, `load.ts` |
-| The installer | `cli/src/operations/sections.ts`, wired into `contentCheck`/`contentImport` |
+| Definitions | `data/src/schema/created-packages.ts` (migration, release 0.5.0), `bundle-package.ts` (the npm name and version, 0.10.0), `data/src/repositories/bundles.ts` |
+| The build | `server/src/adapters/bundles.ts` — composition of `exportSchemaSet`, `exportBundle`/`writeBundle`, `FileSystemPort` and `dictionaryToUdt`, wrapped by `writeBundlePackage` |
+| The tarball | `server/src/tar.ts` |
+| The manifest | `backoffice-host/src/bundle-package.ts` — reading, validation, discovery and the peer range |
+| The format | `transfer/src/model.ts` (`carries`, `label`, sections), `write.ts`, `load.ts`; `package.ts` for the package around a payload |
+| The installer | `server/src/bundle-install.ts` and `bundle-sections.ts`, called by the CLI's `contentCheck`/`contentImport` and by the Marketplace |
 | File safety and revert | `replacementsNeedingPermission`, `stageBackups`/`promoteBackups`/`restoreSectionFiles`, same file |
 | Discovery and serving | `backoffice-host/src/extensions.ts`, wired through `static.ts` and `manifests.ts` |
 | The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/crombolo/api/bundles/*` |
 | The two native views | `backoffice-host/plugin/bundles-marketplace.js`, `bundles-installed.js` |
 | The App_Plugins notice | `server/src/extensions-notice.ts` |
-| Server-side bundles | `server/src/bundles.ts`, wired in `server.ts`, `bundles` in `config.ts` |
+| Server-side bundles | `server/src/bundles.ts`, wired in `server.ts`, `bundles` in `config.ts`, matched to their packages at boot |
 | The redirects bundle | `packages/simple-redirects` — `src/index.ts` and `plugin/` |
 
 Adding the migration needed `bun run release:version 0.5.0` first: `v0.4.0` was
@@ -534,16 +641,24 @@ someone's `migration_history` as a release that was never cut (`AGENTS.md`).
 
 ## Testing
 
-`tests/bundles.test.ts` covers the contract operations and the build. The
-content assertion is a round trip: build a zip from a definition, unzip it,
-write the bundle out and load it through `loadBundle` — so the package is proved
-to carry a real bundle rather than a file of the right name.
+`tests/bundle-package.test.ts` covers the manifest, one rule per test: the id,
+the package name and version, the peer range, a bundle that does nothing, a
+server half that is not an export name, content outside the package or holding
+no payload, every problem reported at once, and core's own field never read as a
+bundle.
 
-`tests/zip.test.ts` reads each archive back through its central directory, the
-way an unzip tool does, rather than through the writer's own assumptions; a
-wrong offset or size is a test failure instead of a corrupt download. It covers
-an empty entry, incompressible bytes that must be stored rather than grown, a
-non-ASCII path and determinism.
+`tests/bundles.test.ts` covers the contract operations and the build. The
+content assertion is a round trip: build the tarball from a definition, unpack
+it, write the payload out and load it through `loadBundle` — so the package is
+proved to carry a real bundle rather than a file of the right name. The whole
+package, unpacked, is accepted by the installer, and the npm name and version
+set from the Created view are what the download is packed as.
+
+`tests/tar.test.ts` reads each tarball back two ways: through a reader of its
+own that is independent of the writer, and through the system's `tar`, so a
+wrong header is a test failure instead of a corrupt download. It covers an empty
+entry, a non-ASCII path, a path too long for one header field, determinism, and
+a path that would land outside the package.
 
 `tests/extensions.test.ts` covers discovery (including a transitive dependency
 that declares an extension and must be ignored), asset-path rewriting, the
@@ -551,7 +666,11 @@ memoizing registry, and serving — a path escaping the package root and a
 dependency that is not a declared extension are both refused, so `/packages/`
 cannot be used to read `node_modules`.
 
-`tests/bundle-install.test.ts` covers the installer: each section mapping onto
+`tests/bundle-install.test.ts` covers the installer: finding a bundle as a
+package directory applied in place or as a dependency by name, the run
+recording the package and version, and the refusals — a name the site does not
+depend on, a bare payload, a peer range that excludes this release, and a
+package with no content. Then each section mapping onto
 this site's directories, that a plan writes nothing, create vs overwrite vs
 unchanged, the overlay schema check, declining either half, and that applying
 twice converges on one type rather than duplicating it.
@@ -570,12 +689,18 @@ out of the bundle is dropped, and a newer format is refused by name.
 
 `tests/marketplace.test.ts` runs against a recorded registry and a stubbed
 installer: the keyword search, the packument filter that drops keyword
-squatters, the unreachable-registry case, name and version validation, and what
-the user is told after an install. Nothing in the suite reaches npm.
+squatters and invalid manifests, the unreachable-registry case, name and version
+validation, and what the user is told after an install. The content half is
+applied after `bun add`, declined by the request or by the site, and a refused
+or throwing content install leaves the dependency installed and says why.
+Nothing in the suite reaches npm.
 
 `tests/server-bundles.test.ts` covers the mechanism on its own, with a stub host
 and no database, because the things that must hold are properties of
-`bundles.ts` rather than of any one bundle: an id or route path that could leave
+`bundles.ts` rather than of any one bundle: a wired bundle no declared package
+owns, one whose package declares no server half and one whose peer range
+excludes the running release are each refused by name, the mounted bundle takes
+its name and version from its package, an id or route path that could leave
 the namespace is refused, a bad set fails the boot naming every problem at once,
 `api/bundles/` is not claimed by `api/bundle/`, the section is checked before the
 handler runs, a handler sees only the capabilities it declared in a frozen
@@ -647,13 +772,29 @@ A narrow interface, not the server:
 
 ```ts
 export interface ServerBundle {
-  id: string              // URL segment and log name
-  name: string
+  id: string              // the crombolo.id of the package that exports it
   section: BundleSection  // what a caller must have access to
   capabilities: readonly BundleCapability[]
   routes: readonly ServerBundleRoute[]
 }
 ```
+
+**A wired bundle belongs to a package.** Its id must be the `crombolo.id` of a
+dependency the site declares whose manifest has a `server`, and its name,
+version and peer range are read from that package rather than declared twice.
+A wired bundle no declared package owns, or one whose peer range excludes the
+running release, refuses the boot by name. A bundle reads its id from its own
+`package.json` so it is written once:
+
+```ts
+import manifest from '../package.json' with { type: 'json' }
+
+export const tasks = (): ServerBundle => ({ id: manifest.crombolo.id, … })
+```
+
+The `server` field is a declaration only: core reads it to know a package has a
+server half, and never imports the module it names. What runs is still exactly
+what `crombolo.config.ts` imports.
 
 `section` is a core section by its application alias (`settings`, `content`) or
 a section of the bundle's own by its manifest alias (`Acme.Section.Design`).
@@ -728,20 +869,16 @@ administrator, who was never granted it, is refused.
 
 ### Deliberately not offered
 
-Migrations, raw SQL, and writing the site's files. A bundle that needs a table of
-its own needs a release of this CMS: a migration arriving with a dependency is a
-schema change no `migration_history` can account for, and the version checks in
-`AGENTS.md` exist precisely so that cannot happen quietly.
+Raw SQL, a `Db`, migrations of core's tables, and writing the site's files. The
+original objection to a bundle's migrations still stands: a migration arriving
+with a dependency would be a schema change no `migration_history` could account
+for. What a bundle may have instead is tables of its **own**, under its own
+ledgered chain and its own prefix, which [Part 4](#part-4--tables-a-bundle-owns)
+describes — and nothing that reaches a table of core's.
 
 A capability is therefore the unit of negotiation. Adding one is a deliberate act
 in core — which is the point, because it is also the moment somebody decides what
 a third party may touch.
-
-**Planned: tables a bundle owns** (story `062`). This plan keeps
-the objection above and answers it. Each bundle gets its own ledgered
-migration chain, written with a declarative builder rather than SQL and held
-to the same expand/contract rules, plus a `tables` capability confined to the
-bundle's own `bundle_<id>__*` tables. Raw SQL and `Db` remain off the table.
 
 ## The first bundle: Simple Redirects
 
@@ -896,13 +1033,232 @@ same opt-in, not a way around it: the line lands in the site's own committed
 file, where it is visible in the first diff and removable by deleting it. A
 template cannot wire a bundle into a site without the site's code saying so.
 
+---
+
+# Part 4 — Tables a bundle owns
+
+A bundle that keeps state alongside content — a task list, an approval step, a
+log of its own — can now declare tables and evolve them across its own
+releases, without being able to break a site's core upgrades. This is story
+`062`, and every piece below is the answer to the objection in Part 3: core
+can see, verify and order a bundle's schema changes, because they are declared,
+ledgered and confined.
+
+## Declaring tables
+
+```ts
+import { defineBundleTables } from '@crombolo/crombolo'
+
+export const tables = defineBundleTables('acme-tasks', [
+  {
+    name: 'tasks',
+    release: '1.0.0',
+    up: (s) =>
+      s.createTable('task', {
+        id: s.uuid().primaryKey(),
+        node_key: s.uuid().indexed(),
+        assignee: s.uuid().nullable(),
+        status: s.varchar(32).default('open'),
+        due: s.timestamp().nullable(),
+      }),
+  },
+  {
+    name: 'task-priority',
+    release: '1.1.0',
+    up: (s) => s.addColumn('task', 'priority', s.integer().default(0)),
+    backfill: (data) => data.task.update({ where: { status: 'urgent' }, set: { priority: 9 } }),
+  },
+])
+```
+
+The bundle hands it to its `ServerBundle` as `tables`, and asks for the `tables`
+capability to use them at runtime. A step's `up` returns the builder's
+operations as plain data — there is no SQL in a declaration, and no escape hatch
+to some:
+
+| Kind | Operations |
+| --- | --- |
+| Expand | `createTable` (exactly one primary key), `addColumn` (nullable or defaulted only), `addIndex`, `widenColumn` (a longer varchar, varchar to text, integer to bigint) |
+| Contract | `dropTable`, `dropColumn` (not one an index covers), `dropIndex` |
+| Column types | `uuid`, `varchar(n)`, `text`, `integer`, `bigint`, `boolean`, `timestamp`, `json`, from the dialect seam |
+
+`json` is TEXT on both dialects, serialised and parsed by the capability, and
+can only be tested for null. Text compares case-sensitively on both. A default
+is a literal in DDL, so a string default is limited to letters, digits, spaces
+and `_ . : @ / -`, and `json` and `timestamp` take none.
+
+**A backfill is the step's own `backfill(data)`**, run in the step's
+transaction once `up` has, over the tables as that step leaves them. Keeping it
+out of `up` means a step's checksum and its plan never depend on data, and
+that the final shape of every table can be worked out from the declaration's
+types: `context.host.tables.task` is typed, and `context.host.tables.node` does
+not exist. `upgrade --plan` reports a step with a backfill as unplannable.
+
+## Names
+
+| What | Physical name |
+| --- | --- |
+| A table | `bundle_<id>__<table>`, the id's hyphens written as underscores |
+| An index | `bundle_<id>__ix_<hash>`, generated from what it covers, never chosen |
+
+An id with tables may not contain `--` or end with `-`, and a table or column
+name is `[a-z][a-z0-9_]*` without `__`, so the double underscore is an
+unambiguous separator and no two bundles can produce the same physical name. A
+table may not start with `ix_`, the indexes' namespace, nor be called
+`transaction`; a column may not be called `and` or `or`. Boot refuses any
+physical name past Postgres's 63-character limit, which Postgres would
+otherwise truncate silently.
+
+**Core reserves `bundle_`.** `tests/bundle-tables.test.ts` records every core
+migration's statements through the recording `Db` and fails if one names a
+`bundle_` table, which is what lets the guard treat a prefix match as proof.
+
+## The ledger
+
+| | Where |
+| --- | --- |
+| A bundle's state | `key_value`, under `Crombolo.Bundle.<id>.State` |
+| Its steps | `migration_history`, with the bundle's id in the `bundle` column; null for core |
+| A step's state | derived from its position and name: `bundle:<id>:<n>:<name>` |
+| A step's checksum | a hash of its recorded operations, not their SQL, so it is the same on both dialects |
+
+`migrate` is generalised over a chain's state key and initial state
+(`MigrationPlan` takes them), runs a bundle's chain under the same lock as
+core's, and writes through the same `recordInLedger`. Core's rows are exactly
+what they were. A bundle's chain is also verified before it runs: a step whose
+operations no longer match the checksum ledgered when it ran is refused,
+naming the step, because a shipped step is never edited.
+
+The `bundle` column is created with `migration_history`, and a table from
+before it gains it the first time the ledger is read, so a bundle's step can be
+ledgered whatever state core is at. A bundle's contract does not count toward
+the contracts a `web` node watches for: it removes only the bundle's tables,
+which no core read depends on.
+
+## Expand and contract, per bundle
+
+The rules core's plan is held to, with `release` read as the **bundle's**
+version: a contract may only ship in a bundle major (`x.0.0`), and may only
+remove what an earlier bundle release added; a step is an expand or a
+contract, never both; no step may claim a release later than the package's
+own version. `compileBundleTables` collects every problem and
+`validateServerBundles` reports them at boot. A bundle's own test suite can
+hold itself to the same rules with `assertBundleTables(tables, version)`, and
+`bundleTablesCompatibility(tables, version)` derives the
+`"crombolo": { "migrations": "compatible" | "breaking" }` its `package.json`
+declares, the way core's declaration is derived. Boot refuses a bundle with
+tables whose package declares none, or declares something its plan does not
+make true, because that field is what an operator's tooling reads to decide
+whether a release can roll out node by node.
+
+## Order and gates
+
+- `crombolo upgrade` applies core's pending steps first, then each bundle's, in
+  the order `bundles` lists them, so a bundle step always runs against a core it
+  declared itself compatible with. `bootstrapDatabase` and `installDatabase` do
+  the same.
+- `upgrade --plan` and `upgrade check` list bundle steps under their bundle;
+  `/status` reports `bundles[id].state` and `.pending`; the Changes dashboard
+  shows each bundle's changes, done and waiting.
+- In production, boot refuses while any bundle step is pending, with
+  `UpgradePendingError` naming the bundle. Development applies them.
+- A database ahead of a bundle's code refuses with `UpgradeStateError`, naming
+  the bundle and both states.
+- The pre-upgrade backup covers bundle tables, because they are in the same
+  database.
+- Only a node that mounts bundles — one serving the backoffice — applies or
+  checks them. A `web` node reads nothing of a bundle's.
+
+## The `tables` capability
+
+Offered only to a bundle that declares tables, and resolved against that
+bundle's final schema alone:
+
+```ts
+const open = await context.host.tables.task.select({
+  where: { status: 'open', due: { lt: now } },
+  orderBy: { due: 'asc' },
+  limit: 50,
+})
+await context.host.tables.transaction(async (t) => {
+  await t.task.update({ where: { id }, set: { status: 'done' } })
+})
+```
+
+`select`, `count`, `insert`, `update`, `delete`, `truncate` and `transaction`.
+Filters are equality, `in`, `lt`/`lte`/`gt`/`gte` and `isNull`/`notNull`,
+combined with `and`/`or`, at most eight deep. `update` and `delete` require a
+`where`; an unfiltered write is `truncate`. A uuid is lowercased, a varchar's
+length is enforced on both dialects, and a value that does not fit its column
+is refused before any SQL is built.
+
+## Guards
+
+The requirement is that the capability can never reach outside the bundle's
+own tables, and never a core one:
+
+- **No identifier comes from the caller.** Every table and column name is looked
+  up in the resolved schema, held in `Map`s rather than objects, and quoted from
+  there; an unknown name is refused before SQL is built. Values are always bound.
+- **No `Db` is reachable.** The capability, every table handle and the
+  transaction handle are frozen, null-prototype objects whose members are
+  closures; the connection is never a property of any of them.
+- **One guard function** (`data/src/bundle-tables/guard.ts`) sees every
+  statement the builder and the capability emit. It checks them token by token,
+  which their regularity allows: one statement, no comments, every identifier
+  quoted and lowercase, and every table or index it names under the bundle's
+  prefix.
+
+The tests treat these as security properties: a hostile-input suite (another
+bundle's and core's table names, quoted and escaped identifiers, `;`,
+comments, Unicode look-alikes, `__proto__` and `constructor` keys, nesting past
+the limit) and a seeded property-based test of arbitrary filters, each asserting
+on what the guard saw of every statement that ran. A bundle runs unsandboxed in
+the server process, so nothing here stops deliberately hostile code; these
+guards stop the capability from being the route out.
+
+## Removal
+
+Taking a bundle out of `bundles` leaves its tables, state and ledger rows in
+place, and re-adding it resumes from its recorded state. Its tables sit behind
+its prefix, so they cannot collide with anything meanwhile.
+
+```
+crombolo bundle purge <id> [--yes] [--backup-taken]
+```
+
+drops every table in the database under the bundle's prefix — found in the
+catalogue, because a purged bundle is one the site no longer wires — and
+clears its state, after the same backup `upgrade` takes. It is ledgered as kind
+`purge` against the bundle, which also starts the bundle's checksum history
+again. It refuses while `crombolo.config.ts` still wires the bundle, and lists
+what it will drop and asks for the id to be typed back, unless `--yes`.
+
+## Testing
+
+`tests/bundle-tables-rules.test.ts` holds the declaration's rules with no
+database: names and their limits, the builder's limits, expand and contract per
+bundle read against the package's version, states and checksums.
+`tests/bundle-tables.test.ts` runs under both dialects against the fixture
+bundle in `tests/support/fixture-bundle.ts` — an expand-only 1.x and a 2.0.0
+with a contract — for the chain, the ledger, backfills, edited and newer steps,
+the capability, the guards and purge. Its core-upgrade guarantee installs the
+fixture's tables and rows at core's first state and walks the whole core plan
+forward, and the tables come through untouched.
+`tests/bundle-tables-site.test.ts` boots a real site wiring the fixture: a route
+using `context.host.tables`, the dashboard's report, `upgrade --plan`, `check`,
+`/status` and `upgrade`, and `bundle purge`.
+
 ## Out of scope
 
 - Reading an Umbraco-authored package, `.zip` or `.udt`. Importing *types*
   already works (`GetImportAnalyze` and the content-type importers).
-- Package migrations, which this document argues should never exist here — and
-  which Part 3 declines to let a bundle bring either. A bundle's *own* tables,
-  under its own ledger and never touching core's, are planned as story `062`.
+- Package migrations of core's tables, which this document argues should never
+  exist here. A bundle's *own* tables, under its own ledger and never touching
+  core's, are Part 4.
+- Bundle tables travelling with content transfer or a created package; joins
+  with core tables or between a bundle's own tables; aggregates beyond `count`;
+  events from core such as "this node was deleted"; a database role per bundle.
 - Isolating a bundle's server code. There is no sandbox and none is implied: a
   bundle you import is code you run, exactly like any other dependency in the
   file. What the design buys is that importing it is a decision somebody makes

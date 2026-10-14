@@ -19,14 +19,15 @@ import type {
   BundleSection,
   ServerBundle,
 } from '@crombolo/server'
+import manifest from '../package.json' with { type: 'json' }
 
 /** What this bundle asks the host for, and all it can reach. */
 const CAPABILITIES = ['redirects', 'documents', 'log'] as const
 
 type Capability = (typeof CAPABILITIES)[number]
 
-/** The URL segment the endpoints answer below, and the name in the log. */
-export const REDIRECTS_BUNDLE_ID = 'redirects'
+/** The URL segment the endpoints answer below, and the name in the log: the package's `crombolo.id`. */
+export const REDIRECTS_BUNDLE_ID = manifest.crombolo.id
 
 export interface RedirectsBundleOptions {
   /**
@@ -99,7 +100,6 @@ export function redirects(options: RedirectsBundleOptions = {}): ServerBundle<Ca
 
   return {
     id: REDIRECTS_BUNDLE_ID,
-    name: 'Redirects',
     section,
     capabilities: CAPABILITIES,
     routes: [

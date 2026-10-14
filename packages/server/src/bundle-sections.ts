@@ -28,10 +28,11 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { Db } from '@crombolo/data'
-import type { CromboloConfig } from '@crombolo/server'
-import { checkSchemaDirectory, importDictionaryUdt, syncSchemaDirectory } from '@crombolo/server'
 import type { BundleSection, LoadedBundle } from '@crombolo/transfer'
 import { BUNDLE_SECTIONS } from '@crombolo/transfer'
+import type { CromboloConfig } from './config.ts'
+import { importDictionaryUdt } from './dictionary-transfer.ts'
+import { checkSchemaDirectory, syncSchemaDirectory } from './schema.ts'
 
 /** What applying one carried file would do to the destination. */
 export type FileAction = 'create' | 'overwrite' | 'unchanged'

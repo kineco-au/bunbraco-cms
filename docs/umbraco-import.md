@@ -40,7 +40,7 @@ my-site/
 ├── schema/                 document, media and member types, data types, languages
 ├── components/…            a stub per Razor view: templates in the layout chain
 │                        the Razor had, every other view where it sat
-├── bundles/umbraco-import/ documents, media, blueprints and elements, as a content bundle
+├── bundles/umbraco-import/ documents, media, blueprints and elements, as a private bundle package
 ├── media/<key>             the media files, under the keys their values name
 ├── css/, scripts/          stylesheets and scripts from the web root
 └── import/

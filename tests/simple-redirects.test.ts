@@ -70,8 +70,15 @@ async function site(config: Partial<CromboloConfig> = {}) {
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), TYPE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
+  // The server half is wired below, and it must belong to a package the site
+  // declares; the workspace's own copy resolves from the repository root.
+  writeFileSync(
+    join(root, 'package.json'),
+    JSON.stringify({ name: 'a-site', dependencies: { '@crombolo/simple-redirects': '*' } }),
+  )
   const h = await signedInServer({
     config: {
+      siteDir: root,
       schemaDir: join(root, 'schema'),
       componentsDir: join(root, 'components'),
       bundles: [redirectsBundle()],
