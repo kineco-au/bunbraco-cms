@@ -112,7 +112,8 @@ test('a new template starts as a TSX view, and its master template is written as
   expect(saved.content).toContain(
     "import type { PageProps } from '@crombolo/crombolo'\n\nexport const layout = 'contentPage'\n\n",
   )
-  expect(saved.content).not.toContain('@')
+  // No Razor left anywhere; the scoped package name is the only `@` allowed
+  expect(saved.content.replace("'@crombolo/crombolo'", '')).not.toContain('@')
   expect(saved.masterTemplate).toEqual({ id: expect.any(String) })
 
   // Reopened, the editor shows the master the view names
