@@ -2,7 +2,7 @@
   "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Bunbraco Assistant",
   "id": "Bunbraco.Assistant",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "allowPublicAccess": false,
   "extensions": [
     {
