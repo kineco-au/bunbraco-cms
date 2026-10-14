@@ -7,9 +7,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { parseContentType } from '@bunbraco/schema'
-import { createServer, loadConfig, SchemaBootError } from '@bunbraco/server'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { parseContentType } from '@crombolo/schema'
+import { createServer, loadConfig, SchemaBootError } from '@crombolo/server'
 import { dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -59,7 +59,7 @@ interface Site {
 }
 
 function site(version: string, files: Record<string, string> = {}): Site {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-site-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-site-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })

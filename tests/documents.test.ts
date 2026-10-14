@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, DocumentRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, DocumentRepository } from '@crombolo/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -72,7 +72,7 @@ type = "textarea"
  * its view on disk before boot so the template reference validates.
  */
 async function scaffold(options: { view?: string; toml?: string } = {}) {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-docs-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
@@ -643,7 +643,7 @@ type = "textarea"
 `
 
 async function strictScaffold() {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-docs-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-docs-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })

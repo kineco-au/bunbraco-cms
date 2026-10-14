@@ -1,10 +1,10 @@
 /**
  * Importing an Umbraco site: a compatibility report, and then the files of a
- * bunbraco site. `docs/16-umbraco-import.md`.
+ * crombolo site. `docs/16-umbraco-import.md`.
  *
  * Nothing here writes a database row or a file. The result is a report and a
  * list of files — schema, a content bundle, view stubs — for the caller to put
- * on disk, so the import itself is `bunbraco start --bundle`, through the code
+ * on disk, so the import itself is `crombolo start --bundle`, through the code
  * that every other bundle goes through.
  */
 import { existsSync } from 'node:fs'
@@ -17,8 +17,8 @@ import {
   writeMediaType,
   writeMemberType,
   writeSchemaVersion,
-} from '@bunbraco/schema'
-import { writeBundle } from '@bunbraco/transfer'
+} from '@crombolo/schema'
+import { writeBundle } from '@crombolo/transfer'
 import { convertContent } from './content.ts'
 import { Findings } from './findings.ts'
 import { type DictionaryItem, type DomainEntry, takeInventory } from './inventory.ts'

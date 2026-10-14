@@ -130,7 +130,7 @@ const KNOWN_PACKAGES: Array<[prefix: string, name: string, loss: string]> = [
   [
     'umbracodeploy',
     'Umbraco Deploy',
-    'deployment between environments; content transfer here is `bunbraco content export`',
+    'deployment between environments; content transfer here is `crombolo content export`',
   ],
   ['umbracoworkflow', 'Umbraco Workflow', 'approval workflows'],
   ['skybrudredirects', 'Skybrud Redirects', 'its redirect rules'],
@@ -239,7 +239,7 @@ export function takeInventory(
     class: 'migrates',
     code: 'dictionary',
     title: 'Dictionary items',
-    detail: 'Written to import/dictionary.udt; `bunbraco dictionary import` applies it.',
+    detail: 'Written to import/dictionary.udt; `crombolo dictionary import` applies it.',
     count: dictionaryCount,
   })
 
@@ -290,7 +290,7 @@ export function takeInventory(
     'users',
     'Backoffice users',
     source.count('umbracoUser', 'id > 0'),
-    'Users and user groups are not imported. `bunbraco start` creates an administrator.',
+    'Users and user groups are not imported. `crombolo start` creates an administrator.',
   )
   notYet(
     'redirects',

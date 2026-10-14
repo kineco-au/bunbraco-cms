@@ -6,9 +6,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { RawHtml } from '@bunbraco/render'
-import { type Child, element, Fragment, jsx, renderToString } from '@bunbraco/render/jsx-runtime'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { RawHtml } from '@crombolo/render'
+import { type Child, element, Fragment, jsx, renderToString } from '@crombolo/render/jsx-runtime'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const later = <T>(value: T, ms = 5): Promise<T> =>
@@ -150,7 +150,7 @@ describe('an async page', () => {
         siteDir: root,
         schemaDir: join(root, 'schema'),
         componentsDir: join(root, 'components'),
-        componentsCacheDir: join(root, '.bunbraco', 'components'),
+        componentsCacheDir: join(root, '.crombolo', 'components'),
         development: true,
         schemaWritable: true,
         ...(renderTimeoutMs === undefined ? {} : { renderTimeoutMs }),
@@ -290,7 +290,7 @@ mandatory = true
         siteDir: root,
         schemaDir: join(root, 'schema'),
         componentsDir: join(root, 'components'),
-        componentsCacheDir: join(root, '.bunbraco', 'components'),
+        componentsCacheDir: join(root, '.crombolo', 'components'),
         development: true,
         schemaWritable: true,
       },

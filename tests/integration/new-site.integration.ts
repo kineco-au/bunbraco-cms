@@ -1,7 +1,7 @@
 /**
  * Creating a site, through the real CLI, the way somebody actually does it.
  *
- * `bunbraco init`, then `bunbraco start`, in a directory of their own — no
+ * `crombolo init`, then `crombolo start`, in a directory of their own — no
  * fixtures written by the test, because the point is to prove that what `init`
  * writes is what boots. Three sites: one scaffolded bare, one from each starter
  * template. Everything is asserted over HTTP against a real boot, including the
@@ -17,7 +17,7 @@ import { join, resolve } from 'node:path'
 import { listSites, stageTemplates, unstage } from '../../scripts/sites.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 const TEMPLATES = join(ROOT, 'packages/cli/templates')
 /**
  * The sites in `sites/`, staged into the CLI as packing stages the distributed
@@ -49,28 +49,28 @@ describe('creating a site, end to end through the CLI', () => {
 
   /**
    * A scaffolded site is meant to work on its own defaults — its own `components/`,
-   * its own `media/`, its own SQLite file beside `bunbraco.config.ts`. The test
+   * its own `media/`, its own SQLite file beside `crombolo.config.ts`. The test
    * environment points those at shared directories, so they are cleared here or
    * this suite would prove a site works only where the harness aims it.
    */
   function environment(site: string): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_SCHEMA_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_CSS_DIR',
-      'BUNBRACO_SCRIPTS_DIR',
-      'BUNBRACO_SITE_NAME',
+      'CROMBOLO_SQLITE_FILE',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_SCHEMA_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_CSS_DIR',
+      'CROMBOLO_SCRIPTS_DIR',
+      'CROMBOLO_SITE_NAME',
     ])
       delete inherited[name]
     return {
       ...inherited,
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_LOGS_DIR: join(dir, 'logs', site),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_LOGS_DIR: join(dir, 'logs', site),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
     }
   }
 
@@ -104,7 +104,7 @@ describe('creating a site, end to end through the CLI', () => {
     )
   }
 
-  /** `bunbraco init` in a new directory, with whatever flags. */
+  /** `crombolo init` in a new directory, with whatever flags. */
   async function scaffold(site: string, ...args: string[]): Promise<Run> {
     mkdirSync(siteDir(site), { recursive: true })
     const run = await cli(site, 'init', ...args)
@@ -178,9 +178,9 @@ describe('creating a site, end to end through the CLI', () => {
     const productInit = await scaffold(
       'product',
       '--name',
-      'Bunbraco',
+      'Crombolo',
       '--template',
-      'demo/bunbraco',
+      'demo/crombolo',
     )
     expect(productInit.code, productInit.out).toBe(0)
     const postgresInit = await scaffold('postgres', '--name', 'Postgres Site', '--postgres')
@@ -188,7 +188,7 @@ describe('creating a site, end to end through the CLI', () => {
 
     bare = await serve('bare')
     demo = await serve('demo', '--bundle', 'bundles/demo-harbourstone', '--publish')
-    product = await serve('product', '--bundle', 'bundles/demo-bunbraco', '--publish')
+    product = await serve('product', '--bundle', 'bundles/demo-crombolo', '--publish')
   }, 240_000)
 
   afterAll(async () => {
@@ -201,7 +201,7 @@ describe('creating a site, end to end through the CLI', () => {
     const out = scaffolded.bare?.out ?? ''
     for (const file of [
       'package.json',
-      'bunbraco.config.ts',
+      'crombolo.config.ts',
       'server.ts',
       'tsconfig.json',
       'schema/schema.toml',
@@ -215,10 +215,12 @@ describe('creating a site, end to end through the CLI', () => {
     expect(manifest.name).toBe('bare-site')
     expect(manifest.type).toBe('module')
     // Pinned, so `bun install` resolves the version that scaffolded the site.
-    expect((manifest.dependencies as Record<string, string>).bunbraco).toMatch(/^\^\d+\.\d+\.\d+$/)
+    expect((manifest.dependencies as Record<string, string>)['@crombolo/crombolo']).toMatch(
+      /^\^\d+\.\d+\.\d+$/,
+    )
     // No template, so nothing to import on boot.
-    expect((manifest.scripts as Record<string, string>).start).toBe('bunbraco start')
-    expect(readFileSync(join(siteDir('bare'), 'bunbraco.config.ts'), 'utf8')).toContain(
+    expect((manifest.scripts as Record<string, string>).start).toBe('crombolo start')
+    expect(readFileSync(join(siteDir('bare'), 'crombolo.config.ts'), 'utf8')).toContain(
       "siteName: 'Bare Site'",
     )
     expect(existsSync(join(siteDir('bare'), '.env'))).toBe(false)
@@ -226,10 +228,10 @@ describe('creating a site, end to end through the CLI', () => {
 
   test('--postgres writes the environment a Postgres site needs, and nothing else changes', () => {
     const env = readFileSync(join(siteDir('postgres'), '.env'), 'utf8')
-    expect(env).toContain('BUNBRACO_DB=postgres')
-    expect(env).toContain('BUNBRACO_POSTGRES_URL=')
+    expect(env).toContain('CROMBOLO_DB=postgres')
+    expect(env).toContain('CROMBOLO_POSTGRES_URL=')
     // The backup rule, where it is first needed rather than in a stack trace.
-    expect(env).toContain('BUNBRACO_PG_DUMP')
+    expect(env).toContain('CROMBOLO_PG_DUMP')
     expect(readFileSync(join(siteDir('postgres'), '.gitignore'), 'utf8')).toContain('.env')
   })
 
@@ -253,7 +255,7 @@ describe('creating a site, end to end through the CLI', () => {
     const html = await response.text()
     expect(html).toContain('Nothing is published yet')
     expect(html).toContain('Bare Site')
-    expect(html).toContain('/bunbraco')
+    expect(html).toContain('/crombolo')
   })
 
   test('a path that is not a page on a site that has pages is still a bare 404', async () => {
@@ -266,13 +268,13 @@ describe('creating a site, end to end through the CLI', () => {
   test('the basic template boots and serves its page, and a second boot imports nothing', async () => {
     const manifest = json('basic', 'package.json')
     const start = (manifest.scripts as Record<string, string>).start as string
-    expect(start).toBe('bunbraco start --bundle bundles/basic --publish')
+    expect(start).toBe('crombolo start --bundle bundles/basic --publish')
 
     // Exactly what the scaffolded script would run.
     const first = await serve('basic', ...start.split(' ').slice(1))
     expect(first.banner).toMatch(/bundle\s+\S+: 1 created, 0 updated, 1 published/)
     const html = await page(first, '/')
-    expect(html).toContain('A new bunbraco site')
+    expect(html).toContain('A new crombolo site')
     expect(html).toContain('schema/content-types/home-page.toml')
     await first.stop()
 
@@ -280,7 +282,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(second.banner).toContain('already imported')
     expect(second.banner).not.toContain('1 created')
     // And the content is still there, imported once.
-    expect(await page(second, '/')).toContain('A new bunbraco site')
+    expect(await page(second, '/')).toContain('A new crombolo site')
     await second.stop()
 
     const runs = await cli('basic', 'content', 'runs')
@@ -311,7 +313,7 @@ describe('creating a site, end to end through the CLI', () => {
   test('the product site keeps its home page for the business case', async () => {
     const html = await page(product, '/')
     expect(html).toContain('The CMS your editors already know')
-    expect(html).toContain('Why teams switch to Bunbraco')
+    expect(html).toContain('Why teams switch to Crombolo')
     expect(html).toContain('Already on Umbraco?')
     // The developer detail is a link away, not on this page.
     expect(html).toContain('href="/developers"')
@@ -325,7 +327,7 @@ describe('creating a site, end to end through the CLI', () => {
       const links = new Set(
         [...html.matchAll(/href="(https:\/\/github\.com[^"]*)"/g)].map((m) => m[1]),
       )
-      expect([path, [...links]]).toEqual([path, ['https://github.com/kineco-au/bunbraco-cms']])
+      expect([path, [...links]]).toEqual([path, ['https://github.com/kineco-au/crombolo-cms']])
     }
   })
 
@@ -344,7 +346,7 @@ describe('creating a site, end to end through the CLI', () => {
       'Write a template',
       'Check before you ship',
     ])
-    expect(html).toContain('bunx bunbraco init --name &quot;My Site&quot;')
+    expect(html).toContain('bunx crombolo init --name &quot;My Site&quot;')
   })
 
   test('its elements travel too: a bottling renders the tasting notes it picked', async () => {
@@ -394,7 +396,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(about).toContain('Hill spring above the cove, soft and cold.')
     // The form is on the page, rendered from the file rather than from content.
     const contact = await page(demo, '/contact')
-    expect(contact).toContain('bunbraco-form')
+    expect(contact).toContain('crombolo-form')
     expect(contact).toContain('Book a distillery visit')
   })
 
@@ -532,10 +534,10 @@ describe('creating a site, end to end through the CLI', () => {
     expect(status.code).toBe(1)
     expect(status.out).toContain('Status Test')
     expect(status.out).toContain('no database yet')
-    expect(status.out).toContain('bunbraco')
+    expect(status.out).toContain('crombolo')
 
     // And it did not install anything by asking.
-    expect(existsSync(join(siteDir('status'), 'bunbraco.sqlite'))).toBe(false)
+    expect(existsSync(join(siteDir('status'), 'crombolo.sqlite'))).toBe(false)
   }, 60_000)
 
   test('and what it is once it is running, in both forms', async () => {
@@ -553,13 +555,13 @@ describe('creating a site, end to end through the CLI', () => {
       database: { installed: boolean }
       schema: { files: string; database: { version: string } }
       content: { documents: number; media: number }
-      versions: { bunbraco: string }
+      versions: { crombolo: string }
     }
     expect(report.database.installed).toBe(true)
     expect(report.schema.files).toBe(report.schema.database.version)
     expect(report.content.documents).toBe(8)
     expect(report.content.media).toBe(7)
-    expect(report.versions.bunbraco).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(report.versions.crombolo).toMatch(/^\d+\.\d+\.\d+$/)
   }, 60_000)
 
   test('and its schema is valid on its own terms, as a pull request would check', async () => {
@@ -621,7 +623,7 @@ describe('creating a site, end to end through the CLI', () => {
       if (done) break
       output += decoder.decode(value)
     }
-    expect(output, 'did not come up').toContain('Bunbraco is running')
+    expect(output, 'did not come up').toContain('Crombolo is running')
 
     const sent = Date.now()
     proc.kill('SIGTERM')

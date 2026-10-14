@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { type SnapshotLimits, ViewSnapshots } from '@bunbraco/render'
+import { type SnapshotLimits, ViewSnapshots } from '@crombolo/render'
 
 const dirs: string[] = []
 afterEach(() => {
@@ -31,7 +31,7 @@ function site(files: Record<string, string> = { 'homePage.tsx': view('first') })
     mkdirSync(join(file, '..'), { recursive: true })
     writeFileSync(file, content)
   }
-  return { root, sourceDir, cacheDir: join(root, '.bunbraco', 'components') }
+  return { root, sourceDir, cacheDir: join(root, '.crombolo', 'components') }
 }
 
 /** A clock the test moves, so no case waits for a real interval. */

@@ -1,7 +1,7 @@
 import { hostname, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { DEFAULT_RENDER_TIMEOUT_MS, type RedirectRule, type SnapshotLimits } from '@bunbraco/render'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { DEFAULT_RENDER_TIMEOUT_MS, type RedirectRule, type SnapshotLimits } from '@crombolo/render'
 import type { AssistantConfig } from './assistant.ts'
 import type { ServerBundle } from './bundles.ts'
 import type { EmailPort } from './email.ts'
@@ -11,10 +11,10 @@ import type { SchemaStore } from './schema-store.ts'
 
 /**
  * Runtime settings for a site. Umbraco's equivalents live in appsettings.json;
- * a site declares these in `bunbraco.config.ts` via `defineConfig`, and
+ * a site declares these in `crombolo.config.ts` via `defineConfig`, and
  * `loadConfig` fills anything unset from the environment.
  */
-/** What a process serves; see `BunbracoConfig.role`. */
+/** What a process serves; see `CromboloConfig.role`. */
 export const SERVER_ROLES = ['all', 'api', 'web'] as const
 
 export type ServerRole = (typeof SERVER_ROLES)[number]
@@ -28,7 +28,7 @@ export type UserLinkSender = (message: {
   message: string | null
 }) => Promise<void>
 
-export interface BunbracoConfig {
+export interface CromboloConfig {
   port: number
   /** The largest request body the server will read, media uploads included. */
   maxRequestBodyBytes: number
@@ -62,7 +62,7 @@ export interface BunbracoConfig {
    * true for exactly that reason — see `tests/browser/serve.ts`.
    */
   immutableAssets?: boolean
-  /** SQLite file, or ':memory:'. Ignored when BUNBRACO_DB=postgres. */
+  /** SQLite file, or ':memory:'. Ignored when CROMBOLO_DB=postgres. */
   sqliteFile: string
   adminLogin: string
   /** When unset, a password is generated on first run and printed once. */
@@ -73,7 +73,7 @@ export interface BunbracoConfig {
    */
   secureCookies: boolean
   siteName: string
-  /** The site's own directory: where `bunbraco.config.ts` and `domains.toml` are. */
+  /** The site's own directory: where `crombolo.config.ts` and `domains.toml` are. */
   siteDir: string
   /** Where template views live on disk. */
   componentsDir: string
@@ -82,7 +82,7 @@ export interface BunbracoConfig {
    * is picked up without restarting the node.
    *
    * Inside the site by necessity, not by preference: JSX compiles to an import
-   * of `bunbraco/jsx-runtime`, which resolves by walking up from the file, so a
+   * of `@crombolo/crombolo/jsx-runtime`, which resolves by walking up from the file, so a
    * snapshot outside the site tree cannot load at all. Ephemeral — cleared at
    * boot — and never shared between nodes.
    */
@@ -102,7 +102,7 @@ export interface BunbracoConfig {
   renderTimeoutMs: number
   /** Where `schema/*.toml` lives; sync is skipped when the directory is absent. */
   schemaDir: string
-  /** Supplied at deploy time (BUNBRACO_SCHEMA_REVISION); orders deploys within one schema version. */
+  /** Supplied at deploy time (CROMBOLO_SCHEMA_REVISION); orders deploys within one schema version. */
   schemaRevision: string
   /** This node's identity in `server` and on cache instructions. */
   nodeId: string
@@ -141,12 +141,12 @@ export interface BunbracoConfig {
    * Whether the backoffice may write schema files. Development only by default,
    * because a production container's disk does not survive a redeploy — unless a
    * `schemaStore` makes the writes durable, which turns this on, or
-   * BUNBRACO_SCHEMA_WRITABLE says otherwise outright.
+   * CROMBOLO_SCHEMA_WRITABLE says otherwise outright.
    */
   schemaWritable: boolean
-  /** Sync `schema/` at boot; a pipeline that runs `bunbraco schema sync` turns this off. */
+  /** Sync `schema/` at boot; a pipeline that runs `crombolo schema sync` turns this off. */
   syncSchemaAtBoot: boolean
-  /** Which database engine; from BUNBRACO_DB. */
+  /** Which database engine; from CROMBOLO_DB. */
   dialect: 'sqlite' | 'postgres'
   /** A shell command that backs up Postgres; `--fix` and `upgrade` run it first. */
   pgDump: string | undefined
@@ -165,7 +165,7 @@ export interface BunbracoConfig {
   mediaDir: string
   /**
    * Where the bytes of uploaded media actually go. Unset means the environment
-   * decides (`BUNBRACO_MEDIA_STORE`), which defaults to `mediaDir` on this disk.
+   * decides (`CROMBOLO_MEDIA_STORE`), which defaults to `mediaDir` on this disk.
    * A site swaps in blob storage with `s3MediaStore` or `azureMediaStore`.
    */
   mediaStore: MediaStore | undefined
@@ -199,7 +199,7 @@ export interface BunbracoConfig {
    * password resets and Forms' Send email workflow available.
    *
    * Opt-in, in three states. A port sends through it. `undefined` lets the
-   * environment decide (`BUNBRACO_EMAIL_PROVIDER`, which defaults to no e-mail),
+   * environment decide (`CROMBOLO_EMAIL_PROVIDER`, which defaults to no e-mail),
    * falling back in development to the console so a developer sees the message
    * without configuring a provider. `null` is off outright, console included.
    *
@@ -273,7 +273,7 @@ export interface BunbracoConfig {
   assistant: AssistantConfig | undefined
 }
 
-export type SiteConfig = BunbracoConfig
+export type SiteConfig = CromboloConfig
 
 export const DEFAULTS = {
   // The same port the container stack publishes, so the backoffice is at one
@@ -292,12 +292,12 @@ export const DEFAULTS = {
   versionCheckPeriod: 7,
   umbracoCssPath: '/css',
   signalRSkipNegotiation: true,
-  sqliteFile: 'bunbraco.sqlite',
-  adminLogin: 'admin@bunbraco.local',
+  sqliteFile: 'crombolo.sqlite',
+  adminLogin: 'admin@crombolo.local',
   secureCookies: true,
-  siteName: 'Bunbraco',
+  siteName: 'Crombolo',
   componentsDir: 'components',
-  componentsCacheDir: join('.bunbraco', 'components'),
+  componentsCacheDir: join('.crombolo', 'components'),
   renderTimeoutMs: DEFAULT_RENDER_TIMEOUT_MS,
   schemaDir: 'schema',
   schemaRevision: '0',
@@ -305,8 +305,8 @@ export const DEFAULTS = {
   stylesheetsDir: 'css',
   logsDir: 'logs',
   scriptsDir: 'scripts',
-  marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-bundle',
-  packageKeyword: 'bunbraco-bundle',
+  marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Acrombolo-bundle',
+  packageKeyword: 'crombolo-bundle',
   npmRegistry: 'https://registry.npmjs.org',
   keepAllVersionsNewerThanDays: 7,
   keepLatestVersionPerDayForDays: 90,
@@ -340,9 +340,9 @@ export interface NotFoundRule {
 }
 
 export interface SeoConfig {
-  /** Serve `/sitemap.xml`. Default true; BUNBRACO_SITEMAP. */
+  /** Serve `/sitemap.xml`. Default true; CROMBOLO_SITEMAP. */
   sitemap?: boolean
-  /** False keeps search engines out entirely — a staging site. Default true; BUNBRACO_INDEXABLE. */
+  /** False keeps search engines out entirely — a staging site. Default true; CROMBOLO_INDEXABLE. */
   indexable?: boolean
   /** The rules in `/robots.txt`; the sitemap's address is added to them. */
   robotsTxt?: string
@@ -357,21 +357,21 @@ export interface SeoConfig {
 }
 
 /** A site's config file exports `defineConfig({...})`; unset keys come from the environment. */
-export function defineConfig(overrides: Partial<BunbracoConfig> = {}): Partial<BunbracoConfig> {
+export function defineConfig(overrides: Partial<CromboloConfig> = {}): Partial<CromboloConfig> {
   return overrides
 }
 
 /** Builds the effective config: explicit values, then environment, then defaults. */
 export function loadConfig(
-  overrides: Partial<BunbracoConfig> = {},
+  overrides: Partial<CromboloConfig> = {},
   cwd = process.cwd(),
-): BunbracoConfig {
-  const fromEnv: BunbracoConfig = {
+): CromboloConfig {
+  const fromEnv: CromboloConfig = {
     port: Number(Bun.env.PORT ?? DEFAULTS.port),
-    maxRequestBodyBytes: Bun.env.BUNBRACO_MAX_REQUEST_BODY_MB
-      ? Number(Bun.env.BUNBRACO_MAX_REQUEST_BODY_MB) * 1024 * 1024
+    maxRequestBodyBytes: Bun.env.CROMBOLO_MAX_REQUEST_BODY_MB
+      ? Number(Bun.env.CROMBOLO_MAX_REQUEST_BODY_MB) * 1024 * 1024
       : DEFAULTS.maxRequestBodyBytes,
-    backOfficePath: Bun.env.BUNBRACO_BACKOFFICE_PATH ?? DEFAULTS.backOfficePath,
+    backOfficePath: Bun.env.CROMBOLO_BACKOFFICE_PATH ?? DEFAULTS.backOfficePath,
     defaultUiLanguage: DEFAULTS.defaultUiLanguage,
     keepUserLoggedIn: DEFAULTS.keepUserLoggedIn,
     allowLocalLogin: DEFAULTS.allowLocalLogin,
@@ -380,109 +380,109 @@ export function loadConfig(
     umbracoCssPath: DEFAULTS.umbracoCssPath,
     signalRSkipNegotiation: DEFAULTS.signalRSkipNegotiation,
     development: Bun.env.NODE_ENV !== 'production',
-    sqliteFile: Bun.env.BUNBRACO_SQLITE_FILE ?? DEFAULTS.sqliteFile,
-    adminLogin: Bun.env.BUNBRACO_ADMIN_LOGIN ?? DEFAULTS.adminLogin,
-    adminPassword: Bun.env.BUNBRACO_ADMIN_PASSWORD,
-    secureCookies: Bun.env.BUNBRACO_INSECURE_COOKIES !== 'true',
-    siteName: Bun.env.BUNBRACO_SITE_NAME ?? DEFAULTS.siteName,
+    sqliteFile: Bun.env.CROMBOLO_SQLITE_FILE ?? DEFAULTS.sqliteFile,
+    adminLogin: Bun.env.CROMBOLO_ADMIN_LOGIN ?? DEFAULTS.adminLogin,
+    adminPassword: Bun.env.CROMBOLO_ADMIN_PASSWORD,
+    secureCookies: Bun.env.CROMBOLO_INSECURE_COOKIES !== 'true',
+    siteName: Bun.env.CROMBOLO_SITE_NAME ?? DEFAULTS.siteName,
     siteDir: cwd,
-    componentsDir: Bun.env.BUNBRACO_COMPONENTS_DIR ?? DEFAULTS.componentsDir,
-    componentsCacheDir: Bun.env.BUNBRACO_COMPONENTS_CACHE_DIR ?? DEFAULTS.componentsCacheDir,
+    componentsDir: Bun.env.CROMBOLO_COMPONENTS_DIR ?? DEFAULTS.componentsDir,
+    componentsCacheDir: Bun.env.CROMBOLO_COMPONENTS_CACHE_DIR ?? DEFAULTS.componentsCacheDir,
     componentsSnapshot: {
-      ...(Bun.env.BUNBRACO_COMPONENTS_GATE_MS
-        ? { gateTtlMs: Number(Bun.env.BUNBRACO_COMPONENTS_GATE_MS) }
+      ...(Bun.env.CROMBOLO_COMPONENTS_GATE_MS
+        ? { gateTtlMs: Number(Bun.env.CROMBOLO_COMPONENTS_GATE_MS) }
         : {}),
-      ...(Bun.env.BUNBRACO_COMPONENTS_GENERATION_LIMIT
-        ? { maxGenerations: Number(Bun.env.BUNBRACO_COMPONENTS_GENERATION_LIMIT) }
+      ...(Bun.env.CROMBOLO_COMPONENTS_GENERATION_LIMIT
+        ? { maxGenerations: Number(Bun.env.CROMBOLO_COMPONENTS_GENERATION_LIMIT) }
         : {}),
-      ...(Bun.env.BUNBRACO_COMPONENTS_KEEP
-        ? { keep: Number(Bun.env.BUNBRACO_COMPONENTS_KEEP) }
+      ...(Bun.env.CROMBOLO_COMPONENTS_KEEP
+        ? { keep: Number(Bun.env.CROMBOLO_COMPONENTS_KEEP) }
         : {}),
-      ...(Bun.env.BUNBRACO_COMPONENTS_SWAP_MS
-        ? { minSwapIntervalMs: Number(Bun.env.BUNBRACO_COMPONENTS_SWAP_MS) }
+      ...(Bun.env.CROMBOLO_COMPONENTS_SWAP_MS
+        ? { minSwapIntervalMs: Number(Bun.env.CROMBOLO_COMPONENTS_SWAP_MS) }
         : {}),
     },
-    renderTimeoutMs: Number(Bun.env.BUNBRACO_RENDER_TIMEOUT_MS ?? DEFAULTS.renderTimeoutMs),
-    schemaDir: Bun.env.BUNBRACO_SCHEMA_DIR ?? DEFAULTS.schemaDir,
-    schemaRevision: Bun.env.BUNBRACO_SCHEMA_REVISION ?? DEFAULTS.schemaRevision,
-    nodeId: Bun.env.BUNBRACO_NODE_ID ?? `${hostname()}:${process.pid}`,
-    role: roleFromEnvironment(Bun.env.BUNBRACO_ROLE),
+    renderTimeoutMs: Number(Bun.env.CROMBOLO_RENDER_TIMEOUT_MS ?? DEFAULTS.renderTimeoutMs),
+    schemaDir: Bun.env.CROMBOLO_SCHEMA_DIR ?? DEFAULTS.schemaDir,
+    schemaRevision: Bun.env.CROMBOLO_SCHEMA_REVISION ?? DEFAULTS.schemaRevision,
+    nodeId: Bun.env.CROMBOLO_NODE_ID ?? `${hostname()}:${process.pid}`,
+    role: roleFromEnvironment(Bun.env.CROMBOLO_ROLE),
     git: undefined,
     schemaStore: undefined,
-    schemaCacheDir: Bun.env.BUNBRACO_SCHEMA_CACHE_DIR ?? join(tmpdir(), 'bunbraco-schema'),
+    schemaCacheDir: Bun.env.CROMBOLO_SCHEMA_CACHE_DIR ?? join(tmpdir(), 'crombolo-schema'),
     // Resolved again below, once it is known whether a store was configured.
     schemaWritable:
-      Bun.env.BUNBRACO_SCHEMA_WRITABLE !== undefined
-        ? Bun.env.BUNBRACO_SCHEMA_WRITABLE === 'true'
+      Bun.env.CROMBOLO_SCHEMA_WRITABLE !== undefined
+        ? Bun.env.CROMBOLO_SCHEMA_WRITABLE === 'true'
         : Bun.env.NODE_ENV !== 'production',
-    syncSchemaAtBoot: Bun.env.BUNBRACO_SYNC_SCHEMA_AT_BOOT !== 'false',
-    dialect: Bun.env.BUNBRACO_DB === 'postgres' ? 'postgres' : 'sqlite',
-    pgDump: Bun.env.BUNBRACO_PG_DUMP,
+    syncSchemaAtBoot: Bun.env.CROMBOLO_SYNC_SCHEMA_AT_BOOT !== 'false',
+    dialect: Bun.env.CROMBOLO_DB === 'postgres' ? 'postgres' : 'sqlite',
+    pgDump: Bun.env.CROMBOLO_PG_DUMP,
     upgradePolicy:
-      Bun.env.BUNBRACO_UPGRADE_POLICY === 'pending-allowed' ||
-      (Bun.env.BUNBRACO_UPGRADE_POLICY === undefined && Bun.env.NODE_ENV !== 'production')
+      Bun.env.CROMBOLO_UPGRADE_POLICY === 'pending-allowed' ||
+      (Bun.env.CROMBOLO_UPGRADE_POLICY === undefined && Bun.env.NODE_ENV !== 'production')
         ? 'pending-allowed'
         : 'strict',
     versionCleanup: {
-      enabled: Bun.env.BUNBRACO_VERSION_CLEANUP === 'true',
+      enabled: Bun.env.CROMBOLO_VERSION_CLEANUP === 'true',
       keepAllVersionsNewerThanDays: Number(
-        Bun.env.BUNBRACO_VERSION_CLEANUP_KEEP_ALL_DAYS ?? DEFAULTS.keepAllVersionsNewerThanDays,
+        Bun.env.CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS ?? DEFAULTS.keepAllVersionsNewerThanDays,
       ),
       keepLatestVersionPerDayForDays: Number(
-        Bun.env.BUNBRACO_VERSION_CLEANUP_KEEP_LATEST_DAYS ??
+        Bun.env.CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS ??
           DEFAULTS.keepLatestVersionPerDayForDays,
       ),
     },
-    mediaDir: Bun.env.BUNBRACO_MEDIA_DIR ?? DEFAULTS.mediaDir,
+    mediaDir: Bun.env.CROMBOLO_MEDIA_DIR ?? DEFAULTS.mediaDir,
     mediaStore: undefined,
-    logsDir: Bun.env.BUNBRACO_LOGS_DIR ?? DEFAULTS.logsDir,
-    logLevel: parseLogLevel(Bun.env.BUNBRACO_LOG_LEVEL),
-    logToConsole: Bun.env.BUNBRACO_LOG_TO_CONSOLE !== 'false',
+    logsDir: Bun.env.CROMBOLO_LOGS_DIR ?? DEFAULTS.logsDir,
+    logLevel: parseLogLevel(Bun.env.CROMBOLO_LOG_LEVEL),
+    logToConsole: Bun.env.CROMBOLO_LOG_TO_CONSOLE !== 'false',
     diagnostics: {
-      traceRequests: Bun.env.BUNBRACO_TRACE_REQUESTS === 'true',
-      heapIntervalSeconds: Math.max(0, Number(Bun.env.BUNBRACO_HEAP_INTERVAL_SECONDS ?? 0) || 0),
+      traceRequests: Bun.env.CROMBOLO_TRACE_REQUESTS === 'true',
+      heapIntervalSeconds: Math.max(0, Number(Bun.env.CROMBOLO_HEAP_INTERVAL_SECONDS ?? 0) || 0),
     },
-    stylesheetsDir: Bun.env.BUNBRACO_CSS_DIR ?? DEFAULTS.stylesheetsDir,
-    scriptsDir: Bun.env.BUNBRACO_SCRIPTS_DIR ?? DEFAULTS.scriptsDir,
-    usernameIsEmail: Bun.env.BUNBRACO_USERNAME_IS_EMAIL !== 'false',
-    applicationUrl: Bun.env.BUNBRACO_APPLICATION_URL ?? '',
+    stylesheetsDir: Bun.env.CROMBOLO_CSS_DIR ?? DEFAULTS.stylesheetsDir,
+    scriptsDir: Bun.env.CROMBOLO_SCRIPTS_DIR ?? DEFAULTS.scriptsDir,
+    usernameIsEmail: Bun.env.CROMBOLO_USERNAME_IS_EMAIL !== 'false',
+    applicationUrl: Bun.env.CROMBOLO_APPLICATION_URL ?? '',
     sendUserLink: undefined,
     email: undefined,
-    allowMemberRegistration: Bun.env.BUNBRACO_ALLOW_MEMBER_REGISTRATION === 'true',
+    allowMemberRegistration: Bun.env.CROMBOLO_ALLOW_MEMBER_REGISTRATION === 'true',
     memberRegistrationType:
-      Bun.env.BUNBRACO_MEMBER_REGISTRATION_TYPE ?? DEFAULTS.memberRegistrationType,
-    memberRegistrationGroups: (Bun.env.BUNBRACO_MEMBER_REGISTRATION_GROUPS ?? '')
+      Bun.env.CROMBOLO_MEMBER_REGISTRATION_TYPE ?? DEFAULTS.memberRegistrationType,
+    memberRegistrationGroups: (Bun.env.CROMBOLO_MEMBER_REGISTRATION_GROUPS ?? '')
       .split(',')
       .map((name) => name.trim())
       .filter(Boolean),
     memberSessionMinutes: Number(
-      Bun.env.BUNBRACO_MEMBER_SESSION_MINUTES ?? DEFAULTS.memberSessionMinutes,
+      Bun.env.CROMBOLO_MEMBER_SESSION_MINUTES ?? DEFAULTS.memberSessionMinutes,
     ),
     maxFailedPasswordAttempts: Number(
-      Bun.env.BUNBRACO_MAX_FAILED_PASSWORD_ATTEMPTS ?? DEFAULTS.maxFailedPasswordAttempts,
+      Bun.env.CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS ?? DEFAULTS.maxFailedPasswordAttempts,
     ),
     redirects: [],
-    trackRedirects: Bun.env.BUNBRACO_TRACK_REDIRECTS !== 'false',
+    trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
     seo: stripUndefined({
-      sitemap: envFlag(Bun.env.BUNBRACO_SITEMAP),
-      indexable: envFlag(Bun.env.BUNBRACO_INDEXABLE),
+      sitemap: envFlag(Bun.env.CROMBOLO_SITEMAP),
+      indexable: envFlag(Bun.env.CROMBOLO_INDEXABLE),
     }),
     // No environment variable: a bundle is an import, which is code.
     bundles: [],
-    marketplaceUrl: Bun.env.BUNBRACO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
-    packageKeyword: Bun.env.BUNBRACO_PACKAGE_KEYWORD ?? DEFAULTS.packageKeyword,
-    npmRegistry: Bun.env.BUNBRACO_NPM_REGISTRY ?? DEFAULTS.npmRegistry,
+    marketplaceUrl: Bun.env.CROMBOLO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
+    packageKeyword: Bun.env.CROMBOLO_PACKAGE_KEYWORD ?? DEFAULTS.packageKeyword,
+    npmRegistry: Bun.env.CROMBOLO_NPM_REGISTRY ?? DEFAULTS.npmRegistry,
     // No environment variable: enabling it takes a provider, which is code.
     assistant: undefined,
   }
-  const merged: BunbracoConfig = { ...fromEnv, ...stripUndefined(overrides) }
+  const merged: CromboloConfig = { ...fromEnv, ...stripUndefined(overrides) }
   // Field by field, so a site setting its title suffix keeps the environment's switches.
   merged.seo = { ...fromEnv.seo, ...stripUndefined(overrides.seo ?? {}) }
   // A schema store makes backoffice writes durable, so it carries writability with
   // it — that is the point of configuring one. An explicit setting still wins.
   if (
     merged.schemaStore &&
-    Bun.env.BUNBRACO_SCHEMA_WRITABLE === undefined &&
+    Bun.env.CROMBOLO_SCHEMA_WRITABLE === undefined &&
     overrides.schemaWritable === undefined
   ) {
     merged.schemaWritable = true
@@ -503,7 +503,7 @@ export function loadConfig(
     '',
   )
   if (merged.sqliteFile !== ':memory:') merged.sqliteFile = resolve(cwd, merged.sqliteFile)
-  // Checked on the merged value, so a typo in `bunbraco.config.ts` is refused on
+  // Checked on the merged value, so a typo in `crombolo.config.ts` is refused on
   // the same terms as one in the environment.
   assertRole(merged.role)
   return merged
@@ -516,10 +516,10 @@ function envFlag(value: string | undefined): boolean | undefined {
 
 const LOG_LEVELS = ['trace', 'debug', 'info', 'warning', 'error', 'fatal'] as const
 
-function parseLogLevel(value: string | undefined): BunbracoConfig['logLevel'] {
+function parseLogLevel(value: string | undefined): CromboloConfig['logLevel'] {
   const level = value?.toLowerCase()
   return (LOG_LEVELS as readonly string[]).includes(level ?? '')
-    ? (level as BunbracoConfig['logLevel'])
+    ? (level as CromboloConfig['logLevel'])
     : 'info'
 }
 
@@ -532,8 +532,8 @@ function stripUndefined<T extends object>(value: T): Partial<T> {
  * password, so only its host and database are shown.
  */
 export function describeDatabase(
-  config: Pick<BunbracoConfig, 'dialect' | 'sqliteFile'>,
-  url: string | undefined = Bun.env.BUNBRACO_POSTGRES_URL ?? Bun.env.DATABASE_URL,
+  config: Pick<CromboloConfig, 'dialect' | 'sqliteFile'>,
+  url: string | undefined = Bun.env.CROMBOLO_POSTGRES_URL ?? Bun.env.DATABASE_URL,
 ): string {
   if (config.dialect !== 'postgres') return config.sqliteFile
   if (!url) return 'postgres'
@@ -545,4 +545,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.8.1'
+export const VERSION = '0.9.0'

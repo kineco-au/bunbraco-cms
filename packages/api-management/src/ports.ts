@@ -1,14 +1,14 @@
 /**
  * Ports the Management API needs from the rest of the application.
  *
- * Declared here as interfaces so this package depends only on @bunbraco/core and
- * @bunbraco/contracts; the composition root supplies the implementations. The
+ * Declared here as interfaces so this package depends only on @crombolo/core and
+ * @crombolo/contracts; the composition root supplies the implementations. The
  * return types come from the generated contract, so an implementation that
  * drifts from the wire shape fails to compile.
  */
 
-import type { ResponseOf } from '@bunbraco/contracts'
-import type { UploadSettings } from '@bunbraco/core'
+import type { ResponseOf } from '@crombolo/contracts'
+import type { UploadSettings } from '@crombolo/core'
 import type {
   BlueprintPort,
   ContentTypePort,

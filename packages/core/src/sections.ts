@@ -24,7 +24,7 @@ export const SECTION_ALIASES = {
   // Umbraco seeds this alias and then has no section for it: Forms is a
   // commercial add-on there. Form building is in core here, so the section is
   // real and the alias resolves (`docs/18-forms.md`).
-  forms: 'Bunbraco.Section.Forms',
+  forms: 'Crombolo.Section.Forms',
 } as const
 
 export type AppAlias = keyof typeof SECTION_ALIASES

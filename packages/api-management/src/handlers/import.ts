@@ -3,7 +3,7 @@
  * to import: the entity type, and the alias and key inside the file so it can
  * tell a new type from an update to an existing one.
  */
-import { notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import { notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { TemporaryFilePort } from '../ports.ts'
 import type { ManagementApiRouter } from '../router.ts'
 

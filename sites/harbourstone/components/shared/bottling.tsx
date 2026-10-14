@@ -1,4 +1,4 @@
-import type { PublishedContent, PublishedElement } from 'bunbraco'
+import type { PublishedContent, PublishedElement } from '@crombolo/crombolo'
 
 /**
  * The line over a bottling's name: kind, strength, and either an age or a

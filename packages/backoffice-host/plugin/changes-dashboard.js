@@ -14,7 +14,7 @@ const KIND_LABEL = { blocking: 'Blocking', person: 'Needs a person', auto: 'Auto
 const KIND_COLOR = { blocking: 'danger', person: 'warning', auto: 'positive' }
 const SOURCE_LABEL = { upgrade: 'Schema and upgrade', transfer: 'Content transfer' }
 
-export default class BunbracoChangesDashboardElement extends LitElement {
+export default class CromboloChangesDashboardElement extends LitElement {
   static properties = {
     _report: { state: true },
     _error: { state: true },
@@ -83,7 +83,7 @@ export default class BunbracoChangesDashboardElement extends LitElement {
         </div>
         ${
           shown.length === 0
-            ? html`<p class="empty">Nothing outstanding. <code>bunbraco upgrade check</code> and <code>bunbraco content check</code> write findings here.</p>`
+            ? html`<p class="empty">Nothing outstanding. <code>crombolo upgrade check</code> and <code>crombolo content check</code> write findings here.</p>`
             : this.#group(shown).map((group) => this.#renderGroup(group))
         }
       </uui-box>
@@ -129,4 +129,4 @@ export default class BunbracoChangesDashboardElement extends LitElement {
   `
 }
 
-customElements.define('bunbraco-changes-dashboard', BunbracoChangesDashboardElement)
+customElements.define('crombolo-changes-dashboard', CromboloChangesDashboardElement)

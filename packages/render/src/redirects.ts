@@ -58,7 +58,7 @@ export function normaliseRedirectPath(path: string): string {
 }
 
 /**
- * A redirect for `bunbraco.config.ts`.
+ * A redirect for `crombolo.config.ts`.
  *
  * `from` is a route, a route ending in `/*` to match everything below it, or a
  * regular expression. `to` is a route, an absolute URL, or `{ document }` — a

@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository } from '@bunbraco/data'
+import { ComponentRepository } from '@crombolo/data'
 import { signedInServer, V1 } from './support/harness.ts'
 
 const TYPE = `[content-type]

@@ -205,7 +205,7 @@ export function systemFieldViolation(
       found.alias !== shipped.alias ||
       found.dataTypeKey.toLowerCase() !== shipped.dataTypeKey
     )
-      return `The '${shipped.name}' field is provided by Bunbraco and cannot be removed or changed. You can add your own fields beside it.`
+      return `The '${shipped.name}' field is provided by Crombolo and cannot be removed or changed. You can add your own fields beside it.`
   }
   return undefined
 }

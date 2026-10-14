@@ -24,7 +24,7 @@ interface RenderScope {
  * Kept on `globalThis` so that two copies of this module, a site's and the
  * server's, share one store rather than each seeing nothing of the other's.
  */
-const KEY = Symbol.for('bunbraco.render-scope')
+const KEY = Symbol.for('crombolo.render-scope')
 const shared = globalThis as Record<symbol, unknown>
 if (!shared[KEY]) shared[KEY] = new AsyncLocalStorage<RenderScope>()
 const store = shared[KEY] as AsyncLocalStorage<RenderScope>

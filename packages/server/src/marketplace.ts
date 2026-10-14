@@ -2,9 +2,9 @@
  * The Bundles section's marketplace, over npm. `docs/17-bundles.md`.
  *
  * Discovery and declaration are two different things, because npm indexes only
- * one of them: a bundle is *found* by the `bunbraco-bundle` keyword, which is
+ * one of them: a bundle is *found* by the `crombolo-bundle` keyword, which is
  * the only thing registry search will match, and it *declares* itself with a
- * `bunbraco` field in its `package.json`. Search for the keyword, then read each
+ * `crombolo` field in its `package.json`. Search for the keyword, then read each
  * hit's packument — custom fields survive there — and offer only the packages
  * that actually declare extensions. A keyword squatter never reaches the list.
  *
@@ -13,7 +13,7 @@
  * requests only.
  */
 import { join } from 'node:path'
-import { EXTENSION_KEYWORD, type ExtensionRegistry } from '@bunbraco/backoffice-host'
+import { EXTENSION_KEYWORD, type ExtensionRegistry } from '@crombolo/backoffice-host'
 import { logger } from './logging.ts'
 
 const log = logger('packages')
@@ -167,11 +167,11 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
       if (!response.ok) return false
       const packument = (await response.json()) as {
         'dist-tags'?: { latest?: string }
-        versions?: Record<string, { bunbraco?: { extensions?: unknown[] } }>
+        versions?: Record<string, { crombolo?: { extensions?: unknown[] } }>
       }
       const latest = packument['dist-tags']?.latest
       const version = latest ? packument.versions?.[latest] : undefined
-      return Array.isArray(version?.bunbraco?.extensions) && version.bunbraco.extensions.length > 0
+      return Array.isArray(version?.crombolo?.extensions) && version.crombolo.extensions.length > 0
     } catch {
       return false
     }

@@ -2,7 +2,7 @@
  * Migration 012 — the log viewer's saved searches (Umbraco's
  * `umbracoLogViewerQuery`), seeded with Umbraco's installer searches. Two of
  * those ask about Umbraco's own namespaces and message templates; here they ask
- * the same of bunbraco's. The two about Umbraco's `SortedComponentTypes`
+ * the same of crombolo's. The two about Umbraco's `SortedComponentTypes`
  * property, which nothing here logs, are left out.
  */
 import type { Db } from '../database.ts'
@@ -26,8 +26,8 @@ export const DEFAULT_LOG_SEARCHES: ReadonlyArray<{ name: string; query: string }
     query: 'Has(Duration) and Duration > 1000',
   },
   {
-    name: "Find all logs that are within the namespace 'bunbraco.schema'",
-    query: "StartsWith(SourceContext, 'bunbraco.schema')",
+    name: "Find all logs that are within the namespace 'crombolo.schema'",
+    query: "StartsWith(SourceContext, 'crombolo.schema')",
   },
   {
     name: 'Find all logs that use a specific log message template',

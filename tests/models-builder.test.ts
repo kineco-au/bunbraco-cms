@@ -1,5 +1,5 @@
 /**
- * Models Builder over `bunbraco generate`: the dashboard reports whether
+ * Models Builder over `crombolo generate`: the dashboard reports whether
  * `schema/content-types.d.ts` still matches the TOML, and its Generate button
  * writes the file. Umbraco flags staleness from a marker file; here the schema
  * is compared with what it would generate, so the answer cannot go stale.
@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { compareModels, createModelsBuilderPort, intendedTypes } from '@bunbraco/server'
+import { compareModels, createModelsBuilderPort, intendedTypes } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

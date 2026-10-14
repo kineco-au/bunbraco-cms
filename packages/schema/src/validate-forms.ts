@@ -13,7 +13,7 @@ import {
   type SchemaForm,
   type SchemaFormField,
   VALUELESS_OPERATORS,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { SchemaProblem } from './model.ts'
 
 const VERSION = /^\d+(\.\d+)*$/

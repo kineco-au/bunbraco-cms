@@ -4,14 +4,14 @@
  */
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { deriveChallenge, generateToken, parseCookies } from '@bunbraco/auth'
+import { deriveChallenge, generateToken, parseCookies } from '@crombolo/auth'
 import {
-  type BunbracoConfig,
+  type CromboloConfig,
   createServer,
   DEFAULTS,
   loadConfig,
   type ServerHandle,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { resetPostgresSchema } from './db.ts'
 
 /**
@@ -20,7 +20,7 @@ import { resetPostgresSchema } from './db.ts'
  * Relative on purpose, so `loadConfig` resolves it against whichever `siteDir`
  * is in play. Both halves matter:
  *
- * - **Per site**, which the default `.bunbraco/views` already gave: the cache is
+ * - **Per site**, which the default `.crombolo/views` already gave: the cache is
  *   content-addressed, so two fixture sites whose views happen to be identical
  *   would otherwise share a generation, and evicting it would pull the files out
  *   from under whichever server still needed them.
@@ -31,7 +31,7 @@ import { resetPostgresSchema } from './db.ts'
  *   (`render/src/snapshots.ts`). Every render in the losing process then fails
  *   with ENOENT.
  */
-const VIEWS_CACHE = join('.bunbraco', `views-${process.pid}`)
+const VIEWS_CACHE = join('.crombolo', `views-${process.pid}`)
 
 /** The default site's copy; a fixture site's goes with the fixture. */
 process.on('exit', () => {
@@ -41,7 +41,7 @@ process.on('exit', () => {
 export const ORIGIN = 'http://localhost'
 /**
  * Where the editor is mounted. Derived, so moving it is one change in
- * `@bunbraco/core` rather than a sweep through the suite; `V1` does not move
+ * `@crombolo/core` rather than a sweep through the suite; `V1` does not move
  * with it, because the Management API is fixed by the contract.
  */
 export const BACKOFFICE = DEFAULTS.backOfficePath
@@ -50,7 +50,7 @@ const SECURITY = `${V1}/security/back-office`
 // The SPA's own route, which moves with the backoffice; the API does not.
 const REDIRECT_URI = `${ORIGIN}${DEFAULTS.backOfficePath}/oauth_complete`
 const CLIENT_ID = 'umbraco-back-office'
-export const ADMIN = { username: 'admin@bunbraco.local', password: 'test-password' }
+export const ADMIN = { username: 'admin@crombolo.local', password: 'test-password' }
 
 class Jar {
   #cookies = new Map<string, string>()
@@ -84,7 +84,7 @@ export interface Harness {
 }
 
 export interface HarnessOptions {
-  config?: Partial<BunbracoConfig>
+  config?: Partial<CromboloConfig>
   /** Keep the Postgres schema: a second instance on the same database. */
   keepDatabase?: boolean
 }

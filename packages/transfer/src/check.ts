@@ -14,7 +14,7 @@
  * - **person** — importable, but somebody has to choose. A resolution answers it.
  * - **auto** — what the import will do, reported so it is not a surprise.
  */
-import { ObjectTypes } from '@bunbraco/core'
+import { ObjectTypes } from '@crombolo/core'
 import {
   ContentTypeRepository,
   currentSchemaState,
@@ -24,7 +24,7 @@ import {
   type Finding,
   LanguageRepository,
   type NodeRow,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import type { BundleNode, ContentSet } from './model.ts'
 import { referenceCandidates } from './references.ts'
 
@@ -66,7 +66,7 @@ export function resolutionsFor(code: string): readonly string[] {
       return ['restore the node from the recycle bin, or --resolve <key>=skip']
     case 'missing-blob':
       return [
-        'bunbraco media sync, once it lands',
+        'crombolo media sync, once it lands',
         '--allow-missing-blobs to import the metadata anyway',
       ]
     case 'unresolved-reference':

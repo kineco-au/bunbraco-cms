@@ -4,22 +4,22 @@
 // Umbraco says "document type".
 export default {
   "login": {
-    "userInviteWelcomeMessage": "Hei og velkommen til Bunbraco! Om bare 1 minutt er du klar til å starte, vi trenger bare at du setter et passord.",
-    "userInviteExpiredMessage": "Velkommen til Bunbraco! Dessverre har invitasjonen din utløpt. Kontakt administratoren din og be dem sende den på nytt."
+    "userInviteWelcomeMessage": "Hei og velkommen til Crombolo! Om bare 1 minutt er du klar til å starte, vi trenger bare at du setter et passord.",
+    "userInviteExpiredMessage": "Velkommen til Crombolo! Dessverre har invitasjonen din utløpt. Kontakt administratoren din og be dem sende den på nytt."
   },
   "user": {
-    "changePasswordDescription": "Du kan endre passordet til Bunbraco ved å fylle ut skjemaet under og klikke \"Bytt passord\" knappen.",
-    "noConsole": "Deaktiver tilgang til Bunbraco",
+    "changePasswordDescription": "Du kan endre passordet til Crombolo ved å fylle ut skjemaet under og klikke \"Bytt passord\" knappen.",
+    "noConsole": "Deaktiver tilgang til Crombolo",
     "documentType": "Innholdstype"
   },
   "general": {
-    "umbracoInfo": "Bunbraco-info"
+    "umbracoInfo": "Crombolo-info"
   },
   "paste": {
-    "errorMessage": "Teksten du er i ferd med å lime inn, inneholder spesialtegn eller formattering. Dette kan skyldes at du kopierer fra f.eks. Microsoft Word. Bunbraco kan fjerne denne spesialformatteringen automatisk slik at innholdet er mer velegnet for visning på en webside."
+    "errorMessage": "Teksten du er i ferd med å lime inn, inneholder spesialtegn eller formattering. Dette kan skyldes at du kopierer fra f.eks. Microsoft Word. Crombolo kan fjerne denne spesialformatteringen automatisk slik at innholdet er mer velegnet for visning på en webside."
   },
   "dashboard": {
-    "nothinghappens": "Hvis Bunbraco ikke starter, kan det skyldes at pop-up vinduer ikke er tillatt"
+    "nothinghappens": "Hvis Crombolo ikke starter, kan det skyldes at pop-up vinduer ikke er tillatt"
   },
   "actions": {
     "changeDocType": "Skift innholdstype",

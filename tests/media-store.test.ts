@@ -11,7 +11,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
+import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
 import {
   contentTypeFor,
   fileSystemMediaStore,
@@ -21,7 +21,7 @@ import {
   type MediaStore,
   mediaStoreFromEnvironment,
   type StoredFile,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -332,19 +332,19 @@ describe('choosing a store from the environment', () => {
     const root = tempDir('media-env-')
     expect((await mediaStoreFromEnvironment(root, {})).description).toBe(root)
     expect(
-      (await mediaStoreFromEnvironment(root, { BUNBRACO_MEDIA_STORE: 'nonsense' })).description,
+      (await mediaStoreFromEnvironment(root, { CROMBOLO_MEDIA_STORE: 'nonsense' })).description,
     ).toBe(root)
   })
 
   test('builds an S3 store from the variables, prefix and all', async () => {
     const store = await mediaStoreFromEnvironment(tempDir('media-env-'), {
-      BUNBRACO_MEDIA_STORE: 's3',
-      BUNBRACO_MEDIA_S3_BUCKET: 'site-media',
-      BUNBRACO_MEDIA_S3_REGION: 'ap-southeast-2',
-      BUNBRACO_MEDIA_S3_ACCESS_KEY_ID: 'key',
-      BUNBRACO_MEDIA_S3_SECRET_ACCESS_KEY: 'secret',
-      BUNBRACO_MEDIA_S3_PREFIX: 'uploads',
-      BUNBRACO_MEDIA_S3_PUBLIC_URL: 'https://cdn.example.test',
+      CROMBOLO_MEDIA_STORE: 's3',
+      CROMBOLO_MEDIA_S3_BUCKET: 'site-media',
+      CROMBOLO_MEDIA_S3_REGION: 'ap-southeast-2',
+      CROMBOLO_MEDIA_S3_ACCESS_KEY_ID: 'key',
+      CROMBOLO_MEDIA_S3_SECRET_ACCESS_KEY: 'secret',
+      CROMBOLO_MEDIA_S3_PREFIX: 'uploads',
+      CROMBOLO_MEDIA_S3_PUBLIC_URL: 'https://cdn.example.test',
     })
     expect(store.description).toBe('s3://site-media/uploads')
     // The prefix is inside the bucket, so it is not part of the key a caller uses.
@@ -356,11 +356,11 @@ describe('choosing a store from the environment', () => {
 
   test('builds an Azure store, and refuses one with no way to authenticate', async () => {
     const store = await mediaStoreFromEnvironment(tempDir('media-env-'), {
-      BUNBRACO_MEDIA_STORE: 'azure',
-      BUNBRACO_MEDIA_AZURE_ACCOUNT: 'mysite',
-      BUNBRACO_MEDIA_AZURE_CONTAINER: 'media',
-      BUNBRACO_MEDIA_AZURE_KEY: btoa('a-secret-key'),
-      BUNBRACO_MEDIA_AZURE_PUBLIC_URL: 'https://mysite.blob.core.windows.net/media',
+      CROMBOLO_MEDIA_STORE: 'azure',
+      CROMBOLO_MEDIA_AZURE_ACCOUNT: 'mysite',
+      CROMBOLO_MEDIA_AZURE_CONTAINER: 'media',
+      CROMBOLO_MEDIA_AZURE_KEY: btoa('a-secret-key'),
+      CROMBOLO_MEDIA_AZURE_PUBLIC_URL: 'https://mysite.blob.core.windows.net/media',
     })
     expect(store.description).toBe('azure://mysite/media')
     expect(store.publicUrl?.('ab12cd34/photo.png')).toBe(
@@ -369,8 +369,8 @@ describe('choosing a store from the environment', () => {
 
     await expect(
       mediaStoreFromEnvironment(tempDir('media-env-'), {
-        BUNBRACO_MEDIA_STORE: 'azure',
-        BUNBRACO_MEDIA_AZURE_ACCOUNT: 'mysite',
+        CROMBOLO_MEDIA_STORE: 'azure',
+        CROMBOLO_MEDIA_AZURE_ACCOUNT: 'mysite',
       }),
     ).rejects.toThrow('account key or a SAS token')
   })

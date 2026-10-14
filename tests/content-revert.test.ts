@@ -14,14 +14,14 @@ import {
   DocumentRepository,
   type NodeRow,
   TransferRunRepository,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   type ContentSet,
   checkRevert,
   exportBundle,
   importBundle,
   revertRun,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -56,7 +56,7 @@ afterEach(async () => {
 })
 
 async function site(): Promise<{ h: Harness; typeKey: string }> {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-revert-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-revert-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })

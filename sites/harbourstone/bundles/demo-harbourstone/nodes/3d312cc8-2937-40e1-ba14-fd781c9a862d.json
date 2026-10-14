@@ -64,7 +64,7 @@
       "property": "enquiryForm",
       "culture": null,
       "segment": null,
-      "editor": "Bunbraco.FormPicker",
+      "editor": "Crombolo.FormPicker",
       "value": "7b1f4c20-9a63-4e18-8d25-3c6f5a1e9b04",
       "references": [
         "7b1f4c20-9a63-4e18-8d25-3c6f5a1e9b04"

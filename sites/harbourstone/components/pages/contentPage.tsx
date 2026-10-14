@@ -1,4 +1,4 @@
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import { HighlightRows, highlightsOf } from '../shared/highlights.tsx'
 import { Layout } from '../shared/layout.tsx'
 import { PageHeader, SectionIntro } from '../shared/section-intro.tsx'

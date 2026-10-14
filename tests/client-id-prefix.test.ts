@@ -1,5 +1,5 @@
 /**
- * Migration 020, which moved API-user client IDs onto bunbraco's own prefix.
+ * Migration 020, which moved API-user client IDs onto crombolo's own prefix.
  *
  * The rewrite is one `UPDATE` built from `||` and `SUBSTR`, which both dialects
  * spell the same way but do not agree about everywhere — hence a dialect test
@@ -8,7 +8,7 @@
  * changes its client ID and keeps its secret.
  */
 import { beforeAll, describe, expect, test } from 'bun:test'
-import { bunbracoPlan, clientIdPrefixMigration, type Db, DbDate, migrate } from '@bunbraco/data'
+import { clientIdPrefixMigration, cromboloPlan, type Db, DbDate, migrate } from '@crombolo/data'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 type Credential = { client_id: string; secret_hash: string }
@@ -20,7 +20,7 @@ describe(`the client ID prefix (${dialectUnderTest})`, () => {
   beforeAll(async () => {
     if (!(await canConnect())) throw new Error(`no ${dialectUnderTest} to test against`)
     db = await freshDb()
-    await migrate(db, bunbracoPlan)
+    await migrate(db, cromboloPlan)
     // Column list and binding follow the seeder: `is_disabled` was renamed to
     // `is_locked_out` by the users-localisation migration, and both dialects
     // need their own spelling of a boolean and a timestamp.
@@ -66,20 +66,20 @@ describe(`the client ID prefix (${dialectUnderTest})`, () => {
     await credential('umbraco-back-office-deploy', 'hash-of-the-deploy-secret')
     await clientIdPrefixMigration.up(db)
     expect(await credentials()).toEqual([
-      { client_id: 'bunbraco-back-office-deploy', secret_hash: 'hash-of-the-deploy-secret' },
+      { client_id: 'crombolo-back-office-deploy', secret_hash: 'hash-of-the-deploy-secret' },
     ])
   })
 
   test('leaves alone an ID that never carried the prefix, and its own output', async () => {
     await db.exec('DELETE FROM user_client_credential')
-    await credential('bunbraco-back-office-already', 'hash-a')
+    await credential('crombolo-back-office-already', 'hash-a')
     // A bare ID cannot be created through the API, but the rewrite still has to
     // be a fixed point over whatever is already in the table.
     await credential('legacy-robot', 'hash-b')
     await clientIdPrefixMigration.up(db)
     await clientIdPrefixMigration.up(db)
     expect(await credentials()).toEqual([
-      { client_id: 'bunbraco-back-office-already', secret_hash: 'hash-a' },
+      { client_id: 'crombolo-back-office-already', secret_hash: 'hash-a' },
       { client_id: 'legacy-robot', secret_hash: 'hash-b' },
     ])
   })

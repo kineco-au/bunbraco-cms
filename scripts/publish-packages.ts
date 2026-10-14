@@ -20,6 +20,7 @@ import {
   publishablePackages,
   publishOrder,
   ROOT,
+  UMBRELLA,
   type WorkspacePackage,
 } from './packages.ts'
 import { declaredCompatibility, expectedCompatibility } from './release-compatibility.ts'
@@ -32,13 +33,13 @@ const OUT = join(ROOT, 'output/packages')
  * Copied beside each manifest while packing, then removed again. npm includes a
  * LICENSE automatically; NOTICE it does not, so it is placed explicitly — and in
  * every package rather than only the two that redistribute third-party material.
- * `bunbraco` is what a site installs and what a downstream redistributor reads,
+ * `@crombolo/crombolo` is what a site installs and what a downstream redistributor reads,
  * and a rule with no exceptions has nothing to drift.
  */
 const LICENCE_FILES = ['LICENSE', 'NOTICE'] as const
 
-/** The package `bunbraco init` reads its templates from. */
-const CLI = '@bunbraco/cli'
+/** The package `crombolo init` reads its templates from. */
+const CLI = '@crombolo/cli'
 
 const args = Bun.argv.slice(2)
 const dryRun = args.includes('--dry-run')
@@ -95,13 +96,13 @@ function assertGenerated(packages: WorkspacePackage[]) {
  * one mistake here that would break someone's site rather than this build.
  */
 function assertCompatibilityDeclared(packages: WorkspacePackage[]) {
-  const umbrella = packages.find((pkg) => pkg.name === 'bunbraco')
+  const umbrella = packages.find((pkg) => pkg.name === UMBRELLA)
   if (!umbrella) return
   const declared = declaredCompatibility(umbrella.manifest)
   const expected = expectedCompatibility(umbrella.manifest.version)
   if (declared !== expected)
     throw new Error(
-      `bunbraco@${umbrella.manifest.version} declares its migrations ${declared ?? 'nothing'}, ` +
+      `crombolo@${umbrella.manifest.version} declares its migrations ${declared ?? 'nothing'}, ` +
         `but its migration plan makes it ${expected}. Run "bun run release:version ${umbrella.manifest.version}".`,
     )
 }

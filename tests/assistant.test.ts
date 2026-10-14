@@ -16,9 +16,9 @@ import type {
   ConverseInput,
   ConverseResult,
   MessagePart,
-} from '@bunbraco/assistant'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
+} from '@crombolo/assistant'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
 import { type Harness, signedInServer, signIn, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -51,14 +51,14 @@ name = "Body"
 type = "textarea"
 `
 
-const VIEW = `import type { PageProps } from 'bunbraco'
+const VIEW = `import type { PageProps } from '@crombolo/crombolo'
 export default function HomePage({ model }: PageProps) {
   return <h1>{model.text('title')}</h1>
 }
 `
 
 /** Where the plugin's own routes live: the backoffice mount point, not the API prefix. */
-const ASSISTANT = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/assistant`
+const ASSISTANT = `${DEFAULT_BACKOFFICE_PATH}/crombolo/api/assistant`
 
 const says = (text: string): ConverseResult => ({
   message: { role: 'assistant', parts: [{ kind: 'text', text }] },
@@ -120,7 +120,7 @@ function programmable() {
 }
 
 async function site(options: { mcp?: boolean } = {}) {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-assistant-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-assistant-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
@@ -415,7 +415,7 @@ describe('proposing a template', () => {
 
     const change = (await review(h))[0]?.changes[0]
     expect(change?.problems.map((problem) => problem.message)).toEqual([
-      'bun is not an allowed import; use bunbraco or a file beside this one',
+      'bun is not an allowed import; use @crombolo/crombolo or a file beside this one',
     ])
 
     const approved = await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})
@@ -436,7 +436,7 @@ describe('proposing a template', () => {
           name: 'Landing',
           alias: 'landing',
           summary: 'Add a landing template',
-          content: `import type { PageProps } from 'bunbraco'\nexport default function Landing({ model }: PageProps) {\n  return <h1>{model.text('title')}</h1>\n}\n`,
+          content: `import type { PageProps } from '@crombolo/crombolo'\nexport default function Landing({ model }: PageProps) {\n  return <h1>{model.text('title')}</h1>\n}\n`,
         },
       }),
     )
@@ -607,7 +607,7 @@ describe('reviewing before approving', () => {
 
   test('a template shows both sides of the source', async () => {
     const { h, model } = await site()
-    const content = `import type { PageProps } from 'bunbraco'\nexport default ({ model }: PageProps) => <h2>{model.text('title')}</h2>\n`
+    const content = `import type { PageProps } from '@crombolo/crombolo'\nexport default ({ model }: PageProps) => <h2>{model.text('title')}</h2>\n`
     model.program(
       uses({
         name: 'propose_template',
@@ -757,7 +757,7 @@ describe('reading and editing a proposal', () => {
     return { h, key }
   }
 
-  const CLEAN = `import type { PageProps } from 'bunbraco'\nexport default ({ model }: PageProps) => <h1>{model.text('title')}</h1>\n`
+  const CLEAN = `import type { PageProps } from '@crombolo/crombolo'\nexport default ({ model }: PageProps) => <h1>{model.text('title')}</h1>\n`
 
   test('the detail carries the body the editor works on; the list does not', async () => {
     const { h, key } = await proposedTemplate(CLEAN)
@@ -1222,13 +1222,13 @@ describe('in the backoffice', () => {
 
   test('the drawer is registered as its own manifest and its module is served', async () => {
     const { h } = await site()
-    const ours = (await manifests(h)).find((manifest) => manifest.name === 'Bunbraco Assistant')
+    const ours = (await manifests(h)).find((manifest) => manifest.name === 'Crombolo Assistant')
     expect(ours?.extensions.map((extension) => `${extension.type}:${extension.alias}`)).toEqual([
-      'headerApp:Bunbraco.HeaderApp.Assistant',
+      'headerApp:Crombolo.HeaderApp.Assistant',
     ])
 
     const element = ours?.extensions[0]?.element as string
-    expect(element.startsWith(`${DEFAULT_BACKOFFICE_PATH}/bunbraco/`)).toBe(true)
+    expect(element.startsWith(`${DEFAULT_BACKOFFICE_PATH}/crombolo/`)).toBe(true)
     const served = await h.call(element)
     expect(served.status).toBe(200)
     expect(served.headers.get('content-type')).toContain('javascript')
@@ -1237,9 +1237,9 @@ describe('in the backoffice', () => {
 
   test('the core manifest is left alone, so nothing else has to know about the feature', async () => {
     const { h } = await site()
-    const core = (await manifests(h)).find((manifest) => manifest.name === 'Bunbraco')
+    const core = (await manifests(h)).find((manifest) => manifest.name === 'Crombolo')
     expect(core?.extensions.map((extension) => extension.alias)).not.toContain(
-      'Bunbraco.HeaderApp.Assistant',
+      'Crombolo.HeaderApp.Assistant',
     )
   })
 })
@@ -1278,7 +1278,7 @@ describe('when it is not configured', () => {
     const h = await signedInServer()
     open.push(h)
     const all = await h.json<{ name: string }[]>(`${V1}/manifest/manifest`)
-    expect(all.map((manifest) => manifest.name)).not.toContain('Bunbraco Assistant')
+    expect(all.map((manifest) => manifest.name)).not.toContain('Crombolo Assistant')
   })
 
   test('there is no assistant endpoint at all', async () => {

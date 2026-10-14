@@ -14,15 +14,15 @@ import type {
   PublicAccessPort,
   PublicAccessResponse,
   PublicAccessStatus,
-} from '@bunbraco/api-management'
-import { ObjectTypes } from '@bunbraco/core'
+} from '@crombolo/api-management'
+import { ObjectTypes } from '@crombolo/core'
 import {
   type Db,
   MemberRepository,
   NodeRepository,
   type PublicAccessEntry,
   PublicAccessRepository,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 
 export function createPublicAccessPort(
   db: Db,

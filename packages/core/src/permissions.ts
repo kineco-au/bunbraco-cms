@@ -6,9 +6,9 @@
  * node key and a context discriminator, so one table serves both per-document
  * ACLs and per-property field-level security.
  *
- * A verb bunbraco invented carries `Bunbraco.` instead, so the prefix says who
+ * A verb crombolo invented carries `Crombolo.` instead, so the prefix says who
  * defined it. `Umb.` here means the verb is Umbraco's and means there what it
- * means here; `Bunbraco.` means there is nothing upstream to agree with.
+ * means here; `Crombolo.` means there is nothing upstream to agree with.
  */
 export const DocumentPermissions = {
   Read: 'Umb.Document.Read',
@@ -41,15 +41,15 @@ export type DocumentVerb = (typeof DocumentPermissions)[keyof typeof DocumentPer
  * separate again because a field marked sensitive in the definition is withheld
  * from anyone without it, in the API rather than in the UI.
  *
- * `Bunbraco.`-prefixed because Umbraco has no forms in core: these name nothing
+ * `Crombolo.`-prefixed because Umbraco has no forms in core: these name nothing
  * upstream, and wearing `Umb.` would have claimed they did.
  */
 export const FormPermissions = {
-  View: 'Bunbraco.Form.Read',
-  Manage: 'Bunbraco.Form.Manage',
-  EntriesView: 'Bunbraco.FormEntry.Read',
-  EntriesManage: 'Bunbraco.FormEntry.Manage',
-  EntriesSensitive: 'Bunbraco.FormEntry.Sensitive',
+  View: 'Crombolo.Form.Read',
+  Manage: 'Crombolo.Form.Manage',
+  EntriesView: 'Crombolo.FormEntry.Read',
+  EntriesManage: 'Crombolo.FormEntry.Manage',
+  EntriesSensitive: 'Crombolo.FormEntry.Sensitive',
 } as const
 
 export type FormVerb = (typeof FormPermissions)[keyof typeof FormPermissions]

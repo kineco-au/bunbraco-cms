@@ -60,7 +60,7 @@ components/shared/layout.tsx      a component — imported, never routed to
 ### Checking them before a visitor does
 
 A view is compiled when a request renders it, so one that does not compile is a
-500 that waits to be found. `bunbraco components check` brings that forward: every
+500 that waits to be found. `crombolo components check` brings that forward: every
 `.tsx` under `components/` is transpiled — which gives the line a syntax error is on
 — and then imported, which is what a render does, so an import that does not
 resolve is caught as well. It also reports a template a content type declares
@@ -178,7 +178,7 @@ children, or with the other.
 each of these.
 
 Templates are JSX, but they render once, on the server, to a string, through
-Bunbraco's own runtime rather than React. What a React author writes mostly works:
+Crombolo's own runtime rather than React. What a React author writes mostly works:
 
 | Written as in React | Here |
 | --- | --- |
@@ -218,7 +218,7 @@ libraries do not run here, since they need React itself. Pinned by
 
 #### Types
 
-Each tag's attributes are type-checked, in `tsc`, `bunbraco components check` and
+Each tag's attributes are type-checked, in `tsc`, `crombolo components check` and
 the backoffice's view editor alike. They are React's (from `@types/react`, a
 type-only dependency), adapted to this runtime in `jsx-attributes.ts`:
 
@@ -239,7 +239,7 @@ An attribute the types do not know yet is declared once for the site:
 
 ```ts
 // components/attributes.d.ts
-declare module 'bunbraco' {
+declare module '@crombolo/crombolo' {
   interface ExtraAttributes {
     popover?: 'auto' | 'manual'
   }
@@ -250,7 +250,7 @@ or spread from an object, whose extra properties are not checked:
 `<div {...{ popover: 'auto' }} />`.
 
 A site that is upgrading and has views these types flag can switch them off with
-`"jsxImportSource": "bunbraco/loose"` in its `tsconfig.json`: any attribute on any
+`"jsxImportSource": "@crombolo/crombolo/loose"` in its `tsconfig.json`: any attribute on any
 tag, and a JSX expression typed as text, as before. What renders is identical,
 and the view editor follows the site's choice. Pinned by
 `tests/editor-types.test.ts`.
@@ -260,7 +260,7 @@ and the view editor follows the site's choice. Pinned by
 Any component can read the page being rendered, without it being passed down:
 
 ```tsx
-import { usePage } from 'bunbraco'
+import { usePage } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 function Breadcrumbs() {
@@ -278,7 +278,7 @@ function Breadcrumbs() {
 template's own values are handed down the same way:
 
 ```tsx
-import { createContext, useContext } from 'bunbraco'
+import { createContext, useContext } from '@crombolo/crombolo'
 
 const Theme = createContext('light')
 
@@ -417,12 +417,12 @@ every call site has to thread a culture through.
 
 ### Typed pages
 
-`bunbraco generate` writes `schema/content-types.d.ts`, an interface per document
+`crombolo generate` writes `schema/content-types.d.ts`, an interface per document
 type with every property it carries, compositions included, the built-in
 `seoFields` among them. Naming one in `PageProps` types the page:
 
 ```tsx
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 export default function Home({ model }: PageProps<HomePage>) {
@@ -502,7 +502,7 @@ published tree.
 
 Matching order within a request is configured rules, in the order the site
 declares them, then the rules an administrator wrote in the backoffice
-(`@bunbraco/simple-redirects`, [`17-bundles.md`](17-bundles.md)), then tracked
+(`@crombolo/simple-redirects`, [`17-bundles.md`](17-bundles.md)), then tracked
 rules, newest first. A rule scoped to a hostname is
 tried only against a request that hostname roots, and its pattern is the route
 *below* the rooting document, keyed by that document's key rather than by the
@@ -561,7 +561,7 @@ level yet. Still to port: RTL segment order.
 
 Structured editors hand the client an object, not text. Their values are stored
 as JSON text and parsed on the way back out, by editor alias
-(`JSON_VALUE_EDITORS` in `@bunbraco/core`), as Umbraco's value editors do.
+(`JSON_VALUE_EDITORS` in `@crombolo/core`), as Umbraco's value editors do.
 Rich text is always `{ markup, blocks }` for the editor, including a legacy plain
 HTML string, and just its markup for a template, so `model.html('bodyText')`
 renders it. An upload is stored as its path and edited as `{ src }`; true/false
@@ -570,7 +570,7 @@ picker stores a bare `Guid[]` — keys, not the `umb://…` udis a content picke
 stores — which is why `Umbraco.ElementPicker` is in `JSON_VALUE_EDITORS`.
 
 What a template receives is converted on read, through a context the published
-cache supplies (`@bunbraco/render` `values.ts` and `media.ts`):
+cache supplies (`@crombolo/render` `values.ts` and `media.ts`):
 
 | Editor                  | `model.value()`                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -583,7 +583,7 @@ cache supplies (`@bunbraco/render` `values.ts` and `media.ts`):
 | Image Cropper           | `ImageCropperValue` (`src`, `crops`, `focalPoint`, `cropUrl()`)                                             |
 | Rich text               | the markup, with `/{localLink:…}` links resolved (`#` when gone)                                            |
 
-References to anything unpublished or deleted are dropped. `bunbraco
+References to anything unpublished or deleted are dropped. `crombolo
 generate` types all of these, down to a block editor's element types.
 
 Umbraco denormalises segments into `document_url` / `document_url_alias` for
@@ -609,7 +609,7 @@ no domain routes as above. The request's culture reaches the view as
 
 A hostname is the one piece of site metadata that differs in every environment,
 so it is neither content nor schema. A site may keep `domains.toml` beside
-`bunbraco.config.ts`:
+`crombolo.config.ts`:
 
 ```toml
 [[domain]]
@@ -638,7 +638,7 @@ different words (`/` and `/Home`) are refused rather than silently replacing
 one another. A site with no `domains.toml` is left alone entirely: nothing to
 converge onto means the backoffice stays the only way, as it was before.
 
-`bunbraco domains` prints what the file declares, what each `${VAR}` comes to
+`crombolo domains` prints what the file declares, what each `${VAR}` comes to
 here, and what is actually bound. `domains set` and `domains clear` write the
 file *and* apply it, keeping the file they replaced so `domains undo` puts it
 back — a wrong hostname takes a site off the air, since a root page with one
@@ -732,7 +732,7 @@ asked.
 - Invalidation was already there: the element port appends a
   `{ elements: true }` cache instruction on every write, which drops the snapshot on
   this node and on every other one through the poll.
-- `bunbraco generate` narrows a picked element to its type. `allowedContentTypes` is
+- `crombolo generate` narrows a picked element to its type. `allowedContentTypes` is
   a comma-separated list of element type keys, as Umbraco's
   `AllowedContentTypeKeysParser` reads it, so a picker allowing one type generates
   `Array<TypedElement<Quote>>` and one allowing two generates
@@ -742,7 +742,7 @@ asked.
 A picker always yields a collection, as Umbraco's converter does, even where its
 configuration allows one pick — so a template writes `model.value('hero')[0]` for a
 single. Pinned by `tests/elements.test.ts` "published elements in a template" and
-"`bunbraco generate` for the element picker".
+"`crombolo generate` for the element picker".
 
 Cache entries must be tagged by content type (`ct:{id}`) so a content-type change
 can evict selectively. Content-type changes split into *rebuild* (alias or
@@ -767,7 +767,7 @@ saved, at `<8 hex>/<safe name>` in the site's **media store**, and served at
 `/media/…`.
 
 Where those bytes live is one interface, `MediaStore`: the file system by default
-(`BUNBRACO_MEDIA_DIR`, default `media`), or an S3 bucket or Azure container — see
+(`CROMBOLO_MEDIA_DIR`, default `media`), or an S3 bucket or Azure container — see
 the README's *Media storage*. Nothing here depends on which: the database holds
 the path a value names, and serving either streams the bytes or, for a store that
 returns a `publicUrl`, redirects the browser to a CDN or a presigned URL.
@@ -780,7 +780,7 @@ computed once and cached in the store under `.cache/`, keyed by the source's
 etag — so replacing an original invalidates its crops with nothing tracking
 that, and one node's work serves every node. Bun's `Image` decodes, resizes
 and encodes; cropping and padding go through raw RGBA pixels via a small PNG
-codec in `@bunbraco/server` `imaging.ts`.
+codec in `@crombolo/server` `imaging.ts`.
 
 ## Components
 
@@ -789,16 +789,16 @@ loaded when a request renders it — so a view that does not compile is a 500 th
 waits for a visitor to find it. `components check` is that failure brought forward:
 
 ```bash
-bunx bunbraco components check             # compile every view; report a template with no file
-bunx bunbraco components list              # what is in components/, and which type declares each
-bunx bunbraco components new shared/header        # components/shared/header.tsx
-bunx bunbraco assets list             # the stylesheets and scripts beside them
-bunx bunbraco assets new stylesheet print.css
+bunx crombolo components check             # compile every view; report a template with no file
+bunx crombolo components list              # what is in components/, and which type declares each
+bunx crombolo components new shared/header        # components/shared/header.tsx
+bunx crombolo assets list             # the stylesheets and scripts beside them
+bunx crombolo assets new stylesheet print.css
 ```
 
 Every `.tsx` is transpiled and then imported, which is what a render does, so an
 import that does not resolve is caught as well as a syntax error. Types need the
-compiler: when the site has `typescript` installed — `bunbraco init` puts it in
+compiler: when the site has `typescript` installed — `crombolo init` puts it in
 `devDependencies` — it also runs `tsc --noEmit` over the site, and says so when
 it cannot. A component is a template only when a content type names it, so a shared one
 belongs in a subdirectory, where the template scan never looks.
@@ -807,7 +807,7 @@ belongs in a subdirectory, where the template scan never looks.
 
 Schema travels between environments; hostnames cannot, because they mean
 something different in each one. A site may keep them in `domains.toml` beside
-`bunbraco.config.ts`, with `${VAR}` read from the environment when it is
+`crombolo.config.ts`, with `${VAR}` read from the environment when it is
 applied, so one committed file serves them all:
 
 ```toml
@@ -822,11 +822,11 @@ culture = "fr-FR"
 ```
 
 ```bash
-bunx bunbraco domains                 # what the file declares, and what is bound here
-bunx bunbraco domains set / --host '${SITE_HOST}'      # writes the file, then applies it
-bunx bunbraco domains set /Home/French --host fr.example=fr-FR
-bunx bunbraco domains apply           # what a deploy step runs; what boot does
-bunx bunbraco domains undo            # put back the file the last write replaced
+bunx crombolo domains                 # what the file declares, and what is bound here
+bunx crombolo domains set / --host '${SITE_HOST}'      # writes the file, then applies it
+bunx crombolo domains set /Home/French --host fr.example=fr-FR
+bunx crombolo domains apply           # what a deploy step runs; what boot does
+bunx crombolo domains undo            # put back the file the last write replaced
 ```
 
 The file is the truth: boot converges the `domain` table onto it, so deleting an
@@ -847,8 +847,8 @@ Only a **new path** is read fresh. So the server renders from a content-addresse
 copy of the tree:
 
 ```
-<site>/.bunbraco/components/<hash>/homePage.tsx          ← imported
-<site>/.bunbraco/components/<hash>/components/layout.tsx ← resolves inside the snapshot
+<site>/.crombolo/components/<hash>/homePage.tsx          ← imported
+<site>/.crombolo/components/<hash>/components/layout.tsx ← resolves inside the snapshot
 ```
 
 The hash is of the whole tree, because a template's behaviour is its import
@@ -869,17 +869,17 @@ generation already loaded. It also takes the mount off the request path entirely
 
 | Setting | Default | Development |
 | --- | --- | --- |
-| `BUNBRACO_COMPONENTS_CACHE_DIR` | `<site>/.bunbraco/views` | same |
-| `BUNBRACO_COMPONENTS_GATE_MS` — how often a node looks | 5,000 | 500 |
-| `BUNBRACO_COMPONENTS_SWAP_MS` — floor between generations | 10,000 | 0 |
-| `BUNBRACO_COMPONENTS_GENERATION_LIMIT` | 250 | 250 |
-| `BUNBRACO_COMPONENTS_KEEP` — generations left on disk | 3 | all, until boot |
+| `CROMBOLO_COMPONENTS_CACHE_DIR` | `<site>/.crombolo/views` | same |
+| `CROMBOLO_COMPONENTS_GATE_MS` — how often a node looks | 5,000 | 500 |
+| `CROMBOLO_COMPONENTS_SWAP_MS` — floor between generations | 10,000 | 0 |
+| `CROMBOLO_COMPONENTS_GENERATION_LIMIT` | 250 | 250 |
+| `CROMBOLO_COMPONENTS_KEEP` — generations left on disk | 3 | all, until boot |
 
 Three things to know before changing them:
 
 - **The cache directory must sit inside the site**, for the `jsx-runtime` reason
   above, and outside `components/`, or it would snapshot itself. Both are refused at
-  boot, and `bunbraco status` reports the same check so a deploy learns first.
+  boot, and `crombolo status` reports the same check so a deploy learns first.
 - **It is cache, and cleared at boot**, so it must not be anything you would mind
   losing — it is rebuilt from `components/` in milliseconds. Compose keeps it on a
   tmpfs so it never reaches the bind mount, where `--watch` would see it.

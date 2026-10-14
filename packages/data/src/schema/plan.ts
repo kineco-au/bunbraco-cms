@@ -41,7 +41,7 @@ import { upgradeReportMigration } from './upgrade-report.ts'
 import { usersLocalisationMigration } from './users-localisation.ts'
 import { valuesMigration } from './values.ts'
 
-export const bunbracoPlan = new MigrationPlan([
+export const cromboloPlan = new MigrationPlan([
   identityMigration,
   contentMigration,
   valuesMigration,

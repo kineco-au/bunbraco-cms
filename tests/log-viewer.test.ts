@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, truncateSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_LOG_SEARCHES } from '@bunbraco/data'
+import { DEFAULT_LOG_SEARCHES } from '@crombolo/data'
 import {
   compileExpression,
   type LogEvent,
@@ -17,7 +17,7 @@ import {
   readClefLine,
   renderMessage,
   toClef,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -37,7 +37,7 @@ const event = (overrides: Partial<LogEvent> = {}): LogEvent => ({
   messageTemplate: 'Published {Name}',
   message: 'Published "Home"',
   exception: null,
-  properties: { Name: 'Home', SourceContext: 'bunbraco.server', Duration: 1500, Tags: ['a', 'b'] },
+  properties: { Name: 'Home', SourceContext: 'crombolo.server', Duration: 1500, Tags: ['a', 'b'] },
   ...overrides,
 })
 
@@ -62,7 +62,7 @@ describe('the filter language', () => {
     expect(matches('Has(@Exception)', event({ exception: 'Error: boom' }))).toBe(true)
     expect(matches('Has(Duration) and Duration > 1000')).toBe(true)
     expect(matches('Has(Duration) and Duration > 2000')).toBe(false)
-    expect(matches("StartsWith(SourceContext, 'bunbraco')")).toBe(true)
+    expect(matches("StartsWith(SourceContext, 'crombolo')")).toBe(true)
     expect(matches("@MessageTemplate = 'Published {Name}'")).toBe(true)
     expect(matches("@Message like '%Home%'")).toBe(true)
     expect(matches("@Message like 'published%'")).toBe(false)
@@ -94,7 +94,7 @@ describe('the filter language', () => {
 describe('the log files', () => {
   test("events are written as Serilog's compact JSON and read back rendered", () => {
     const clef = toClef({
-      category: ['bunbraco', 'server'],
+      category: ['crombolo', 'server'],
       level: 'error',
       message: [],
       rawMessage: 'Could not publish {name} after {tries} tries',
@@ -107,7 +107,7 @@ describe('the log files', () => {
       '@l': 'Error',
       name: 'Home',
       tries: 3,
-      SourceContext: 'bunbraco.server',
+      SourceContext: 'crombolo.server',
     })
     expect(String(clef['@x'])).toContain('Error: boom')
     const read = readClefLine(JSON.stringify(clef))
@@ -118,7 +118,7 @@ describe('the log files', () => {
     })
     // Information carries no @l, as Serilog writes it
     const info = toClef({
-      category: ['bunbraco'],
+      category: ['crombolo'],
       level: 'info',
       message: [],
       rawMessage: 'Started',
@@ -129,7 +129,7 @@ describe('the log files', () => {
     expect(readClefLine(JSON.stringify(info))?.level).toBe('Information')
     expect(readClefLine('not json')).toBeUndefined()
     expect(logFileName(new Date('2026-09-27T23:59:59Z'), 'web 1')).toBe(
-      'BunbracoTraceLog.web_1.20260927.json',
+      'CromboloTraceLog.web_1.20260927.json',
     )
   })
 
@@ -178,13 +178,13 @@ describe('the log viewer API', () => {
           '@t': at(60_000),
           '@mt': 'Published {Name}',
           Name: 'Home',
-          SourceContext: 'bunbraco.content',
+          SourceContext: 'crombolo.content',
         }),
         line({
           '@t': at(50_000),
           '@mt': 'Published {Name}',
           Name: 'About',
-          SourceContext: 'bunbraco.content',
+          SourceContext: 'crombolo.content',
         }),
         line({ '@t': at(40_000), '@mt': 'Slow request', '@l': 'Warning', Duration: 1500 }),
         line({ '@t': at(30_000), '@mt': 'Crashed', '@l': 'Error', '@x': 'Error: boom' }),
@@ -267,7 +267,7 @@ describe('the log viewer API', () => {
       total: 2,
       items: [
         { name: 'Global', level: 'Debug' },
-        { name: 'BunbracoFile', level: 'Verbose' },
+        { name: 'CromboloFile', level: 'Verbose' },
       ],
     })
   })

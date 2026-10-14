@@ -1,5 +1,5 @@
 /**
- * `bunbraco import umbraco`: an Umbraco backup in, a report and a bunbraco site
+ * `crombolo import umbraco`: an Umbraco backup in, a report and a crombolo site
  * out.
  *
  * Everything runs against a real export — the Umbraco Commerce demo store, an
@@ -11,7 +11,7 @@ import { Database } from 'bun:sqlite'
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DocumentRepository } from '@bunbraco/data'
+import { DocumentRepository } from '@crombolo/data'
 import {
   componentName,
   type ImportPlan,
@@ -22,10 +22,10 @@ import {
   UPGRADE_STATES,
   versionForState,
   viewStub,
-} from '@bunbraco/import-umbraco'
-import { loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
-import { componentAliasesIn } from '@bunbraco/server'
-import { type BundleNode, importBundle, loadBundle } from '@bunbraco/transfer'
+} from '@crombolo/import-umbraco'
+import { loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
+import { componentAliasesIn } from '@crombolo/server'
+import { type BundleNode, importBundle, loadBundle } from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
 import { DEMO_STORE, writePlan } from './support/umbraco-import.ts'
@@ -295,7 +295,7 @@ describe('the content it writes', () => {
     expect(loaded.problems).toEqual([])
     expect(loaded.set?.manifest.counts).toEqual({ media: 255, document: 181 })
     expect(loaded.set?.manifest.snapshot).toBe('published')
-    expect(loaded.set?.manifest.createdBy).toBe('bunbraco import umbraco')
+    expect(loaded.set?.manifest.createdBy).toBe('crombolo import umbraco')
     expect(loaded.set?.manifest.dependencies.expected).toEqual([])
   })
 

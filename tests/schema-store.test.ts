@@ -10,14 +10,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository } from '@bunbraco/data'
+import { ContentTypeRepository } from '@crombolo/data'
 import {
   fileSystemMediaStore,
   materialiseSchema,
   publishSchema,
   type SchemaStore,
   schemaStoreOver,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const dirs: string[] = []

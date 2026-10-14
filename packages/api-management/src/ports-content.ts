@@ -16,7 +16,7 @@ import type {
   ElementTreeItem,
   Page,
   TreeItem,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { Principal } from './router.ts'
 
 /** A failed port call; `status` overrides the handler's default 400 (409 for a write gate). */

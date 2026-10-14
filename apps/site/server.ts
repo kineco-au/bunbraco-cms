@@ -1,4 +1,4 @@
-import { bunbraco } from 'bunbraco'
-import config from './bunbraco.config.ts'
+import { crombolo } from '@crombolo/crombolo'
+import config from './crombolo.config.ts'
 
-Bun.serve(await bunbraco(config))
+Bun.serve(await crombolo(config))

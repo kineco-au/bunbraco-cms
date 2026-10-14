@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, DomainRepository } from '@bunbraco/data'
+import { ComponentRepository, DomainRepository } from '@crombolo/data'
 import {
   DOMAINS_BACKUP_FILE,
   DOMAINS_FILE,
@@ -19,7 +19,7 @@ import {
   undoDomainsFile,
   writeDomains,
   writeDomainsFile,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 

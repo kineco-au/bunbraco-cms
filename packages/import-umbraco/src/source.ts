@@ -82,7 +82,7 @@ export interface OpenSourceOptions {
   staging?: string
 }
 
-/** A uuid as the rest of bunbraco spells it. Native Umbraco SQLite stores them upper case. */
+/** A uuid as the rest of crombolo spells it. Native Umbraco SQLite stores them upper case. */
 export const key = (value: unknown): string => String(value ?? '').toLowerCase()
 
 /** A stored date as `YYYY-MM-DD HH:MM:SS`, whichever of the two source spellings it arrived in. */
@@ -189,7 +189,7 @@ export async function openSource(path: string, options: OpenSourceOptions = {}):
     )
   }
 
-  const temporary = options.staging ? undefined : mkdtempSync(join(tmpdir(), 'bunbraco-import-'))
+  const temporary = options.staging ? undefined : mkdtempSync(join(tmpdir(), 'crombolo-import-'))
   const staging = options.staging ?? join(temporary as string, 'staging.sqlite')
   try {
     const tables = bacpac.tables.map((table) => table.name)

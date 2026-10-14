@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository } from '@bunbraco/data'
+import { ContentTypeRepository } from '@crombolo/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -81,7 +81,7 @@ async function site() {
 
 const udi = (key: string) => `umb://document/${key.replaceAll('-', '')}`
 
-describe(`references (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`references (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('name what points at a document, and say nothing when nothing does', async () => {
     const { h, create } = await site()
     const target = await create('Target')

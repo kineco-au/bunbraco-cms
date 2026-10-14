@@ -2,8 +2,8 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  bunbracoPlan,
   connect,
+  cromboloPlan,
   type Db,
   DEFAULT_LOG_SEARCHES,
   type DialectName,
@@ -11,7 +11,7 @@ import {
   MIGRATION_STATE_KEY,
   pendingMigrations,
   resolveDialectName,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 
 // Tests build their throwaway sites with `mkdtemp` under `output/`, which does not
 // create parents. Every such test reaches this module, directly or through
@@ -36,7 +36,7 @@ let postgresReachable: boolean | undefined
  * Repairing it here costs one statement and makes a Ctrl-C survivable.
  */
 async function ensurePublicSchema(): Promise<void> {
-  const url = Bun.env.BUNBRACO_POSTGRES_URL ?? Bun.env.DATABASE_URL
+  const url = Bun.env.CROMBOLO_POSTGRES_URL ?? Bun.env.DATABASE_URL
   if (!url) return
   const { SQL } = await import('bun')
   const sql = new SQL({ url, max: 1 })
@@ -166,7 +166,7 @@ const MIGRATION_OWNED = ['migration_history', 'key_value', 'schema_state']
  */
 async function emptyMigratedSchema(db: Db): Promise<boolean> {
   try {
-    if ((await pendingMigrations(db, bunbracoPlan)).length > 0) return false
+    if ((await pendingMigrations(db, cromboloPlan)).length > 0) return false
   } catch {
     // Thrown when the database is ahead of this code; rebuilding is the answer.
     return false

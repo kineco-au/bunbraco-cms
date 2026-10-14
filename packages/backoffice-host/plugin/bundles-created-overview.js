@@ -4,7 +4,7 @@
  * Reads through `UmbPackageRepository` rather than this plugin's own endpoints:
  * the definitions are the Management API's nine `package` operations, which are
  * contract-fixed and bearer-authenticated, and the repository already carries
- * the client's token. The plugin's `/bunbraco/api/bundles` routes are a
+ * the client's token. The plugin's `/crombolo/api/bundles` routes are a
  * different thing — installed npm bundles, on the session cookie.
  */
 
@@ -18,7 +18,7 @@ const TAKE = 10
 /** Where the builder lives, which is Umbraco's route and not ours to rename. */
 export const BUILDER_PATH = 'section/packages/view/created/package-builder'
 
-export default class BunbracoBundlesCreatedOverviewElement extends UmbLitElement {
+export default class CromboloBundlesCreatedOverviewElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _loading: { state: true },
@@ -147,4 +147,4 @@ export default class BunbracoBundlesCreatedOverviewElement extends UmbLitElement
   `
 }
 
-customElements.define('bunbraco-bundles-created-overview', BunbracoBundlesCreatedOverviewElement)
+customElements.define('crombolo-bundles-created-overview', CromboloBundlesCreatedOverviewElement)

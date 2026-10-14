@@ -4,7 +4,7 @@
  * The back office serves these as files, by path (`graphics.ts`). This exports
  * the same bytes to anything that has to *draw* the brand rather than serve it
  * — the enterprise console, which is a separate product surface in another
- * repository and reaches the CMS only through the `bunbraco` umbrella.
+ * repository and reaches the CMS only through the `@crombolo/crombolo` umbrella.
  *
  * Imported as text rather than duplicated as string literals, so the `.svg`
  * and `.css` files stay the one source of truth and a new logo is one file to
@@ -17,10 +17,10 @@ import faviconText from '../plugin/branding/favicon.svg' with { type: 'text' }
 import logoText from '../plugin/branding/logo-header.svg' with { type: 'text' }
 import themeText from '../plugin/branding/theme.css' with { type: 'text' }
 
-/** The wordmark and bun, for a header or a sign-in card. */
+/** The mark and wordmark, for a header or a sign-in card. */
 export const logoSvg: string = logoText.trim()
 
-/** The bun alone, square, for a tab icon. */
+/** The mark alone, square, for a tab icon. */
 export const faviconSvg: string = faviconText.trim()
 
 /**
@@ -28,7 +28,7 @@ export const faviconSvg: string = faviconText.trim()
  *
  * The theme is what the back office is actually painted with, so parsing it is
  * what makes a consumer's colours the same colours rather than a copy that was
- * the same once. Only the `--bunbraco-*` tokens are ours; everything else in
+ * the same once. Only the `--crombolo-*` tokens are ours; everything else in
  * that file is an Umbraco variable being pointed at one of them.
  */
 export interface BrandPalette {
@@ -40,13 +40,13 @@ export interface BrandPalette {
   cream: string
 }
 
-/** `--bunbraco-orange-deep` → `orangeDeep`. */
+/** `--crombolo-orange-deep` → `orangeDeep`. */
 const camel = (name: string) =>
   name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase())
 
 export function paletteFrom(css: string): BrandPalette {
   const found: Record<string, string> = {}
-  for (const [, name, value] of css.matchAll(/--bunbraco-([a-z-]+)\s*:\s*([^;]+);/g))
+  for (const [, name, value] of css.matchAll(/--crombolo-([a-z-]+)\s*:\s*([^;]+);/g))
     found[camel(name as string)] = (value as string).trim()
   const wanted = ['orange', 'orangeLight', 'orangeDeep', 'orangeText', 'cocoa', 'cream']
   const missing = wanted.filter((key) => found[key] === undefined)

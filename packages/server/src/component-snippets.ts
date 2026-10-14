@@ -4,9 +4,9 @@
  * `<Breadcrumb model={model} nav={nav} />`. `Empty` is also the skeleton a new
  * component starts with.
  */
-import type { Snippet } from '@bunbraco/api-management'
+import type { Snippet } from '@crombolo/api-management'
 
-const IMPORTS = "import type { PageProps } from 'bunbraco'\n\n"
+const IMPORTS = "import type { PageProps } from '@crombolo/crombolo'\n\n"
 
 export const COMPONENT_SNIPPETS: readonly Snippet[] = [
   {
@@ -106,7 +106,7 @@ export const COMPONENT_SNIPPETS: readonly Snippet[] = [
   {
     id: 'ListDescendantsFromCurrentPage',
     name: 'List Descendants From Current Page',
-    content: `import type { PageProps, PublishedContent } from 'bunbraco'
+    content: `import type { PageProps, PublishedContent } from '@crombolo/crombolo'
 
 export default function Descendants({ model, nav }: Pick<PageProps, 'model' | 'nav'>) {
   const branch = (page: PublishedContent) => (
@@ -143,7 +143,7 @@ export default function Descendants({ model, nav }: Pick<PageProps, 'model' | 'n
   {
     id: 'SiteMap',
     name: 'Site Map',
-    content: `import type { PageProps, PublishedContent } from 'bunbraco'
+    content: `import type { PageProps, PublishedContent } from '@crombolo/crombolo'
 
 export default function SiteMap({ nav }: Pick<PageProps, 'nav'>) {
   const branch = (pages: PublishedContent[]) => (

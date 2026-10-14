@@ -1,14 +1,14 @@
 {
-  "name": "@bunbraco/site",
+  "name": "@crombolo/site",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bunbraco start",
+    "start": "crombolo start",
     "dev": "bun --watch server.ts"
   },
   "dependencies": {
-    "@bunbraco/simple-redirects": "0.5.1",
-    "bunbraco": "workspace:*"
+    "@crombolo/simple-redirects": "workspace:*",
+    "@crombolo/crombolo": "workspace:*"
   }
 }

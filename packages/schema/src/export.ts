@@ -10,7 +10,7 @@ import {
   type DataTypeModel,
   ObjectTypes,
   type PropertyTypeModel,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   ComponentRepository,
   ContentTypeRepository,
@@ -20,7 +20,7 @@ import {
   LanguageRepository,
   SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, builtInContentTypeSchema, builtInMediaTypeSchema } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
 import type {

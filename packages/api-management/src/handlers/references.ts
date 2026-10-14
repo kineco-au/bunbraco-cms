@@ -3,7 +3,7 @@
  * before a delete. These answered an empty page until now, which told an editor
  * that nothing referenced a document they were about to delete.
  */
-import { invalidSkipTake, paged, parseSkipTake, problemResponse } from '@bunbraco/core'
+import { invalidSkipTake, paged, parseSkipTake, problemResponse } from '@crombolo/core'
 import type { ReferencePort } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { ManagementApiRouter, type Principal } from '@bunbraco/api-management'
-import { listOperations, loadSpec } from '@bunbraco/contracts'
-import { CORE_SECTION_ALIASES, NOTIFICATIONS_HEADER, ROOT_ACCESS } from '@bunbraco/core'
+import { ManagementApiRouter, type Principal } from '@crombolo/api-management'
+import { listOperations, loadSpec } from '@crombolo/contracts'
+import { CORE_SECTION_ALIASES, NOTIFICATIONS_HEADER, ROOT_ACCESS } from '@crombolo/core'
 
 const V1 = '/umbraco/management/api/v1'
 

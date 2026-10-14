@@ -8,10 +8,10 @@
  * membership is `member_group_member`, and the rules that protect a page name a
  * group by its **name**, so `roles` reads names rather than keys.
  *
- * Passwords arrive already hashed. Hashing belongs to `@bunbraco/auth`, and
+ * Passwords arrive already hashed. Hashing belongs to `@crombolo/auth`, and
  * `data` depends on nothing but types.
  */
-import { normaliseUuid, ObjectTypes } from '@bunbraco/core'
+import { normaliseUuid, ObjectTypes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 import {

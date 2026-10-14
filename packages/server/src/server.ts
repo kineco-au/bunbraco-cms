@@ -1,5 +1,5 @@
 /**
- * The Bunbraco server.
+ * The Crombolo server.
  *
  * Route order matters and mirrors docs/01-architecture.md: static assets, the
  * non-contract security and branding endpoints, the contract-first Management
@@ -7,7 +7,7 @@
  */
 
 import { join } from 'node:path'
-import { createManagementApiRouter, hasSection, type Principal } from '@bunbraco/api-management'
+import { createManagementApiRouter, hasSection, type Principal } from '@crombolo/api-management'
 import {
   AuthService,
   AuthStore,
@@ -17,7 +17,7 @@ import {
   REDACTED,
   readCookie,
   serializeCookie,
-} from '@bunbraco/auth'
+} from '@crombolo/auth'
 import {
   collectManifests,
   createBackOfficePaths,
@@ -29,7 +29,7 @@ import {
   resolveLoginAsset,
   resolveStaticFile,
   serveStaticFile,
-} from '@bunbraco/backoffice-host'
+} from '@crombolo/backoffice-host'
 import {
   DEFAULT_UPLOAD_SETTINGS,
   FormPermissions,
@@ -38,7 +38,7 @@ import {
   MANAGEMENT_API_PREFIX,
   PREVIEW_HUB_PATH,
   SERVER_EVENT_HUB_PATH,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   appendCacheInstruction,
   type Db,
@@ -47,7 +47,7 @@ import {
   RedirectRepository,
   readReport,
   type WritesPaused,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   contentForNode,
   DEVELOPMENT_LIMITS,
@@ -59,14 +59,14 @@ import {
   type SnapshotStatus,
   setFormTokenSigner,
   ViewSnapshots,
-} from '@bunbraco/render'
-import type { SyncReport } from '@bunbraco/schema'
+} from '@crombolo/render'
+import type { SyncReport } from '@crombolo/schema'
 import type { Server } from 'bun'
 import { createNodeLookup, loadAccess } from './access.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
 import { createBundleRedirects, createServerBundles } from './bundles.ts'
-import { type BunbracoConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
+import { type CromboloConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDiagnostics } from './diagnostics.ts'
 import { syncDomainsFile } from './domains.ts'
@@ -122,10 +122,10 @@ import {
 } from './server-events.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 
-const CONTRACT_PATH = Bun.resolveSync('@bunbraco/contracts/OpenApi.json', import.meta.dir)
+const CONTRACT_PATH = Bun.resolveSync('@crombolo/contracts/OpenApi.json', import.meta.dir)
 
 export interface ServerHandle {
-  config: BunbracoConfig
+  config: CromboloConfig
   fetch(request: Request): Promise<Response>
   /** Everything `Bun.serve` needs, the live-update WebSocket included. */
   serveOptions: {
@@ -175,7 +175,7 @@ export interface ServerHandle {
 /** Umbraco's preview cookie; with a signed-in editor it turns on draft rendering. */
 export const PREVIEW_COOKIE = 'UMB_PREVIEW'
 
-export async function createServer(config: BunbracoConfig = loadConfig()): Promise<ServerHandle> {
+export async function createServer(config: CromboloConfig = loadConfig()): Promise<ServerHandle> {
   configureLogging({
     logsDir: config.logsDir,
     level: config.logLevel,
@@ -587,7 +587,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
   // on every node would have two processes publishing the same document in the
   // same second, so only an owner starts them.
   if (owns) jobs.start()
-  log.info('Bunbraco {version} started on node {nodeId} as {role}', {
+  log.info('Crombolo {version} started on node {nodeId} as {role}', {
     version: VERSION,
     nodeId: schema.nodeId,
     role: config.role,
@@ -693,7 +693,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
       })
 
     // A visitor posting a form. Before the renderer, which would otherwise try
-    // to resolve `/bunbraco/forms/...` as a page.
+    // to resolve `/crombolo/forms/...` as a page.
     if (pathname.startsWith(`${FORM_SUBMIT_PATH}/`))
       return request.method === 'POST'
         ? submitFormRoute(request, pathname)
@@ -788,7 +788,7 @@ export async function createServer(config: BunbracoConfig = loadConfig()): Promi
     }
 
     // Non-contract, signed-in: the declarations the view editor type-checks a
-    // template against — `@bunbraco/render`'s own sources and the schema's
+    // template against — `@crombolo/render`'s own sources and the schema's
     // generated content types.
     //
     // Signed in and not Settings, although only Settings can open a template:

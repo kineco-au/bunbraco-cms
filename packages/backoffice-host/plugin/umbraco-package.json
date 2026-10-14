@@ -1,15 +1,15 @@
 {
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
-  "name": "Bunbraco",
-  "id": "Bunbraco.Core",
-  "version": "0.8.1",
+  "name": "Crombolo",
+  "id": "Crombolo.Core",
+  "version": "0.9.0",
   "allowPublicAccess": false,
   "extensions": [
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Bundles.Marketplace",
-      "name": "Bunbraco Packages Marketplace",
-      "element": "/bunbraco-plugin/bundles-marketplace.js",
+      "alias": "Crombolo.SectionView.Bundles.Marketplace",
+      "name": "Crombolo Packages Marketplace",
+      "element": "/crombolo-plugin/bundles-marketplace.js",
       "weight": 300,
       "overwrites": ["Umb.SectionView.Packages.Marketplace"],
       "meta": {
@@ -26,9 +26,9 @@
     },
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Bundles.Created",
-      "name": "Bunbraco Created Bundles",
-      "element": "/bunbraco-plugin/bundles-created.js",
+      "alias": "Crombolo.SectionView.Bundles.Created",
+      "name": "Crombolo Created Bundles",
+      "element": "/crombolo-plugin/bundles-created.js",
       "weight": 100,
       "overwrites": ["Umb.SectionView.Packages.Builder"],
       "meta": {
@@ -45,9 +45,9 @@
     },
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Bundles.Installed",
-      "name": "Bunbraco Installed Packages",
-      "element": "/bunbraco-plugin/bundles-installed.js",
+      "alias": "Crombolo.SectionView.Bundles.Installed",
+      "name": "Crombolo Installed Packages",
+      "element": "/crombolo-plugin/bundles-installed.js",
       "weight": 200,
       "overwrites": ["Umb.SectionView.Packages.Installed"],
       "meta": {
@@ -64,9 +64,9 @@
     },
     {
       "type": "dashboard",
-      "alias": "Bunbraco.Dashboard.Changes",
-      "name": "Bunbraco Changes Dashboard",
-      "element": "/bunbraco-plugin/changes-dashboard.js",
+      "alias": "Crombolo.Dashboard.Changes",
+      "name": "Crombolo Changes Dashboard",
+      "element": "/crombolo-plugin/changes-dashboard.js",
       "weight": 5,
       "meta": {
         "label": "Changes",
@@ -81,9 +81,9 @@
     },
     {
       "type": "dashboard",
-      "alias": "Bunbraco.Dashboard.Welcome",
-      "name": "Bunbraco Welcome Dashboard",
-      "element": "/bunbraco-plugin/welcome-dashboard.js",
+      "alias": "Crombolo.Dashboard.Welcome",
+      "name": "Crombolo Welcome Dashboard",
+      "element": "/crombolo-plugin/welcome-dashboard.js",
       "weight": 20,
       "overwrites": ["Umb.Dashboard.UmbracoNews"],
       "meta": {
@@ -99,9 +99,9 @@
     },
     {
       "type": "dashboard",
-      "alias": "Bunbraco.Dashboard.Settings",
-      "name": "Bunbraco Settings Dashboard",
-      "element": "/bunbraco-plugin/settings-dashboard.js",
+      "alias": "Crombolo.Dashboard.Settings",
+      "name": "Crombolo Settings Dashboard",
+      "element": "/crombolo-plugin/settings-dashboard.js",
       "weight": 500,
       "overwrites": ["Umb.Dashboard.SettingsWelcome"],
       "meta": {
@@ -117,22 +117,22 @@
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.TsxEditors",
-      "name": "Bunbraco TSX Template and Partial View Editors",
-      "js": "/bunbraco-plugin/tsx-editors.js"
+      "alias": "Crombolo.EntryPoint.TsxEditors",
+      "name": "Crombolo TSX Template and Partial View Editors",
+      "js": "/crombolo-plugin/tsx-editors.js"
     },
     {
       "type": "headerApp",
-      "alias": "Bunbraco.HeaderApp.ReadOnly",
-      "name": "Bunbraco Read-only Banner",
-      "element": "/bunbraco-plugin/read-only-banner.js",
+      "alias": "Crombolo.HeaderApp.ReadOnly",
+      "name": "Crombolo Read-only Banner",
+      "element": "/crombolo-plugin/read-only-banner.js",
       "weight": 1000
     },
     {
       "type": "workspaceFooterApp",
-      "alias": "Bunbraco.WorkspaceFooterApp.ElementTypeHint",
-      "name": "Bunbraco Element Type Library Hint",
-      "element": "/bunbraco-plugin/element-type-hint.js",
+      "alias": "Crombolo.WorkspaceFooterApp.ElementTypeHint",
+      "name": "Crombolo Element Type Library Hint",
+      "element": "/crombolo-plugin/element-type-hint.js",
       "weight": 900,
       "conditions": [
         {
@@ -143,46 +143,46 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.EN",
-      "name": "Bunbraco English Overrides",
+      "alias": "Crombolo.Localization.EN",
+      "name": "Crombolo English Overrides",
       "weight": 0,
       "meta": {
         "culture": "en"
       },
-      "js": "/bunbraco-plugin/branding/localization-en.js"
+      "js": "/crombolo-plugin/branding/localization-en.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.EN_US",
-      "name": "Bunbraco English (United States) Overrides",
+      "alias": "Crombolo.Localization.EN_US",
+      "name": "Crombolo English (United States) Overrides",
       "weight": 0,
       "meta": {
         "culture": "en-us"
       },
-      "js": "/bunbraco-plugin/branding/localization-en.js"
+      "js": "/crombolo-plugin/branding/localization-en.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.Branding",
-      "name": "Bunbraco Branding",
-      "js": "/bunbraco-plugin/branding/branding.js"
+      "alias": "Crombolo.EntryPoint.Branding",
+      "name": "Crombolo Branding",
+      "js": "/crombolo-plugin/branding/branding.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.HelpMenu",
-      "name": "Bunbraco Help Menu",
-      "js": "/bunbraco-plugin/branding/help-menu.js"
+      "alias": "Crombolo.EntryPoint.HelpMenu",
+      "name": "Crombolo Help Menu",
+      "js": "/crombolo-plugin/branding/help-menu.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.Sysinfo",
-      "name": "Bunbraco System Information Branding",
-      "js": "/bunbraco-plugin/branding/sysinfo.js"
+      "alias": "Crombolo.EntryPoint.Sysinfo",
+      "name": "Crombolo System Information Branding",
+      "js": "/crombolo-plugin/branding/sysinfo.js"
     },
     {
       "type": "section",
-      "alias": "Bunbraco.Section.Forms",
-      "name": "Bunbraco Forms Section",
+      "alias": "Crombolo.Section.Forms",
+      "name": "Crombolo Forms Section",
       "weight": 50,
       "meta": {
         "label": "Forms",
@@ -191,9 +191,9 @@
     },
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Forms.Overview",
-      "name": "Bunbraco Forms Overview",
-      "element": "/bunbraco-plugin/forms-overview.js",
+      "alias": "Crombolo.SectionView.Forms.Overview",
+      "name": "Crombolo Forms Overview",
+      "element": "/crombolo-plugin/forms-overview.js",
       "weight": 200,
       "meta": {
         "label": "Forms",
@@ -203,15 +203,15 @@
       "conditions": [
         {
           "alias": "Umb.Condition.SectionAlias",
-          "match": "Bunbraco.Section.Forms"
+          "match": "Crombolo.Section.Forms"
         }
       ]
     },
     {
       "type": "sectionView",
-      "alias": "Bunbraco.SectionView.Forms.Entries",
-      "name": "Bunbraco Forms Entries",
-      "element": "/bunbraco-plugin/forms-entries.js",
+      "alias": "Crombolo.SectionView.Forms.Entries",
+      "name": "Crombolo Forms Entries",
+      "element": "/crombolo-plugin/forms-entries.js",
       "weight": 100,
       "meta": {
         "label": "Entries",
@@ -221,78 +221,78 @@
       "conditions": [
         {
           "alias": "Umb.Condition.SectionAlias",
-          "match": "Bunbraco.Section.Forms"
+          "match": "Crombolo.Section.Forms"
         }
       ]
     },
     {
       "type": "propertyEditorSchema",
       "name": "Form Picker",
-      "alias": "Bunbraco.FormPicker",
+      "alias": "Crombolo.FormPicker",
       "meta": {
-        "defaultPropertyEditorUiAlias": "Bunbraco.PropertyEditorUi.FormPicker"
+        "defaultPropertyEditorUiAlias": "Crombolo.PropertyEditorUi.FormPicker"
       }
     },
     {
       "type": "propertyEditorUi",
-      "alias": "Bunbraco.PropertyEditorUi.FormPicker",
+      "alias": "Crombolo.PropertyEditorUi.FormPicker",
       "name": "Form Picker",
-      "element": "/bunbraco-plugin/form-picker.js",
+      "element": "/crombolo-plugin/form-picker.js",
       "meta": {
         "label": "Form Picker",
         "icon": "icon-notepad",
         "group": "pickers",
-        "propertyEditorSchemaAlias": "Bunbraco.FormPicker"
+        "propertyEditorSchemaAlias": "Crombolo.FormPicker"
       }
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.ClientCredentials",
-      "name": "Bunbraco Client Credential Prefix",
-      "js": "/bunbraco-plugin/branding/client-credentials.js"
+      "alias": "Crombolo.EntryPoint.ClientCredentials",
+      "name": "Crombolo Client Credential Prefix",
+      "js": "/crombolo-plugin/branding/client-credentials.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.BundleBuilderLabels",
-      "name": "Bunbraco Bundle Builder Labels",
-      "js": "/bunbraco-plugin/branding/bundle-builder-labels.js"
+      "alias": "Crombolo.EntryPoint.BundleBuilderLabels",
+      "name": "Crombolo Bundle Builder Labels",
+      "js": "/crombolo-plugin/branding/bundle-builder-labels.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.ComponentsTree",
-      "name": "Bunbraco Components Tree",
-      "js": "/bunbraco-plugin/branding/components-tree.js"
+      "alias": "Crombolo.EntryPoint.ComponentsTree",
+      "name": "Crombolo Components Tree",
+      "js": "/crombolo-plugin/branding/components-tree.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.ContentTypeLabels",
-      "name": "Bunbraco Content Type Labels",
-      "js": "/bunbraco-plugin/branding/content-type-labels.js"
+      "alias": "Crombolo.EntryPoint.ContentTypeLabels",
+      "name": "Crombolo Content Type Labels",
+      "js": "/crombolo-plugin/branding/content-type-labels.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.QueryBuilder",
-      "name": "Bunbraco Query Builder Language",
-      "js": "/bunbraco-plugin/branding/query-builder.js"
+      "alias": "Crombolo.EntryPoint.QueryBuilder",
+      "name": "Crombolo Query Builder Language",
+      "js": "/crombolo-plugin/branding/query-builder.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.SignIn",
-      "name": "Bunbraco Sign-in Button",
-      "js": "/bunbraco-plugin/branding/sign-in.js"
+      "alias": "Crombolo.EntryPoint.SignIn",
+      "name": "Crombolo Sign-in Button",
+      "js": "/crombolo-plugin/branding/sign-in.js"
     },
     {
       "type": "backofficeEntryPoint",
-      "alias": "Bunbraco.EntryPoint.LogViewerMenu",
-      "name": "Bunbraco Log Viewer Search Menu",
-      "js": "/bunbraco-plugin/branding/log-viewer-menu.js"
+      "alias": "Crombolo.EntryPoint.LogViewerMenu",
+      "name": "Crombolo Log Viewer Search Menu",
+      "js": "/crombolo-plugin/branding/log-viewer-menu.js"
     },
     {
       "type": "globalContext",
-      "alias": "Bunbraco.GlobalContext.Icons",
-      "name": "Bunbraco Icons Context",
+      "alias": "Crombolo.GlobalContext.Icons",
+      "name": "Crombolo Icons Context",
       "overwrites": ["Umb.GlobalContext.Icons"],
-      "api": "/bunbraco-plugin/branding/icon-registry.js"
+      "api": "/crombolo-plugin/branding/icon-registry.js"
     }
   ]
 }

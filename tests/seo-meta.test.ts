@@ -15,7 +15,7 @@ import {
   robotsTxt,
   SeoHead,
   sitemapEntries,
-} from '@bunbraco/render'
+} from '@crombolo/render'
 
 const SITE = { siteName: 'Acme', indexable: true }
 const ORIGIN = 'https://acme.test'

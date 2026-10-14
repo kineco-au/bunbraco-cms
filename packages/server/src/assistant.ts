@@ -12,7 +12,7 @@
  * equivalent.
  */
 
-import { hasSection, type Principal } from '@bunbraco/api-management'
+import { hasSection, type Principal } from '@crombolo/api-management'
 import {
   type AssistantProvider,
   applyChange,
@@ -32,9 +32,9 @@ import {
   type SchemaProposalPort,
   scanTemplateSource,
   systemPrompt,
-} from '@bunbraco/assistant'
-import { listOperations, loadSpec } from '@bunbraco/contracts'
-import type { Db } from '@bunbraco/data'
+} from '@crombolo/assistant'
+import { listOperations, loadSpec } from '@crombolo/contracts'
+import type { Db } from '@crombolo/data'
 import { createChangesetStore } from './adapters/assistant.ts'
 import { logger } from './logging.ts'
 

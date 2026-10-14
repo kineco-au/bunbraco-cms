@@ -5,7 +5,7 @@
  * Data type keys are Umbraco's own, so any documentation or example that
  * references a well-known data type still applies.
  */
-import { ObjectTypes, SystemNodes, ValueStorageType } from '@bunbraco/core'
+import { ObjectTypes, SystemNodes, ValueStorageType } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
 
@@ -107,7 +107,7 @@ function listViewConfig(collectionViewType: 'Document' | 'Media'): Record<string
 /**
  * Every data type Umbraco's installer creates, with its keys, names and
  * configuration. Their editor UIs all come from the vendored client, which
- * `tests/vendor.test.ts` holds this list to; ours live in `BUNBRACO_DATA_TYPES`.
+ * `tests/vendor.test.ts` holds this list to; ours live in `CROMBOLO_DATA_TYPES`.
  */
 export const DEFAULT_DATA_TYPES: readonly SeedDataType[] = [
   {
@@ -506,13 +506,13 @@ export async function seedContent(db: Db): Promise<boolean> {
  * Data types this CMS adds, whose editor UIs come from our own plugin rather
  * than from the vendored client. Seeded and ensured exactly as Umbraco's are.
  */
-export const BUNBRACO_DATA_TYPES: readonly SeedDataType[] = [
+export const CROMBOLO_DATA_TYPES: readonly SeedDataType[] = [
   {
     key: '9c4a7d1e-0100-4b2a-9f31-6d8e2c5a7b40',
     alias: 'formPicker',
     name: 'Form Picker',
-    editorAlias: 'Bunbraco.FormPicker',
-    editorUiAlias: 'Bunbraco.PropertyEditorUi.FormPicker',
+    editorAlias: 'Crombolo.FormPicker',
+    editorUiAlias: 'Crombolo.PropertyEditorUi.FormPicker',
     // The form's UUID, from `schema/forms/*.toml`. A string rather than a
     // reference: the definition is a file, so there is no row to point at.
     dbType: ValueStorageType.Nvarchar,
@@ -523,7 +523,7 @@ export const BUNBRACO_DATA_TYPES: readonly SeedDataType[] = [
 /** Every data type that needs no file, Umbraco's and ours. */
 export const ALL_SEEDED_DATA_TYPES: readonly SeedDataType[] = [
   ...DEFAULT_DATA_TYPES,
-  ...BUNBRACO_DATA_TYPES,
+  ...CROMBOLO_DATA_TYPES,
 ]
 
 /** One built-in data type, as the seed and the boot-time ensure both write it. */

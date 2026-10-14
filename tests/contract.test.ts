@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { findDuplicateOperationIds, listOperations, loadSpec, parsePath } from '@bunbraco/contracts'
+import { findDuplicateOperationIds, listOperations, loadSpec, parsePath } from '@crombolo/contracts'
 
 /**
  * These counts pin the vendored contract to Umbraco release-18.2.0. If they

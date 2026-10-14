@@ -1,4 +1,4 @@
-import type { Navigation, PublishedContent } from 'bunbraco'
+import type { Navigation, PublishedContent } from '@crombolo/crombolo'
 
 /**
  * The site name, from the config, and the primary nav: the home page followed by its children, so

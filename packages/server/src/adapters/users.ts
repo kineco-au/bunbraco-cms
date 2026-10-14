@@ -16,14 +16,14 @@ import type {
   UserPort,
   UserResponse,
   UserStatus,
-} from '@bunbraco/api-management'
+} from '@crombolo/api-management'
 import {
   generateToken,
   hashPassword,
   hashToken,
   passwordConfigJson,
   verifyPassword,
-} from '@bunbraco/auth'
+} from '@crombolo/auth'
 import {
   DEFAULT_PASSWORD_CONFIGURATION,
   generateUserPassword,
@@ -37,7 +37,7 @@ import {
   sectionAppAlias,
   sectionKey,
   sectionName,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   type Db,
   DbDate,
@@ -48,9 +48,9 @@ import {
   type UserRecord,
   UserRepository,
   userState,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { loadAccess } from '../access.ts'
-import type { BunbracoConfig } from '../config.ts'
+import type { CromboloConfig } from '../config.ts'
 import type { MediaFileStore } from '../media-files.ts'
 
 const INVITE_HOURS = 72
@@ -64,7 +64,7 @@ const SYSTEM_GROUPS = new Set(['admin', 'sensitiveData', 'translator'])
  * which is `umbraco-back-office` and stays as it is — the vendored client sends
  * it. Migration 020 renamed the credentials that carried the old prefix.
  */
-const CLIENT_ID_PREFIX = 'bunbraco-back-office-'
+const CLIENT_ID_PREFIX = 'crombolo-back-office-'
 const ISO_CODE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/i
 
 export function avatarUrls(avatar: string | null): string[] {
@@ -105,7 +105,7 @@ type Tree = 'document' | 'media' | 'element'
 
 export interface UserPortOptions {
   config: Pick<
-    BunbracoConfig,
+    CromboloConfig,
     'usernameIsEmail' | 'applicationUrl' | 'sendUserLink' | 'allowPasswordReset' | 'backOfficePath'
   >
   mediaFiles: MediaFileStore

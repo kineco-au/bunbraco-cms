@@ -4,30 +4,30 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Aşağıdaki formu doldurarak ve 'Şifreyi Değiştir' düğmesini tıklayarak Bunbraco Arka Ofisine erişim şifrenizi değiştirebilirsiniz",
-    "createUserHelp": "Bunbraco'ya erişim sağlamak için yeni kullanıcılar oluşturun. Yeni bir kullanıcı oluşturulduğunda, kullanıcıyla paylaşabileceğiniz bir şifre oluşturulacaktır.",
-    "inviteUserHelp": "Yeni kullanıcıları Bunbraco'ya erişim vermeleri için davet edin. Kullanıcıya, Bunbraco'da nasıl oturum açılacağına dair bilgiler içeren bir davet e-postası gönderilecektir. Davetler 72 saat sürer.",
-    "noConsole": "Bunbraco Erişimini Devre Dışı Bırak",
-    "userCreatedSuccessHelp": "Yeni kullanıcı başarıyla oluşturuldu. Bunbraco'da oturum açmak için aşağıdaki şifreyi kullanın.",
-    "userInvitedSuccessHelp": "Yeni kullanıcıya, Bunbraco'da nasıl oturum açılacağına ilişkin ayrıntıları içeren bir davetiye gönderildi.",
-    "userinviteWelcomeMessage": "Merhabalar, Bunbraco'ya hoş geldiniz! Sadece 1 dakika içinde hazır olacaksınız, sadece bir şifre belirlemeniz.",
-    "userinviteExpiredMessage": "Bunbraco'ya hoş geldiniz! Maalesef davetinizin süresi doldu. Lütfen yöneticinizle iletişime geçin ve yeniden göndermesini isteyin.",
+    "changePasswordDescription": "Aşağıdaki formu doldurarak ve 'Şifreyi Değiştir' düğmesini tıklayarak Crombolo Arka Ofisine erişim şifrenizi değiştirebilirsiniz",
+    "createUserHelp": "Crombolo'ya erişim sağlamak için yeni kullanıcılar oluşturun. Yeni bir kullanıcı oluşturulduğunda, kullanıcıyla paylaşabileceğiniz bir şifre oluşturulacaktır.",
+    "inviteUserHelp": "Yeni kullanıcıları Crombolo'ya erişim vermeleri için davet edin. Kullanıcıya, Crombolo'da nasıl oturum açılacağına dair bilgiler içeren bir davet e-postası gönderilecektir. Davetler 72 saat sürer.",
+    "noConsole": "Crombolo Erişimini Devre Dışı Bırak",
+    "userCreatedSuccessHelp": "Yeni kullanıcı başarıyla oluşturuldu. Crombolo'da oturum açmak için aşağıdaki şifreyi kullanın.",
+    "userInvitedSuccessHelp": "Yeni kullanıcıya, Crombolo'da nasıl oturum açılacağına ilişkin ayrıntıları içeren bir davetiye gönderildi.",
+    "userinviteWelcomeMessage": "Merhabalar, Crombolo'ya hoş geldiniz! Sadece 1 dakika içinde hazır olacaksınız, sadece bir şifre belirlemeniz.",
+    "userinviteExpiredMessage": "Crombolo'ya hoş geldiniz! Maalesef davetinizin süresi doldu. Lütfen yöneticinizle iletişime geçin ve yeniden göndermesini isteyin.",
     "documentType": "İçerik Türü"
   },
   "languages": {
-    "defaultLanguageHelp": "Bir Bunbraco sitesinde yalnızca bir varsayılan dil ayarı olabilir."
+    "defaultLanguageHelp": "Bir Crombolo sitesinde yalnızca bir varsayılan dil ayarı olabilir."
   },
   "paste": {
-    "errorMessage": "Yapıştırmaya çalıştığınız metin özel karakterler veya biçimlendirme içeriyor. Bunun nedeni Microsoft Word'den metin kopyalanması olabilir. Bunbraco, özel karakterleri veya biçimlendirmeyi otomatik olarak kaldırabilir, böylece yapıştırılan içerik web için daha uygun olacaktır."
+    "errorMessage": "Yapıştırmaya çalıştığınız metin özel karakterler veya biçimlendirme içeriyor. Bunun nedeni Microsoft Word'den metin kopyalanması olabilir. Crombolo, özel karakterleri veya biçimlendirmeyi otomatik olarak kaldırabilir, böylece yapıştırılan içerik web için daha uygun olacaktır."
   },
   "dashboard": {
-    "nothinghappens": "Bunbraco açılmıyorsa, bu siteden pop-up'lara izin vermeniz gerekebilir"
+    "nothinghappens": "Crombolo açılmıyorsa, bu siteden pop-up'lara izin vermeniz gerekebilir"
   },
   "logViewer": {
-    "searchUmbracoSource": "Bunbraco Kaynağını Ara",
-    "searchWithinUmbracoSourceCodeOnGithub": "Github'da Bunbraco kaynak kodu içinde arama",
-    "searchUmbracoIssues": "Bunbraco Sorunlarını Ara",
-    "searchUmbracoIssuesOnGithub": "Github'da Bunbraco Sorunlarını Ara"
+    "searchUmbracoSource": "Crombolo Kaynağını Ara",
+    "searchWithinUmbracoSourceCodeOnGithub": "Github'da Crombolo kaynak kodu içinde arama",
+    "searchUmbracoIssues": "Crombolo Sorunlarını Ara",
+    "searchUmbracoIssuesOnGithub": "Github'da Crombolo Sorunlarını Ara"
   },
   "actions": {
     "changeDocType": "İçerik Türünü Değiştir",

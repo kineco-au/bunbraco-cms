@@ -13,7 +13,7 @@
  * stacking another row behind it, which is how Umbraco's "most recent wins"
  * ends up behaving without the duplicates.
  */
-import { normaliseUuid } from '@bunbraco/core'
+import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
 

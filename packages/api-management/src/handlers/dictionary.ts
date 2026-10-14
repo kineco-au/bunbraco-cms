@@ -6,7 +6,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { DictionaryItemModel, DictionaryPort, DictionaryWriteStatus } from '../ports.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created } from './content-type.ts'

@@ -22,7 +22,7 @@ const SOURCES = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export default class BunbracoSeoDashboardElement extends UmbLitElement {
+export default class CromboloSeoDashboardElement extends UmbLitElement {
   static properties = {
     _settings: { state: true },
     _draft: { state: true },
@@ -239,4 +239,4 @@ export default class BunbracoSeoDashboardElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-seo-dashboard', BunbracoSeoDashboardElement)
+customElements.define('crombolo-seo-dashboard', CromboloSeoDashboardElement)

@@ -8,7 +8,7 @@
  * tests/assistant-boundary.test.ts — so widening one of these lists without
  * meaning to fails the suite rather than the site.
  */
-import { listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
+import { listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 
 /**
  * Areas the assistant may read. An allowlist, not a denylist: an area added to

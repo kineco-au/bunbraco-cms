@@ -5,7 +5,7 @@
   "distribute": true,
   "bundles": [
     {
-      "package": "@bunbraco/simple-redirects",
+      "package": "@crombolo/simple-redirects",
       "import": "redirects"
     }
   ]

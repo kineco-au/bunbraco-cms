@@ -9,14 +9,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { ContentTypeRepository } from '@bunbraco/data'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { ContentTypeRepository } from '@crombolo/data'
 import {
   fileSystemMediaStore,
   publishSchema,
   type SchemaStore,
   schemaStoreOver,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { type Harness, signedInServer, signInAsGroup } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -30,7 +30,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const IMPORT = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/schema-import`
+const IMPORT = `${DEFAULT_BACKOFFICE_PATH}/crombolo/api/schema-import`
 
 const temp = (name: string) => {
   const dir = mkdtempSync(join(process.cwd(), 'output', `${name}-`))

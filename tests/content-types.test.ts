@@ -619,8 +619,8 @@ describe('templates', () => {
     const masterKey = master.headers.get('umb-generated-resource') as string
     type Template = { content: string; masterTemplate: { id: string } | null }
     const masterView = await h.json<Template>(`${V1}/template/${masterKey}`)
-    expect(masterView.content).not.toContain('@')
-    expect(masterView.content).toContain("import type { PageProps } from 'bunbraco'")
+    expect(masterView.content).not.toMatch(/@(?:using|inherits|\{)/)
+    expect(masterView.content).toContain("import type { PageProps } from '@crombolo/crombolo'")
     expect(masterView.content).toContain('export default function Master({ model }: PageProps)')
 
     // Created under a master, the scaffold carries its layout
@@ -633,7 +633,7 @@ describe('templates', () => {
     const created = await h.json<Template>(`${V1}/template/${childKey}`)
     expect(
       created.content.startsWith(
-        "import type { PageProps } from 'bunbraco'\n\nexport const layout = 'master'\n",
+        "import type { PageProps } from '@crombolo/crombolo'\n\nexport const layout = 'master'\n",
       ),
     ).toBe(true)
     expect(created.masterTemplate).toEqual({ id: masterKey })

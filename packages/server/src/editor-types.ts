@@ -2,8 +2,8 @@
  * The declarations the backoffice's view editor loads into monaco, so a view is
  * checked in the editor against the same types `tsc` checks it against on disk.
  *
- * Nothing here is generated from the types: `@bunbraco/render` ships its own
- * sources, and those sources are what `bunbraco` re-exports to a view, so they
+ * Nothing here is generated from the types: `@crombolo/render` ships its own
+ * sources, and those sources are what `@crombolo/crombolo` re-exports to a view, so they
  * are served as they are and cannot drift — with React's DOM types and the CSS
  * types under them, which the sources import for each tag's attributes. The one
  * generated file is the schema's `content-types.d.ts`, read fresh on every
@@ -23,11 +23,11 @@ export interface EditorTypeLib {
 }
 
 /**
- * Where `import … from 'bunbraco'` lands, by TypeScript's own directory-index
+ * Where `import … from '@crombolo/crombolo'` lands, by TypeScript's own directory-index
  * lookup: no import map and no `paths` entry, because the editor's compiler
  * options have neither a base URL nor a working directory to resolve against.
  */
-const MODULE_DIR = 'file:///node_modules/bunbraco'
+const MODULE_DIR = 'file:///node_modules/@crombolo/crombolo'
 
 /**
  * The generated types, at the depth they sit on disk. A view is opened under
@@ -42,15 +42,15 @@ const REACT_TYPES_DIR = 'file:///node_modules/@types/react'
 const CSSTYPE_DIR = 'file:///node_modules/csstype'
 
 /** The JSX modes a site may choose, by the `jsxImportSource` that selects each. */
-export const JSX_IMPORT_SOURCES = ['bunbraco', 'bunbraco/loose'] as const
+export const JSX_IMPORT_SOURCES = ['@crombolo/crombolo', '@crombolo/crombolo/loose'] as const
 export type JsxImportSource = (typeof JSX_IMPORT_SOURCES)[number]
 
 let cached: Promise<EditorTypeLib[]> | undefined
 
-/** `@bunbraco/render`'s sources, read from the installed package, and the type packages they import. */
+/** `@crombolo/render`'s sources, read from the installed package, and the type packages they import. */
 function moduleLibs(): Promise<EditorTypeLib[]> {
   cached ??= (async () => {
-    const dir = dirname(fileURLToPath(import.meta.resolve('@bunbraco/render')))
+    const dir = dirname(fileURLToPath(import.meta.resolve('@crombolo/render')))
     const sources = async (folder: string) =>
       Promise.all(
         (await readdir(join(dir, folder)))
@@ -90,11 +90,11 @@ function moduleLibs(): Promise<EditorTypeLib[]> {
  */
 export function siteJsxImportSource(siteDir: string): JsxImportSource {
   const file = join(siteDir, 'tsconfig.json')
-  if (!existsSync(file)) return 'bunbraco'
+  if (!existsSync(file)) return '@crombolo/crombolo'
   const found = /"jsxImportSource"\s*:\s*"([^"]+)"/.exec(readFileSync(file, 'utf8'))?.[1]
   return (JSX_IMPORT_SOURCES as readonly string[]).includes(found ?? '')
     ? (found as JsxImportSource)
-    : 'bunbraco'
+    : '@crombolo/crombolo'
 }
 
 export async function editorTypeLibs(options: { schemaDir: string }): Promise<EditorTypeLib[]> {

@@ -1,4 +1,4 @@
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 
 export default function ContentPage({ model }: PageProps) {
   return (

@@ -182,7 +182,7 @@ describe('files on the front end and the snippets', () => {
     expect(list.items.map((s) => s.id)).toContain('Breadcrumb')
     expect(list.items[0]).toEqual({ id: 'Empty', name: 'Empty' })
     const empty = await h.json<{ content: string }>(`${V1}/partial-view/snippet/Empty`)
-    expect(empty.content).toContain("import type { PageProps } from 'bunbraco'")
+    expect(empty.content).toContain("import type { PageProps } from '@crombolo/crombolo'")
     expect(empty.content).toContain('export default function')
     expect(empty.content).not.toContain('@inherits')
     expect((await h.call(`${V1}/partial-view/snippet/Nope`)).status).toBe(404)
@@ -207,7 +207,7 @@ describe('files on the front end and the snippets', () => {
     for (const { id } of list.items) {
       const result = await Bun.build({
         entrypoints: [join(out, `${id}.tsx`)],
-        external: ['bunbraco'],
+        external: ['@crombolo/crombolo'],
         target: 'bun',
         throw: false,
       })

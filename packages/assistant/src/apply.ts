@@ -8,7 +8,7 @@
  * and the write refused if it moved since the proposal was made, rather than
  * overwriting whatever happened in between.
  */
-import { listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
+import { listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 import {
   type ChangesetStore,
   isApprovable,

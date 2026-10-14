@@ -1,7 +1,7 @@
 /**
  * Taking a form submission. `docs/18-forms.md`.
  *
- * `POST /bunbraco/forms/<key>`, outside the Management API because a visitor is
+ * `POST /crombolo/forms/<key>`, outside the Management API because a visitor is
  * not a backoffice user and there is no operation in the vendored contract for
  * this.
  *
@@ -30,24 +30,24 @@ import {
   type SubmittedValues,
   type UploadSettings,
   validateSubmission,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   type Db,
   ensureKeyValue,
   FormEntryRepository,
   FormWorkflowRepository,
-} from '@bunbraco/data'
-import { loadSchemaDirectory } from '@bunbraco/schema'
+} from '@crombolo/data'
+import { loadSchemaDirectory } from '@crombolo/schema'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
 
 const log = logger('forms')
 
 /** The cookie a refused or accepted submission travels back in. */
-export const FORM_FLASH_COOKIE = 'bunbraco-form'
+export const FORM_FLASH_COOKIE = 'crombolo-form'
 /** Long enough to survive the redirect, short enough not to linger. */
 const FLASH_SECONDS = 60
-const SIGNING_KEY = 'bunbraco/formTokenKey'
+const SIGNING_KEY = 'crombolo/formTokenKey'
 /** A payload larger than this keeps the messages and drops the typed values. */
 const MAX_FLASH_BYTES = 3500
 
@@ -128,7 +128,7 @@ function sameSignature(a: string, b: string): boolean {
  * Signs the form and the moment it was rendered.
  *
  * This is what makes the timing guard mean anything: without it a bot posts its
- * own `_bunbraco_at` and the elapsed time is whatever it claims. It is not a
+ * own `_crombolo_at` and the elapsed time is whatever it claims. It is not a
  * CSRF token — a public form has no session to tie one to — and does not
  * pretend to be one.
  */

@@ -3,8 +3,8 @@
  * values, form controls, children it cannot render, and the doctype.
  */
 import { describe, expect, test } from 'bun:test'
-import { withDoctype } from '@bunbraco/render'
-import { type Child, renderToString } from '@bunbraco/render/jsx-runtime'
+import { withDoctype } from '@crombolo/render'
+import { type Child, renderToString } from '@crombolo/render/jsx-runtime'
 
 const html = (node: unknown) => renderToString(node as Child) as string
 const later = <T,>(value: T): Promise<T> =>

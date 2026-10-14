@@ -1,6 +1,6 @@
 /** Ports for backoffice users, user groups and user data. */
-import type { ResponseOf } from '@bunbraco/contracts'
-import type { Page } from '@bunbraco/core'
+import type { ResponseOf } from '@crombolo/contracts'
+import type { Page } from '@crombolo/core'
 import type { Principal } from './router.ts'
 
 export type UserResponse = ResponseOf<'GetUserById'>

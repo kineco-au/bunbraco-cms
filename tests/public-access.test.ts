@@ -9,8 +9,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import type { BunbracoConfig } from '@bunbraco/server'
+import { ComponentRepository, ContentTypeRepository, SYSTEM_MEMBER_TYPE } from '@crombolo/data'
+import type { CromboloConfig } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -44,7 +44,7 @@ const VIEW = `export default function Page({ model, member }) {
 }
 `
 
-async function site(config: Partial<BunbracoConfig> = {}) {
+async function site(config: Partial<CromboloConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'public-access-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
@@ -120,7 +120,7 @@ async function site(config: Partial<BunbracoConfig> = {}) {
 const heading = (body: string) => /<h1>([^<]*)<\/h1>/.exec(body)?.[1]
 const who = (body: string) => /class="who">([^<]*)</.exec(body)?.[1]
 
-describe(`public access (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`public access (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('an entry is created, read back with its group resolved, changed and removed', async () => {
     const { h, page, group } = await site()
     const home = await page('Home')

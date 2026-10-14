@@ -6,7 +6,7 @@
  * Razor. This entry point changes the methods that do so — the template
  * repository's scaffold, the template workspace's master-template update, the
  * partial view repository's scaffold and the code editor's own language — to
- * write what a bunbraco view is: a default-exported component, with
+ * write what a crombolo view is: a default-exported component, with
  * `export const layout = '<alias>'` for its master, and for a partial view the
  * server's `Empty` snippet. Snippets inserted into a view are translated to TSX
  * (`tsx-snippets.js`), and the inserts that have no TSX equivalent — a partial
@@ -23,7 +23,7 @@ import { UmbPartialViewDetailRepository } from '@umbraco-cms/backoffice/partial-
 import { UmbTemplateDetailRepository } from '@umbraco-cms/backoffice/template'
 import { toTsxSnippet } from './tsx-snippets.js'
 
-export const SCAFFOLD = `import type { PageProps } from 'bunbraco'
+export const SCAFFOLD = `import type { PageProps } from '@crombolo/crombolo'
 
 export default function Template({ model }: PageProps) {
   return (
@@ -59,7 +59,7 @@ export function withLayout(content, alias) {
 }
 
 /**
- * The dialect a bunbraco view is written in. Accepted on `umb-code-editor`'s
+ * The dialect a crombolo view is written in. Accepted on `umb-code-editor`'s
  * `language` in place of one of Umbraco's own, and what Umbraco's hard-coded
  * `razor` is read as.
  *
@@ -94,7 +94,7 @@ let opened = 0
 
 function pluginApi() {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api`
+  return `${href.replace(/\/$/, '')}/crombolo/api`
 }
 
 /** What the server checks a view against, and in which JSX mode; no libs if it will not say. */
@@ -109,15 +109,15 @@ async function typeLibs() {
     return {
       libs: Array.isArray(body?.libs) ? body.libs : [],
       jsxImportSource:
-        typeof body?.jsxImportSource === 'string' ? body.jsxImportSource : 'bunbraco',
+        typeof body?.jsxImportSource === 'string' ? body.jsxImportSource : '@crombolo/crombolo',
     }
   } catch (error) {
     // Said out loud, because the consequence is not obvious: with no types,
-    // `bunbraco` does not resolve, so there is no `JSX.IntrinsicElements` and
+    // `@crombolo/crombolo` does not resolve, so there is no `JSX.IntrinsicElements` and
     // TypeScript underlines every tag in the view. Type checking is turned off
     // below rather than left to report that.
-    console.error('Bunbraco could not fetch the types for the view editor', error)
-    return { libs: [], jsxImportSource: 'bunbraco' }
+    console.error('Crombolo could not fetch the types for the view editor', error)
+    return { libs: [], jsxImportSource: '@crombolo/crombolo' }
   }
 }
 
@@ -148,7 +148,7 @@ async function configureTsx() {
     const { libs, jsxImportSource } = await typeLibs()
     // The site's `apps/site/tsconfig.json`, so that what the editor underlines
     // is what `tsc` would report and nothing else — down to the JSX mode the
-    // site chose, `bunbraco` or `bunbraco/loose`.
+    // site chose, `@crombolo/crombolo` or `@crombolo/crombolo/loose`.
     typescriptDefaults.setCompilerOptions({
       allowNonTsExtensions: true,
       target: ScriptTarget.ESNext,
@@ -178,7 +178,7 @@ async function configureTsx() {
     // this failed silently and turned every tag in a view red — and a console
     // error is what the browser suite fails a test on, so the next time this
     // breaks a test says so instead of a person noticing.
-    console.error('Bunbraco could not configure the TSX dialect for the view editor', error)
+    console.error('Crombolo could not configure the TSX dialect for the view editor', error)
     return { monaco, ok: false }
   }
 }

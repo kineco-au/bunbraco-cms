@@ -13,7 +13,7 @@ import {
   paged,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { PortFailure } from '../ports-content.ts'
 import type { MemberPort, SaveMember } from '../ports-members.ts'
 import type { ManagementApiRouter, Principal, RequestContext } from '../router.ts'

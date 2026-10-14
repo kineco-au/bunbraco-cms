@@ -9,10 +9,10 @@
  * one. Source is transpiled before the identifier scan so that a type annotation
  * or JSX cannot hide code, the same approach as scripts/check-module-graph.ts.
  */
-import type { SchemaProblem } from '@bunbraco/schema'
+import type { SchemaProblem } from '@crombolo/schema'
 
 /** Module specifiers a proposed template may import from. */
-const ALLOWED_BARE_IMPORTS: ReadonlySet<string> = new Set(['bunbraco'])
+const ALLOWED_BARE_IMPORTS: ReadonlySet<string> = new Set(['@crombolo/crombolo'])
 
 /**
  * Globals a proposed template may not name. `fetch` is here deliberately: a
@@ -166,7 +166,10 @@ export function scanTemplateSource(file: string, source: string): SchemaProblem[
       continue
     }
     if (!ALLOWED_BARE_IMPORTS.has(specifier)) {
-      at('imports', `${specifier} is not an allowed import; use bunbraco or a file beside this one`)
+      at(
+        'imports',
+        `${specifier} is not an allowed import; use @crombolo/crombolo or a file beside this one`,
+      )
     }
   }
 

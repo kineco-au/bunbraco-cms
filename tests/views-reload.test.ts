@@ -15,7 +15,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, cacheInstructionsAfter } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository, cacheInstructionsAfter } from '@crombolo/data'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -84,7 +84,7 @@ describe('a template edited under a running node', () => {
         siteDir: root,
         // Its own, as a deployed node has: two nodes sharing one would evict
         // generations the other is serving.
-        componentsCacheDir: join(root, '.bunbraco', nodeId),
+        componentsCacheDir: join(root, '.crombolo', nodeId),
         // A short gate, and no coalescing floor: both are production intervals
         // that a test would otherwise have to wait out. The floor only ever
         // delays a change nobody announced.

@@ -4,33 +4,33 @@
 // Umbraco says "document type".
 export default {
   "login": {
-    "userInviteWelcomeMessage": "Hallo en welkom in Bunbraco! Binnen ongeveer één minuut kan je aan de slag. Je moet enkel je wachtwoord instellen.",
-    "userInviteExpiredMessage": "Welkom bij Bunbraco! Helaas is je uitnodiging vervallen. Vraag aan je administrator om de uitnodiging opnieuw te versturen."
+    "userInviteWelcomeMessage": "Hallo en welkom in Crombolo! Binnen ongeveer één minuut kan je aan de slag. Je moet enkel je wachtwoord instellen.",
+    "userInviteExpiredMessage": "Welkom bij Crombolo! Helaas is je uitnodiging vervallen. Vraag aan je administrator om de uitnodiging opnieuw te versturen."
   },
   "user": {
-    "createUserHelp": "Maak nieuwe gebruikers aan om hun toegang te geven tot Bunbraco. Wanneer een nieuwe\n      gebruiker wordt aangemaakt wordt er een wachtwoord gegenereerd dat je met hun kan delen.\n    ",
-    "inviteUserHelp": "Nodig gebruikers uit om hen toegang te geven to Bunbraco. Een uitnodiging wordt via\n      e-mail verstuurd met instructies hoe de gebruiker kan inloggen.\n    ",
-    "noConsole": "Blokkeer Bunbraco toegang",
-    "userCreatedSuccessHelp": "De gebruiker is aangemaakt. Om in te loggen in Bunbraco gebruik je onderstaand\n      wachtwoord.\n    ",
-    "userInvitedSuccessHelp": "Een uitnodiging is gestuurd naar de nieuwe gebruiker met informatie over hoe in\n      te loggen in Bunbraco\n    ",
-    "userinviteWelcomeMessage": "Hallo en welkom in Bunbraco! Binnen ongeveer één minuut kan je aan de slag. Je\n      moet enkel je wachtwoord instellen.\n    ",
-    "userinviteExpiredMessage": "Welkom bij Bunbraco! Helaas is je uitnodiging vervallen. Vraag aan je\n      administrator om de uitnodiging opnieuw te versturen.\n    ",
+    "createUserHelp": "Maak nieuwe gebruikers aan om hun toegang te geven tot Crombolo. Wanneer een nieuwe\n      gebruiker wordt aangemaakt wordt er een wachtwoord gegenereerd dat je met hun kan delen.\n    ",
+    "inviteUserHelp": "Nodig gebruikers uit om hen toegang te geven to Crombolo. Een uitnodiging wordt via\n      e-mail verstuurd met instructies hoe de gebruiker kan inloggen.\n    ",
+    "noConsole": "Blokkeer Crombolo toegang",
+    "userCreatedSuccessHelp": "De gebruiker is aangemaakt. Om in te loggen in Crombolo gebruik je onderstaand\n      wachtwoord.\n    ",
+    "userInvitedSuccessHelp": "Een uitnodiging is gestuurd naar de nieuwe gebruiker met informatie over hoe in\n      te loggen in Crombolo\n    ",
+    "userinviteWelcomeMessage": "Hallo en welkom in Crombolo! Binnen ongeveer één minuut kan je aan de slag. Je\n      moet enkel je wachtwoord instellen.\n    ",
+    "userinviteExpiredMessage": "Welkom bij Crombolo! Helaas is je uitnodiging vervallen. Vraag aan je\n      administrator om de uitnodiging opnieuw te versturen.\n    ",
     "documentType": "Inhoudstype"
   },
   "languages": {
-    "defaultLanguageHelp": "Een Bunbraco site kan maar één standaardtaal hebben."
+    "defaultLanguageHelp": "Een Crombolo site kan maar één standaardtaal hebben."
   },
   "paste": {
-    "errorMessage": "De tekst die je probeert te plakken bevat speciale tekens en/of opmaak. Dit kan\n      veroorzaakt worden doordat de tekst vanuit Microsoft Word is gekopieerd. Bunbraco kan deze speciale tekens en\n      formattering automatisch verwijderen zodat de geplakte tekst geschikt is voor het web.\n    "
+    "errorMessage": "De tekst die je probeert te plakken bevat speciale tekens en/of opmaak. Dit kan\n      veroorzaakt worden doordat de tekst vanuit Microsoft Word is gekopieerd. Crombolo kan deze speciale tekens en\n      formattering automatisch verwijderen zodat de geplakte tekst geschikt is voor het web.\n    "
   },
   "dashboard": {
-    "nothinghappens": "Als Bunbraco niet geopend wordt dan moet je mogelijk popups toestaan voor deze site.\n    "
+    "nothinghappens": "Als Crombolo niet geopend wordt dan moet je mogelijk popups toestaan voor deze site.\n    "
   },
   "logViewer": {
-    "searchUmbracoSource": "Bunbraco broncode doorzoeken",
-    "searchWithinUmbracoSourceCodeOnGithub": "Zoeken in Bunbraco broncode op Github",
-    "searchUmbracoIssues": "Bunbraco Issues doorzoeken",
-    "searchUmbracoIssuesOnGithub": "Bunbraco Issues op Github doorzoeken"
+    "searchUmbracoSource": "Crombolo broncode doorzoeken",
+    "searchWithinUmbracoSourceCodeOnGithub": "Zoeken in Crombolo broncode op Github",
+    "searchUmbracoIssues": "Crombolo Issues doorzoeken",
+    "searchUmbracoIssuesOnGithub": "Crombolo Issues op Github doorzoeken"
   },
   "actions": {
     "changeDocType": "Inhoudstype wijzigen",

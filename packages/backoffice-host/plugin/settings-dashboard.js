@@ -18,7 +18,7 @@ import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 /** Whether this site can send e-mail; the server answers with the reason. */
 const emailStatus = async () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  const response = await fetch(`${href.replace(/\/$/, '')}/bunbraco/api/email`, {
+  const response = await fetch(`${href.replace(/\/$/, '')}/crombolo/api/email`, {
     credentials: 'include',
     headers: { accept: 'application/json' },
   })
@@ -26,7 +26,7 @@ const emailStatus = async () => {
   return response.json()
 }
 
-export default class BunbracoSettingsDashboardElement extends UmbLitElement {
+export default class CromboloSettingsDashboardElement extends UmbLitElement {
   static properties = {
     _email: { state: true },
   }
@@ -81,13 +81,13 @@ export default class BunbracoSettingsDashboardElement extends UmbLitElement {
           the number for you.
         </p>
         <p class="links">
-          <a href="https://github.com/kineco-au/bunbraco-cms#schema-as-code" target="_blank" rel="noopener">
+          <a href="https://github.com/kineco-au/crombolo-cms#schema-as-code" target="_blank" rel="noopener">
             Schema as code
           </a>
-          <a href="https://github.com/kineco-au/bunbraco-cms#schema-in-shared-storage" target="_blank" rel="noopener">
+          <a href="https://github.com/kineco-au/crombolo-cms#schema-in-shared-storage" target="_blank" rel="noopener">
             Schema in shared storage
           </a>
-          <a href="https://github.com/kineco-au/bunbraco-cms/issues" target="_blank" rel="noopener">
+          <a href="https://github.com/kineco-au/crombolo-cms/issues" target="_blank" rel="noopener">
             Report an issue
           </a>
         </p>
@@ -120,4 +120,4 @@ export default class BunbracoSettingsDashboardElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-settings-dashboard', BunbracoSettingsDashboardElement)
+customElements.define('crombolo-settings-dashboard', CromboloSettingsDashboardElement)

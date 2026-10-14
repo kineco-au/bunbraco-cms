@@ -59,7 +59,7 @@ export async function handleMcpRequest(request: Request, options: McpOptions): P
         protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
         serverInfo: {
-          name: options.serverName ?? 'bunbraco',
+          name: options.serverName ?? 'crombolo',
           version: options.version ?? '0.0.0',
         },
         instructions:

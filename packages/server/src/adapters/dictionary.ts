@@ -1,6 +1,6 @@
 /** The dictionary port over the repository, with `.udt` import and export. */
-import type { DictionaryPort } from '@bunbraco/api-management'
-import { type Db, DictionaryRepository } from '@bunbraco/data'
+import type { DictionaryPort } from '@crombolo/api-management'
+import { type Db, DictionaryRepository } from '@crombolo/data'
 import { importDictionaryUdt } from '../dictionary-transfer.ts'
 import type { MediaFileStore } from '../media-files.ts'
 import { readUdt, type UdtItem, writeUdt } from '../udt.ts'
@@ -60,7 +60,7 @@ export function createDictionaryPort(
       if (parentKey && !(await repo.get(parentKey)))
         return { ok: false, status: 'ParentNotFound', reason: 'The parent item does not exist.' }
 
-      // The same implementation `bunbraco dictionary import` uses.
+      // The same implementation `crombolo dictionary import` uses.
       const outcome = await importDictionaryUdt(db, text, parentKey ?? null)
       await files.deleteTemporary(temporaryFileId)
       if (!outcome.ok)

@@ -5,7 +5,7 @@
  */
 import { defineConfig } from '@playwright/test'
 
-const PORT = Number(process.env.BUNBRACO_BROWSER_PORT ?? 3210)
+const PORT = Number(process.env.CROMBOLO_BROWSER_PORT ?? 3210)
 export const BASE_URL = `http://localhost:${PORT}`
 
 /**
@@ -14,7 +14,7 @@ export const BASE_URL = `http://localhost:${PORT}`
  * has no Linux arm64 build, so on this architecture there is nothing else to run,
  * and it is the one difference between the two ways of running the suite.
  */
-const CHANNEL = process.env.BUNBRACO_BROWSER_CHANNEL ?? 'chrome'
+const CHANNEL = process.env.CROMBOLO_BROWSER_CHANNEL ?? 'chrome'
 
 export default defineConfig({
   testDir: '.',
@@ -51,8 +51,8 @@ export default defineConfig({
   webServer: {
     command: 'bun tests/browser/serve.ts',
     cwd: '../..',
-    url: `${BASE_URL}/bunbraco`,
-    env: { BUNBRACO_BROWSER_PORT: String(PORT) },
+    url: `${BASE_URL}/crombolo`,
+    env: { CROMBOLO_BROWSER_PORT: String(PORT) },
     reuseExistingServer: false,
     timeout: 60_000,
     stdout: 'pipe',

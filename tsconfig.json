@@ -16,7 +16,7 @@
     "noEmit": true,
     "types": ["bun"],
     "allowImportingTsExtensions": true,
-    "jsxImportSource": "bunbraco"
+    "jsxImportSource": "@crombolo/crombolo"
   },
   "include": [
     "packages/*/src/**/*",

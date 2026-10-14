@@ -3,9 +3,9 @@
  * table of their own, so this is the node repository with a name-uniqueness
  * rule on top, as Umbraco's `MemberGroupService` has.
  */
-import type { MemberGroupPort, MemberGroupStatus } from '@bunbraco/api-management'
-import { ObjectTypes, type Page, SystemNodes } from '@bunbraco/core'
-import { type Db, NodeRepository } from '@bunbraco/data'
+import type { MemberGroupPort, MemberGroupStatus } from '@crombolo/api-management'
+import { ObjectTypes, type Page, SystemNodes } from '@crombolo/core'
+import { type Db, NodeRepository } from '@crombolo/data'
 
 const TYPE = ObjectTypes.MemberGroup
 

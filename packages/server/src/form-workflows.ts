@@ -16,7 +16,7 @@ import {
   type FormValueToStore,
   type SchemaForm,
   type SchemaFormWorkflow,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   ContentTypeRepository,
   type Db,
@@ -24,7 +24,7 @@ import {
   FormWorkflowRepository,
   type FormWorkflowRun,
   type NodeSchemaState,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import type { EmailAttachment, EmailPort } from './email.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
@@ -121,7 +121,7 @@ async function sendEmail(
       // Retrying cannot help: this is configuration, not weather.
       retry: false,
       error:
-        'This site has no e-mail provider, so the workflow cannot send. Configure BUNBRACO_EMAIL_PROVIDER, or `email` in bunbraco.config.ts.',
+        'This site has no e-mail provider, so the workflow cannot send. Configure CROMBOLO_EMAIL_PROVIDER, or `email` in crombolo.config.ts.',
     }
 
   const settings = workflow.settings

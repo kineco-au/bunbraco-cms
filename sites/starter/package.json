@@ -1,13 +1,13 @@
 {
-  "name": "@bunbraco/site-starter",
+  "name": "@crombolo/site-starter",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bunbraco start --bundle bundles/starter --publish",
+    "start": "crombolo start --bundle bundles/starter --publish",
     "dev": "bun --watch server.ts"
   },
   "dependencies": {
-    "bunbraco": "workspace:*"
+    "@crombolo/crombolo": "workspace:*"
   }
 }

@@ -12,8 +12,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { diffFiles, type GitProvider, gitHub, type RepositoryFile } from '@bunbraco/server'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { diffFiles, type GitProvider, gitHub, type RepositoryFile } from '@crombolo/server'
 import { type Harness, signedInServer, signInAsGroup } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -27,7 +27,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const GIT = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/git`
+const GIT = `${DEFAULT_BACKOFFICE_PATH}/crombolo/api/git`
 
 const HOME = '[content-type]\nalias = "homePage"\nname = "Home Page"\n'
 const ARTICLE = '[content-type]\nalias = "article"\nname = "Article"\n'

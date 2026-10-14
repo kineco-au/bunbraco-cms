@@ -4,9 +4,9 @@
  * runs the framework's steps, and cuts over. docs/10, Part 2 and Part 3.
  */
 import {
-  bunbracoPlan,
   ContentTypeRepository,
   compareStates,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   DocumentRepository,
@@ -18,7 +18,7 @@ import {
   readLedger,
   recordInLedger,
   writeReport,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   affectedProperties,
   type CheckOptions,
@@ -56,7 +56,7 @@ export async function runFix(
   options: FixOptions,
 ): Promise<FixReport> {
   // Expand steps first: the site part of the check needs the framework's tables.
-  await migrate(db, bunbracoPlan, { by: options.by })
+  await migrate(db, cromboloPlan, { by: options.by })
   const before = await runCheck(db, loaded, node, options)
   const blocking = before.findings.filter((f) => f.kind === 'blocking')
   if (blocking.length > 0) {
@@ -249,7 +249,7 @@ export async function runUpgrade(
   return db.locks.withLock(Locks.ContentTree, async () => {
     // The framework's steps are expand-only and ledgered, so they run before the
     // check that may still refuse the site's change.
-    const framework = await migrate(db, bunbracoPlan, { by: options.by })
+    const framework = await migrate(db, cromboloPlan, { by: options.by })
     const check = await runCheck(db, loaded, node, options)
     const reasons = check.outstanding.filter((f) => {
       if (f.kind === 'blocking') return true

@@ -8,11 +8,11 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
-  bunbracoPlan,
   ContentTypeRepository,
   connect,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   DocumentRepository,
@@ -23,7 +23,7 @@ import {
   readReport,
   seedContent,
   seedIdentity,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   loadSchemaDirectory,
   loadValueMigrations,
@@ -32,7 +32,7 @@ import {
   runFix,
   runUpgrade,
   type ValueMigration,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 import { BACKOFFICE, type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -54,7 +54,7 @@ afterEach(async () => {
 })
 
 async function seeded(db: Db): Promise<Db> {
-  await migrate(db, bunbracoPlan)
+  await migrate(db, cromboloPlan)
   await seedIdentity(db, {
     admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
     hashPassword,
@@ -134,7 +134,7 @@ type = "textarea"
 mandatory = true
 `
 
-const MIGRATION = `import { defineValueMigration } from '@bunbraco/schema'
+const MIGRATION = `import { defineValueMigration } from '@crombolo/schema'
 
 export default defineValueMigration({
   since: '1.1.0',
@@ -578,7 +578,7 @@ describe('an old instance through an upgrade (sqlite)', () => {
       expect(write.status).toBe(409)
 
       // The backup the CLI would take sits beside the database
-      const { backupBefore, loadConfig } = await import('@bunbraco/server')
+      const { backupBefore, loadConfig } = await import('@crombolo/server')
       const backup = await backupBefore(loadConfig({ sqliteFile, dialect: 'sqlite' }), {
         reason: 'upgrade',
       })
@@ -596,12 +596,12 @@ describe(`upgrade from a database behind the framework (${dialectUnderTest})`, (
     const options = { mode: 'production' as const, componentAliases: templates }
     const check = await runCheck(db, loadSchemaDirectory(v1), node(S1), options)
     expect(check.siteChecked).toBe(false)
-    expect(check.frameworkPending).toEqual(bunbracoPlan.migrations.map((m) => m.name))
+    expect(check.frameworkPending).toEqual(cromboloPlan.migrations.map((m) => m.name))
     expect(check.findings.every((f) => f.code === 'framework-migration')).toBe(true)
     expect(check.outstanding).toEqual([])
 
     // Seeding is the server's job; the upgrade tool only needs the framework's tables and built-ins.
-    await migrate(db, bunbracoPlan)
+    await migrate(db, cromboloPlan)
     await seedContent(db)
     const upgraded = await runUpgrade(db, loadSchemaDirectory(v1), node(S1), {
       ...options,

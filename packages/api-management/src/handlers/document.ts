@@ -8,14 +8,14 @@ import type {
   DocumentValidationError,
   DocumentValue,
   DocumentVersionSummary,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   invalidSkipTake,
   notFound,
   problemDetails,
   problemResponse,
   ROOT_ACCESS,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { PreviewPort } from '../ports.ts'
 import type { DocumentPort, PortFailure, SaveDocument } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'

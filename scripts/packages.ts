@@ -7,12 +7,12 @@ import { join } from 'node:path'
 
 export const ROOT = join(import.meta.dir, '..')
 
-/** Versioned to the Umbraco release it vendors, not to bunbraco's version. */
-export const BACKOFFICE_DIST = '@bunbraco/backoffice-dist'
+/** Versioned to the Umbraco release it vendors, not to crombolo's version. */
+export const BACKOFFICE_DIST = '@crombolo/backoffice-dist'
 
 /** The generated artefacts a package cannot be published without. */
 export const GENERATED: Record<string, string> = {
-  '@bunbraco/contracts': 'generated/management-api.d.ts',
+  '@crombolo/contracts': 'generated/management-api.d.ts',
   [BACKOFFICE_DIST]: 'dist/umbraco-package.json',
 }
 
@@ -30,7 +30,7 @@ export interface Manifest {
   bin?: Record<string, string>
   dependencies?: Record<string, string>
   /** What a bundle declares for the backoffice; see `backoffice-host/src/extensions.ts`. */
-  bunbraco?: { id?: string; name?: string; extensions?: unknown[] }
+  crombolo?: { id?: string; name?: string; extensions?: unknown[] }
 }
 
 export interface WorkspacePackage {
@@ -59,13 +59,18 @@ export function workspacePackages(): WorkspacePackage[] {
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/** The package a site installs, which depends on the rest. */
+export const UMBRELLA = '@crombolo/crombolo'
+
 export function publishablePackages(): WorkspacePackage[] {
   return workspacePackages().filter((pkg) => pkg.manifest.private !== true)
 }
 
 /**
  * Dependencies before dependents, so a consumer never resolves against a version
- * of a sibling the registry has not accepted yet.
+ * of a sibling the registry has not accepted yet. The umbrella goes last, after
+ * the opt-in bundles it does not depend on, so `bun add` of it never races a
+ * release still in flight.
  */
 export function publishOrder(packages: WorkspacePackage[]): WorkspacePackage[] {
   const byName = new Map(packages.map((pkg) => [pkg.name, pkg]))
@@ -86,7 +91,8 @@ export function publishOrder(packages: WorkspacePackage[]): WorkspacePackage[] {
     ordered.push(pkg)
   }
 
-  for (const pkg of packages) visit(pkg)
+  for (const pkg of packages) if (pkg.name !== UMBRELLA) visit(pkg)
+  for (const pkg of packages) if (pkg.name === UMBRELLA) visit(pkg)
   return ordered
 }
 
@@ -105,9 +111,9 @@ export function lockedVersions(): Map<string, string> {
   )
 }
 
-/** The version every package shares, `@bunbraco/backoffice-dist` excepted. */
+/** The version every package shares, `@crombolo/backoffice-dist` excepted. */
 export function sharedVersion(): string {
-  const main = workspacePackages().find((pkg) => pkg.name === 'bunbraco')
-  if (!main) throw new Error('The bunbraco package is missing from packages/')
+  const main = workspacePackages().find((pkg) => pkg.name === UMBRELLA)
+  if (!main) throw new Error('The crombolo package is missing from packages/')
   return main.manifest.version
 }

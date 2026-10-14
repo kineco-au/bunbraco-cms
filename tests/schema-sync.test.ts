@@ -6,10 +6,10 @@ import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
-  bunbracoPlan,
   ContentTypeRepository,
+  cromboloPlan,
   currentSchemaState,
   DataTypeRepository,
   type Db,
@@ -18,7 +18,7 @@ import {
   migrate,
   seedContent,
   seedIdentity,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   allProperties,
   exportSchemaSet,
@@ -31,7 +31,7 @@ import {
   syncSchema,
   writeKeysBack,
   writeSchemaFiles,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 const open: Db[] = []
@@ -48,7 +48,7 @@ afterEach(async () => {
 async function prepared(): Promise<Db> {
   const db = await freshDb()
   open.push(db)
-  await migrate(db, bunbracoPlan)
+  await migrate(db, cromboloPlan)
   await seedIdentity(db, {
     admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
     hashPassword,
@@ -60,7 +60,7 @@ async function prepared(): Promise<Db> {
 
 /** Writes a schema directory; `files` maps relative path → TOML source. */
 function schemaDir(version: string, files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), 'bunbraco-sync-'))
+  const dir = mkdtempSync(join(tmpdir(), 'crombolo-sync-'))
   dirs.push(dir)
   mkdirSync(join(dir, 'content-types'), { recursive: true })
   mkdirSync(join(dir, 'data-types'), { recursive: true })
@@ -393,7 +393,7 @@ describe(`schema sync extras (${dialectUnderTest})`, () => {
     const exported = await exportSchemaSet(db, '1.0.0')
     expect(hashSchemaSet(exported)).toBe(hashSchemaSet(fromFiles.set))
 
-    const out = mkdtempSync(join(tmpdir(), 'bunbraco-export-'))
+    const out = mkdtempSync(join(tmpdir(), 'crombolo-export-'))
     dirs.push(out)
     writeSchemaFiles(out, exported)
     expect(readFileSync(join(out, 'content-types', 'article.toml'), 'utf8')).toBe(

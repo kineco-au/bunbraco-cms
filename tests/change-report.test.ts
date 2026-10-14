@@ -7,13 +7,13 @@
  */
 import { beforeAll, describe, expect, test } from 'bun:test'
 import {
-  bunbracoPlan,
+  cromboloPlan,
   type Db,
   type Finding,
   migrate,
   readReport,
   writeReport,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 function finding(code: string, subjectKey: string, message = code): Finding {
@@ -38,7 +38,7 @@ describe(`the change report (${dialectUnderTest})`, () => {
   beforeAll(async () => {
     if (!(await canConnect())) throw new Error(`no ${dialectUnderTest} to test against`)
     db = await freshDb()
-    await migrate(db, bunbracoPlan)
+    await migrate(db, cromboloPlan)
   })
 
   test('renames the upgrade report and carries its rows forward', async () => {

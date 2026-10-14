@@ -121,7 +121,7 @@ test("the create dialog under a page offers that type's allowed children, not th
   })
   expect(created.status()).toBe(201)
 
-  await page.goto('/bunbraco/section/content')
+  await page.goto('/crombolo/section/content')
   await expect(page.getByRole('link', { name: NAME, exact: true })).toBeVisible({ timeout: 20_000 })
 
   // The node's own "+" is the create action. Located by title: every node carries

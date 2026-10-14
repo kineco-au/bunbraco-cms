@@ -26,7 +26,7 @@
 import { css, html, LitElement } from '@umbraco-cms/backoffice/external/lit'
 import '@umbraco-cms/backoffice/external/uui'
 
-const TAG = 'bunbraco-auth-provider'
+const TAG = 'crombolo-auth-provider'
 const VENDORED = 'Umb.AuthProviders.Umbraco'
 
 /**
@@ -36,7 +36,7 @@ const VENDORED = 'Umb.AuthProviders.Umbraco'
  */
 const LABEL = 'Sign in'
 
-class BunbracoAuthProviderElement extends LitElement {
+class CromboloAuthProviderElement extends LitElement {
   static properties = {
     manifest: { attribute: false },
     userLoginState: { attribute: false },
@@ -64,14 +64,14 @@ class BunbracoAuthProviderElement extends LitElement {
   `
 }
 
-if (!customElements.get(TAG)) customElements.define(TAG, BunbracoAuthProviderElement)
+if (!customElements.get(TAG)) customElements.define(TAG, CromboloAuthProviderElement)
 
 export const onInit = (_host, extensionRegistry) => {
   extensionRegistry.unregister(VENDORED)
   extensionRegistry.register({
     type: 'authProvider',
-    alias: 'Bunbraco.AuthProvider.SignIn',
-    name: 'Bunbraco Sign-in Provider',
+    alias: 'Crombolo.AuthProvider.SignIn',
+    name: 'Crombolo Sign-in Provider',
     forProviderName: 'Umbraco',
     elementName: TAG,
     weight: 1000,

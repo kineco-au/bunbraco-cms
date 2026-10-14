@@ -10,8 +10,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -554,7 +554,7 @@ type = "heroPicker"
   })
 })
 
-describe('`bunbraco generate` for the element picker', () => {
+describe('`crombolo generate` for the element picker', () => {
   const QUOTE_KEY = 'b1f2c3d4-0000-4a11-9c22-3e4f5a6b7c88'
   const files: Record<string, string> = {
     'schema/schema.toml': '[schema]\nversion = "1.0.0"\n',

@@ -4,7 +4,7 @@
  * `umbracoFile` holds, served from the media root; deleting an item for good
  * deletes its file too.
  */
-import type { MediaPort, Principal } from '@bunbraco/api-management'
+import type { MediaPort, Principal } from '@crombolo/api-management'
 import {
   type ContentTypeAggregate,
   DEFAULT_UPLOAD_SETTINGS,
@@ -12,7 +12,7 @@ import {
   IMAGE_CROPPER_EDITOR_ALIAS,
   normaliseUuid,
   ObjectTypes,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   appendCacheInstruction,
   ContentTypeRepository,
@@ -23,7 +23,7 @@ import {
   type NodeSchemaState,
   type ValueIntake,
   WriteRejectedError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { TemporaryFileMissingError } from '../file-intake.ts'
 import type { MediaFileStore } from '../media-files.ts'
 

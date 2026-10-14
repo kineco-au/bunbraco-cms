@@ -1,4 +1,4 @@
-import { type PageProps, type PublishedElement, SeoHead } from 'bunbraco'
+import { type PageProps, type PublishedElement, SeoHead } from '@crombolo/crombolo'
 
 export default function HomePage(props: PageProps) {
   const { model } = props

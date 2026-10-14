@@ -9,22 +9,22 @@ import type {
   ServerPort,
   TemporaryFilePort,
   UserItemPort,
-} from '@bunbraco/api-management'
-import { AuthStore } from '@bunbraco/auth'
+} from '@crombolo/api-management'
+import { AuthStore } from '@crombolo/auth'
 import {
   ASSISTANT_MANIFEST_ID,
   type BackOfficePaths,
   collectManifests,
   type ExtensionRegistry,
   toResponseModels,
-} from '@bunbraco/backoffice-host'
+} from '@crombolo/backoffice-host'
 import {
   CORE_SECTION_ALIASES,
   DEFAULT_UPLOAD_SETTINGS,
   hasAccessToSensitiveData,
   isUploadAllowed,
   permissionsForPath,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   ContentTypeRepository,
   type Db,
@@ -32,8 +32,8 @@ import {
   RedirectRepository,
   TagRepository,
   UserRepository,
-} from '@bunbraco/data'
-import type { PublishedCache } from '@bunbraco/render'
+} from '@crombolo/data'
+import type { PublishedCache } from '@crombolo/render'
 import { createNodeLookup } from './access.ts'
 import { createBlueprintPort } from './adapters/blueprints.ts'
 import { createPackagePort } from './adapters/bundles.ts'
@@ -62,7 +62,7 @@ import { createTemplateFileStore } from './adapters/template-files.ts'
 import { createTemplateQueryPort } from './adapters/template-query.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
 import { COMPONENT_SNIPPETS } from './component-snippets.ts'
-import { type BunbracoConfig, type UserLinkSender, VERSION } from './config.ts'
+import { type CromboloConfig, type UserLinkSender, VERSION } from './config.ts'
 import { type EmailPort, resolveEmailPort } from './email.ts'
 import { createFileIntake } from './file-intake.ts'
 import { createLogViewerPort } from './log-viewer.ts'
@@ -74,7 +74,7 @@ import { createRedirectTracker } from './redirects.ts'
 import { componentAliasesIn, type SchemaBoot } from './schema.ts'
 import { publishSchema } from './schema-store.ts'
 
-/** Re-exported for tests; the canonical list lives in @bunbraco/core. */
+/** Re-exported for tests; the canonical list lives in @crombolo/core. */
 export const CORE_SECTIONS = CORE_SECTION_ALIASES
 
 const CULTURES = [
@@ -87,7 +87,7 @@ const CULTURES = [
   { name: 'sv-SE', englishName: 'Swedish (Sweden)' },
 ]
 
-function createServerPort(config: BunbracoConfig, canSendUserLinks: boolean): ServerPort {
+function createServerPort(config: CromboloConfig, canSendUserLinks: boolean): ServerPort {
   return {
     // Phase 6 derives this from migration state; until then the site is always up.
     status: () => ({ serverStatus: 'Run' }),
@@ -180,7 +180,7 @@ function createLocalizationPort(db: Db | undefined, files?: SchemaFileWriter): L
 }
 
 function createCurrentUserPort(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   db: Db | undefined,
   nodes: NodeLookup | undefined,
 ): CurrentUserPort {
@@ -308,7 +308,7 @@ const logUserLink: UserLinkSender = async ({ kind, to, link }) => {
  * no provider there is no sender, and the features that need one say so.
  */
 export function resolveUserLinkSender(
-  config: Pick<BunbracoConfig, 'sendUserLink' | 'siteName' | 'development' | 'email'>,
+  config: Pick<CromboloConfig, 'sendUserLink' | 'siteName' | 'development' | 'email'>,
   email: EmailPort | undefined,
 ): UserLinkSender | undefined {
   // An explicit sender wins, and `null` means nobody can be invited and no
@@ -324,7 +324,7 @@ export function resolveUserLinkSender(
 }
 
 /** Where the backoffice writes schema files, and whether it may. */
-function schemaFiles(config: BunbracoConfig): SchemaFiles {
+function schemaFiles(config: CromboloConfig): SchemaFiles {
   const store = config.schemaStore
   return {
     schemaDir: config.schemaDir,
@@ -351,7 +351,7 @@ function schemaFiles(config: BunbracoConfig): SchemaFiles {
 }
 
 export interface DepsOptions {
-  config: BunbracoConfig
+  config: CromboloConfig
   paths: BackOfficePaths
   /** The site's installed npm extensions, which contribute their manifests. */
   extensions: ExtensionRegistry

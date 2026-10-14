@@ -1,3 +1,3 @@
-import { bunbraco } from 'bunbraco'
+import { crombolo } from '@crombolo/crombolo'
 
-export default await bunbraco()
+export default await crombolo()

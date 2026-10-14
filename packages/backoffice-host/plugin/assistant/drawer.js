@@ -18,7 +18,7 @@ import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external
 import { approve, ask, change, changesets, diff, discard, edit, status } from './client.js'
 
 /**
- * The language each kind of change is edited in. `tsx` is bunbraco's own, added
+ * The language each kind of change is edited in. `tsx` is crombolo's own, added
  * to the code editor by the `tsx-editors` entry point; plain `typescript` would
  * read a view's markup as a stream of syntax errors.
  */
@@ -38,7 +38,7 @@ const KIND_LABEL = {
   'template-create': 'New template',
 }
 
-export default class BunbracoAssistantDrawerElement extends LitElement {
+export default class CromboloAssistantDrawerElement extends LitElement {
   static properties = {
     _open: { state: true },
     _busy: { state: true },
@@ -862,4 +862,4 @@ export default class BunbracoAssistantDrawerElement extends LitElement {
   `
 }
 
-customElements.define('bunbraco-assistant-drawer', BunbracoAssistantDrawerElement)
+customElements.define('crombolo-assistant-drawer', CromboloAssistantDrawerElement)

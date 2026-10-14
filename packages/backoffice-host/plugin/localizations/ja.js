@@ -4,15 +4,15 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Bunbracoの管理画面にアクセスするためのパスワードを変更するには、以下のフォームに新しいパスワード入力して「パスワードの変更」ボタンをクリックしてください。",
-    "noConsole": "Bunbracoへのアクセスを無効にする",
+    "changePasswordDescription": "Cromboloの管理画面にアクセスするためのパスワードを変更するには、以下のフォームに新しいパスワード入力して「パスワードの変更」ボタンをクリックしてください。",
+    "noConsole": "Cromboloへのアクセスを無効にする",
     "documentType": "コンテンツタイプ"
   },
   "paste": {
-    "errorMessage": "貼り付けようとしたテキストは、特殊文字や書式設定が含まれます。これは、Microsoft Wordからテキストをコピーしたりすると発生する事です。Bunbracoでは貼り付けられたコンテンツをウェブに適用させる為、書式や特殊文字を自動的に削除します。"
+    "errorMessage": "貼り付けようとしたテキストは、特殊文字や書式設定が含まれます。これは、Microsoft Wordからテキストをコピーしたりすると発生する事です。Cromboloでは貼り付けられたコンテンツをウェブに適用させる為、書式や特殊文字を自動的に削除します。"
   },
   "dashboard": {
-    "nothinghappens": "Bunbracoが起動しない時は、このサイトのポップアップを許可してください。"
+    "nothinghappens": "Cromboloが起動しない時は、このサイトのポップアップを許可してください。"
   },
   "actions": {
     "changeDocType": "コンテンツタイプの変更",

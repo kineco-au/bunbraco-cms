@@ -3,8 +3,8 @@
  * SignalR's JSON hub protocol over a plain WebSocket, signed-in only.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { serverEventFor } from '@bunbraco/api-management'
-import { listOperations, loadSpec } from '@bunbraco/contracts'
+import { serverEventFor } from '@crombolo/api-management'
+import { listOperations, loadSpec } from '@crombolo/contracts'
 import type { Server } from 'bun'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 

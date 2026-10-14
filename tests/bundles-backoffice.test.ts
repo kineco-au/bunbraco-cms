@@ -4,7 +4,7 @@
  * names. docs/17-bundles.md.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { formPermissionPrefixMigration, RENAMED_FORM_VERBS } from '@bunbraco/data'
+import { formPermissionPrefixMigration, RENAMED_FORM_VERBS } from '@crombolo/data'
 import {
   BUILDER_LABELS,
   correctionFor,
@@ -61,7 +61,7 @@ describe('the Created view, which replaces a router', () => {
     expect(overview).toContain("BUILDER_PATH = 'section/packages/view/created/package-builder'")
     const plugin = await Bun.file(`${PLUGIN}/umbraco-package.json`).json()
     const created = plugin.extensions.find(
-      (e: { alias: string }) => e.alias === 'Bunbraco.SectionView.Bundles.Created',
+      (e: { alias: string }) => e.alias === 'Crombolo.SectionView.Bundles.Created',
     )
     expect(created.meta.pathname).toBe('created')
     expect(created.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
@@ -109,7 +109,7 @@ describe("the builder's two hard-coded labels", () => {
 })
 
 describe('migration 026, which re-prefixes the form verbs', () => {
-  test('rewrites a stored Umb. verb to Bunbraco. and leaves others alone', async () => {
+  test('rewrites a stored Umb. verb to Crombolo. and leaves others alone', async () => {
     const h = await signedInServer()
     open.push(h)
     const db = h.server.db
@@ -118,7 +118,7 @@ describe('migration 026, which re-prefixes the form verbs', () => {
     )
     if (!group) throw new Error('the admin group was not seeded')
 
-    await db.exec('DELETE FROM user_group_permission WHERE permission = ?', ['Bunbraco.Form.Read'])
+    await db.exec('DELETE FROM user_group_permission WHERE permission = ?', ['Crombolo.Form.Read'])
     await db.exec('INSERT INTO user_group_permission (user_group_key, permission) VALUES (?, ?)', [
       group.key,
       'Umb.Form.Read',
@@ -128,9 +128,9 @@ describe('migration 026, which re-prefixes the form verbs', () => {
 
     const after = await db.query<{ permission: string }>(
       'SELECT permission FROM user_group_permission WHERE user_group_key = ? AND permission IN (?, ?)',
-      [group.key, 'Umb.Form.Read', 'Bunbraco.Form.Read'],
+      [group.key, 'Umb.Form.Read', 'Crombolo.Form.Read'],
     )
-    expect(after.map((row) => row.permission)).toEqual(['Bunbraco.Form.Read'])
+    expect(after.map((row) => row.permission)).toEqual(['Crombolo.Form.Read'])
     // An Umbraco verb with a similar shape is untouched.
     const document = await db.query<{ n: number }>(
       "SELECT COUNT(*) AS n FROM user_group_permission WHERE permission = 'Umb.Document.Read'",
@@ -155,7 +155,7 @@ describe('migration 026, which re-prefixes the form verbs', () => {
 
     const rows = await db.query<{ permission: string }>(
       'SELECT permission FROM user_group_permission WHERE user_group_key = ? AND permission = ?',
-      [group.key, 'Bunbraco.FormEntry.Sensitive'],
+      [group.key, 'Crombolo.FormEntry.Sensitive'],
     )
     expect(rows).toHaveLength(1)
   })
@@ -169,7 +169,7 @@ describe('migration 026, which re-prefixes the form verbs', () => {
       'Umb.FormEntry.Sensitive',
     ])
     for (const [before, after] of RENAMED_FORM_VERBS) {
-      expect([before, after]).toEqual([before, before.replace(/^Umb\./, 'Bunbraco.')])
+      expect([before, after]).toEqual([before, before.replace(/^Umb\./, 'Crombolo.')])
     }
   })
 })

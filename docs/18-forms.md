@@ -38,7 +38,7 @@ rather than failing a save silently.
 
 **Built** — `schema/forms/*.toml`, parsed by `parse-forms.ts`, written by
 `write-forms.ts` and validated by `validate-forms.ts`, all in
-`@bunbraco/schema`. `parseForm(writeForm(x))` equals `x`, which is what lets the
+`@crombolo/schema`. `parseForm(writeForm(x))` equals `x`, which is what lets the
 backoffice write a file somebody will read in a diff.
 
 Same vocabulary as the other schema files: kebab-case keys, a `key` UUID for
@@ -143,7 +143,7 @@ should not exist, and Umbraco only has it for legacy reasons.
 
 ## Validation
 
-**Built**, in `@bunbraco/core` — not in the server, because it is a rule about
+**Built**, in `@crombolo/core` — not in the server, because it is a rule about
 what a form means rather than about HTTP. **The server is the only authority.** The client gets the same rules and uses them
 for immediate feedback, but every submission is re-validated from the definition
 before anything is stored, and so is every condition — a hidden field's value is
@@ -307,10 +307,10 @@ with a reason* rather than failing when someone presses the button.
 
 ## Rendering
 
-**Built.** `<Form>` comes from `bunbraco`, and a view is three lines:
+**Built.** `<Form>` comes from `@crombolo/crombolo`, and a view is three lines:
 
 ```tsx
-import { Form } from 'bunbraco'
+import { Form } from '@crombolo/crombolo'
 
 export default function Page({ model, submission }) {
   return <Form form={model.value('contactForm')} submission={submission} />
@@ -320,7 +320,7 @@ export default function Page({ model, submission }) {
 `model.value('contactForm')` is a `formPicker` property, and the value converter
 resolves the stored key to the definition — so a view gets the form, not a UUID.
 `value()` is untyped, so a hand-written view casts it (`as SchemaForm | null`);
-`bunbraco generate` is what removes the cast.
+`crombolo generate` is what removes the cast.
 
 The demo template is the worked example:
 `sites/harbourstone/schema/forms/contact.toml` is pointed at by the
@@ -345,7 +345,7 @@ Two things made that the wrong shape here:
 So `components` overrides the renderer for a field type, and a site that wants
 different markup altogether writes it from the definition — `allFormFields(form)`
 and whatever JSX it likes. `form.theme` becomes a class on the `<form>` element
-(`bunbraco-form bunbraco-form--compact`), which is what a stylesheet actually
+(`crombolo-form crombolo-form--compact`), which is what a stylesheet actually
 needs. Directory-based themes can be added later if composition turns out not to
 be enough; nothing here forecloses it.
 
@@ -365,13 +365,13 @@ page to check.
 A form reaches a page through a `formPicker` data type — **built**, seeded with
 the other built-ins so a property can use it with no file, and with its editor
 UI in our own plugin rather than the vendored client — rendered by a `<Form>`
-component from `bunbraco`. Progressive enhancement is the baseline: the form is a
+component from `@crombolo/crombolo`. Progressive enhancement is the baseline: the form is a
 real `<form method="post">` that works without JavaScript, and the client script
 adds conditional logic, inline validation and optional fetch submission on top.
 
 ### Submitting
 
-**Built.** `POST /bunbraco/forms/<formKey>`, outside the Management API because
+**Built.** `POST /crombolo/forms/<formKey>`, outside the Management API because
 the caller is the public.
 
 Two answers, by what the client asked for:
@@ -427,7 +427,7 @@ Here there is no contract to match, so the API is designed for this CMS.
 - Operations under `${paths.pluginPath}/api/forms/*`, following the marketplace
   precedent from the packages work — outside the contract-first router, because an
   operation not in `OpenApi.json` has no place in it
-- A **Forms section** (`Bunbraco.Section.Forms`) with two views, Forms and Entries.
+- A **Forms section** (`Crombolo.Section.Forms`) with two views, Forms and Entries.
   The alias resolves now: Umbraco seeds the stored `forms` alias and then has no
   section for it, so `toSectionAliases` used to drop it
 - The **designer** is a table, not a canvas. A form is a file, and what somebody
@@ -463,13 +463,13 @@ than inventing a parallel one:
 
 | Verb | Allows |
 | --- | --- |
-| `Bunbraco.Form.Read` | reading a definition |
-| `Bunbraco.Form.Manage` | creating, editing and deleting one |
-| `Bunbraco.FormEntry.Read` | reading submissions |
-| `Bunbraco.FormEntry.Manage` | approving, rejecting, deleting them |
-| `Bunbraco.FormEntry.Sensitive` | seeing what a definition marks sensitive |
+| `Crombolo.Form.Read` | reading a definition |
+| `Crombolo.Form.Manage` | creating, editing and deleting one |
+| `Crombolo.FormEntry.Read` | reading submissions |
+| `Crombolo.FormEntry.Manage` | approving, rejecting, deleting them |
+| `Crombolo.FormEntry.Sensitive` | seeing what a definition marks sensitive |
 
-`Bunbraco.`-prefixed, not `Umb.`: Umbraco has no forms in core, so these name
+`Crombolo.`-prefixed, not `Umb.`: Umbraco has no forms in core, so these name
 nothing upstream and the prefix says who defined them. Migration 026 rewrites
 the `Umb.`-spelled rows that migration 025 wrote.
 
@@ -487,7 +487,7 @@ way migration 007 did.
 
 ## Conditions in the browser
 
-**Built.** `/bunbraco/forms.js`, served by the server and added to a layout by
+**Built.** `/crombolo/forms.js`, served by the server and added to a layout by
 the site — nothing emits it automatically, because a form works without it and
 two forms on a page would otherwise run it twice.
 

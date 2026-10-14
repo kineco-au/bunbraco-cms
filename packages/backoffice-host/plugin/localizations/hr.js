@@ -4,33 +4,33 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Možete promijeniti svoju lozinku za pristup Bunbraco Back Officeu tako da ispunite donji obrazac i kliknete gumb \"Promjeni lozinku\"",
-    "createUserHelp": "Kreirajte nove korisnike kako biste im omogućili pristup Bunbraco-u. Kada se kreira novi korisnik, stvorit će se lozinka koju možete podijeliti s korisnikom.\n    ",
-    "inviteUserHelp": "Pozovite nove korisnike da im omogućite pristup Bunbraco-u. Korisniku bit će poslan email s pozivnicom i informacijama o tome kako se prijaviti u Bunbraco. Pozivnice traju 72 sata.\n    ",
-    "noConsole": "Onemogućite pristup Bunbraco-u",
-    "userCreatedSuccessHelp": "Novi korisnik je uspješno kreiran. Za prijavu na Bunbraco koristite\n      lozinka ispod.\n    ",
-    "userInvitedSuccessHelp": "Novom korisniku je poslana pozivnica s detaljima o tome kako se prijaviti u Bunbraco.",
-    "userinviteWelcomeMessage": "Pozdrav i dobrodošli u Bunbraco! Jedna minuta bit će vam potrebna da postavite svoju lozinku.",
-    "userinviteExpiredMessage": "Dobrodošli u Bunbraco! Nažalost pozivnica je istekla. Molimo kontaktirajte svog administratora i od njega tražite da ju ponovno pošalje.",
+    "changePasswordDescription": "Možete promijeniti svoju lozinku za pristup Crombolo Back Officeu tako da ispunite donji obrazac i kliknete gumb \"Promjeni lozinku\"",
+    "createUserHelp": "Kreirajte nove korisnike kako biste im omogućili pristup Crombolo-u. Kada se kreira novi korisnik, stvorit će se lozinka koju možete podijeliti s korisnikom.\n    ",
+    "inviteUserHelp": "Pozovite nove korisnike da im omogućite pristup Crombolo-u. Korisniku bit će poslan email s pozivnicom i informacijama o tome kako se prijaviti u Crombolo. Pozivnice traju 72 sata.\n    ",
+    "noConsole": "Onemogućite pristup Crombolo-u",
+    "userCreatedSuccessHelp": "Novi korisnik je uspješno kreiran. Za prijavu na Crombolo koristite\n      lozinka ispod.\n    ",
+    "userInvitedSuccessHelp": "Novom korisniku je poslana pozivnica s detaljima o tome kako se prijaviti u Crombolo.",
+    "userinviteWelcomeMessage": "Pozdrav i dobrodošli u Crombolo! Jedna minuta bit će vam potrebna da postavite svoju lozinku.",
+    "userinviteExpiredMessage": "Dobrodošli u Crombolo! Nažalost pozivnica je istekla. Molimo kontaktirajte svog administratora i od njega tražite da ju ponovno pošalje.",
     "documentType": "Vrsta sadržaja"
   },
   "general": {
-    "umbracoInfo": "Bunbraco info"
+    "umbracoInfo": "Crombolo info"
   },
   "languages": {
-    "defaultLanguageHelp": "Bunbraco stranica može imati samo jedan zadani jezik."
+    "defaultLanguageHelp": "Crombolo stranica može imati samo jedan zadani jezik."
   },
   "paste": {
-    "errorMessage": "Tekst koji pokušavate zalijepiti sadrži posebne znakove ili formatiranje. Ovo bi moglo biti\n       uzrokovano kopiranjem teksta iz programa Microsoft Word. Bunbraco može automatski ukloniti posebne znakove ili formatiranje, tako da\n       zalijepljeni sadržaj će biti prikladniji za web.\n    "
+    "errorMessage": "Tekst koji pokušavate zalijepiti sadrži posebne znakove ili formatiranje. Ovo bi moglo biti\n       uzrokovano kopiranjem teksta iz programa Microsoft Word. Crombolo može automatski ukloniti posebne znakove ili formatiranje, tako da\n       zalijepljeni sadržaj će biti prikladniji za web.\n    "
   },
   "dashboard": {
-    "nothinghappens": "Ako se Bunbraco ne otvara, možda ćete morati dozvoliti skočne prozore sa ove stranice"
+    "nothinghappens": "Ako se Crombolo ne otvara, možda ćete morati dozvoliti skočne prozore sa ove stranice"
   },
   "logViewer": {
-    "searchUmbracoSource": "Pretraži Bunbraco Source",
-    "searchWithinUmbracoSourceCodeOnGithub": "Pretraži Bunbraco source code on Github-u",
-    "searchUmbracoIssues": "Pretraži Bunbraco Issues",
-    "searchUmbracoIssuesOnGithub": "Pretraži Bunbraco Issues na Github-u"
+    "searchUmbracoSource": "Pretraži Crombolo Source",
+    "searchWithinUmbracoSourceCodeOnGithub": "Pretraži Crombolo source code on Github-u",
+    "searchUmbracoIssues": "Pretraži Crombolo Issues",
+    "searchUmbracoIssuesOnGithub": "Pretraži Crombolo Issues na Github-u"
   },
   "actions": {
     "changeDocType": "Promijeni Vrstu Sadržaja",

@@ -4,8 +4,8 @@
  * section each operation demands.
  */
 import { describe, expect, test } from 'bun:test'
-import { LOCAL_LOGIN_OPERATIONS, sectionRequirements } from '@bunbraco/api-management'
-import { listOperations, loadSpec } from '@bunbraco/contracts'
+import { LOCAL_LOGIN_OPERATIONS, sectionRequirements } from '@crombolo/api-management'
+import { listOperations, loadSpec } from '@crombolo/contracts'
 import {
   combineStartNodes,
   type GroupGrant,
@@ -13,7 +13,7 @@ import {
   hasPathAccess,
   isValidPassword,
   permissionsForPath,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 
 const group = (
   alias: string,

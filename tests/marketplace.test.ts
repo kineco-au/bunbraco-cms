@@ -9,14 +9,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createExtensionRegistry } from '@bunbraco/backoffice-host'
+import { createExtensionRegistry } from '@crombolo/backoffice-host'
 import {
   bunInstaller,
   createMarketplace,
   isValidPackageName,
   isValidVersion,
   type PackageInstaller,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import {
   BACKOFFICE,
   type Harness,
@@ -66,7 +66,7 @@ function addPackage(root: string, name: string, declares: boolean, version = '1.
       version,
       ...(declares
         ? {
-            bunbraco: {
+            crombolo: {
               id: name,
               extensions: [{ type: 'dashboard', alias: `${name}.d`, name, element: 'd.js' }],
             },
@@ -105,7 +105,7 @@ function registry(options: {
       'dist-tags': { latest: '1.2.3' },
       versions: {
         '1.2.3': options.declaring.includes(name)
-          ? { bunbraco: { extensions: [{ type: 'dashboard' }] } }
+          ? { crombolo: { extensions: [{ type: 'dashboard' }] } }
           : {},
       },
     })
@@ -139,8 +139,8 @@ function marketplace(options: {
     extensions,
     market: createMarketplace({
       registry: REGISTRY,
-      keyword: 'bunbraco-bundle',
-      marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Abunbraco-bundle',
+      keyword: 'crombolo-bundle',
+      marketplaceUrl: 'https://www.npmjs.com/search?q=keywords%3Acrombolo-bundle',
       extensions,
       siteDir: root,
       fetch: registry({
@@ -163,17 +163,17 @@ describe('searching the registry', () => {
       onSearch: (text) => seen.push(text),
     })
     await market.search(undefined)
-    expect(seen).toEqual(['keywords:bunbraco-bundle'])
+    expect(seen).toEqual(['keywords:crombolo-bundle'])
   })
 
   test('adds the typed query alongside the keyword', async () => {
     const seen: string[] = []
     const { market } = marketplace({ hits: [], onSearch: (text) => seen.push(text) })
     await market.search('  seo  ')
-    expect(seen).toEqual(['keywords:bunbraco-bundle seo'])
+    expect(seen).toEqual(['keywords:crombolo-bundle seo'])
   })
 
-  /** The keyword is a claim; the `bunbraco` field is the thing itself. */
+  /** The keyword is a claim; the `crombolo` field is the thing itself. */
   test('offers only the hits whose packument declares extensions', async () => {
     const { market } = marketplace({
       hits: ['@acme/seo', '@squatter/keyword-only'],
@@ -205,7 +205,7 @@ describe('searching the registry', () => {
 
   test('names where to browse', () => {
     const { market } = marketplace({})
-    expect(market.url()).toContain('keywords%3Abunbraco-bundle')
+    expect(market.url()).toContain('keywords%3Acrombolo-bundle')
   })
 })
 
@@ -377,7 +377,7 @@ describe('the name and version rules', () => {
 })
 
 describe('the endpoints', () => {
-  const PACKAGES = `${BACKOFFICE}/bunbraco/api/bundles`
+  const PACKAGES = `${BACKOFFICE}/crombolo/api/bundles`
 
   test('need a session', async () => {
     const h = await signedInServer()
@@ -409,8 +409,8 @@ describe('the endpoints', () => {
     const body = await h.json<{ keyword: string; url: string; items: unknown[] }>(
       `${PACKAGES}/marketplace`,
     )
-    expect(body.keyword).toBe('bunbraco-bundle')
-    expect(body.url).toContain('bunbraco-bundle')
+    expect(body.keyword).toBe('crombolo-bundle')
+    expect(body.url).toContain('crombolo-bundle')
     expect(Array.isArray(body.items)).toBe(true)
   })
 

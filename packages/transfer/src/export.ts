@@ -10,8 +10,8 @@
  * carries its draft and says so. `--drafts` takes the current draft throughout,
  * for the case where the point is to move work in progress.
  */
-import type { DocumentAggregate, DocumentValue } from '@bunbraco/core'
-import { ObjectTypes } from '@bunbraco/core'
+import type { DocumentAggregate, DocumentValue } from '@crombolo/core'
+import { ObjectTypes } from '@crombolo/core'
 import {
   ComponentRepository,
   type ContentKind,
@@ -19,7 +19,7 @@ import {
   type Db,
   DocumentRepository,
   type NodeRow,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   BUNDLE_FORMAT_VERSION,
   type BundleBlob,
@@ -73,7 +73,7 @@ export interface ExportResult {
 
 /**
  * `/media/ab12cd34/photo.jpg` → `ab12cd34/photo.jpg`, the store's own key.
- * `MediaFiles.key` does this in `@bunbraco/server`, but the prefix is a URL
+ * `MediaFiles.key` does this in `@crombolo/server`, but the prefix is a URL
  * convention rather than store behaviour and this package must not depend on
  * the composition root to read it.
  */

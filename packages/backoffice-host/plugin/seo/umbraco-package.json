@@ -1,15 +1,15 @@
 {
   "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
-  "name": "Bunbraco Search & sharing",
-  "id": "Bunbraco.Seo",
-  "version": "0.8.1",
+  "name": "Crombolo Search & sharing",
+  "id": "Crombolo.Seo",
+  "version": "0.9.0",
   "allowPublicAccess": false,
   "extensions": [
     {
       "type": "dashboard",
-      "alias": "Bunbraco.Dashboard.Seo",
-      "name": "Bunbraco Search & Sharing Dashboard",
-      "element": "/bunbraco-plugin/seo/dashboard.js",
+      "alias": "Crombolo.Dashboard.Seo",
+      "name": "Crombolo Search & Sharing Dashboard",
+      "element": "/crombolo-plugin/seo/dashboard.js",
       "weight": 10,
       "meta": {
         "label": "Search & sharing",
@@ -24,9 +24,9 @@
     },
     {
       "type": "workspaceView",
-      "alias": "Bunbraco.WorkspaceView.Document.Seo",
-      "name": "Bunbraco Search & Sharing Preview",
-      "element": "/bunbraco-plugin/seo/document-view.js",
+      "alias": "Crombolo.WorkspaceView.Document.Seo",
+      "name": "Crombolo Search & Sharing Preview",
+      "element": "/crombolo-plugin/seo/document-view.js",
       "weight": 90,
       "meta": {
         "label": "Search & sharing",
@@ -46,9 +46,9 @@
     },
     {
       "type": "workspaceFooterApp",
-      "alias": "Bunbraco.WorkspaceFooterApp.SeoFieldsHint",
-      "name": "Bunbraco Search & Sharing Type Hint",
-      "element": "/bunbraco-plugin/seo/type-hint.js",
+      "alias": "Crombolo.WorkspaceFooterApp.SeoFieldsHint",
+      "name": "Crombolo Search & Sharing Type Hint",
+      "element": "/crombolo-plugin/seo/type-hint.js",
       "weight": 900,
       "conditions": [
         {

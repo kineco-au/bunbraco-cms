@@ -5,11 +5,11 @@
  */
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createManagementApiRouter, EMPTY_SETTINGS_OPERATIONS } from '@bunbraco/api-management'
-import { createBackOfficePaths, createExtensionRegistry } from '@bunbraco/backoffice-host'
-import { bunbracoPlan, connect, migrate } from '@bunbraco/data'
-import { PublishedCache } from '@bunbraco/render'
-import { createDeps, createPublishedContentSource, loadConfig } from '@bunbraco/server'
+import { createManagementApiRouter, EMPTY_SETTINGS_OPERATIONS } from '@crombolo/api-management'
+import { createBackOfficePaths, createExtensionRegistry } from '@crombolo/backoffice-host'
+import { connect, cromboloPlan, migrate } from '@crombolo/data'
+import { PublishedCache } from '@crombolo/render'
+import { createDeps, createPublishedContentSource, loadConfig } from '@crombolo/server'
 
 const ROOT = join(import.meta.dir, '..')
 const OUT = join(ROOT, 'docs/api-coverage.md')
@@ -18,7 +18,7 @@ const OUT = join(ROOT, 'docs/api-coverage.md')
 // counts every handler that actually ships rather than only the stateless ones.
 const paths = createBackOfficePaths()
 const db = await connect({ dialect: 'sqlite', file: ':memory:' })
-await migrate(db, bunbracoPlan)
+await migrate(db, cromboloPlan)
 const router = createManagementApiRouter({
   deps: createDeps({
     config: loadConfig(),
@@ -71,7 +71,7 @@ console.log(`wrote ${OUT.replace(`${ROOT}/`, '')}`)
 
 await db.close()
 
-const baseline = Number(Bun.env.BUNBRACO_COVERAGE_BASELINE ?? 0)
+const baseline = Number(Bun.env.CROMBOLO_COVERAGE_BASELINE ?? 0)
 if (implemented < baseline) {
   console.error(`coverage regressed: ${implemented} < baseline ${baseline}`)
   process.exit(1)

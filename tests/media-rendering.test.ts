@@ -6,10 +6,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { siteMediaTypeFiles } from '@bunbraco/schema'
-import { decodePng, encodePng } from '@bunbraco/server'
+import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { siteMediaTypeFiles } from '@crombolo/schema'
+import { decodePng, encodePng } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

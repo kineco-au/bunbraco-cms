@@ -511,23 +511,23 @@ main > article,
  * them. Nothing here is required for the form to work.
  */
 
-.bunbraco-form fieldset {
+.crombolo-form fieldset {
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.bunbraco-form__group {
+.crombolo-form__group {
   display: grid;
   gap: 1.25rem;
 }
 
-.bunbraco-form__group--columns-2 {
-  grid-template-columns: repeat(var(--bunbraco-form-columns, 2), 1fr);
+.crombolo-form__group--columns-2 {
+  grid-template-columns: repeat(var(--crombolo-form-columns, 2), 1fr);
 }
 
-.bunbraco-form__group-caption,
-.bunbraco-form__page-caption {
+.crombolo-form__group-caption,
+.crombolo-form__page-caption {
   padding: 0;
   font-size: 0.75rem;
   font-weight: 500;
@@ -536,7 +536,7 @@ main > article,
   color: var(--brass-deep);
 }
 
-.bunbraco-form__label {
+.crombolo-form__label {
   display: block;
   font-size: 0.75rem;
   font-weight: 500;
@@ -545,24 +545,24 @@ main > article,
   color: var(--muted);
 }
 
-.bunbraco-form__required {
+.crombolo-form__required {
   margin-left: 0.25rem;
   color: var(--brass-deep);
 }
 
-.bunbraco-form__help {
+.crombolo-form__help {
   margin: 0.25rem 0 0;
   font-size: 0.8125rem;
   color: var(--muted);
 }
 
-.bunbraco-form input[type="text"],
-.bunbraco-form input[type="email"],
-.bunbraco-form input[type="tel"],
-.bunbraco-form input[type="number"],
-.bunbraco-form input[type="date"],
-.bunbraco-form select,
-.bunbraco-form textarea {
+.crombolo-form input[type="text"],
+.crombolo-form input[type="email"],
+.crombolo-form input[type="tel"],
+.crombolo-form input[type="number"],
+.crombolo-form input[type="date"],
+.crombolo-form select,
+.crombolo-form textarea {
   margin-top: 0.5rem;
   padding: 0.75rem;
   width: 100%;
@@ -575,26 +575,26 @@ main > article,
   transition: border-color var(--ease);
 }
 
-.bunbraco-form textarea {
+.crombolo-form textarea {
   resize: vertical;
 }
 
-.bunbraco-form :is(input, select, textarea):focus-visible {
+.crombolo-form :is(input, select, textarea):focus-visible {
   outline: none;
   border-color: var(--brass);
 }
 
-.bunbraco-form__field--invalid :is(input, select, textarea) {
+.crombolo-form__field--invalid :is(input, select, textarea) {
   border-color: #9c3b2e;
 }
 
-.bunbraco-form__error {
+.crombolo-form__error {
   margin: 0.5rem 0 0;
   font-size: 0.8125rem;
   color: #9c3b2e;
 }
 
-.bunbraco-form__summary {
+.crombolo-form__summary {
   margin-bottom: 1.5rem;
   padding: 1rem;
   border: 1px solid #9c3b2e;
@@ -602,13 +602,13 @@ main > article,
   color: #9c3b2e;
 }
 
-.bunbraco-form__choices {
+.crombolo-form__choices {
   display: grid;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-.bunbraco-form__choice {
+.crombolo-form__choice {
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -621,23 +621,23 @@ main > article,
 /* The label sits above its control everywhere else; a consent tick reads the
  * other way round, so the two are swapped with grid placement rather than by
  * changing what the renderer emits. */
-.bunbraco-form__field--dataConsent,
-.bunbraco-form__field--checkbox {
+.crombolo-form__field--dataConsent,
+.crombolo-form__field--checkbox {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.25rem 0.75rem;
   align-items: start;
 }
 
-.bunbraco-form__field--dataConsent > input,
-.bunbraco-form__field--checkbox > input {
+.crombolo-form__field--dataConsent > input,
+.crombolo-form__field--checkbox > input {
   grid-area: 1 / 1;
   margin: 0.3rem 0 0;
   accent-color: var(--brass-deep);
 }
 
-.bunbraco-form__field--dataConsent > .bunbraco-form__label,
-.bunbraco-form__field--checkbox > .bunbraco-form__label {
+.crombolo-form__field--dataConsent > .crombolo-form__label,
+.crombolo-form__field--checkbox > .crombolo-form__label {
   grid-area: 1 / 2;
   font-size: 0.9375rem;
   letter-spacing: normal;
@@ -645,16 +645,16 @@ main > article,
   color: var(--ink);
 }
 
-.bunbraco-form__field--dataConsent > :is(.bunbraco-form__help, .bunbraco-form__error),
-.bunbraco-form__field--checkbox > :is(.bunbraco-form__help, .bunbraco-form__error) {
+.crombolo-form__field--dataConsent > :is(.crombolo-form__help, .crombolo-form__error),
+.crombolo-form__field--checkbox > :is(.crombolo-form__help, .crombolo-form__error) {
   grid-column: 2;
 }
 
-.bunbraco-form__actions {
+.crombolo-form__actions {
   margin-top: 2rem;
 }
 
-.bunbraco-form__submit {
+.crombolo-form__submit {
   min-height: 2.75rem;
   padding-inline: 1.5rem;
   border: 0;
@@ -669,11 +669,11 @@ main > article,
   transition: background-color var(--ease);
 }
 
-.bunbraco-form__submit:hover {
+.crombolo-form__submit:hover {
   background: var(--brass-deep);
 }
 
-.bunbraco-form--submitted {
+.crombolo-form--submitted {
   font-family: var(--display);
   font-size: 1.5rem;
   line-height: 1.3;

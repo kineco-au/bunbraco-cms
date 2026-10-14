@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, SUPER_USER_KEY } from '@bunbraco/data'
-import type { UserLinkSender } from '@bunbraco/server'
+import { ComponentRepository, ContentTypeRepository, SUPER_USER_KEY } from '@crombolo/data'
+import type { UserLinkSender } from '@crombolo/server'
 import { BACKOFFICE, type Harness, signedInServer, signIn, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -393,20 +393,20 @@ describe('users', () => {
         clientId,
         clientSecret: 'a-long-client-secret',
       })
-    expect((await add(robot, 'bunbraco-back-office-robot')).status).toBe(200)
-    expect((await (await add(robot, 'bunbraco-back-office-robot')).json()).operationStatus).toBe(
+    expect((await add(robot, 'crombolo-back-office-robot')).status).toBe(200)
+    expect((await (await add(robot, 'crombolo-back-office-robot')).json()).operationStatus).toBe(
       'DuplicateClientId',
     )
     expect((await (await add(robot, 'robot')).json()).operationStatus).toBe('InvalidClientId')
-    // The prefix is bunbraco's as of migration 020; Umbraco's is no longer accepted.
+    // The prefix is crombolo's as of migration 020; Umbraco's is no longer accepted.
     expect((await (await add(robot, 'umbraco-back-office-robot')).json()).operationStatus).toBe(
       'InvalidClientId',
     )
     expect(
-      (await (await add(SUPER_USER_KEY, 'bunbraco-back-office-me')).json()).operationStatus,
+      (await (await add(SUPER_USER_KEY, 'crombolo-back-office-me')).json()).operationStatus,
     ).toBe('InvalidUserType')
     expect(await h.json<unknown>(`${V1}/user/${robot}/client-credentials`)).toEqual<unknown>([
-      'bunbraco-back-office-robot',
+      'crombolo-back-office-robot',
     ])
     // The robot signs in with its credential and calls the API with the bearer token
     const token = (secret: string) =>
@@ -416,7 +416,7 @@ describe('users', () => {
           headers: { 'content-type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             grant_type: 'client_credentials',
-            client_id: 'bunbraco-back-office-robot',
+            client_id: 'crombolo-back-office-robot',
             client_secret: secret,
           }).toString(),
         }),
@@ -431,7 +431,7 @@ describe('users', () => {
     expect(asRobot.status).toBe(200)
     expect(((await asRobot.json()) as { name: string }).name).toBe('Robot')
     expect(
-      (await h.del(`${V1}/user/${robot}/client-credentials/bunbraco-back-office-robot`)).status,
+      (await h.del(`${V1}/user/${robot}/client-credentials/crombolo-back-office-robot`)).status,
     ).toBe(200)
     expect(await h.json<unknown>(`${V1}/user/${robot}/client-credentials`)).toEqual<unknown>([])
   })

@@ -6,7 +6,7 @@
  * groups carry rules about the people involved, which their port enforces.
  * See docs/04-backoffice-hosting.md for the table's provenance.
  */
-import type { OperationInfo } from '@bunbraco/contracts'
+import type { OperationInfo } from '@crombolo/contracts'
 import {
   type AppAlias,
   DocumentPermissions as D,
@@ -14,7 +14,7 @@ import {
   permissionsForPath,
   type StartNodes,
   sectionKey,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { Principal } from './router.ts'
 
 /**

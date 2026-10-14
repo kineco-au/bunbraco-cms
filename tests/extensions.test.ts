@@ -16,8 +16,8 @@ import {
   resolveExtensionFile,
   resolvePackageDir,
   resolveStaticFile,
-} from '@bunbraco/backoffice-host'
-import { warnAboutAppPlugins } from '@bunbraco/server'
+} from '@crombolo/backoffice-host'
+import { warnAboutAppPlugins } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -42,7 +42,7 @@ interface FixturePackage {
  * A site directory with a package.json and a node_modules holding the fixtures.
  *
  * Under `output/` rather than the system temp directory: a site's views cache
- * has to resolve `bunbraco/jsx-runtime` by walking up to a `node_modules` that
+ * has to resolve `@crombolo/crombolo/jsx-runtime` by walking up to a `node_modules` that
  * carries it, which nothing outside the repository tree can do.
  */
 function siteWith(
@@ -82,7 +82,7 @@ function siteWith(
 }
 
 const extension = (over: Record<string, unknown> = {}) => ({
-  bunbraco: {
+  crombolo: {
     id: 'Acme.Seo',
     extensions: [
       { type: 'dashboard', alias: 'Acme.Dashboard.Seo', name: 'SEO', element: 'dist/seo.js' },
@@ -107,7 +107,7 @@ describe('discovery', () => {
   })
 
   test('ignores an empty extensions array, which declares nothing either', () => {
-    const root = siteWith({ '@acme/seo': { json: { bunbraco: { extensions: [] } } } })
+    const root = siteWith({ '@acme/seo': { json: { crombolo: { extensions: [] } } } })
     expect(discoverExtensions(root)).toEqual([])
   })
 
@@ -127,7 +127,7 @@ describe('discovery', () => {
   })
 
   test('a site with no package.json has no extensions, and does not throw', () => {
-    const root = mkdtempSync(join(tmpdir(), 'bunbraco-bare-'))
+    const root = mkdtempSync(join(tmpdir(), 'crombolo-bare-'))
     dirs.push(root)
     expect(discoverExtensions(root)).toEqual([])
   })
@@ -173,7 +173,7 @@ describe('asset paths', () => {
     const root = siteWith({
       tool: {
         json: {
-          bunbraco: {
+          crombolo: {
             extensions: [
               {
                 type: 'propertyEditorUi',
@@ -202,7 +202,7 @@ describe('asset paths', () => {
     const root = siteWith({
       tool: {
         json: {
-          bunbraco: {
+          crombolo: {
             extensions: [{ type: 'dashboard', alias: 'a', name: 'a', element: 'a.js' }],
             importmap: { imports: { '@acme/lib': 'dist/lib.js' } },
           },
@@ -316,11 +316,11 @@ describe('manifests', () => {
     const set = collectManifests(createBackOfficePaths(), discoverExtensions(root))
     expect(set.all.some((manifest) => manifest.id === 'Acme.Seo')).toBe(true)
     // And the framework's own is still there.
-    expect(set.all.some((manifest) => manifest.id === 'Bunbraco.Core')).toBe(true)
+    expect(set.all.some((manifest) => manifest.id === 'Crombolo.Core')).toBe(true)
   })
 
   test('the keyword packages publish is the one the docs name', () => {
-    expect(EXTENSION_KEYWORD).toBe('bunbraco-bundle')
+    expect(EXTENSION_KEYWORD).toBe('crombolo-bundle')
   })
 })
 

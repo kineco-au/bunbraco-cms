@@ -9,8 +9,8 @@
  * What this adds is the third kind: a rule somebody typed, stored as `manual`.
  *
  * Both halves ship in one npm package. The client half is discovered from the
- * `bunbraco` field once the package is a dependency; the server half runs only
- * because a site imported `redirects()` into its `bunbraco.config.ts` — see
+ * `crombolo` field once the package is a dependency; the server half runs only
+ * because a site imported `redirects()` into its `crombolo.config.ts` — see
  * `docs/17-bundles.md` for why that asymmetry is the whole security story.
  */
 import type {
@@ -18,7 +18,7 @@ import type {
   BundleRequest,
   BundleSection,
   ServerBundle,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 
 /** What this bundle asks the host for, and all it can reach. */
 const CAPABILITIES = ['redirects', 'documents', 'log'] as const

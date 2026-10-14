@@ -17,7 +17,7 @@ import {
   validateSchemaSet,
   viewScaffold,
   writeContentType,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 
 /** Deterministic keys, so a test reads as what it is about. */
 const keys = () => {
@@ -40,7 +40,7 @@ describe('scaffolding a type', () => {
     expect(allProperties(type)[0]?.mandatory).toBe(true)
 
     const view = viewScaffold(type)
-    expect(view).toContain("import type { PageProps } from 'bunbraco'")
+    expect(view).toContain("import type { PageProps } from '@crombolo/crombolo'")
     expect(view).toContain('export default function ArticlePage(')
     expect(view).toContain("model.text('title')")
   })

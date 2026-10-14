@@ -6,8 +6,8 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { basename, join, relative } from 'node:path'
-import { EXTENSION_KEYWORD } from '@bunbraco/backoffice-host'
-import { VERSION } from '@bunbraco/server'
+import { EXTENSION_KEYWORD } from '@crombolo/backoffice-host'
+import { VERSION } from '@crombolo/server'
 import {
   BACKOFFICE_DIST,
   lockedVersions,
@@ -15,21 +15,22 @@ import {
   publishOrder,
   ROOT,
   sharedVersion,
+  UMBRELLA,
   workspacePackages,
 } from '../scripts/packages.ts'
 import { listSites } from '../scripts/sites.ts'
 
-const REPOSITORY = 'git+https://github.com/kineco-au/bunbraco-cms.git'
+const REPOSITORY = 'git+https://github.com/kineco-au/crombolo-cms.git'
 const packages = publishablePackages()
 
 /** Published, but installed only by a site that wants it. */
-const OPT_IN = new Set(['@bunbraco/import-umbraco', '@bunbraco/simple-redirects'])
+const OPT_IN = new Set(['@crombolo/import-umbraco', '@crombolo/simple-redirects'])
 
 /** Published bundles, which npm has to be able to find by keyword. */
-const BUNDLES = new Set(['@bunbraco/simple-redirects'])
+const BUNDLES = new Set(['@crombolo/simple-redirects'])
 
 /** A sibling package in an import or export specifier, subpath and all. */
-const SIBLING_IMPORT = /from '(@bunbraco\/[^']+)'/g
+const SIBLING_IMPORT = /from '(@crombolo\/[^']+)'/g
 
 /** The TypeScript a package ships, skipping generated output and vendored dist. */
 function sourceFiles(dir: string): string[] {
@@ -58,22 +59,22 @@ function entryPoints(pkg: (typeof packages)[number]): string[] {
 describe('the published package set', () => {
   test('is the whole of packages/ bar nothing private', () => {
     expect(packages.map((pkg) => pkg.name)).toEqual([
-      '@bunbraco/api-management',
-      '@bunbraco/assistant',
-      '@bunbraco/auth',
-      '@bunbraco/backoffice-dist',
-      '@bunbraco/backoffice-host',
-      '@bunbraco/cli',
-      '@bunbraco/contracts',
-      '@bunbraco/core',
-      '@bunbraco/data',
-      '@bunbraco/import-umbraco',
-      '@bunbraco/render',
-      '@bunbraco/schema',
-      '@bunbraco/server',
-      '@bunbraco/simple-redirects',
-      '@bunbraco/transfer',
-      'bunbraco',
+      '@crombolo/api-management',
+      '@crombolo/assistant',
+      '@crombolo/auth',
+      '@crombolo/backoffice-dist',
+      '@crombolo/backoffice-host',
+      '@crombolo/cli',
+      '@crombolo/contracts',
+      '@crombolo/core',
+      '@crombolo/crombolo',
+      '@crombolo/data',
+      '@crombolo/import-umbraco',
+      '@crombolo/render',
+      '@crombolo/schema',
+      '@crombolo/server',
+      '@crombolo/simple-redirects',
+      '@crombolo/transfer',
     ])
   })
 
@@ -92,17 +93,17 @@ describe('the published package set', () => {
     for (const pkg of packages) expect(locked.get(pkg.relative)).toBe(pkg.manifest.version)
   })
 
-  test('is reachable from the bunbraco package, so nothing ships orphaned', () => {
-    const umbrella = packages.find((pkg) => pkg.name === 'bunbraco')
+  test('is reachable from the crombolo package, so nothing ships orphaned', () => {
+    const umbrella = packages.find((pkg) => pkg.name === '@crombolo/crombolo')
     const dependencies = Object.keys(umbrella?.manifest.dependencies ?? {})
     for (const pkg of packages) {
-      if (pkg.name === 'bunbraco' || OPT_IN.has(pkg.name)) continue
+      if (pkg.name === '@crombolo/crombolo' || OPT_IN.has(pkg.name)) continue
       expect(dependencies).toContain(pkg.name)
     }
   })
 
   test('publishes every bundle under the keyword the marketplace searches', () => {
-    // The `bunbraco` field is what declares the extensions, but npm will not
+    // The `crombolo` field is what declares the extensions, but npm will not
     // index a custom field — only keywords — so a bundle without this one is
     // invisible in the Bundles section however correct the rest of it is
     // (`docs/17-bundles.md`).
@@ -115,9 +116,9 @@ describe('the published package set', () => {
   test('declares each bundle’s extensions where discovery reads them', () => {
     for (const name of BUNDLES) {
       const bundle = packages.find((pkg) => pkg.name === name)
-      // Discovery reads `bunbraco.extensions` from the dependency's own
+      // Discovery reads `crombolo.extensions` from the dependency's own
       // manifest, and `files` has to carry whatever those point at.
-      const field = bundle?.manifest.bunbraco
+      const field = bundle?.manifest.crombolo
       expect(field?.extensions ?? [], name).not.toBeEmpty()
       for (const extension of field?.extensions ?? []) {
         const asset =
@@ -139,9 +140,9 @@ describe('the published package set', () => {
       for (const name of Object.keys(pkg.manifest.dependencies ?? {}))
         expect(OPT_IN.has(name), `${pkg.name} depends on ${name}`).toBe(false)
     }
-    const cli = readFileSync(join(ROOT, 'packages/cli/bin/bunbraco.ts'), 'utf8')
-    expect(cli).toContain("await import('@bunbraco/import-umbraco')")
-    expect(cli).not.toMatch(/^import .* from '@bunbraco\/import-umbraco'/m)
+    const cli = readFileSync(join(ROOT, 'packages/cli/bin/crombolo.ts'), 'utf8')
+    expect(cli).toContain("await import('@crombolo/import-umbraco')")
+    expect(cli).not.toMatch(/^import .* from '@crombolo\/import-umbraco'/m)
   })
 
   test('reports the shared version at runtime', () => {
@@ -168,7 +169,7 @@ describe('each published manifest', () => {
     describe(pkg.name, () => {
       test('ships the third-party notice, which npm does not add for us', () => {
         // Every package, not only the ones that redistribute third-party
-        // material: `bunbraco` is what a site installs and what a downstream
+        // material: `@crombolo/crombolo` is what a site installs and what a downstream
         // redistributor reads. `publish-packages.ts` copies the file in while
         // packing, so the manifest has to list it or the copy is dropped.
         expect(pkg.manifest.files ?? []).toContain('NOTICE')
@@ -195,7 +196,7 @@ describe('each published manifest', () => {
 
       test('depends on siblings through the workspace protocol', () => {
         for (const [name, range] of Object.entries(pkg.manifest.dependencies ?? {}))
-          if (name.startsWith('@bunbraco/')) expect(range).toBe('workspace:*')
+          if (name.startsWith('@crombolo/')) expect(range).toBe('workspace:*')
       })
 
       test('declares every sibling its source imports', () => {
@@ -211,8 +212,10 @@ describe('each published manifest', () => {
             const [scope, name] = (match[1] as string).split('/')
             imported.add(`${scope}/${name}`)
           }
+        // The umbrella is named only in code a package writes for a site, never
+        // imported by a sibling: it depends on them, so the reverse is a cycle.
         for (const name of imported)
-          if (name !== pkg.name)
+          if (name !== pkg.name && name !== UMBRELLA)
             expect([...declared], `${pkg.name} imports ${name}`).toContain(name)
       })
     })
@@ -225,25 +228,25 @@ describe('publishOrder', () => {
     expect(ordered).toHaveLength(packages.length)
     for (const pkg of packages)
       for (const name of Object.keys(pkg.manifest.dependencies ?? {}))
-        if (name.startsWith('@bunbraco/'))
+        if (name.startsWith('@crombolo/'))
           expect(ordered.indexOf(name)).toBeLessThan(ordered.indexOf(pkg.name))
   })
 
   test('puts core first and the umbrella package last', () => {
     const ordered = publishOrder(packages).map((pkg) => pkg.name)
-    expect(ordered[0]).toBe('@bunbraco/core')
-    expect(ordered.at(-1)).toBe('bunbraco')
+    expect(ordered[0]).toBe('@crombolo/core')
+    expect(ordered.at(-1)).toBe('@crombolo/crombolo')
   })
 })
 
 describe('the generated artefacts a release needs', () => {
   test('are listed in the files of the packages that carry them', () => {
     const byName = new Map(workspacePackages().map((pkg) => [pkg.name, pkg]))
-    expect(byName.get('@bunbraco/contracts')?.manifest.files).toContain('generated')
+    expect(byName.get('@crombolo/contracts')?.manifest.files).toContain('generated')
     expect(byName.get(BACKOFFICE_DIST)?.manifest.files).toContain('dist')
-    // The starter sites `bunbraco init --template` writes, which are files
+    // The starter sites `crombolo init --template` writes, which are files
     // beside the code rather than anything a build step produces.
-    expect(byName.get('@bunbraco/cli')?.manifest.files).toContain('templates')
+    expect(byName.get('@crombolo/cli')?.manifest.files).toContain('templates')
   })
 })
 
@@ -300,23 +303,23 @@ describe('republishing the product site', () => {
     // Repository variables are readable by anyone who can see the repository, so
     // the deploy token is the one value that cannot be one.
     expect(job).toMatch(
-      /BUNBRACO_PLATFORM_TOKEN:\s*\$\{\{\s*secrets\.BUNBRACO_PLATFORM_TOKEN\s*\}\}/,
+      /CROMBOLO_PLATFORM_TOKEN:\s*\$\{\{\s*secrets\.CROMBOLO_PLATFORM_TOKEN\s*\}\}/,
     )
-    expect(job).not.toMatch(/vars\.BUNBRACO_PLATFORM_TOKEN/)
+    expect(job).not.toMatch(/vars\.CROMBOLO_PLATFORM_TOKEN/)
   })
 
   test('publishes to preview, never straight to production', () => {
     // Decided deliberately: the live marketing site is promoted by hand once
     // somebody has looked at it.
     expect(job).toMatch(
-      /BUNBRACO_PLATFORM_ENVIRONMENT:\s*\$\{\{\s*vars\.BUNBRACO_PLATFORM_PREVIEW\s*\}\}/,
+      /CROMBOLO_PLATFORM_ENVIRONMENT:\s*\$\{\{\s*vars\.CROMBOLO_PLATFORM_PREVIEW\s*\}\}/,
     )
-    expect(job).not.toMatch(/BUNBRACO_PLATFORM_PRODUCTION/)
+    expect(job).not.toMatch(/CROMBOLO_PLATFORM_PRODUCTION/)
   })
 })
 
 describe('every image a template redistributes', () => {
-  /** The binaries under a template's bundle, which ship inside `@bunbraco/cli`. */
+  /** The binaries under a template's bundle, which ship inside `@crombolo/cli`. */
   const images = (dir: string): string[] =>
     existsSync(dir)
       ? readdirSync(dir, { recursive: true, encoding: 'utf8' }).filter((file) =>
@@ -325,7 +328,7 @@ describe('every image a template redistributes', () => {
       : []
 
   test('has a row in its site’s CREDITS.md', () => {
-    // `bunbraco init --template` copies these onto someone else's machine, so they
+    // `crombolo init --template` copies these onto someone else's machine, so they
     // are redistributed and each one needs a recorded source. Unattributed is the
     // kind of thing only ever noticed years later, so it is a test rather than a
     // convention. Every site, not only the distributed ones: flipping

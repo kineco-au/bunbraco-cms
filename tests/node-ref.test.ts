@@ -6,14 +6,14 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ObjectTypes } from '@bunbraco/core'
+import { ObjectTypes } from '@crombolo/core'
 import {
   ContentTypeRepository,
   DocumentRepository,
   describeRefFailure,
   type NodeRow,
   resolveNodeRef,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -40,7 +40,7 @@ const VIEW = `export default function Page({ model }) {
 
 /** A site whose only content type nests under itself, so paths have depth. */
 export function pageSite(): { schemaDir: string; componentsDir: string; root: string } {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-ref-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-ref-'))
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')

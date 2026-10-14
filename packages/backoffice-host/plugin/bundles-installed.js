@@ -7,14 +7,14 @@
  * (`docs/17-bundles.md`), so the view would be a list of nothing with a button
  * that cannot apply.
  *
- * What it lists instead is the site's declared `bunbraco` dependencies, which is
+ * What it lists instead is the site's declared `crombolo` dependencies, which is
  * what "installed" means here, and where each one came from.
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 import { listInstalled, uninstallBundle } from './bundles-client.js'
 
-export default class BunbracoBundlesInstalledElement extends UmbLitElement {
+export default class CromboloBundlesInstalledElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _loading: { state: true },
@@ -71,7 +71,7 @@ export default class BunbracoBundlesInstalledElement extends UmbLitElement {
               <p>
                 A bundle is one of this site's npm dependencies. Install one from the
                 Marketplace tab, or with <code>bun add</code> in the site directory — a dependency
-                that declares a <code>bunbraco</code> field appears here.
+                that declares a <code>crombolo</code> field appears here.
               </p>
             </uui-box>
           `
@@ -144,4 +144,4 @@ export default class BunbracoBundlesInstalledElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-bundles-installed', BunbracoBundlesInstalledElement)
+customElements.define('crombolo-bundles-installed', CromboloBundlesInstalledElement)

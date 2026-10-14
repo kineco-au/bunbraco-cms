@@ -10,7 +10,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { CurrentUserPort, UserItemPort } from '../ports.ts'
 import type {
   UserDataPort,
@@ -55,7 +55,7 @@ const USER_PROBLEMS: Partial<Record<UserStatus, [number, string, string]>> = {
   CannotInvite: [
     500,
     'Cannot send user invitation',
-    'This site cannot send e-mail, so users cannot be invited. Configure an e-mail provider — BUNBRACO_EMAIL_PROVIDER, or `email` in bunbraco.config.ts — or create the user and give them a password instead.',
+    'This site cannot send e-mail, so users cannot be invited. Configure an e-mail provider — CROMBOLO_EMAIL_PROVIDER, or `email` in crombolo.config.ts — or create the user and give them a password instead.',
   ],
   InvalidPassword: [
     400,
@@ -97,7 +97,7 @@ const USER_PROBLEMS: Partial<Record<UserStatus, [number, string, string]>> = {
   InvalidClientId: [
     400,
     'Invalid client ID',
-    'The client ID must be prefixed with "bunbraco-back-office-".',
+    'The client ID must be prefixed with "crombolo-back-office-".',
   ],
 }
 

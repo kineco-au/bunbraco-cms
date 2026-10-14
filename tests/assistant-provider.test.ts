@@ -16,7 +16,7 @@ import {
   type ProviderMessage,
   runConversation,
   type ToolResult,
-} from '@bunbraco/assistant'
+} from '@crombolo/assistant'
 
 const KEYS = { accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'wJalrXUtnFEMI/K7MDENG' }
 

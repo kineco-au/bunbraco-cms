@@ -3,7 +3,7 @@
  *
  * A site's extensions are its dependencies: discovery reads the site's own
  * `package.json`, resolves each dependency through `node_modules`, and takes the
- * `bunbraco` field from the dependency's `package.json`. There is no directory
+ * `crombolo` field from the dependency's `package.json`. There is no directory
  * convention to keep in step, and `bun add` is the install.
  *
  * Only declared dependencies are read, never a walk of `node_modules`, so a
@@ -18,14 +18,14 @@ import type { PackageManifest, PackageManifestImportmap } from './manifests.ts'
 export const EXTENSION_PATH = '/bundles'
 
 /** The npm keyword a bundle publishes so the marketplace can find it. */
-export const EXTENSION_KEYWORD = 'bunbraco-bundle'
+export const EXTENSION_KEYWORD = 'crombolo-bundle'
 
 /**
  * What a dependency declares to become a backoffice extension. The shape is
  * Umbraco's manifest minus the parts the server owns — the name and version
  * come from the package itself.
  */
-export interface BunbracoField {
+export interface CromboloField {
   id?: string
   name?: string
   allowPublicAccess?: boolean
@@ -52,7 +52,7 @@ interface PackageJson {
   name?: string
   version?: string
   dependencies?: Record<string, string>
-  bunbraco?: BunbracoField
+  crombolo?: CromboloField
 }
 
 function readJson(file: string): PackageJson | undefined {
@@ -124,7 +124,7 @@ export function readExtension(
   packageName: string,
 ): InstalledExtension | undefined {
   const json = readJson(join(directory, 'package.json'))
-  const field = json?.bunbraco
+  const field = json?.crombolo
   if (!field || !Array.isArray(field.extensions) || field.extensions.length === 0) return undefined
   return {
     packageName,

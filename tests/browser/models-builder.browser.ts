@@ -26,7 +26,7 @@ test('the models builder dashboard generates the TypeScript models', async ({ pa
   expect(existsSync(target)).toBe(false)
 
   await signIn(page)
-  await page.goto('/bunbraco/section/settings/dashboard/models-builder')
+  await page.goto('/crombolo/section/settings/dashboard/models-builder')
   await settle(page)
 
   const dashboard = page.locator('umb-models-builder-dashboard')
@@ -38,5 +38,5 @@ test('the models builder dashboard generates the TypeScript models', async ({ pa
   await expect
     .poll(() => existsSync(target), { timeout: 10_000, message: 'models were not written' })
     .toBe(true)
-  expect(readFileSync(target, 'utf8')).toContain('bunbraco generate')
+  expect(readFileSync(target, 'utf8')).toContain('crombolo generate')
 })

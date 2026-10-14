@@ -4,7 +4,7 @@
  * Every tree in the backoffice — documents, content types, data types, templates —
  * is the same query with a different object type, so it lives here once.
  */
-import { normaliseUuid, ObjectTypes, type Page, SystemNodes } from '@bunbraco/core'
+import { normaliseUuid, ObjectTypes, type Page, SystemNodes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 

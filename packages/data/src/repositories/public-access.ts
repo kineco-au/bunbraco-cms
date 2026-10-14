@@ -8,7 +8,7 @@
  * Rules are names, not keys: a member group's name or a member's username, as
  * Umbraco stores them, because that is what a signed-in member carries.
  */
-import { normaliseUuid } from '@bunbraco/core'
+import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
 import { NodeRepository } from './nodes.ts'

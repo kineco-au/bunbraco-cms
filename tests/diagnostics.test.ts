@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { configureLogging, createDiagnostics, loadConfig, logger } from '@bunbraco/server'
+import { configureLogging, createDiagnostics, loadConfig, logger } from '@crombolo/server'
 
 const dirs: string[] = []
 afterEach(() => {
@@ -82,17 +82,17 @@ describe('the heap report', () => {
 describe('configuration', () => {
   test('is off unless asked for', () => {
     const saved = { ...Bun.env }
-    delete Bun.env.BUNBRACO_TRACE_REQUESTS
-    delete Bun.env.BUNBRACO_HEAP_INTERVAL_SECONDS
+    delete Bun.env.CROMBOLO_TRACE_REQUESTS
+    delete Bun.env.CROMBOLO_HEAP_INTERVAL_SECONDS
     try {
       expect(loadConfig().diagnostics).toEqual({ traceRequests: false, heapIntervalSeconds: 0 })
-      Bun.env.BUNBRACO_TRACE_REQUESTS = 'true'
-      Bun.env.BUNBRACO_HEAP_INTERVAL_SECONDS = '30'
+      Bun.env.CROMBOLO_TRACE_REQUESTS = 'true'
+      Bun.env.CROMBOLO_HEAP_INTERVAL_SECONDS = '30'
       expect(loadConfig().diagnostics).toEqual({ traceRequests: true, heapIntervalSeconds: 30 })
-      Bun.env.BUNBRACO_HEAP_INTERVAL_SECONDS = 'soon'
+      Bun.env.CROMBOLO_HEAP_INTERVAL_SECONDS = 'soon'
       expect(loadConfig().diagnostics.heapIntervalSeconds).toBe(0)
     } finally {
-      for (const key of ['BUNBRACO_TRACE_REQUESTS', 'BUNBRACO_HEAP_INTERVAL_SECONDS']) {
+      for (const key of ['CROMBOLO_TRACE_REQUESTS', 'CROMBOLO_HEAP_INTERVAL_SECONDS']) {
         if (saved[key] === undefined) delete Bun.env[key]
         else Bun.env[key] = saved[key]
       }

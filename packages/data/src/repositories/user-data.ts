@@ -1,5 +1,5 @@
 /** Per-user key/value data the backoffice keeps between sessions (Umbraco's `umbracoUserData`). */
-import { normaliseUuid } from '@bunbraco/core'
+import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
 
 export interface UserDataEntry {

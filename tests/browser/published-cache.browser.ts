@@ -7,7 +7,7 @@ import { expect, settle, signIn, test } from './fixtures.ts'
 
 test('the published status dashboard reloads and rebuilds the cache', async ({ page }) => {
   await signIn(page)
-  await page.goto('/bunbraco/section/settings/dashboard/published-status')
+  await page.goto('/crombolo/section/settings/dashboard/published-status')
   await settle(page)
 
   const dashboard = page.locator('umb-dashboard-published-status')

@@ -8,8 +8,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DataTypeRepository } from '@bunbraco/data'
-import { nextSchemaVersion } from '@bunbraco/schema'
+import { ContentTypeRepository, DataTypeRepository } from '@crombolo/data'
+import { nextSchemaVersion } from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const dirs: string[] = []

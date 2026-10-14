@@ -58,7 +58,7 @@ test('a template added to a content type is still shown after save', async ({ pa
   })
   expect(created.status()).toBe(201)
   await page.goto(
-    `/bunbraco/section/settings/workspace/document-type/edit/${HOME_PAGE_TYPE}/view/templates`,
+    `/crombolo/section/settings/workspace/document-type/edit/${HOME_PAGE_TYPE}/view/templates`,
   )
   await page.getByRole('button', { name: 'Choose' }).first().click()
   const picker = page.locator('umb-template-picker-modal, umb-tree-picker-modal')
@@ -83,7 +83,7 @@ test('a new template starts as a TSX view, and its master template is written as
 }) => {
   const NAME = `Landing ${Math.random().toString(36).slice(2, 7)}`
   await signIn(page)
-  await page.goto('/bunbraco/section/settings/workspace/template/create/parent/template-root/null')
+  await page.goto('/crombolo/section/settings/workspace/template/create/parent/template-root/null')
   const editor = page.locator('umb-code-editor')
   await expect(editor).toContainText('export default function Template({ model }: PageProps)')
   await expect(editor).not.toContainText('@inherits')
@@ -110,7 +110,7 @@ test('a new template starts as a TSX view, and its master template is written as
     await page.request.get(`/umbraco/management/api/v1/template/${key}`)
   ).json()) as { content: string; masterTemplate: { id: string } | null }
   expect(saved.content).toContain(
-    "import type { PageProps } from 'bunbraco'\n\nexport const layout = 'contentPage'\n\n",
+    "import type { PageProps } from '@crombolo/crombolo'\n\nexport const layout = 'contentPage'\n\n",
   )
   expect(saved.content).not.toContain('@')
   expect(saved.masterTemplate).toEqual({ id: expect.any(String) })
@@ -128,7 +128,7 @@ test('a new template starts as a TSX view, and its master template is written as
 
 test('the view editor reads TSX, and checks it against the site’s own types', async ({ page }) => {
   await signIn(page)
-  await page.goto('/bunbraco/section/settings/workspace/template/create/parent/template-root/null')
+  await page.goto('/crombolo/section/settings/workspace/template/create/parent/template-root/null')
   const editor = page.locator('umb-code-editor')
   await expect(editor).toContainText('export default function Template({ model }: PageProps)')
 
@@ -141,17 +141,18 @@ test('the view editor reads TSX, and checks it against the site’s own types', 
     expect(view.uri).toMatch(/^file:\/\/\/Views\/.+\.tsx$/)
   }).toPass({ timeout: 15_000 })
 
-  // Nothing is underlined in the scaffold. Every tag in it, and the `bunbraco`
+  // Nothing is underlined in the scaffold. Every tag in it, and the `@crombolo/crombolo`
   // import above it, is what an editor configured for Razor complained about.
   await expect(async () => expect((await openView(page)).errors).toEqual([])).toPass({
     timeout: 20_000,
   })
 
   // And the types are the site's own, not a guess: a property `PublishedContent`
-  // does not have can only be an error if `bunbraco` resolved to the module the
+  // does not have can only be an error if `@crombolo/crombolo` resolved to the module the
   // server served.
   await editor.evaluate((host) => {
-    ;(host as unknown as { code: string }).code = `import type { PageProps } from 'bunbraco'
+    ;(host as unknown as { code: string }).code =
+      `import type { PageProps } from '@crombolo/crombolo'
 
 export default function Template({ model }: PageProps) {
   return <h1>{model.nosuchthing()}</h1>
@@ -185,10 +186,10 @@ test('a new partial view starts from a TSX skeleton; a stylesheet and a script s
 
   // Partial view: the editor opens on the Empty snippet, not a blank page
   await page.goto(
-    '/bunbraco/section/settings/workspace/partial-view/create/parent/partial-view-root/null',
+    '/crombolo/section/settings/workspace/partial-view/create/parent/partial-view-root/null',
   )
   const editor = page.locator('umb-code-editor')
-  await expect(editor).toContainText("import type { PageProps } from 'bunbraco'")
+  await expect(editor).toContainText("import type { PageProps } from '@crombolo/crombolo'")
   await expect(editor).toContainText('export default function Partial')
   await save(`nav${id}`)
   const partial = await api<{ name: string; content: string }>(
@@ -199,13 +200,13 @@ test('a new partial view starts from a TSX skeleton; a stylesheet and a script s
 
   // Stylesheet and script: saved under their own folders, served on the site
   await page.goto(
-    '/bunbraco/section/settings/workspace/stylesheet/create/parent/stylesheet-root/null',
+    '/crombolo/section/settings/workspace/stylesheet/create/parent/stylesheet-root/null',
   )
   await expect(editor).toBeVisible()
   await save(`site${id}`)
   expect((await page.request.get(`/css/site${id}.css`)).status()).toBe(200)
 
-  await page.goto('/bunbraco/section/settings/workspace/script/create/parent/script-root/null')
+  await page.goto('/crombolo/section/settings/workspace/script/create/parent/script-root/null')
   await expect(editor).toBeVisible()
   await save(`site${id}`)
   expect((await page.request.get(`/scripts/site${id}.js`)).status()).toBe(200)
@@ -214,9 +215,9 @@ test('a new partial view starts from a TSX skeleton; a stylesheet and a script s
 test('the log viewer shows the overview and searches the log, with no error', async ({ page }) => {
   await signIn(page)
   // The overview: level counts, the common messages and the saved searches
-  await page.goto('/bunbraco/section/settings/workspace/logviewer/view/overview')
+  await page.goto('/crombolo/section/settings/workspace/logviewer/view/overview')
   await expect(page.getByText('Find all logs that has an exception property').first()).toBeVisible()
-  await expect(page.getByText(/Bunbraco .* started on node/).first()).toBeVisible()
+  await expect(page.getByText(/Crombolo .* started on node/).first()).toBeVisible()
   // The search: the log itself, filtered by an expression.
   //
   // `StartsWith` rather than `=`. The template gained ` as {role}` and this
@@ -225,13 +226,13 @@ test('the log viewer shows the overview and searches the log, with no error', as
   // Matching the stable prefix means the next property added to that log line
   // does not break the test either.
   await page.goto(
-    `/bunbraco/section/settings/workspace/logviewer/view/search?lq=${encodeURIComponent("StartsWith(@MessageTemplate, 'Bunbraco {version} started on node')")}`,
+    `/crombolo/section/settings/workspace/logviewer/view/search?lq=${encodeURIComponent("StartsWith(@MessageTemplate, 'Crombolo {version} started on node')")}`,
   )
   // The version is not asserted: the point is that the search renders the event
   // with its properties, and a literal here breaks on every release. Importing
   // VERSION is not an option either — Playwright's CLI runs under Node, which
-  // cannot load the `bun:` modules @bunbraco/server pulls in.
-  await expect(page.getByText(/Bunbraco "[^"]+" started on node/).first()).toBeVisible()
+  // cannot load the `bun:` modules @crombolo/server pulls in.
+  await expect(page.getByText(/Crombolo "[^"]+" started on node/).first()).toBeVisible()
 })
 
 /**
@@ -246,7 +247,7 @@ test('the log viewer shows the overview and searches the log, with no error', as
  */
 test('the Settings tree offers Components, and neither tree it replaced', async ({ page }) => {
   await signIn(page)
-  await page.goto('/bunbraco/section/settings')
+  await page.goto('/crombolo/section/settings')
 
   // The sidebar groups it under Templating, beside Stylesheets and Scripts.
   await expect(page.getByText('Components', { exact: true }).first()).toBeVisible()
@@ -279,7 +280,7 @@ test('a component and a folder can both be created from the Components tree', as
   // And the tree shows the folder it was put in. Scoped to the sidebar: the
   // workspace footer's breadcrumb names the same folder, so an unscoped match
   // finds two.
-  await page.goto('/bunbraco/section/settings')
+  await page.goto('/crombolo/section/settings')
   const tree = page.getByTestId('section-sidebar:Umb.SectionSidebarMenu.Templating')
   await page.getByText('Components', { exact: true }).first().click()
   await expect(page.getByText(`grp${id}`, { exact: true })).toBeVisible()

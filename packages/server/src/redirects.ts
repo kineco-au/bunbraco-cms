@@ -12,8 +12,8 @@
  * Recycle-bin moves are deliberately not tracked, as in Umbraco: a trashed page
  * has no new URL to point at, and restoring it brings the old one back anyway.
  */
-import type { RedirectInput, RedirectRepository } from '@bunbraco/data'
-import type { DocumentRoute, PublishedCache, RedirectRule } from '@bunbraco/render'
+import type { RedirectInput, RedirectRepository } from '@crombolo/data'
+import type { DocumentRoute, PublishedCache, RedirectRule } from '@crombolo/render'
 
 export interface RedirectTracker {
   /** The routes the branch answers on now; empty when tracking is off. */

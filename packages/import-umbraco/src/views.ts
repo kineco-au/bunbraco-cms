@@ -47,7 +47,7 @@ export function viewStub(template: SourceTemplate, options: ViewStubOptions): st
       <body>{children}</body>
     </html>
   )`
-    return `import type { Child, PageProps } from 'bunbraco'
+    return `import type { Child, PageProps } from '@crombolo/crombolo'
 
 ${header}
 ${layout}
@@ -77,7 +77,7 @@ ${body}
       </body>
     </html>
   )`
-  return `import type { PageProps } from 'bunbraco'
+  return `import type { PageProps } from '@crombolo/crombolo'
 
 ${header}
 ${layout}

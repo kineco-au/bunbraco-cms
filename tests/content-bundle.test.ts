@@ -19,7 +19,7 @@ import {
   MANIFEST_FILE,
   referenceCandidates,
   writeBundle,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 
 const KEY_A = '9a1f3c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10'
 const KEY_B = '3f2a8b1c-1111-4222-8333-444455556666'
@@ -179,7 +179,7 @@ describe('the bundle format', () => {
       )
       const { set: read, problems } = loadBundle(dir)
       expect(read).toBeUndefined()
-      expect(problems[0]?.message).toContain('upgrade bunbraco')
+      expect(problems[0]?.message).toContain('upgrade crombolo')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -379,7 +379,7 @@ describe('the sections a bundle can carry', () => {
     writeFileSync(manifestFile, JSON.stringify(manifest, null, 2))
     const loaded = loadBundle(dir)
     expect(loaded.set).toBeUndefined()
-    expect(loaded.problems.map((p) => p.message).join(' ')).toContain('upgrade bunbraco')
+    expect(loaded.problems.map((p) => p.message).join(' ')).toContain('upgrade crombolo')
   })
 
   test('every section a bundle may carry has a directory of its own', () => {

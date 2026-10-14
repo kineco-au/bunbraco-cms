@@ -7,7 +7,7 @@
  *   bun run brochureware:publish --no-wait    return once accepted
  *
  * What is published is the committed bundle under
- * `sites/bunbraco/bundles/demo-bunbraco`, written by `bun run build:template`, so
+ * `sites/crombolo/bundles/demo-crombolo`, written by `bun run build:template`, so
  * the platform gets what the repository holds rather than whatever a laptop's
  * copy of the site happens to have in its database.
  *
@@ -20,7 +20,7 @@
  * marketing site is promoted by hand once somebody has looked at it.
  *
  * See `docs/stories/.../115-we-are-our-own-first-customer.md` in
- * bunbraco-enterprise for why this is a release step rather than a chore.
+ * crombolo-enterprise for why this is a release step rather than a chore.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -28,17 +28,17 @@ import { writeZip, type ZipEntry } from '../packages/server/src/zip.ts'
 import { SITES_DIR, slugOf } from './sites.ts'
 
 /** The site whose bundle is the product site. */
-export const TEMPLATE = 'demo/bunbraco'
+export const TEMPLATE = 'demo/crombolo'
 
-export const BUNDLE_DIR = join(SITES_DIR, 'bunbraco', 'bundles', slugOf(TEMPLATE))
+export const BUNDLE_DIR = join(SITES_DIR, 'crombolo', 'bundles', slugOf(TEMPLATE))
 
 /** Where the bundle is sent. Every one is required: a default would guess. */
 export const VARIABLES = {
-  url: 'BUNBRACO_PLATFORM_URL',
-  token: 'BUNBRACO_PLATFORM_TOKEN',
-  organisation: 'BUNBRACO_PLATFORM_ORGANISATION',
-  site: 'BUNBRACO_PLATFORM_SITE',
-  environment: 'BUNBRACO_PLATFORM_ENVIRONMENT',
+  url: 'CROMBOLO_PLATFORM_URL',
+  token: 'CROMBOLO_PLATFORM_TOKEN',
+  organisation: 'CROMBOLO_PLATFORM_ORGANISATION',
+  site: 'CROMBOLO_PLATFORM_SITE',
+  environment: 'CROMBOLO_PLATFORM_ENVIRONMENT',
 } as const
 
 export interface Target {

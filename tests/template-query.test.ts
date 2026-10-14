@@ -12,8 +12,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { queryExpression } from '@bunbraco/api-management'
-import { ContentTypeRepository } from '@bunbraco/data'
+import { queryExpression } from '@crombolo/api-management'
+import { ContentTypeRepository } from '@crombolo/data'
 import { signedInServer, V1 } from './support/harness.ts'
 
 const TYPES = `[content-type]

@@ -160,8 +160,8 @@ destination must satisfy is checked element by element instead.
 or a path by name, through one resolver, so the two cannot drift.
 
 ```
-bunbraco content export --root /Campaigns/Autumn 2026 --out bundles/campaign-x
-bunbraco content export --root 9a1f3c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10 --out …
+crombolo content export --root /Campaigns/Autumn 2026 --out bundles/campaign-x
+crombolo content export --root 9a1f3c2e-5d4f-4d3e-9d6d-2b7f8a1c9e10 --out …
 ```
 
 A path is resolved at export time and the resolved **uuid** is what lands in the
@@ -233,8 +233,8 @@ A `person` finding waits for one of three answers, by node key:
 | `skip` | leave the node alone entirely |
 
 ```bash
-bunbraco content check bundles/campaign-x --resolve 9a1f…=take-bundle
-bunbraco content check bundles/campaign-x --resolve-all take-bundle --save
+crombolo content check bundles/campaign-x --resolve 9a1f…=take-bundle
+crombolo content check bundles/campaign-x --resolve-all take-bundle --save
 ```
 
 `--save` writes `resolutions.json` beside the bundle, **by node key**, so the
@@ -328,7 +328,7 @@ Umbraco client's version list, so provenance lives in
 
 `backupBefore` runs first, exactly as `upgrade` does: SQLite is copied beside
 the file, and Postgres refuses without `--backup-taken` or a configured
-`BUNBRACO_PG_DUMP`. That is the coarse layer underneath the fine-grained revert,
+`CROMBOLO_PG_DUMP`. That is the coarse layer underneath the fine-grained revert,
 for the case where somebody wants the whole database back rather than one run
 undone.
 
@@ -388,8 +388,8 @@ in production, where `schema/` is read-only — and promised these two commands 
 how a lower environment gets the translations:
 
 ```
-bunbraco dictionary export --out <file.udt> [--key <uuid>]
-bunbraco dictionary import <file.udt>
+crombolo dictionary export --out <file.udt> [--key <uuid>]
+crombolo dictionary import <file.udt>
 ```
 
 It is Umbraco's own `.udt`, so a file exported from an Umbraco site imports here
@@ -400,7 +400,7 @@ than refused** — Umbraco's behaviour — but the command says which, instead o
 dropping it silently.
 
 The implementation is shared with the Management API endpoint rather than
-duplicated: `importDictionaryUdt` in `@bunbraco/server`, which the adapter now
+duplicated: `importDictionaryUdt` in `@crombolo/server`, which the adapter now
 calls too.
 
 ## Findings
@@ -424,34 +424,34 @@ and comes off at 1.0.
 ## Commands
 
 ```
-bunbraco content export --root <path|uuid> [--root …] --out <dir>
+crombolo content export --root <path|uuid> [--root …] --out <dir>
                         [--only] [--drafts] [--with-blobs] [--with-blueprints]
 
-bunbraco content check <dir>
+crombolo content check <dir>
                         [--under <path|uuid>] [--resolve <key>=<choice>]
                         [--resolve-all <choice>] [--allow-missing-blobs] [--save]
 
-bunbraco content import <dir>
+crombolo content import <dir>
                         [--publish] [--label <text>] [--backup-taken] + the check flags
                         [--no-schema] [--no-files]  decline a section the bundle carries
                         [--replace-files]           allow replacing files this site has
-bunbraco content runs   [--limit N]
-bunbraco content revert <run-id>
+crombolo content runs   [--limit N]
+crombolo content revert <run-id>
                         [--resolve <key>=discard|skip] [--resolve-all <choice>]
                         [--force] [--backup-taken]
 
-bunbraco bundle check   <dir>     alias of `content check`
-bunbraco bundle install <dir>     alias of `content import`
+crombolo bundle check   <dir>     alias of `content check`
+crombolo bundle install <dir>     alias of `content import`
 
-bunbraco dictionary export --out <file.udt> [--key <uuid>]
-bunbraco dictionary import <file.udt>
+crombolo dictionary export --out <file.udt> [--key <uuid>]
+crombolo dictionary import <file.udt>
 
-bunbraco content publish <path|uuid>
+crombolo content publish <path|uuid>
                         [--descendants] [--culture <iso>]... [--at <when>] [--until <when>]
-bunbraco content unpublish <path|uuid>
+crombolo content unpublish <path|uuid>
                         [--descendants] [--culture <iso>]...
 
-bunbraco start --bundle <dir>
+crombolo start --bundle <dir>
                         [--publish] [--label <text>] + the check flags
 ```
 
@@ -467,7 +467,7 @@ children. `--at`/`--until` write a schedule instead, which the background job
 acts on; today's blockers are not the question for a date in the future.
 
 `start --bundle` applies a bundle before the site serves anything, which is how a
-starter template's content reaches a new site (`bunbraco init --template`) and how
+starter template's content reaches a new site (`crombolo init --template`) and how
 a container can bring its own content with it. It imports **once per bundle** —
 an import run still standing here means this site has that content already, so a
 restart is a query and a line in the banner — and a refusal stops the boot rather
@@ -507,7 +507,7 @@ rather than leaving it to be discovered at the other end.
 
 ### Still open
 
-- **The down direction.** `bunbraco clone --anonymise`: a whole-environment copy
+- **The down direction.** `crombolo clone --anonymise`: a whole-environment copy
   for developing against, which is mostly orchestration over `pg_dump` or a file
   copy plus a media sync — but needs a sanitise step, because production users,
   members, tokens and e-mail addresses must not land on a laptop.
@@ -531,25 +531,25 @@ no credentials for one stored in another; the bundle travels as a file does.
 
 ```bash
 # where the content is
-bunx bunbraco content export --root "/Campaigns/Autumn 2026" --out bundles/campaign-x
-bunx bunbraco content export --root 9a1f3c2e-… --only --drafts --out bundles/one-page
-bunx bunbraco content export --root "/Campaigns" --with-blobs --out bundles/campaign-x
+bunx crombolo content export --root "/Campaigns/Autumn 2026" --out bundles/campaign-x
+bunx crombolo content export --root 9a1f3c2e-… --only --drafts --out bundles/one-page
+bunx crombolo content export --root "/Campaigns" --with-blobs --out bundles/campaign-x
                                       # …and the media bytes, so the bundle is self-contained
 
 # where it is going: read-only, and non-zero while anything is outstanding
-bunx bunbraco content check bundles/campaign-x
-bunx bunbraco content check bundles/campaign-x --under "/Campaigns"
-bunx bunbraco content check bundles/campaign-x --resolve-all take-bundle --save
+bunx crombolo content check bundles/campaign-x
+bunx crombolo content check bundles/campaign-x --under "/Campaigns"
+bunx crombolo content check bundles/campaign-x --resolve-all take-bundle --save
 
 # apply it: re-checks, backs up, then writes in one transaction
-bunx bunbraco content import bundles/campaign-x
-bunx bunbraco content import bundles/campaign-x --publish --label "autumn campaign"
-bunx bunbraco content runs
+bunx crombolo content import bundles/campaign-x
+bunx crombolo content import bundles/campaign-x --publish --label "autumn campaign"
+bunx crombolo content runs
 
 # going live, separately from landing the content
-bunx bunbraco content publish "/Campaigns/Autumn 2026" --descendants
-bunx bunbraco content publish "/Campaigns/Autumn 2026" --at 2026-10-01T09:00
-bunx bunbraco content unpublish "/Campaigns/Autumn 2026"
+bunx crombolo content publish "/Campaigns/Autumn 2026" --descendants
+bunx crombolo content publish "/Campaigns/Autumn 2026" --at 2026-10-01T09:00
+bunx crombolo content unpublish "/Campaigns/Autumn 2026"
 
 ```
 
@@ -587,19 +587,19 @@ discard an edit somebody made since, or to undo a run a later one built on,
 until told to. The revert is itself a run, so it can be reverted in turn.
 
 ```bash
-bunx bunbraco content runs
-bunx bunbraco content revert 5192ca80-…
-bunx bunbraco content revert 5192ca80-… --resolve-all discard   # over later edits
+bunx crombolo content runs
+bunx crombolo content revert 5192ca80-…
+bunx crombolo content revert 5192ca80-… --resolve-all discard   # over later edits
 
 # the dictionary stays in the database, so it moves on its own
-bunx bunbraco dictionary export --out dictionary.udt
-bunx bunbraco dictionary import dictionary.udt
+bunx crombolo dictionary export --out dictionary.udt
+bunx crombolo dictionary import dictionary.udt
 ```
 
 Site-authored value migrations live in `schema/migrations/*.ts`:
 
 ```ts
-import { defineValueMigration } from "@bunbraco/schema";
+import { defineValueMigration } from "@crombolo/schema";
 
 export default defineValueMigration({
     from: { type: "article", property: "summary" },

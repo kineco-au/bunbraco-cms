@@ -6,7 +6,7 @@
  * composition, an allowed child and a template all travel by alias.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { readContentTypeUdt, writeContentTypeUdt } from '@bunbraco/server'
+import { readContentTypeUdt, writeContentTypeUdt } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -94,7 +94,7 @@ async function upload(h: Harness, xml: string, name = 'article.udt'): Promise<st
   return id
 }
 
-describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`content type export and import (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('exports a content type as a .udt the reader understands again', async () => {
     const h = await harness()
     const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(
@@ -255,7 +255,7 @@ describe(`content type export and import (${process.env.BUNBRACO_DB ?? 'sqlite'}
   })
 })
 
-describe(`JSON schemas (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`JSON schemas (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('describe a content type as an object of its properties', async () => {
     const h = await harness()
     const key = (await h.post(`${V1}/document-type`, contentType())).headers.get(

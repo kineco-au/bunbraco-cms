@@ -14,8 +14,8 @@ import {
   resolveStaticFile,
   toResponseModels,
   VENDORED_ASSETS_PATH,
-} from '@bunbraco/backoffice-host'
-import { loadConfig } from '@bunbraco/server'
+} from '@crombolo/backoffice-host'
+import { loadConfig } from '@crombolo/server'
 
 const paths = createBackOfficePaths()
 const vendored = existsSync(join(paths.vendorDir, 'umbraco-package.json'))
@@ -23,9 +23,9 @@ const vendored = existsSync(join(paths.vendorDir, 'umbraco-package.json'))
 describe('paths', () => {
   test('builds the cache-busted assets path Umbraco uses', () => {
     // The one place the default is pinned; everything else derives from it.
-    expect(paths.backOfficePath).toBe('/bunbraco')
-    expect(paths.virtualDirectory).toBe('/bunbraco/backoffice')
-    expect(paths.assetsPath).toBe(`/bunbraco/backoffice/${paths.cacheBustHash}`)
+    expect(paths.backOfficePath).toBe('/crombolo')
+    expect(paths.virtualDirectory).toBe('/crombolo/backoffice')
+    expect(paths.assetsPath).toBe(`/crombolo/backoffice/${paths.cacheBustHash}`)
     expect(paths.cacheBustHash).toMatch(/^[0-9a-f]{16}$/)
   })
 
@@ -54,16 +54,16 @@ describe('SPA routes', () => {
       '/error',
       '/preview',
     ]) {
-      expect(isSpaRoute('/bunbraco', `/bunbraco${route}`)).toBe(true)
+      expect(isSpaRoute('/crombolo', `/crombolo${route}`)).toBe(true)
     }
   })
 
   test('does not swallow unrelated paths', () => {
     // Umbraco constrains its catch-all, so a bad /umbraco URL is a real 404.
-    expect(isSpaRoute('/bunbraco', '/bunbraco/nonsense')).toBe(false)
+    expect(isSpaRoute('/crombolo', '/crombolo/nonsense')).toBe(false)
     expect(isSpaRoute('/umbraco', '/umbraco/management/api/v1/document')).toBe(false)
-    expect(isSpaRoute('/bunbraco', '/')).toBe(false)
-    expect(isSpaRoute('/bunbraco', '/bunbracoish')).toBe(false)
+    expect(isSpaRoute('/crombolo', '/')).toBe(false)
+    expect(isSpaRoute('/crombolo', '/cromboloish')).toBe(false)
   })
 })
 
@@ -126,16 +126,16 @@ describe('manifests', () => {
     // The placeholder is nobody's real path. If it and the rewrite ever drift,
     // every extension of ours 404s with nothing in the console to say why.
     const mounted = createBackOfficePaths({ backOfficePath: '/admin' })
-    const ours = collectManifests(mounted).all.filter((m) => m.id?.startsWith('Bunbraco.'))
+    const ours = collectManifests(mounted).all.filter((m) => m.id?.startsWith('Crombolo.'))
     expect(ours.length).toBeGreaterThan(0)
     const serialised = JSON.stringify(ours)
     expect(serialised).not.toContain(PLUGIN_PATH_PLACEHOLDER)
-    expect(serialised).toContain('/admin/bunbraco/branding/branding.js')
+    expect(serialised).toContain('/admin/crombolo/branding/branding.js')
   })
 
   test('registers Search & sharing: the Settings screen, the page view and the type note', () => {
     const seo = collectManifests(createBackOfficePaths({ backOfficePath: '/umbraco' })).all.find(
-      (m) => m.id === 'Bunbraco.Seo',
+      (m) => m.id === 'Crombolo.Seo',
     )
     const extensions = (seo?.extensions ?? []) as Array<{
       type: string
@@ -148,9 +148,9 @@ describe('manifests', () => {
       'workspaceFooterApp',
     ])
     expect(extensions.map((e) => e.element)).toEqual([
-      '/umbraco/bunbraco/seo/dashboard.js',
-      '/umbraco/bunbraco/seo/document-view.js',
-      '/umbraco/bunbraco/seo/type-hint.js',
+      '/umbraco/crombolo/seo/dashboard.js',
+      '/umbraco/crombolo/seo/document-view.js',
+      '/umbraco/crombolo/seo/type-hint.js',
     ])
     // Only on pages whose type includes the fields, by composition or directly.
     expect(extensions[1]?.conditions).toContainEqual({
@@ -167,15 +167,15 @@ describe('shell', () => {
     const html = renderBackOfficeShell(paths, importmap, {
       defaultUiLanguage: 'en-US',
       keepUserLoggedIn: false,
-      title: 'Bunbraco',
+      title: 'Crombolo',
     })
     // The router derives its base from <base href>, which must end in a slash.
-    expect(html).toContain('<base href="/bunbraco/" />')
+    expect(html).toContain('<base href="/crombolo/" />')
     expect(html).toContain('<script type="importmap">')
     expect(html).toContain('"@umbraco-cms/backoffice/auth": "/x/auth.js"')
     expect(html).toContain(`src="${paths.assetsPath}/apps/app/app.element.js"`)
     // The client defaults to /umbraco and derives its OAuth redirect from this.
-    expect(html).toContain('<umb-app lang="en-US" backoffice-path="/bunbraco">')
+    expect(html).toContain('<umb-app lang="en-US" backoffice-path="/crombolo">')
     expect(html).toContain(`${paths.assetsPath}/css/umb-css.css`)
     expect(html).toContain(`${paths.assetsPath}/css/light.css`)
   })
@@ -186,7 +186,7 @@ describe('shell', () => {
       keepUserLoggedIn: true,
       title: 'B',
     })
-    expect(on).toContain('<umb-app lang="en-US" backoffice-path="/bunbraco" keep-user-logged-in>')
+    expect(on).toContain('<umb-app lang="en-US" backoffice-path="/crombolo" keep-user-logged-in>')
   })
 
   test('escapes interpolated settings', () => {
@@ -211,10 +211,10 @@ describe('shell', () => {
       allowPasswordReset: true,
       disableLocalLogin: false,
     })
-    expect(html).toContain('<bunbraco-login')
-    expect(html).toContain('return-url="/bunbraco"')
+    expect(html).toContain('<crombolo-login')
+    expect(html).toContain('return-url="/crombolo"')
     expect(html).toContain('graphics/login-logo')
-    expect(html).toContain('src="/bunbraco/login/login.js"')
+    expect(html).toContain('src="/crombolo/login/login.js"')
     // Boolean attributes are present or absent, not ="true"/="false".
     expect(html).toContain('username-is-email')
     expect(html).toContain('allow-password-reset')
@@ -319,7 +319,7 @@ describe('graphics', () => {
     expect(resolveGraphic(paths, `${prefix}/background`)).toBeUndefined()
   })
 
-  test("the logos and favicon are bunbraco's, in place of Umbraco's", async () => {
+  test("the logos and favicon are crombolo's, in place of Umbraco's", async () => {
     const prefix = '/umbraco/management/api/v1/security/back-office/graphics'
     for (const [name, file] of [
       ['logo', 'logo-header.svg'],
@@ -329,7 +329,7 @@ describe('graphics', () => {
     ]) {
       const resolved = resolveGraphic(paths, `${prefix}/${name}`) as string
       expect([name, resolved.endsWith(`branding/${file}`)]).toEqual([name, true])
-      expect(await Bun.file(resolved).text()).toContain('bunbraco')
+      expect(await Bun.file(resolved).text()).toContain('crombolo')
     }
     // Every one of Umbraco's marks, on both the hashed and the plain prefix. MIT
     // licenses the code and not the trademarks, so none of these may reach the

@@ -11,9 +11,9 @@ What is included:
 | Part | Where |
 | --- | --- |
 | Per-page fields: title, description, sharing image, preferred address, hide from search engines, hide from sitemap | the `seoFields` composition, shipped as a system content type |
-| `<SeoHead>`: `<title>`, description, canonical, Open Graph, Twitter card, `hreflang` alternates, `noindex` | `@bunbraco/render`, exported by `bunbraco` |
+| `<SeoHead>`: `<title>`, description, canonical, Open Graph, Twitter card, `hreflang` alternates, `noindex` | `@crombolo/render`, exported by `@crombolo/crombolo` |
 | `/sitemap.xml` and `/robots.txt` | the server, before the renderer |
-| Site-wide defaults: site name, title suffix, sharing image, robots rules, indexable, sitemap on/off | `bunbraco.config.ts`, overridable in Settings → Search & sharing |
+| Site-wide defaults: site name, title suffix, sharing image, robots rules, indexable, sitemap on/off | `crombolo.config.ts`, overridable in Settings → Search & sharing |
 | A chosen page for addresses nothing answers, served with a 404 | the same settings |
 | `umbracoUrlAlias`, `umbracoRedirect`, `umbracoNaviHide` | the published cache and navigation |
 | The editor's view of how a page will look in search results | a workspace view on every page whose type composes `seoFields` |
@@ -44,7 +44,7 @@ alias and key does the same. What a site may not do is remove, re-alias or
 retype a field the CMS ships with — `<SeoHead>` and the sitemap read those by
 alias. The validator refuses such a file and names the field; the Management API
 refuses the same change from the backoffice. Labels, descriptions, order and
-culture variance may change. `bunbraco schema export` writes the file only once
+culture variance may change. `crombolo schema export` writes the file only once
 it differs from what ships.
 
 | Field | Alias | Data type |
@@ -79,7 +79,7 @@ which is what the editor's view shows.
 A template supplies its fallbacks as props:
 
 ```tsx
-import { type PageProps, SeoHead } from 'bunbraco'
+import { type PageProps, SeoHead } from '@crombolo/crombolo'
 
 export default function Layout(props: PageProps & { children?: Child }) {
   return (
@@ -115,9 +115,9 @@ node, which serves no public site.
 ## Site settings
 
 Each setting resolves field by field: a value saved in Settings → Search &
-sharing, then `seo` in `bunbraco.config.ts` (or its environment variable), then
+sharing, then `seo` in `crombolo.config.ts` (or its environment variable), then
 the default. Saved values are stored as JSON in `key_value` under
-`Bunbraco.Seo.Settings`; clearing one in the backoffice falls back to the config
+`Crombolo.Seo.Settings`; clearing one in the backoffice falls back to the config
 again. A node trusts what it read for ten seconds, so a save on one node reaches
 the others within that.
 
@@ -135,7 +135,7 @@ export default defineConfig({
 ```
 
 The settings and the preview are not part of the vendored contract, so they are
-the framework's own endpoints at `<backoffice>/bunbraco/api/seo/`: `settings`
+the framework's own endpoints at `<backoffice>/crombolo/api/seo/`: `settings`
 (GET and PUT, Settings section) and `preview?document=&culture=` (GET, any
 editor). The preview reads the last **saved** version, published or not.
 

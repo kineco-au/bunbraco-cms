@@ -9,7 +9,7 @@ import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external
 
 const SEO_FIELDS_KEY = '5e0f1c2a-7b3d-4c8e-9a61-0d2b4f6e8a13'
 
-export default class BunbracoSeoFieldsHintElement extends UmbElementMixin(LitElement) {
+export default class CromboloSeoFieldsHintElement extends UmbElementMixin(LitElement) {
   static properties = { _unique: { state: true } }
 
   constructor() {
@@ -30,7 +30,7 @@ export default class BunbracoSeoFieldsHintElement extends UmbElementMixin(LitEle
       look="secondary"
       title="Pages that include this type get these fields for search results and sharing. The fields it comes with cannot be removed or changed, but you can add your own beside them."
     >
-      Provided by Bunbraco — add your own fields beside these
+      Provided by Crombolo — add your own fields beside these
     </uui-tag>`
   }
 
@@ -42,4 +42,4 @@ export default class BunbracoSeoFieldsHintElement extends UmbElementMixin(LitEle
   `
 }
 
-customElements.define('bunbraco-seo-fields-hint', BunbracoSeoFieldsHintElement)
+customElements.define('crombolo-seo-fields-hint', CromboloSeoFieldsHintElement)

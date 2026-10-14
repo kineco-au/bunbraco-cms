@@ -26,7 +26,7 @@ import {
   sigv4Signature,
   sigv4SigningKey,
   validateMessage,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { BACKOFFICE, type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -590,7 +590,7 @@ describe('availability', () => {
     const availability = emailAvailability(undefined)
     expect(availability.available).toBe(false)
     expect(availability.provider).toBeNull()
-    expect(availability.reason).toContain('BUNBRACO_EMAIL_PROVIDER')
+    expect(availability.reason).toContain('CROMBOLO_EMAIL_PROVIDER')
     expect(availability.affects).toEqual([
       'Inviting backoffice users',
       'Password reset by e-mail',
@@ -617,17 +617,17 @@ describe('from the environment', () => {
 
   test('unset and none are both no e-mail, and neither complains', () => {
     expect(emailFromEnvironment({}, collectingLog)).toBeUndefined()
-    expect(emailFromEnvironment({ BUNBRACO_EMAIL_PROVIDER: 'none' }, collectingLog)).toBeUndefined()
+    expect(emailFromEnvironment({ CROMBOLO_EMAIL_PROVIDER: 'none' }, collectingLog)).toBeUndefined()
     expect(warnings).toHaveLength(0)
   })
 
   test('a provider that is configured is built', () => {
     const port = emailFromEnvironment(
       {
-        BUNBRACO_EMAIL_PROVIDER: 'resend',
-        BUNBRACO_EMAIL_API_KEY: 're_x',
-        BUNBRACO_EMAIL_FROM: 'no-reply@example.com',
-        BUNBRACO_EMAIL_FROM_NAME: 'Example',
+        CROMBOLO_EMAIL_PROVIDER: 'resend',
+        CROMBOLO_EMAIL_API_KEY: 're_x',
+        CROMBOLO_EMAIL_FROM: 'no-reply@example.com',
+        CROMBOLO_EMAIL_FROM_NAME: 'Example',
       },
       collectingLog,
     )
@@ -639,10 +639,10 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'postmark',
-          BUNBRACO_EMAIL_API_KEY: 't',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_POSTMARK_STREAM: 'broadcast',
+          CROMBOLO_EMAIL_PROVIDER: 'postmark',
+          CROMBOLO_EMAIL_API_KEY: 't',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_POSTMARK_STREAM: 'broadcast',
         },
         collectingLog,
       )?.description,
@@ -650,9 +650,9 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'custom',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_URL: 'https://mail.internal/send',
+          CROMBOLO_EMAIL_PROVIDER: 'custom',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_URL: 'https://mail.internal/send',
         },
         collectingLog,
       )?.provider,
@@ -662,9 +662,9 @@ describe('from the environment', () => {
   test('ses reads its region and the standard AWS credentials', () => {
     const port = emailFromEnvironment(
       {
-        BUNBRACO_EMAIL_PROVIDER: 'ses',
-        BUNBRACO_EMAIL_FROM: 'a@example.com',
-        BUNBRACO_EMAIL_SES_REGION: 'ap-southeast-2',
+        CROMBOLO_EMAIL_PROVIDER: 'ses',
+        CROMBOLO_EMAIL_FROM: 'a@example.com',
+        CROMBOLO_EMAIL_SES_REGION: 'ap-southeast-2',
         AWS_ACCESS_KEY_ID: 'AKID',
         AWS_SECRET_ACCESS_KEY: 'SECRET',
       },
@@ -677,7 +677,7 @@ describe('from the environment', () => {
   test('ses without a region, or without credentials, is no e-mail and a reason', () => {
     expect(
       emailFromEnvironment(
-        { BUNBRACO_EMAIL_PROVIDER: 'ses', BUNBRACO_EMAIL_FROM: 'a@example.com' },
+        { CROMBOLO_EMAIL_PROVIDER: 'ses', CROMBOLO_EMAIL_FROM: 'a@example.com' },
         collectingLog,
       ),
     ).toBeUndefined()
@@ -689,10 +689,10 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'ses',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_SES_REGION: 'us-east-1',
-          BUNBRACO_EMAIL_SES_ACCESS_KEY_ID: 'only-the-id',
+          CROMBOLO_EMAIL_PROVIDER: 'ses',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_SES_REGION: 'us-east-1',
+          CROMBOLO_EMAIL_SES_ACCESS_KEY_ID: 'only-the-id',
         },
         collectingLog,
       ),
@@ -704,9 +704,9 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'custom',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_URL: 'http://mail.internal/send',
+          CROMBOLO_EMAIL_PROVIDER: 'custom',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_URL: 'http://mail.internal/send',
         },
         collectingLog,
       ),
@@ -717,12 +717,12 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'ses',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_SES_REGION: 'us-east-1',
-          BUNBRACO_EMAIL_SES_ACCESS_KEY_ID: 'a',
-          BUNBRACO_EMAIL_SES_SECRET_ACCESS_KEY: 'b',
-          BUNBRACO_EMAIL_SES_ENDPOINT: 'http://ses.internal',
+          CROMBOLO_EMAIL_PROVIDER: 'ses',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_SES_REGION: 'us-east-1',
+          CROMBOLO_EMAIL_SES_ACCESS_KEY_ID: 'a',
+          CROMBOLO_EMAIL_SES_SECRET_ACCESS_KEY: 'b',
+          CROMBOLO_EMAIL_SES_ENDPOINT: 'http://ses.internal',
         },
         collectingLog,
       ),
@@ -734,9 +734,9 @@ describe('from the environment', () => {
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'custom',
-          BUNBRACO_EMAIL_FROM: 'a@example.com',
-          BUNBRACO_EMAIL_URL: 'http://localhost:8025/send',
+          CROMBOLO_EMAIL_PROVIDER: 'custom',
+          CROMBOLO_EMAIL_FROM: 'a@example.com',
+          CROMBOLO_EMAIL_URL: 'http://localhost:8025/send',
         },
         collectingLog,
       )?.provider,
@@ -746,7 +746,7 @@ describe('from the environment', () => {
 
   test('a typo is no e-mail and a warning naming what to use, never a failed boot', () => {
     expect(
-      emailFromEnvironment({ BUNBRACO_EMAIL_PROVIDER: 'resned' }, collectingLog),
+      emailFromEnvironment({ CROMBOLO_EMAIL_PROVIDER: 'resned' }, collectingLog),
     ).toBeUndefined()
     expect(warnings).toHaveLength(1)
     expect(warnings[0]?.properties?.known).toContain('resend, postmark, ses, custom or none')
@@ -755,19 +755,19 @@ describe('from the environment', () => {
   test('a provider missing its sender or its key is no e-mail, with the gap named', () => {
     expect(
       emailFromEnvironment(
-        { BUNBRACO_EMAIL_PROVIDER: 'resend', BUNBRACO_EMAIL_API_KEY: 'k' },
+        { CROMBOLO_EMAIL_PROVIDER: 'resend', CROMBOLO_EMAIL_API_KEY: 'k' },
         collectingLog,
       ),
     ).toBeUndefined()
-    expect(warnings[0]?.properties?.missing).toContain('BUNBRACO_EMAIL_FROM is not set')
+    expect(warnings[0]?.properties?.missing).toContain('CROMBOLO_EMAIL_FROM is not set')
 
     warnings.length = 0
     expect(
       emailFromEnvironment(
         {
-          BUNBRACO_EMAIL_PROVIDER: 'resend',
-          BUNBRACO_EMAIL_API_KEY: 'k',
-          BUNBRACO_EMAIL_FROM: 'not-an-address',
+          CROMBOLO_EMAIL_PROVIDER: 'resend',
+          CROMBOLO_EMAIL_API_KEY: 'k',
+          CROMBOLO_EMAIL_FROM: 'not-an-address',
         },
         collectingLog,
       ),
@@ -777,20 +777,20 @@ describe('from the environment', () => {
     warnings.length = 0
     expect(
       emailFromEnvironment(
-        { BUNBRACO_EMAIL_PROVIDER: 'resend', BUNBRACO_EMAIL_FROM: 'a@example.com' },
+        { CROMBOLO_EMAIL_PROVIDER: 'resend', CROMBOLO_EMAIL_FROM: 'a@example.com' },
         collectingLog,
       ),
     ).toBeUndefined()
-    expect(warnings[0]?.message).toContain('BUNBRACO_EMAIL_API_KEY is not set')
+    expect(warnings[0]?.message).toContain('CROMBOLO_EMAIL_API_KEY is not set')
 
     warnings.length = 0
     expect(
       emailFromEnvironment(
-        { BUNBRACO_EMAIL_PROVIDER: 'custom', BUNBRACO_EMAIL_FROM: 'a@example.com' },
+        { CROMBOLO_EMAIL_PROVIDER: 'custom', CROMBOLO_EMAIL_FROM: 'a@example.com' },
         collectingLog,
       ),
     ).toBeUndefined()
-    expect(warnings[0]?.message).toContain('BUNBRACO_EMAIL_URL is not set')
+    expect(warnings[0]?.message).toContain('CROMBOLO_EMAIL_URL is not set')
   })
 })
 
@@ -852,7 +852,7 @@ describe('resolving the port', () => {
 })
 
 describe('what a site without e-mail will not offer', () => {
-  const EMAIL_API = `${BACKOFFICE}/bunbraco/api/email`
+  const EMAIL_API = `${BACKOFFICE}/crombolo/api/email`
 
   test('no password reset is offered, even when the site asked for one', async () => {
     const h = await signedInServer({ config: { email: null, allowPasswordReset: true } })
@@ -880,7 +880,7 @@ describe('what a site without e-mail will not offer', () => {
     expect(invite.status).toBe(500)
     const problem = (await invite.json()) as { operationStatus: string; detail: string }
     expect(problem.operationStatus).toBe('CannotInvite')
-    expect(problem.detail).toContain('BUNBRACO_EMAIL_PROVIDER')
+    expect(problem.detail).toContain('CROMBOLO_EMAIL_PROVIDER')
   })
 
   test('the status endpoint explains it, and needs a session', async () => {

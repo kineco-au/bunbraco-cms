@@ -5,7 +5,7 @@
 import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external/lit'
 import { fetchReport } from './report-client.js'
 
-export default class BunbracoReadOnlyBannerElement extends LitElement {
+export default class CromboloReadOnlyBannerElement extends LitElement {
   static properties = { _health: { state: true } }
 
   constructor() {
@@ -45,4 +45,4 @@ export default class BunbracoReadOnlyBannerElement extends LitElement {
   `
 }
 
-customElements.define('bunbraco-read-only-banner', BunbracoReadOnlyBannerElement)
+customElements.define('crombolo-read-only-banner', CromboloReadOnlyBannerElement)

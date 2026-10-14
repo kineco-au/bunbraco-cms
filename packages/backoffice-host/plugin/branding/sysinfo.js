@@ -31,7 +31,7 @@ export function rebrandSysinfo(text) {
   if (typeof text !== 'string') return text
   let corrected = text
   for (const phrase of PHRASES) {
-    corrected = corrected.replaceAll(phrase, phrase.replace('Umbraco', 'Bunbraco'))
+    corrected = corrected.replaceAll(phrase, phrase.replace('Umbraco', 'Crombolo'))
   }
   return corrected
 }

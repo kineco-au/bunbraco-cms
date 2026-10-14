@@ -1,4 +1,4 @@
-import type { Child, PublishedContent } from 'bunbraco'
+import type { Child, PublishedContent } from '@crombolo/crombolo'
 
 /** The small letter-spaced line that sits above every heading on this site. */
 export function Eyebrow({ children, tone }: { children?: Child; tone?: 'light' }) {

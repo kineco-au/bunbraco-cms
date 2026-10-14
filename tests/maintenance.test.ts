@@ -11,12 +11,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { backup, editingPaused, pauseEditing, resumeEditing } from '@bunbraco/cli'
+import { backup, editingPaused, pauseEditing, resumeEditing } from '@crombolo/cli'
 import {
   appendSchemaState,
   assertNodeMayWrite,
-  bunbracoPlan,
   connect,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   liveNodes,
@@ -27,8 +27,8 @@ import {
   resumeWrites,
   WriteRejectedError,
   WritesPausedError,
-} from '@bunbraco/data'
-import { type BunbracoConfig, createServer, loadConfig, type ServerHandle } from '@bunbraco/server'
+} from '@crombolo/data'
+import { type CromboloConfig, createServer, loadConfig, type ServerHandle } from '@crombolo/server'
 import { dialectUnderTest, freshDb } from './support/db.ts'
 
 const open: Db[] = []
@@ -43,7 +43,7 @@ afterEach(async () => {
 async function installed(): Promise<Db> {
   const db = await freshDb()
   open.push(db)
-  await migrate(db, bunbracoPlan)
+  await migrate(db, cromboloPlan)
   return db
 }
 
@@ -79,11 +79,11 @@ describe.skipIf(dialectUnderTest !== 'sqlite')('nodes while the database moves (
   let web: ServerHandle
   let operator: Db
 
-  const configFor = (overrides: Partial<BunbracoConfig> = {}) =>
+  const configFor = (overrides: Partial<CromboloConfig> = {}) =>
     loadConfig({ sqliteFile: shared, development: false, ...overrides })
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'bunbraco-maintenance-'))
+    dir = mkdtempSync(join(tmpdir(), 'crombolo-maintenance-'))
     shared = join(dir, 'site.sqlite')
     editing = await createServer(configFor({ nodeId: 'node-editing' }))
     web = await createServer(configFor({ role: 'web', nodeId: 'node-web' }))

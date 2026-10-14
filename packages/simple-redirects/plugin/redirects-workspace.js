@@ -8,7 +8,7 @@
  * tracker, and the server refuses to change them whatever this screen sends.
  *
  * The editor offers everything the matcher supports, because the alternative is
- * a screen quietly weaker than `bunbraco.config.ts`: exact, starts-with and
+ * a screen quietly weaker than `crombolo.config.ts`: exact, starts-with and
  * regular-expression matching, a page, a path or an external URL as the target,
  * the four redirect status codes, and an optional culture.
  */
@@ -62,7 +62,7 @@ const BLANK = {
   culture: '',
 }
 
-export default class BunbracoRedirectsWorkspaceElement extends UmbLitElement {
+export default class CromboloRedirectsWorkspaceElement extends UmbLitElement {
   static properties = {
     _rules: { state: true },
     _loading: { state: true },
@@ -478,4 +478,4 @@ export default class BunbracoRedirectsWorkspaceElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-redirects-workspace', BunbracoRedirectsWorkspaceElement)
+customElements.define('crombolo-redirects-workspace', CromboloRedirectsWorkspaceElement)

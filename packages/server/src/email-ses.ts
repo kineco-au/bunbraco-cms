@@ -258,7 +258,7 @@ export function sesEmail(options: SesOptions): EmailPort {
         ? {
             Raw: {
               Data: Buffer.from(
-                rawMime(message, from, `----bunbraco-${crypto.randomUUID()}`),
+                rawMime(message, from, `----crombolo-${crypto.randomUUID()}`),
                 'utf8',
               ).toString('base64'),
             },

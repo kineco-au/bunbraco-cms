@@ -9,7 +9,7 @@
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import type { FormSubmissionState } from '@bunbraco/core'
+import type { FormSubmissionState } from '@crombolo/core'
 import { renderScope } from './context.ts'
 import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
@@ -100,7 +100,7 @@ export interface RenderRequest {
 /**
  * Whether an alias is a path that stays inside the components tree.
  *
- * `@bunbraco/server` has the same rule as `isSafeAlias`; it is written again
+ * `@crombolo/server` has the same rule as `isSafeAlias`; it is written again
  * here because render does not depend on server, and the two are checked
  * against each other in the suite.
  */

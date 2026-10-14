@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
 import {
   createContext,
   type PageProps,
@@ -13,8 +13,8 @@ import {
   useContext,
   useId,
   usePage,
-} from '@bunbraco/render'
-import { type Child, renderToString } from '@bunbraco/render/jsx-runtime'
+} from '@crombolo/render'
+import { type Child, renderToString } from '@crombolo/render/jsx-runtime'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const later = <T,>(value: T, ms = 2): Promise<T> =>
@@ -170,7 +170,7 @@ type = "textstring"
     )
     writeFileSync(
       join(root, 'components', 'homePage.tsx'),
-      `import { usePage } from 'bunbraco'
+      `import { usePage } from '@crombolo/crombolo'
 export const layout = 'shared/layout'
 function Heading() {
   return <h1>{usePage().model.text('heading')}</h1>
@@ -182,7 +182,7 @@ export default function Home() {
     )
     writeFileSync(
       join(root, 'components', 'shared', 'layout.tsx'),
-      `import { usePage } from 'bunbraco'
+      `import { usePage } from '@crombolo/crombolo'
 export default function Layout({ children }) {
   return <main data-page={usePage().model.name}>{children}</main>
 }
@@ -193,7 +193,7 @@ export default function Layout({ children }) {
         siteDir: root,
         schemaDir: join(root, 'schema'),
         componentsDir: join(root, 'components'),
-        componentsCacheDir: join(root, '.bunbraco', 'components'),
+        componentsCacheDir: join(root, '.crombolo', 'components'),
         development: true,
         schemaWritable: true,
       },

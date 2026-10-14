@@ -3,10 +3,10 @@
 ## Repo layout
 
 ```
-bunbraco/
+crombolo/
 ├── docs/
 ├── packages/
-│   ├── bunbraco/                 # the package a site installs: bunbraco() + the CLI
+│   ├── crombolo/                 # the package a site installs: crombolo() + the CLI
 │   ├── server/                   # composition root: config, ports, adapters, createServer
 │   ├── core/                     # domain: entities, services, notifications — no I/O
 │   ├── contracts/                # OpenApi.json + generated types
@@ -23,8 +23,8 @@ bunbraco/
 └── tests/
 ```
 
-Bun workspaces. Every package is `@bunbraco/<name>` with an `exports` map and its
-dependencies declared as `workspace:*`; the umbrella `bunbraco` depends on all of
+Bun workspaces. Every package is `@crombolo/<name>` with an `exports` map and its
+dependencies declared as `workspace:*`; the umbrella `@crombolo/crombolo` depends on all of
 them but `import-umbraco`, which a site adds only when it is importing one. There are no tsconfig `paths` — resolution is ordinary package resolution,
 which is what makes the packages consumable outside this repo.
 
@@ -41,7 +41,7 @@ which is what makes the packages consumable outside this repo.
 - `render` depends on `core` and a content source interface; it never queries drafts.
   It also depends on `@types/react`, for types only: each tag's attributes are
   React's, adapted (`jsx-attributes.ts`), and nothing of React runs. A site
-  installs it with `bunbraco`, and the view editor is served it (with `csstype`)
+  installs it with `@crombolo/crombolo`, and the view editor is served it (with `csstype`)
 - `transfer` depends on `core` and `data`, mirroring `schema`: it owns the bundle
   format and reads content through the repositories rather than any SQL of its own
 - `import-umbraco` depends on `schema`, `transfer`, `core` and `data` for the
@@ -51,7 +51,7 @@ which is what makes the packages consumable outside this repo.
   anything does not carry it (`16-umbraco-import.md`)
 - `auth` owns identity and tokens; the API packages receive a resolved principal
 - `cli` depends on `server` for the site operations it drives and owns no rules of
-  its own; `bunbraco` depends on `cli` only to expose the bin, so a site that
+  its own; `@crombolo/crombolo` depends on `cli` only to expose the bin, so a site that
   never shells out still gets the same binary
 - composition happens in `apps/site` and the CLI
 - file I/O a save needs (placing uploads) reaches the repository as a

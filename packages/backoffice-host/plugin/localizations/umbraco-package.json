@@ -1,279 +1,279 @@
 {
   "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
-  "name": "Bunbraco Localizations",
-  "id": "Bunbraco.Localizations",
-  "version": "0.8.1",
+  "name": "Crombolo Localizations",
+  "id": "Crombolo.Localizations",
+  "version": "0.9.0",
   "allowPublicAccess": false,
   "extensions": [
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.AR",
-      "name": "Bunbraco Localization Overrides (ar)",
+      "alias": "Crombolo.Localization.Overrides.AR",
+      "name": "Crombolo Localization Overrides (ar)",
       "weight": 0,
       "meta": {
         "culture": "ar"
       },
-      "js": "/bunbraco-plugin/localizations/ar.js"
+      "js": "/crombolo-plugin/localizations/ar.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.BS",
-      "name": "Bunbraco Localization Overrides (bs)",
+      "alias": "Crombolo.Localization.Overrides.BS",
+      "name": "Crombolo Localization Overrides (bs)",
       "weight": 0,
       "meta": {
         "culture": "bs"
       },
-      "js": "/bunbraco-plugin/localizations/bs.js"
+      "js": "/crombolo-plugin/localizations/bs.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.CS",
-      "name": "Bunbraco Localization Overrides (cs)",
+      "alias": "Crombolo.Localization.Overrides.CS",
+      "name": "Crombolo Localization Overrides (cs)",
       "weight": 0,
       "meta": {
         "culture": "cs"
       },
-      "js": "/bunbraco-plugin/localizations/cs.js"
+      "js": "/crombolo-plugin/localizations/cs.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.CY",
-      "name": "Bunbraco Localization Overrides (cy)",
+      "alias": "Crombolo.Localization.Overrides.CY",
+      "name": "Crombolo Localization Overrides (cy)",
       "weight": 0,
       "meta": {
         "culture": "cy"
       },
-      "js": "/bunbraco-plugin/localizations/cy.js"
+      "js": "/crombolo-plugin/localizations/cy.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.DA",
-      "name": "Bunbraco Localization Overrides (da)",
+      "alias": "Crombolo.Localization.Overrides.DA",
+      "name": "Crombolo Localization Overrides (da)",
       "weight": 0,
       "meta": {
         "culture": "da"
       },
-      "js": "/bunbraco-plugin/localizations/da.js"
+      "js": "/crombolo-plugin/localizations/da.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.DE",
-      "name": "Bunbraco Localization Overrides (de)",
+      "alias": "Crombolo.Localization.Overrides.DE",
+      "name": "Crombolo Localization Overrides (de)",
       "weight": 0,
       "meta": {
         "culture": "de"
       },
-      "js": "/bunbraco-plugin/localizations/de.js"
+      "js": "/crombolo-plugin/localizations/de.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.EN",
-      "name": "Bunbraco Localization Overrides (en)",
+      "alias": "Crombolo.Localization.Overrides.EN",
+      "name": "Crombolo Localization Overrides (en)",
       "weight": 0,
       "meta": {
         "culture": "en"
       },
-      "js": "/bunbraco-plugin/localizations/en.js"
+      "js": "/crombolo-plugin/localizations/en.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.ES",
-      "name": "Bunbraco Localization Overrides (es)",
+      "alias": "Crombolo.Localization.Overrides.ES",
+      "name": "Crombolo Localization Overrides (es)",
       "weight": 0,
       "meta": {
         "culture": "es"
       },
-      "js": "/bunbraco-plugin/localizations/es.js"
+      "js": "/crombolo-plugin/localizations/es.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.FR",
-      "name": "Bunbraco Localization Overrides (fr)",
+      "alias": "Crombolo.Localization.Overrides.FR",
+      "name": "Crombolo Localization Overrides (fr)",
       "weight": 0,
       "meta": {
         "culture": "fr"
       },
-      "js": "/bunbraco-plugin/localizations/fr.js"
+      "js": "/crombolo-plugin/localizations/fr.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.HE",
-      "name": "Bunbraco Localization Overrides (he)",
+      "alias": "Crombolo.Localization.Overrides.HE",
+      "name": "Crombolo Localization Overrides (he)",
       "weight": 0,
       "meta": {
         "culture": "he"
       },
-      "js": "/bunbraco-plugin/localizations/he.js"
+      "js": "/crombolo-plugin/localizations/he.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.HR",
-      "name": "Bunbraco Localization Overrides (hr)",
+      "alias": "Crombolo.Localization.Overrides.HR",
+      "name": "Crombolo Localization Overrides (hr)",
       "weight": 0,
       "meta": {
         "culture": "hr"
       },
-      "js": "/bunbraco-plugin/localizations/hr.js"
+      "js": "/crombolo-plugin/localizations/hr.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.IT",
-      "name": "Bunbraco Localization Overrides (it)",
+      "alias": "Crombolo.Localization.Overrides.IT",
+      "name": "Crombolo Localization Overrides (it)",
       "weight": 0,
       "meta": {
         "culture": "it"
       },
-      "js": "/bunbraco-plugin/localizations/it.js"
+      "js": "/crombolo-plugin/localizations/it.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.JA",
-      "name": "Bunbraco Localization Overrides (ja)",
+      "alias": "Crombolo.Localization.Overrides.JA",
+      "name": "Crombolo Localization Overrides (ja)",
       "weight": 0,
       "meta": {
         "culture": "ja"
       },
-      "js": "/bunbraco-plugin/localizations/ja.js"
+      "js": "/crombolo-plugin/localizations/ja.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.KO",
-      "name": "Bunbraco Localization Overrides (ko)",
+      "alias": "Crombolo.Localization.Overrides.KO",
+      "name": "Crombolo Localization Overrides (ko)",
       "weight": 0,
       "meta": {
         "culture": "ko"
       },
-      "js": "/bunbraco-plugin/localizations/ko.js"
+      "js": "/crombolo-plugin/localizations/ko.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.NB",
-      "name": "Bunbraco Localization Overrides (nb)",
+      "alias": "Crombolo.Localization.Overrides.NB",
+      "name": "Crombolo Localization Overrides (nb)",
       "weight": 0,
       "meta": {
         "culture": "nb"
       },
-      "js": "/bunbraco-plugin/localizations/nb.js"
+      "js": "/crombolo-plugin/localizations/nb.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.NL",
-      "name": "Bunbraco Localization Overrides (nl)",
+      "alias": "Crombolo.Localization.Overrides.NL",
+      "name": "Crombolo Localization Overrides (nl)",
       "weight": 0,
       "meta": {
         "culture": "nl"
       },
-      "js": "/bunbraco-plugin/localizations/nl.js"
+      "js": "/crombolo-plugin/localizations/nl.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.PL",
-      "name": "Bunbraco Localization Overrides (pl)",
+      "alias": "Crombolo.Localization.Overrides.PL",
+      "name": "Crombolo Localization Overrides (pl)",
       "weight": 0,
       "meta": {
         "culture": "pl"
       },
-      "js": "/bunbraco-plugin/localizations/pl.js"
+      "js": "/crombolo-plugin/localizations/pl.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.PT",
-      "name": "Bunbraco Localization Overrides (pt)",
+      "alias": "Crombolo.Localization.Overrides.PT",
+      "name": "Crombolo Localization Overrides (pt)",
       "weight": 0,
       "meta": {
         "culture": "pt"
       },
-      "js": "/bunbraco-plugin/localizations/pt.js"
+      "js": "/crombolo-plugin/localizations/pt.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.PT_BR",
-      "name": "Bunbraco Localization Overrides (pt-br)",
+      "alias": "Crombolo.Localization.Overrides.PT_BR",
+      "name": "Crombolo Localization Overrides (pt-br)",
       "weight": 0,
       "meta": {
         "culture": "pt-br"
       },
-      "js": "/bunbraco-plugin/localizations/pt-br.js"
+      "js": "/crombolo-plugin/localizations/pt-br.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.RO",
-      "name": "Bunbraco Localization Overrides (ro)",
+      "alias": "Crombolo.Localization.Overrides.RO",
+      "name": "Crombolo Localization Overrides (ro)",
       "weight": 0,
       "meta": {
         "culture": "ro"
       },
-      "js": "/bunbraco-plugin/localizations/ro.js"
+      "js": "/crombolo-plugin/localizations/ro.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.RU",
-      "name": "Bunbraco Localization Overrides (ru)",
+      "alias": "Crombolo.Localization.Overrides.RU",
+      "name": "Crombolo Localization Overrides (ru)",
       "weight": 0,
       "meta": {
         "culture": "ru"
       },
-      "js": "/bunbraco-plugin/localizations/ru.js"
+      "js": "/crombolo-plugin/localizations/ru.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.SV",
-      "name": "Bunbraco Localization Overrides (sv)",
+      "alias": "Crombolo.Localization.Overrides.SV",
+      "name": "Crombolo Localization Overrides (sv)",
       "weight": 0,
       "meta": {
         "culture": "sv"
       },
-      "js": "/bunbraco-plugin/localizations/sv.js"
+      "js": "/crombolo-plugin/localizations/sv.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.TR",
-      "name": "Bunbraco Localization Overrides (tr)",
+      "alias": "Crombolo.Localization.Overrides.TR",
+      "name": "Crombolo Localization Overrides (tr)",
       "weight": 0,
       "meta": {
         "culture": "tr"
       },
-      "js": "/bunbraco-plugin/localizations/tr.js"
+      "js": "/crombolo-plugin/localizations/tr.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.UK",
-      "name": "Bunbraco Localization Overrides (uk)",
+      "alias": "Crombolo.Localization.Overrides.UK",
+      "name": "Crombolo Localization Overrides (uk)",
       "weight": 0,
       "meta": {
         "culture": "uk"
       },
-      "js": "/bunbraco-plugin/localizations/uk.js"
+      "js": "/crombolo-plugin/localizations/uk.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.ZH",
-      "name": "Bunbraco Localization Overrides (zh)",
+      "alias": "Crombolo.Localization.Overrides.ZH",
+      "name": "Crombolo Localization Overrides (zh)",
       "weight": 0,
       "meta": {
         "culture": "zh"
       },
-      "js": "/bunbraco-plugin/localizations/zh.js"
+      "js": "/crombolo-plugin/localizations/zh.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.ZH_TW",
-      "name": "Bunbraco Localization Overrides (zh-tw)",
+      "alias": "Crombolo.Localization.Overrides.ZH_TW",
+      "name": "Crombolo Localization Overrides (zh-tw)",
       "weight": 0,
       "meta": {
         "culture": "zh-tw"
       },
-      "js": "/bunbraco-plugin/localizations/zh-tw.js"
+      "js": "/crombolo-plugin/localizations/zh-tw.js"
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.Overrides.VI",
-      "name": "Bunbraco Localization Overrides (vi)",
+      "alias": "Crombolo.Localization.Overrides.VI",
+      "name": "Crombolo Localization Overrides (vi)",
       "weight": 0,
       "meta": {
         "culture": "vi"
       },
-      "js": "/bunbraco-plugin/localizations/vi.js"
+      "js": "/crombolo-plugin/localizations/vi.js"
     }
   ]
 }

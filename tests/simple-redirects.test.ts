@@ -10,10 +10,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@bunbraco/data'
-import { redirect } from '@bunbraco/render'
-import type { BunbracoConfig } from '@bunbraco/server'
-import { REDIRECTS_BUNDLE_ID, redirects as redirectsBundle } from '@bunbraco/simple-redirects'
+import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@crombolo/data'
+import { redirect } from '@crombolo/render'
+import type { CromboloConfig } from '@crombolo/server'
+import { REDIRECTS_BUNDLE_ID, redirects as redirectsBundle } from '@crombolo/simple-redirects'
 import { type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -62,7 +62,7 @@ interface Rule {
   destinationUrl?: string
 }
 
-async function site(config: Partial<BunbracoConfig> = {}) {
+async function site(config: Partial<CromboloConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'simple-redirects-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
@@ -482,21 +482,21 @@ describe('the bundle as a package', () => {
   ) as {
     version: string
     keywords: string[]
-    bunbraco: { id: string; extensions: Array<Record<string, unknown>> }
+    crombolo: { id: string; extensions: Array<Record<string, unknown>> }
   }
 
   test('declares the two extensions the screen needs', () => {
     // A menu item in Settings' Advanced menu and the workspace it points at —
     // the pattern Umbraco's own log viewer uses, so no vendored element is
     // replaced to put a screen in Settings.
-    const types = manifest.bunbraco.extensions.map((extension) => extension.type)
+    const types = manifest.crombolo.extensions.map((extension) => extension.type)
     expect(types).toEqual(['menuItem', 'workspace'])
   })
 
   test('its menu item and workspace agree on the entity type', () => {
     // The menu item's href is `section/settings/workspace/<entityType>`, so a
     // mismatch here is a link to a screen that does not exist.
-    const [menuItem, workspace] = manifest.bunbraco.extensions as Array<{
+    const [menuItem, workspace] = manifest.crombolo.extensions as Array<{
       meta: { entityType: string; menus?: string[] }
     }>
     expect(menuItem?.meta.entityType).toBe(workspace?.meta.entityType as string)
@@ -504,17 +504,17 @@ describe('the bundle as a package', () => {
   })
 
   test('its element path is inside the files npm will carry', () => {
-    const [, workspace] = manifest.bunbraco.extensions as Array<{ element?: string }>
+    const [, workspace] = manifest.crombolo.extensions as Array<{ element?: string }>
     expect(workspace?.element).toBe('plugin/redirects-workspace.js')
   })
 
   test('carries the keyword the Bundles section searches', () => {
-    expect(manifest.keywords).toContain('bunbraco-bundle')
+    expect(manifest.keywords).toContain('crombolo-bundle')
   })
 
   test('is versioned with the rest of the set', () => {
     const umbrella = JSON.parse(
-      readFileSync(join(process.cwd(), 'packages/bunbraco/package.json'), 'utf8'),
+      readFileSync(join(process.cwd(), 'packages/crombolo/package.json'), 'utf8'),
     ) as { version: string }
     expect(manifest.version).toBe(umbrella.version)
   })
@@ -525,7 +525,7 @@ describe('the client half', () => {
     readFileSync(join(process.cwd(), 'packages/simple-redirects/plugin', file), 'utf8')
 
   test('calls the path its own bundle id is mounted at', () => {
-    expect(source('redirects-client.js')).toContain(`/bunbraco/api/bundle/${REDIRECTS_BUNDLE_ID}`)
+    expect(source('redirects-client.js')).toContain(`/crombolo/api/bundle/${REDIRECTS_BUNDLE_ID}`)
   })
 
   test('reads the backoffice path rather than assuming /umbraco', () => {
@@ -533,7 +533,7 @@ describe('the client half', () => {
   })
 
   test('offers every match and target kind the matcher implements', () => {
-    // A screen quietly weaker than `bunbraco.config.ts` is the failure mode
+    // A screen quietly weaker than `crombolo.config.ts` is the failure mode
     // here, and it is invisible until somebody needs the missing option.
     const workspace = source('redirects-workspace.js')
     for (const kind of ['exact', 'prefix', 'regex', 'document', 'path', 'url'])

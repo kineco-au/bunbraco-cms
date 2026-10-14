@@ -12,9 +12,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { AssistantProvider, ConverseResult, MessagePart } from '@bunbraco/assistant'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { ContentTypeRepository } from '@bunbraco/data'
+import type { AssistantProvider, ConverseResult, MessagePart } from '@crombolo/assistant'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { ContentTypeRepository } from '@crombolo/data'
 import { type Harness, signedInServer, signIn, V1 } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -28,7 +28,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const ASSISTANT = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/assistant`
+const ASSISTANT = `${DEFAULT_BACKOFFICE_PATH}/crombolo/api/assistant`
 
 const says = (text: string): ConverseResult => ({
   message: { role: 'assistant', parts: [{ kind: 'text', text }] },

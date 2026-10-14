@@ -10,13 +10,13 @@ because the second is unsolvable without the first.
 
 ```
 my-site/
-├── package.json          "bunbraco": "^1.0"
-├── bunbraco.config.ts    site name, database, paths, providers
-├── server.ts             import { bunbraco } from 'bunbraco'; Bun.serve(await bunbraco(config))
+├── package.json          "@crombolo/crombolo": "^1.0"
+├── crombolo.config.ts    site name, database, paths, providers
+├── server.ts             import { crombolo } from '@crombolo/crombolo'; Bun.serve(await crombolo(config))
 ├── schema/               content types, data types, languages — see 09-schema-as-code.md
 ├── components/           components (.tsx)
 ├── package.json          dependencies, backoffice extensions among them — see 17-bundles.md
-└── bunbraco.sqlite       content, users, versions — never schema
+└── crombolo.sqlite       content, users, versions — never schema
 ```
 
 The site owns **files**; its **database** holds editorial data. The framework
@@ -31,15 +31,15 @@ these packages. All four are fixed:
    database,config,adapters/*}` — the wiring of repositories to API ports, the
    database bootstrap, the backoffice mount — lives in what should be the *site*.
    A consumer would have to copy ~600 lines and re-copy them on every upgrade.
-   It moves to a framework package, `@bunbraco/server`, and `apps/site` becomes a
+   It moves to a framework package, `@crombolo/server`, and `apps/site` becomes a
    true reference site: config, `components/`, `schema/`, a three-line `server.ts`.
 2. **Inter-package dependencies are undeclared.** Packages import
-   `@bunbraco/core` 19 times, `@bunbraco/contracts` 5, `@bunbraco/data` 1 — all
+   `@crombolo/core` 19 times, `@crombolo/contracts` 5, `@crombolo/data` 1 — all
    resolved by tsconfig `paths`, not `package.json`. Only `data` declares a
    dependency. The workspace has been masking this. Every package declares its
-   dependencies as `workspace:*`; the umbrella `bunbraco` package depends on all.
+   dependencies as `workspace:*`; the umbrella `@crombolo/crombolo` package depends on all.
 3. **`vendorDir` is a relative path** from `import.meta.dir`. Under `node_modules`
-   it points at nothing. It resolves `@bunbraco/backoffice-dist` instead.
+   it points at nothing. It resolves `@crombolo/backoffice-dist` instead.
 4. **No `exports` fields** (except `render`). Packages work on Bun only because it
    runs `.ts` directly; there is no public/private boundary and so nothing to
    promise semver stability on. Each package gets an `exports` map; anything not
@@ -49,14 +49,14 @@ these packages. All four are fixed:
 
 | Package | Contents | Who depends on it |
 | --- | --- | --- |
-| `bunbraco` | umbrella: re-exports `@bunbraco/server`, the CLI, the config type | **sites** |
-| `@bunbraco/server` | the composition root, `bunbraco(config)`, ports and adapters | `bunbraco` |
-| `@bunbraco/backoffice-dist` | **the built backoffice only** — static assets, ~90 MB, versioned in lockstep | `@bunbraco/backoffice-host` |
-| `@bunbraco/core`, `data`, `auth`, `api-management`, `backoffice-host`, `render`, `contracts`, `schema`, `transfer` | as today, plus the schema package and `transfer` (the content bundle format — `13-content-transfer.md`) | `@bunbraco/server` |
+| `@crombolo/crombolo` | umbrella: re-exports `@crombolo/server`, the CLI, the config type | **sites** |
+| `@crombolo/server` | the composition root, `crombolo(config)`, ports and adapters | `@crombolo/crombolo` |
+| `@crombolo/backoffice-dist` | **the built backoffice only** — static assets, ~90 MB, versioned in lockstep | `@crombolo/backoffice-host` |
+| `@crombolo/core`, `data`, `auth`, `api-management`, `backoffice-host`, `render`, `contracts`, `schema`, `transfer` | as today, plus the schema package and `transfer` (the content bundle format — `13-content-transfer.md`) | `@crombolo/server` |
 
 **Why the built backoffice is its own package.** It changes only when the pinned
 Umbraco version changes; the code packages change every release. Shipping it
-inside `bunbraco` would put 90 MB in every patch. Building it on the user's
+inside `@crombolo/crombolo` would put 90 MB in every patch. Building it on the user's
 machine would need the ~30 bundling peer dependencies in their project and a
 lifecycle script, which Bun disables for untrusted packages — so "it works after
 `bun install`" could not be promised. A separate package is published from
@@ -66,16 +66,16 @@ is fine.
 
 ### The two-axis version rule
 
-A bunbraco major is a two-axis upgrade: our framework **and** the pinned Umbraco
+A crombolo major is a two-axis upgrade: our framework **and** the pinned Umbraco
 backoffice, whose Management API contract changes between Umbraco majors.
 
-**One Umbraco backoffice major per bunbraco major, never mixed.** `bunbraco@1`
+**One Umbraco backoffice major per crombolo major, never mixed.** `crombolo@1`
 pins `@umbraco-cms/backoffice@18`. The contract (`contracts/OpenApi.json`) is part
 of the framework, not the site; a site never generates or vendors anything.
 
 ### The CLI
 
-`bunx bunbraco <command>`, shipped in the umbrella package:
+`bunx crombolo <command>`, shipped in the umbrella package:
 
 | Command | Does |
 | --- | --- |
@@ -104,7 +104,7 @@ database has*. The difference can come from:
    data moved, not just declared;
 3. a framework release's migrations and converters — occasionally.
 
-`bunbraco upgrade check` examines all three together; `upgrade` applies all
+`crombolo upgrade check` examines all three together; `upgrade` applies all
 three. A framework upgrade is simply a release in which the third source is not
 empty. Same commands, same ledger, same dashboard.
 
@@ -112,7 +112,7 @@ empty. Same commands, same ledger, same dashboard.
 production; content lives where it is edited. Moving content — a campaign
 promoted up, or production content pulled down to develop against — is a
 separate, explicit act with its own artifact and its own audit trail:
-`bunbraco content export/check/import`, in `13-content-transfer.md`. Nothing
+`crombolo content export/check/import`, in `13-content-transfer.md`. Nothing
 about a deploy touches content.
 
 ### Why Umbraco majors hurt
@@ -136,7 +136,7 @@ than sequence numbers) and hardened:
 - **A ledger.** `migration_history(name, from_state, to_state, applied_at,
   duration_ms, checksum)` alongside the state key. Every upgrade is auditable and
   precisely resumable.
-- **`bunbraco upgrade --plan`.** Runs each pending `up()` against a recording
+- **`crombolo upgrade --plan`.** Runs each pending `up()` against a recording
   `Db` that captures statements instead of executing them, and prints the exact
   DDL. A migration that reads data to decide what to write is reported as
   unplannable rather than guessed at.
@@ -174,10 +174,10 @@ is built, so a minor carrying a contract fails every test before it can be
 released.
 
 **The release declaration.** Every release states the result in the published
-`bunbraco` package.json:
+`@crombolo/crombolo` package.json:
 
 ```json
-"bunbraco": { "migrations": "compatible" }
+"crombolo": { "migrations": "compatible" }
 ```
 
 `compatible` means every migration the release ships is an expand; `breaking`
@@ -186,7 +186,7 @@ from the plan by `migrationCompatibility(plan, release)`, never typed:
 `release:version` writes it, `tests/migrations.test.ts` fails if it drifts from
 the plan, and `release:publish` refuses a manifest that disagrees. It lives in
 the manifest so it can be read from the registry for any version
-(`npm view bunbraco@<version> bunbraco`) without installing anything. The
+(`npm view crombolo@<version> crombolo`) without installing anything. The
 enterprise distribution's upgrade runner reads it, and refuses to roll a
 release that declares `breaking` or declares nothing.
 
@@ -205,9 +205,9 @@ verified and prepared. It cannot half-fail on content.
 Two commands:
 
 ```
-bunbraco upgrade check          read-only report of everything the upgrade would do to the data
-bunbraco upgrade check --fix    applies the additive part now, on the live site
-bunbraco upgrade                re-checks, backs up, contracts, cuts over, records the run
+crombolo upgrade check          read-only report of everything the upgrade would do to the data
+crombolo upgrade check --fix    applies the additive part now, on the live site
+crombolo upgrade                re-checks, backs up, contracts, cuts over, records the run
 ```
 
 #### Three kinds of finding
@@ -271,8 +271,8 @@ So the upgrade splits along the expand/contract line *in time*:
 | Removed or renamed property editors still in use | with the editor to migrate to |
 | Site schema changes (`schema/*.toml`) | the same categories, over the site's own diff |
 
-The last row is the point: `bunbraco schema check` for a site's own schema diff
-and `bunbraco upgrade check` for a framework release are **one mechanism** —
+The last row is the point: `crombolo schema check` for a site's own schema diff
+and `crombolo upgrade check` for a framework release are **one mechanism** —
 "what would this change do to the data, and what does it need?"
 
 ### In production
@@ -335,7 +335,7 @@ too. The version had been doing two jobs; they are separated:
 
 | Job | Source | Lives in |
 | --- | --- | --- |
-| **Ordering** — an older node never writes over a newer database | a monotonic **revision** supplied at deploy time: the CI build number, or `git rev-list --count` | `BUNBRACO_SCHEMA_REVISION`, or a gitignored `schema/.revision` written into the *artifact* — never the repository |
+| **Ordering** — an older node never writes over a newer database | a monotonic **revision** supplied at deploy time: the CI build number, or `git rev-list --count` | `CROMBOLO_SCHEMA_REVISION`, or a gitignored `schema/.revision` written into the *artifact* — never the repository |
 | **Intent** — "this goes live from release X" | the human `version` in `schema.toml` | the repository; changed rarely, only to say something |
 
 A deployment's identity is the pair `(version, revision)`, compared
@@ -354,7 +354,7 @@ file is written and nothing is committed.
 #### The promotion pipeline
 
 ```
-PR              bunbraco schema check --static    parse; keys present; classify expand/contract;
+PR              crombolo schema check --static    parse; keys present; classify expand/contract;
                                                   a migration accompanies any rename or split
 merge -> dev    boot sync applies; the developer fixes the three pages, or writes a migration
 deploy -> test  check --fix runs the migrations against test content; the dashboard lists
@@ -458,10 +458,10 @@ release that carried no value conversion rolls back cleanly — most releases.
 
 A site's `schema/` files are code, so a change to them is a deploy and gets the
 same discipline: removing a property leaves its values in place (expand), and a
-later cleanup removes them (contract). `bunbraco schema check` is the same pre-upgrade
+later cleanup removes them (contract). `crombolo schema check` is the same pre-upgrade
 check run over a site's own diff, with the same `--fix`, and refuses a change
 that would orphan content. And when a framework release changes the file vocabulary,
-`bunbraco upgrade schema` rewrites every file canonically — a reviewable commit,
+`crombolo upgrade schema` rewrites every file canonically — a reviewable commit,
 because we own the writer.
 
 ## Part 3 — Decisions taken when 5c was planned against 5b's code
@@ -490,7 +490,7 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
 - **Findings are per document and culture** with the backoffice link, upserted
   by `(code, subject, property, culture)` so a re-run resolves what it stops
   reporting rather than duplicating it.
-- **Policy is an environment setting**: `BUNBRACO_UPGRADE_POLICY=strict|
+- **Policy is an environment setting**: `CROMBOLO_UPGRADE_POLICY=strict|
   pending-allowed`, defaulting from `NODE_ENV`. `--force` overrides one run and
   is ledgered with the reason.
 - **Health.** `/health` (non-contract) returns 200 at the current state and 503
@@ -522,14 +522,14 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
 - **The report is a table with an endpoint.** `check`, `check --fix`,
   `upgrade` and a development boot write `change_report` under
   `source = 'upgrade'`;
-  `GET <backoffice>/bunbraco/api/change-report` (session required) returns
+  `GET <backoffice>/crombolo/api/change-report` (session required) returns
   it with the node's health; the dashboard and the banner are a framework
-  package served at `<backoffice>/bunbraco/`, registered like an
+  package served at `<backoffice>/crombolo/`, registered like an
   installed npm extension.
 - **`/health`** answers 503 once the poll sees the database ahead of the node,
   and the document API answers 409 to its writes.
 - **Backups**: SQLite is copied beside the file before `check --fix`,
-  `upgrade` and `schema purge`; Postgres runs `BUNBRACO_PG_DUMP` or refuses
+  `upgrade` and `schema purge`; Postgres runs `CROMBOLO_PG_DUMP` or refuses
   without `--backup-taken`.
 - **`schema purge --older-than <days>`** is the only thing that deletes
   values; it is ledgered as a contract step.
@@ -543,17 +543,17 @@ These refine Part 2 rather than change it; `07-roadmap.md` has the slices.
 ## What an environment is
 
 ```bash
-bunx bunbraco status          # and --json for a deploy step to assert on
+bunx crombolo status          # and --json for a deploy step to assert on
 ```
 
 ```
   site       Harbourstone Distillery   /app
-  database   postgres db:5432/bunbraco   reachable
+  database   postgres db:5432/crombolo   reachable
   schema     files 1.1.0  database 1.1.0+4573   up to date
   framework  no migration pending
   content    11 document(s), 5 media, 9 element(s); last import 2026-10-01T06:24:14Z
   findings   0 blocking, 0 need a person, 25 automatic, 0 resolved
-  versions   bunbraco 0.2.0, backoffice 18.2.0, bun 1.4.2
+  versions   crombolo 0.2.0, backoffice 18.2.0, bun 1.4.2
 ```
 
 It exits non-zero when something would stop the site working — the database
@@ -575,26 +575,26 @@ dashboard (Settings), each linked to its page and grouped by where it came from
 behind shows a read-only banner, answers 409 to writes and 503 on `/health`.
 
 ```bash
-bunx bunbraco upgrade check                 # read-only: classification and findings, into the dashboard
-bunx bunbraco upgrade check --fix           # backup; apply the additive part and conversions early
-bunx bunbraco upgrade check --set article.summary="tbc"   # one value everywhere it is missing
-bunx bunbraco upgrade                       # re-check, backup, framework steps, cut over, ledger
-bunx bunbraco upgrade --plan                # the DDL pending framework migrations would run
-bunx bunbraco upgrade ledger                # migration_history
-bunx bunbraco schema purge --older-than 90  # delete long-retired properties and their values
+bunx crombolo upgrade check                 # read-only: classification and findings, into the dashboard
+bunx crombolo upgrade check --fix           # backup; apply the additive part and conversions early
+bunx crombolo upgrade check --set article.summary="tbc"   # one value everywhere it is missing
+bunx crombolo upgrade                       # re-check, backup, framework steps, cut over, ledger
+bunx crombolo upgrade --plan                # the DDL pending framework migrations would run
+bunx crombolo upgrade ledger                # migration_history
+bunx crombolo schema purge --older-than 90  # delete long-retired properties and their values
 ```
 
 Templates are type-checked tag by tag in releases after 0.7.0: each tag's
 attributes are checked, and a JSX expression is typed as markup rather than text
 (`05-rendering.md`, "Types").
-Nothing renders differently, but `bunbraco components check` and the view editor
+Nothing renders differently, but `crombolo components check` and the view editor
 may report a misspelt attribute, a value of the wrong type, an event handler, or
 a component annotated as returning `string`. Fix the views, or set
-`"jsxImportSource": "bunbraco/loose"` in the site's `tsconfig.json` to check them
+`"jsxImportSource": "@crombolo/crombolo/loose"` in the site's `tsconfig.json` to check them
 as before while they are fixed.
 
 Migration 020 renames API users' client IDs from `umbraco-back-office-<name>` to
-`bunbraco-back-office-<name>`. Secrets are untouched, so an integration keeps
+`crombolo-back-office-<name>`. Secrets are untouched, so an integration keeps
 its secret and needs only its client ID updated — but it will get
 `invalid_client` until it is. The backoffice's own `client_id` is unrelated and
 unchanged; see `docs/04-backoffice-hosting.md`.
@@ -602,8 +602,8 @@ unchanged; see `docs/04-backoffice-hosting.md`.
 ## Templates
 
 A template is a `.tsx` file in the site's `components/`, executed by Bun with
-`jsxImportSource: "bunbraco"` (the `init` scaffold sets it), or
-`"bunbraco/loose"`, the same runtime with attributes left unchecked. There is no virtual
+`jsxImportSource: "@crombolo/crombolo"` (the `init` scaffold sets it), or
+`"@crombolo/crombolo/loose"`, the same runtime with attributes left unchecked. There is no virtual
 DOM: the JSX runtime renders straight to an HTML string. A page names its layout in the file rather than the database — the same
 choice Umbraco makes, which parses `Layout = "…"` back out of the Razor source:
 
@@ -626,8 +626,8 @@ view starts from a TSX skeleton, and "from snippet" offers TSX versions of
 Umbraco's snippets.
 
 The editor reads TSX rather than Razor, and type-checks it against the site's
-own types: `bunbraco`'s and the schema's generated `content-types.d.ts`, served
-to monaco by `<backoffice>/bunbraco/api/editor-types`. So `model.` completes,
+own types: `@crombolo/crombolo`'s and the schema's generated `content-types.d.ts`, served
+to monaco by `<backoffice>/crombolo/api/editor-types`. So `model.` completes,
 and a mistake is underlined in the editor rather than found on the next
 `typecheck` — see `docs/04-backoffice-hosting.md`.
 
@@ -648,27 +648,27 @@ draft, and every mandatory language must be published.
 ## Releasing to npm
 
 The workspace publishes as **one fixed-version set**: thirteen packages, one
-version, released together. `bunbraco` is the only package a site installs; the
-`@bunbraco/*` packages are its dependencies, pinned to the exact same version.
-`@bunbraco/cli` is the one worth installing alone — on a machine that runs
+version, released together. `@crombolo/crombolo` is the only package a site installs; the
+`@crombolo/*` packages are its dependencies, pinned to the exact same version.
+`@crombolo/cli` is the one worth installing alone — on a machine that runs
 commands against a site rather than serving it.
 Independent semver was rejected because none of these packages is independently
-useful — `@bunbraco/data` means nothing without `core`'s entity shapes — so a
+useful — `@crombolo/data` means nothing without `core`'s entity shapes — so a
 version matrix would buy flexibility nobody wants.
 
-`@bunbraco/backoffice-dist` is the exception. It is 84 MB of built client, it only
+`@crombolo/backoffice-dist` is the exception. It is 84 MB of built client, it only
 changes when the pinned Umbraco version does, and its **major and minor track the
 `@umbraco-cms/backoffice` release it vendors** while the patch is ours. So
-`18.2.0` says the thing that actually matters about it, and a bunbraco patch
+`18.2.0` says the thing that actually matters about it, and a crombolo patch
 release does not drag 84 MB along.
 
 Packages ship **TypeScript source**, not compiled JS: `exports` points straight at
 `src/index.ts`. Bun runs it, types come free, and there is no build step, no dual
-ESM/CJS and no sourcemaps. The cost is that bunbraco is Bun-only — `engines.bun`
+ESM/CJS and no sourcemaps. The cost is that crombolo is Bun-only — `engines.bun`
 says so — and a consumer's `tsc` typechecks our source rather than declarations.
 
 Runtime dependencies are `@logtape/logtape`, and the AWS SDK behind
-`@bunbraco/assistant` — which a site installs only if it depends on that package,
+`@crombolo/assistant` — which a site installs only if it depends on that package,
 since the umbrella re-exports `bedrock()` but nothing else reaches for it. The
 thirty browser packages in the root manifest (tiptap, monaco, lit, the Umbraco
 client) are build-time only: `vendor:backoffice` bundles them into
@@ -684,11 +684,11 @@ git commit -am "release 0.3.0" && git tag v0.3.0 && git push --follow-tags
 ```
 
 The tag is what publishes. `release.yml` runs the whole of `ci.yml` first, checks
-the tag matches `packages/bunbraco/package.json`, then runs `release:publish`,
+the tag matches `packages/crombolo/package.json`, then runs `release:publish`,
 which packs with Bun — that is what substitutes `workspace:*` for a real version —
 and uploads each tarball with npm, which signs provenance from the workflow's
 OIDC identity. It needs an `NPM_TOKEN` secret with publish rights to the
-`@bunbraco` scope.
+`@crombolo` scope.
 
 A version the registry already holds is skipped rather than failing the run, so a
 tag that only moves some packages is safe to push — which is exactly what happens

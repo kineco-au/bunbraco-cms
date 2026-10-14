@@ -4,43 +4,43 @@
 // Umbraco says "document type".
 export default {
   "login": {
-    "instruction": "سجل الدخول إلى Bunbraco"
+    "instruction": "سجل الدخول إلى Crombolo"
   },
   "user": {
-    "changePasswordDescription": "يمكنك تغيير كلمة مرورك للوصول إلى واجهة Bunbraco من خلال ملء النموذج أدناه والنقر على زر 'تغيير كلمة المرور'",
-    "createUserHelp": "قم بإنشاء مستخدمين جدد لمنحهم الوصول إلى Bunbraco. عند إنشاء مستخدم جديد، سيتم توليد كلمة مرور يمكنك مشاركتها مع المستخدم.",
-    "inviteUserHelp": "ادعُ مستخدمين جدد لمنحهم الوصول إلى Bunbraco. سيتم إرسال بريد إلكتروني دعوة إلى المستخدم مع معلومات حول كيفية تسجيل الدخول إلى Bunbraco. تدوم الدعوات لمدة 72 ساعة.",
-    "noConsole": "تعطيل الوصول إلى Bunbraco",
-    "userCreatedSuccessHelp": "تم إنشاء المستخدم الجديد بنجاح. لتسجيل الدخول إلى Bunbraco استخدم كلمة المرور أدناه.",
-    "userInvitedSuccessHelp": "تم إرسال دعوة إلى المستخدم الجديد مع تفاصيل حول كيفية تسجيل الدخول إلى Bunbraco.",
-    "userinviteWelcomeMessage": "مرحباً بك في Bunbraco! في دقيقة واحدة فقط ستكون جاهزاً، نحن فقط بحاجة منك لتعيين كلمة مرور وإضافة صورة لملفك الشخصي.",
-    "userinviteExpiredMessage": "مرحباً بك في Bunbraco! للأسف انتهت صلاحية دعوتك. يرجى الاتصال بالمسؤول الخاص بك واطلب منهم إعادة إرسالها.",
+    "changePasswordDescription": "يمكنك تغيير كلمة مرورك للوصول إلى واجهة Crombolo من خلال ملء النموذج أدناه والنقر على زر 'تغيير كلمة المرور'",
+    "createUserHelp": "قم بإنشاء مستخدمين جدد لمنحهم الوصول إلى Crombolo. عند إنشاء مستخدم جديد، سيتم توليد كلمة مرور يمكنك مشاركتها مع المستخدم.",
+    "inviteUserHelp": "ادعُ مستخدمين جدد لمنحهم الوصول إلى Crombolo. سيتم إرسال بريد إلكتروني دعوة إلى المستخدم مع معلومات حول كيفية تسجيل الدخول إلى Crombolo. تدوم الدعوات لمدة 72 ساعة.",
+    "noConsole": "تعطيل الوصول إلى Crombolo",
+    "userCreatedSuccessHelp": "تم إنشاء المستخدم الجديد بنجاح. لتسجيل الدخول إلى Crombolo استخدم كلمة المرور أدناه.",
+    "userInvitedSuccessHelp": "تم إرسال دعوة إلى المستخدم الجديد مع تفاصيل حول كيفية تسجيل الدخول إلى Crombolo.",
+    "userinviteWelcomeMessage": "مرحباً بك في Crombolo! في دقيقة واحدة فقط ستكون جاهزاً، نحن فقط بحاجة منك لتعيين كلمة مرور وإضافة صورة لملفك الشخصي.",
+    "userinviteExpiredMessage": "مرحباً بك في Crombolo! للأسف انتهت صلاحية دعوتك. يرجى الاتصال بالمسؤول الخاص بك واطلب منهم إعادة إرسالها.",
     "documentType": "نوع المحتوى"
   },
   "general": {
-    "umbracoInfo": "معلومات Bunbraco"
+    "umbracoInfo": "معلومات Crombolo"
   },
   "visuallyHiddenTexts": {
-    "searchOverlayTitle": "بحث في مكتب Bunbraco الخلفي"
+    "searchOverlayTitle": "بحث في مكتب Crombolo الخلفي"
   },
   "languages": {
-    "defaultLanguageHelp": "يمكن لموقع Bunbraco أن يحتوي فقط على لغة افتراضية واحدة."
+    "defaultLanguageHelp": "يمكن لموقع Crombolo أن يحتوي فقط على لغة افتراضية واحدة."
   },
   "paste": {
-    "errorMessage": "النص الذي تحاول لصقه يحتوي على أحرف خاصة أو تنسيق. قد يكون ذلك بسبب نسخ النص من Microsoft Word. يمكن لـ Bunbraco إزالة الأحرف الخاصة أو التنسيق تلقائيًا، بحيث يكون المحتوى الملصق أكثر ملاءمة للويب.\n"
+    "errorMessage": "النص الذي تحاول لصقه يحتوي على أحرف خاصة أو تنسيق. قد يكون ذلك بسبب نسخ النص من Microsoft Word. يمكن لـ Crombolo إزالة الأحرف الخاصة أو التنسيق تلقائيًا، بحيث يكون المحتوى الملصق أكثر ملاءمة للويب.\n"
   },
   "dashboard": {
-    "nothinghappens": "إذا لم يفتح Bunbraco، قد تحتاج إلى السماح بالنوافذ المنبثقة من هذا الموقع"
+    "nothinghappens": "إذا لم يفتح Crombolo، قد تحتاج إلى السماح بالنوافذ المنبثقة من هذا الموقع"
   },
   "logViewer": {
-    "searchUmbracoSource": "البحث في مصدر Bunbraco",
-    "searchWithinUmbracoSourceCodeOnGithub": "البحث ضمن كود مصدر Bunbraco على Github",
-    "searchUmbracoIssues": "البحث في قضايا Bunbraco",
-    "searchUmbracoIssuesOnGithub": "البحث في قضايا Bunbraco على Github"
+    "searchUmbracoSource": "البحث في مصدر Crombolo",
+    "searchWithinUmbracoSourceCodeOnGithub": "البحث ضمن كود مصدر Crombolo على Github",
+    "searchUmbracoIssues": "البحث في قضايا Crombolo",
+    "searchUmbracoIssuesOnGithub": "البحث في قضايا Crombolo على Github"
   },
   "defaultdialogs": {
-    "linkYourConfirm": "أنت على وشك ربط حسابك في Bunbraco وحسابك في {0} وسيتم توجيهك إلى {0} للتأكيد.",
-    "unLinkYourConfirm": "أنت على وشك إلغاء ربط حسابك في Bunbraco وحسابك في {0} وسيتم تسجيل خروجك."
+    "linkYourConfirm": "أنت على وشك ربط حسابك في Crombolo وحسابك في {0} وسيتم توجيهك إلى {0} للتأكيد.",
+    "unLinkYourConfirm": "أنت على وشك إلغاء ربط حسابك في Crombolo وحسابك في {0} وسيتم تسجيل خروجك."
   },
   "actions": {
     "changeDocType": "تغيير نوع المحتوى",

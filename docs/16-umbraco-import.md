@@ -6,10 +6,10 @@ imported; Umbraco 15, 16 and 18 are accepted but have no real export to test
 against. What is and is not done is under [Where it stands](#where-it-stands).
 
 A utility that is pointed at a backup of an existing Umbraco site and produces a
-working Bunbraco site from it — after first saying, in a report, what will not
+working Crombolo site from it — after first saying, in a report, what will not
 come across.
 
-Bunbraco does not claim compatibility with Umbraco: packages and plugins will
+Crombolo does not claim compatibility with Umbraco: packages and plugins will
 never run here, and neither will Razor. The importer is the honest version of
 that claim. It moves what can be moved, and it lists what cannot before anything
 is written.
@@ -17,8 +17,8 @@ is written.
 ## What it does
 
 ```
-bunbraco import umbraco report <backup> [--site <dir>] [--media <dir>] [--out <dir>] [--json]
-bunbraco import umbraco apply  <backup> --out <dir> [--site <dir>] [--media <dir>]
+crombolo import umbraco report <backup> [--site <dir>] [--media <dir>] [--out <dir>] [--json]
+crombolo import umbraco apply  <backup> --out <dir> [--site <dir>] [--media <dir>]
                                [--name <site name>] [--drafts] [--postgres] [--force]
 ```
 
@@ -30,12 +30,12 @@ Razor views, the media and the evidence of packages and custom code are.
 as files. It exits non-zero when a finding blocks the import. `apply` refuses to
 run while one does, and refuses to write into a directory that is not empty.
 
-Neither command touches a database. `apply` writes a Bunbraco **site
+Neither command touches a database. `apply` writes a Crombolo **site
 directory**:
 
 ```
 my-site/
-├── package.json, bunbraco.config.ts, server.ts, tsconfig.json
+├── package.json, crombolo.config.ts, server.ts, tsconfig.json
 ├── schema/                 document, media and member types, data types, languages
 ├── components/…            a stub per Razor view: templates in the layout chain
 │                        the Razor had, every other view where it sat
@@ -46,14 +46,14 @@ my-site/
     ├── report.md, report.json
     ├── urls.txt            every URL the source site served
     ├── razor/              the original .cshtml, for whoever rewrites it
-    ├── dictionary.udt      for `bunbraco dictionary import`
+    ├── dictionary.udt      for `crombolo dictionary import`
     └── domains.toml        the source's hostnames, to review before using
 ```
 
-The scaffolded `start` script is `bunbraco start --bundle bundles/umbraco-import
+The scaffolded `start` script is `crombolo start --bundle bundles/umbraco-import
 --publish`, so the first boot is the import, through code that already exists and
 is already tested. This is the main design decision: the importer is a
-**converter into Bunbraco's own interchange formats**
+**converter into Crombolo's own interchange formats**
 ([`09-schema-as-code.md`](09-schema-as-code.md),
 [`13-content-transfer.md`](13-content-transfer.md)), so the output is reviewable
 in a diff, re-runnable, and never bypasses the validation a hand-written site
@@ -68,7 +68,7 @@ without one and reported, and the `start` script gains `--allow-missing-blobs`.
 ## Two stages
 
 ```
-site.bacpac ──▶ [ @kineco-au/bacpac-importer ] ──▶ staging.sqlite ──▶ [ @bunbraco/import-umbraco ] ──▶ my-site/
+site.bacpac ──▶ [ @kineco-au/bacpac-importer ] ──▶ staging.sqlite ──▶ [ @crombolo/import-umbraco ] ──▶ my-site/
                   generic, open source               a faithful copy     everything Umbraco-specific
 ```
 
@@ -78,7 +78,7 @@ that produces it knows nothing about Umbraco; the importer that reads it knows
 nothing about `.bacpac`.
 
 The staging database is only ever read. The importer does not reshape it in place
-until it looks like Bunbraco's — it writes schema files and a bundle from it, and
+until it looks like Crombolo's — it writes schema files and a bundle from it, and
 the real database is built from those. So the staging copy is SQLite even when
 the site will run on Postgres. It is temporary; `--staging <path>` keeps it.
 
@@ -128,7 +128,7 @@ The demo store's 127 tables convert in well under a second.
 
 ## Stage two: the importer
 
-`@bunbraco/import-umbraco` takes the library as an ordinary npm dependency. It is
+`@crombolo/import-umbraco` takes the library as an ordinary npm dependency. It is
 **opt-in**: the CLI loads it on demand and says how to add it, so a site that
 never imports anything carries neither it nor the `.bacpac` reader.
 `tests/packaging.test.ts` holds that line.
@@ -145,7 +145,7 @@ never imports anything carries neither it nor the `.bacpac` reader.
 | `report.ts` | the findings, as JSON, markdown and a terminal summary |
 
 `planImport` returns the report and a list of files, and writes nothing. The CLI
-adds the site scaffold `bunbraco init` writes and puts it all on disk.
+adds the site scaffold `crombolo init` writes and puts it all on disk.
 
 ### What is converted, and how
 
@@ -156,7 +156,7 @@ adds the site scaffold `bunbraco init` writes and puts it all on disk.
   the site left alone needs no file. One it changed is written under the
   built-in's alias. A site's own data type takes an alias from its name.
 - **Media and member types** Umbraco ships are written only where the site
-  changed them, compared without property keys, which Bunbraco seeds itself.
+  changed them, compared without property keys, which Crombolo seeds itself.
 - **Element types** lose templates, allowed children and allow-at-root: Umbraco
   tolerates them on a type that is never routed, and the schema validator does
   not. The report lists each.
@@ -182,7 +182,7 @@ transformation the importer must either perform or be able to ignore.
 
 | Source | What separates it from the 18 shape | Importer cost |
 | --- | --- | --- |
-| **18.x** | nothing; this is the shape Bunbraco's model mirrors | baseline |
+| **18.x** | nothing; this is the shape Crombolo's model mirrors | baseline |
 | **17.x** (LTS) | single-block list values (18.0); element permissions, which do not apply | low: one value converter |
 | **16.4 – 16.5** | checkbox-list values, system dates to UTC, label storage types (17.0–17.4); the rest is indexes and derived tables | low–medium: two value converters, and the source server's time zone must be supplied |
 | **15.x – 16.3** | TinyMCE → Tiptap rich-text configuration (16.0), media-type label properties (16.3), missing tabs (16.4) | medium: data type configuration only, stored values are unchanged |
@@ -275,7 +275,7 @@ template is left out, because Umbraco does not serve one either.
 ### What is left
 
 - **Members and users.** Umbraco stores ASP.NET Core Identity v3 hashes
-  (PBKDF2-HMAC-SHA512); Bunbraco stores argon2id and records the algorithm per
+  (PBKDF2-HMAC-SHA512); Crombolo stores argon2id and records the algorithm per
   row in `password_config`. The plan is to carry the original hash with its
   algorithm marker, teach `verifyPassword` to verify PBKDF2, and re-hash to
   argon2id on a successful sign-in — the rotation the column was kept for — so
@@ -300,7 +300,7 @@ with 52 tables of its own, and four third-party property editors.
   report says what it should. It then syncs the schema and imports the bundle
   into a real database, on whichever dialect the suite is running.
 - `tests/integration/import-umbraco.integration.ts` drives the CLI as a person
-  would — `report`, `apply`, then `bunbraco start` in the directory it wrote —
+  would — `report`, `apply`, then `crombolo start` in the directory it wrote —
   and fetches every URL in `import/urls.txt` from the booted site.
 
 ## Decisions taken
@@ -312,7 +312,7 @@ with 52 tables of its own, and four third-party property editors.
   `.bacpac`.
 - **D2 — versions 15 and later.** 13 and 14 are detected and refused with
   instructions.
-- **D3 — a separate package.** `@bunbraco/import-umbraco`, loaded by the CLI on
+- **D3 — a separate package.** `@crombolo/import-umbraco`, loaded by the CLI on
   demand, so the importer and the bacpac library are not dependencies of every
   site.
 - **D4 — fixtures are built outside the repository.** Producing a reference

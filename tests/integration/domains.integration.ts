@@ -1,5 +1,5 @@
 /**
- * `bunbraco domains`, through the real CLI, against a site that is serving.
+ * `crombolo domains`, through the real CLI, against a site that is serving.
  *
  * `tests/domains.test.ts` tests the file and the sync; this tests the commands
  * and the end of the chain: a hostname written by `domains set` reaching the
@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:f
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 const SITE = 'site'
 /** `${SITE_HOST}` written so the linter does not read it as an unescaped template. */
 const PLACEHOLDER = `\${SITE_HOST}`
@@ -44,20 +44,20 @@ describe('hostnames, end to end through the CLI', () => {
   function environment(extra: Record<string, string> = {}): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_SCHEMA_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_CSS_DIR',
-      'BUNBRACO_SITE_NAME',
+      'CROMBOLO_SQLITE_FILE',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_SCHEMA_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_CSS_DIR',
+      'CROMBOLO_SITE_NAME',
     ])
       delete inherited[name]
     return {
       ...inherited,
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_LOGS_DIR: join(dir, 'logs'),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_LOGS_DIR: join(dir, 'logs'),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
       ...extra,
     }
   }
@@ -174,7 +174,7 @@ describe('hostnames, end to end through the CLI', () => {
     try {
       const response = await visit(server, 'harbourstone.example')
       expect(response.status).toBe(200)
-      expect(await response.text()).toContain('A new bunbraco site')
+      expect(await response.text()).toContain('A new crombolo site')
     } finally {
       await server.stop()
     }
@@ -231,7 +231,7 @@ describe('hostnames, end to end through the CLI', () => {
       // No binding means no hostname routing: the request falls through to the
       // ordinary root, which is the behaviour a site without domains has.
       expect(await (await visit(server, 'harbourstone.example')).text()).toContain(
-        'A new bunbraco site',
+        'A new crombolo site',
       )
     } finally {
       await server.stop()

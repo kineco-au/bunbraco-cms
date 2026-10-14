@@ -14,7 +14,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type {
   PackageDefinition,
   PackageDefinitionInput,

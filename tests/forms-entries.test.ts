@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { FormEntryRepository } from '@bunbraco/data'
+import { FormEntryRepository } from '@crombolo/data'
 import {
   BACKOFFICE,
   type Harness,
@@ -32,7 +32,7 @@ afterEach(async () => {
 
 const FORM_KEY = '9c4a7d1e-0001-4b2a-9f31-6d8e2c5a7b40'
 const OTHER_KEY = '9c4a7d1e-00ff-4b2a-9f31-6d8e2c5a7b40'
-const FORMS_API = `${BACKOFFICE}/bunbraco/api/forms`
+const FORMS_API = `${BACKOFFICE}/crombolo/api/forms`
 
 const CONTACT = `[form]
 key = "${FORM_KEY}"
@@ -333,13 +333,13 @@ describe('the forms endpoints', () => {
     expect(order?.redacted).toBe(false)
 
     // A reader who may see entries but not sensitive ones: the entry verbs
-    // without `Bunbraco.FormEntry.Sensitive`. No built-in group is that — the seeded
+    // without `Crombolo.FormEntry.Sensitive`. No built-in group is that — the seeded
     // admin carries every form verb — so the group is made here, as a real site
     // would.
     const group = await h.post(`${V1}/user-group`, {
       name: 'Entry readers',
       alias: 'entryReaders',
-      sections: ['Bunbraco.Section.Forms'],
+      sections: ['Crombolo.Section.Forms'],
       languages: [],
       hasAccessToAllLanguages: true,
       documentRootAccess: true,
@@ -348,7 +348,7 @@ describe('the forms endpoints', () => {
       mediaStartNode: null,
       elementRootAccess: false,
       elementStartNode: null,
-      fallbackPermissions: ['Bunbraco.Form.Read', 'Bunbraco.FormEntry.Read'],
+      fallbackPermissions: ['Crombolo.Form.Read', 'Crombolo.FormEntry.Read'],
       permissions: [],
     })
     expect(group.status).toBe(201)

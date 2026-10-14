@@ -19,10 +19,10 @@ Three stores ship:
 | **S3**                    | `s3MediaStore({ bucket, … })`                | via Bun's own S3 client — no dependency; works with AWS, Cloudflare R2, DigitalOcean Spaces, MinIO, Backblaze B2 |
 | **Azure Blob Storage**    | `azureMediaStore({ account, container, … })` | the REST API with Shared Key or SAS auth — no SDK dependency                                                     |
 
-A site picks one in `bunbraco.config.ts`:
+A site picks one in `crombolo.config.ts`:
 
 ```ts
-import { defineConfig, s3MediaStore } from "bunbraco";
+import { defineConfig, s3MediaStore } from "@crombolo/crombolo";
 
 export default defineConfig({
     mediaStore: s3MediaStore({
@@ -35,25 +35,25 @@ export default defineConfig({
 …or leaves it to the environment, which is what a container deployment wants:
 
 ```sh
-BUNBRACO_MEDIA_STORE=s3
-BUNBRACO_MEDIA_S3_BUCKET=my-site-media
-BUNBRACO_MEDIA_S3_REGION=ap-southeast-2
-# BUNBRACO_MEDIA_S3_ENDPOINT=…  for R2, Spaces or MinIO
-# BUNBRACO_MEDIA_S3_PREFIX=uploads
-# BUNBRACO_MEDIA_S3_PUBLIC_URL=https://cdn.example.com   redirect browsers to a CDN
-# BUNBRACO_MEDIA_S3_PRESIGN_SECONDS=300                  or to a signed bucket URL
+CROMBOLO_MEDIA_STORE=s3
+CROMBOLO_MEDIA_S3_BUCKET=my-site-media
+CROMBOLO_MEDIA_S3_REGION=ap-southeast-2
+# CROMBOLO_MEDIA_S3_ENDPOINT=…  for R2, Spaces or MinIO
+# CROMBOLO_MEDIA_S3_PREFIX=uploads
+# CROMBOLO_MEDIA_S3_PUBLIC_URL=https://cdn.example.com   redirect browsers to a CDN
+# CROMBOLO_MEDIA_S3_PRESIGN_SECONDS=300                  or to a signed bucket URL
 ```
 
 ```sh
-BUNBRACO_MEDIA_STORE=azure
-BUNBRACO_MEDIA_AZURE_ACCOUNT=mysite
-BUNBRACO_MEDIA_AZURE_CONTAINER=media
-BUNBRACO_MEDIA_AZURE_KEY=…          # or BUNBRACO_MEDIA_AZURE_SAS=?sv=…
+CROMBOLO_MEDIA_STORE=azure
+CROMBOLO_MEDIA_AZURE_ACCOUNT=mysite
+CROMBOLO_MEDIA_AZURE_CONTAINER=media
+CROMBOLO_MEDIA_AZURE_KEY=…          # or CROMBOLO_MEDIA_AZURE_SAS=?sv=…
 ```
 
 Credentials left unset fall back to whatever the underlying client would find
 anyway, so a machine with an instance role needs none configured. An
-unrecognised `BUNBRACO_MEDIA_STORE` degrades to the file system rather than
+unrecognised `CROMBOLO_MEDIA_STORE` degrades to the file system rather than
 losing the media library.
 
 Three things follow from the interface rather than from any one store:
@@ -102,7 +102,7 @@ renaming is.
 has no equivalent for — its answer is a rewrite rule in front of the site:
 
 ```ts
-import { defineConfig, redirect } from 'bunbraco'
+import { defineConfig, redirect } from '@crombolo/crombolo'
 
 export default defineConfig({
   redirects: [
@@ -121,19 +121,19 @@ resolved when the request arrives, so the redirect follows the page when someone
 later renames or moves it, and stops matching if the page is unpublished rather
 than sending visitors to a dead URL.
 
-**Redirects in the backoffice.** `@bunbraco/simple-redirects` adds a Redirects
+**Redirects in the backoffice.** `@crombolo/simple-redirects` adds a Redirects
 screen under Settings → Advanced, which is what the third-party Umbraco redirect
 packages add over Umbraco's own dashboard: creating and editing a rule, not only
 listing and deleting the ones a rename recorded. It offers everything the matcher
 supports, and the rules it writes sit between the two above in precedence —
 configured rules first, then these, then tracked ones.
 
-It is opt-in twice over. `bun add @bunbraco/simple-redirects` puts the screen in
+It is opt-in twice over. `bun add @crombolo/simple-redirects` puts the screen in
 the backoffice, and the endpoints behind it answer only once the site imports the
 bundle's server half:
 
 ```ts
-import { redirects } from '@bunbraco/simple-redirects'
+import { redirects } from '@crombolo/simple-redirects'
 
 export default defineConfig({
   bundles: [redirects()],
@@ -176,9 +176,9 @@ export default defineConfig({
 ```
 
 ```
-GET  <backoffice>/bunbraco/api/git/status    where it would send
-GET  <backoffice>/bunbraco/api/git/diff      what the repository is missing
-POST <backoffice>/bunbraco/api/git/commit    send it
+GET  <backoffice>/crombolo/api/git/status    where it would send
+GET  <backoffice>/crombolo/api/git/diff      what the repository is missing
+POST <backoffice>/crombolo/api/git/commit    send it
 ```
 
 A pull request by default — a schema change arriving as a PR is reviewable, one
@@ -247,7 +247,7 @@ contract says nothing. What is worth knowing as an operator:
 | List views              | `collection/document/{id}` and `collection/media` need Read on the parent, so a start node bounds them as it bounds the tree                                               |
 | Media                   | Content types come from the file name, never from the uploader's header; served with `nosniff` and `Content-Security-Policy: sandbox`, which denies script to SVG and HTML  |
 | Member endpoints        | Cross-site form posts are refused via fetch metadata, since these act on a cookie and have no antiforgery token; registration uses the configured type and a password policy |
-| Request bodies          | Capped at 32 MiB (`BUNBRACO_MAX_REQUEST_BODY_MB`) rather than Bun's 128 MB default                                                                                        |
+| Request bodies          | Capped at 32 MiB (`CROMBOLO_MAX_REQUEST_BODY_MB`) rather than Bun's 128 MB default                                                                                        |
 | Assistant               | Read-and-propose only; the transcript a browser returns is capped before it is billed; provider configuration is shown to Settings holders only                            |
 | Proposed templates      | Scanned for the globals and the roads to `eval` — `Function`, `.constructor`, `import.meta` — behind human approval, which is the real gate                               |
 
@@ -267,12 +267,12 @@ worth a decision per site:
 ## Running a cluster
 
 A deployed site is run as well as served: backed up, given content, upgraded.
-The commands that do it are the `bunbraco` binary's, and the same functions are
-exported from `@bunbraco/cli` — `backup`, `contentCheck`, `contentImport`,
+The commands that do it are the `crombolo` binary's, and the same functions are
+exported from `@crombolo/cli` — `backup`, `contentCheck`, `contentImport`,
 `contentExport`, `upgradePlan`, `upgradeCheck`, `upgradeFix`, `upgradeRun`,
 `pauseEditing`, `resumeEditing`, `editingPaused` — taking a resolved config and
 returning results as data, for tooling that drives an environment without a
-terminal. The `bunbraco` umbrella exports `createServer`, for a host process
+terminal. The `@crombolo/crombolo` umbrella exports `createServer`, for a host process
 that needs the server handle rather than only what `Bun.serve` takes.
 
 ### Health while the database moves
@@ -297,9 +297,9 @@ contract (a framework contract, or `schema purge`) is ledgered as one, and a
 ### Pausing editing
 
 ```
-bunbraco maintenance pause --reason "restoring Monday's backup"
-bunbraco maintenance status
-bunbraco maintenance resume
+crombolo maintenance pause --reason "restoring Monday's backup"
+crombolo maintenance status
+crombolo maintenance resume
 ```
 
 A flag in `key_value`, read by the write gate inside every editor's write
@@ -320,7 +320,7 @@ answering the public site, which the editor, and on which schema state.
 
 |                                                                     |                                                                                                                                         |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| [`00-overview.md`](docs/00-overview.md)                             | mission, decisions, non-goals, Umbraco→bunbraco glossary                                                                                |
+| [`00-overview.md`](docs/00-overview.md)                             | mission, decisions, non-goals, Umbraco→crombolo glossary                                                                                |
 | [`01-architecture.md`](docs/01-architecture.md)                     | module boundaries, server composition, cross-cutting infrastructure                                                                     |
 | [`02-data-model.md`](docs/02-data-model.md)                         | schema, naming map, the versioning model, dialect strategy, migrations                                                                  |
 | [`03-api-contract.md`](docs/03-api-contract.md)                     | routing, response conventions, the document payload, build order                                                                        |

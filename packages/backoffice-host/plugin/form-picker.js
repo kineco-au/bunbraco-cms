@@ -14,7 +14,7 @@ import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 
 const forms = async () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  const response = await fetch(`${href.replace(/\/$/, '')}/bunbraco/api/forms`, {
+  const response = await fetch(`${href.replace(/\/$/, '')}/crombolo/api/forms`, {
     credentials: 'include',
     headers: { accept: 'application/json' },
   })
@@ -22,7 +22,7 @@ const forms = async () => {
   return (await response.json()).items ?? []
 }
 
-export default class BunbracoFormPickerElement extends UmbLitElement {
+export default class CromboloFormPickerElement extends UmbLitElement {
   static properties = {
     value: { type: String },
     _items: { state: true },
@@ -113,4 +113,4 @@ export default class BunbracoFormPickerElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-form-picker', BunbracoFormPickerElement)
+customElements.define('crombolo-form-picker', CromboloFormPickerElement)

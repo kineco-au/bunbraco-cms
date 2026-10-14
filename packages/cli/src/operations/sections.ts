@@ -27,11 +27,11 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import type { Db } from '@bunbraco/data'
-import type { BunbracoConfig } from '@bunbraco/server'
-import { checkSchemaDirectory, importDictionaryUdt, syncSchemaDirectory } from '@bunbraco/server'
-import type { BundleSection, LoadedBundle } from '@bunbraco/transfer'
-import { BUNDLE_SECTIONS } from '@bunbraco/transfer'
+import type { Db } from '@crombolo/data'
+import type { CromboloConfig } from '@crombolo/server'
+import { checkSchemaDirectory, importDictionaryUdt, syncSchemaDirectory } from '@crombolo/server'
+import type { BundleSection, LoadedBundle } from '@crombolo/transfer'
+import { BUNDLE_SECTIONS } from '@crombolo/transfer'
 
 /** What applying one carried file would do to the destination. */
 export type FileAction = 'create' | 'overwrite' | 'unchanged'
@@ -76,11 +76,11 @@ export interface SectionOptions {
 /**
  * Where an install keeps the files it replaced, under the site.
  *
- * A sibling of the components cache, not inside it: `.bunbraco/components` is
+ * A sibling of the components cache, not inside it: `.crombolo/components` is
  * rebuilt from `components/` and cleared at boot, and these have to outlive a
  * restart to be worth taking.
  */
-export const RUN_BACKUP_DIR = join('.bunbraco', 'transfer')
+export const RUN_BACKUP_DIR = join('.crombolo', 'transfer')
 
 /** What one install did to the files, so a revert can undo exactly that. */
 interface FileRecord {
@@ -92,7 +92,7 @@ const RECORD_FILE = 'files.json'
 const REPLACED_DIR = 'replaced'
 
 /** Where each section lands, from the site's own configuration. */
-function destinationOf(config: BunbracoConfig, section: BundleSection): string | undefined {
+function destinationOf(config: CromboloConfig, section: BundleSection): string | undefined {
   switch (section) {
     case 'schema':
       return config.schemaDir
@@ -143,7 +143,7 @@ const read = (carried: CarriedSections, path: string): string => {
 /** Read-only: what applying the carried sections here would do. */
 export async function planSections(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   carried: CarriedSections,
   options: SectionOptions = {},
 ): Promise<SectionPlan> {
@@ -190,11 +190,11 @@ export async function planSections(
  */
 async function checkSchemaOverlay(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   carried: CarriedSections,
   paths: readonly string[],
 ): Promise<{ classification: string; findings: string[] }> {
-  const overlay = mkdtempSync(join(tmpdir(), 'bunbraco-schema-overlay-'))
+  const overlay = mkdtempSync(join(tmpdir(), 'crombolo-schema-overlay-'))
   try {
     if (existsSync(config.schemaDir)) cpSync(config.schemaDir, overlay, { recursive: true })
     for (const path of paths) {
@@ -236,7 +236,7 @@ export interface SectionResult {
  */
 export async function applySections(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   carried: CarriedSections,
   options: SectionOptions & { backupDir?: string } = {},
 ): Promise<SectionResult> {
@@ -328,7 +328,7 @@ export function replacementsNeedingPermission(
 }
 
 /** A staging directory for an install's backups, before the run it belongs to exists. */
-export function stageBackups(config: BunbracoConfig): string {
+export function stageBackups(config: CromboloConfig): string {
   const dir = join(config.siteDir, RUN_BACKUP_DIR, `pending-${Date.now().toString(36)}`)
   mkdirSync(dir, { recursive: true })
   return dir
@@ -344,7 +344,7 @@ export function stageBackups(config: BunbracoConfig): string {
  * deleted: it holds the only copy of what was replaced.
  */
 export function promoteBackups(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   staging: string,
   runId: string,
 ): string | undefined {
@@ -374,7 +374,7 @@ export interface RestoredFiles {
  * site being a git checkout — these files are editable in the backoffice, so
  * assuming a repository would have been assuming somebody else's workflow.
  */
-export function restoreSectionFiles(config: BunbracoConfig, runId: string): RestoredFiles {
+export function restoreSectionFiles(config: CromboloConfig, runId: string): RestoredFiles {
   const dir = join(config.siteDir, RUN_BACKUP_DIR, runId)
   const record = join(dir, RECORD_FILE)
   if (!existsSync(record)) return { restored: [], removed: [] }

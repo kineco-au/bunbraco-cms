@@ -54,7 +54,7 @@ export function uuidEquals(a: string | null | undefined, b: string | null | unde
  *
  * The two spellings a stored value uses for a reference. It lives here rather
  * than beside the value converters that first needed it because exporting a
- * bundle reads the same references out of the same values, and `@bunbraco/transfer`
+ * bundle reads the same references out of the same values, and `@crombolo/transfer`
  * must not depend on the renderer to do it.
  */
 export function keyFromReference(reference: unknown): string | undefined {

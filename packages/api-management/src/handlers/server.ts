@@ -4,7 +4,7 @@
  * must not depend on the database being reachable. Plus the upload settings
  * the editor reads before it offers a file picker.
  */
-import { DEFAULT_UPLOAD_SETTINGS } from '@bunbraco/core'
+import { DEFAULT_UPLOAD_SETTINGS } from '@crombolo/core'
 import type { ServerPort } from '../ports.ts'
 import type { ManagementApiRouter } from '../router.ts'
 

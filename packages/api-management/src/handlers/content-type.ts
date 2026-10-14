@@ -2,7 +2,7 @@
  * Content types: the tree, item lookups, and the aggregate CRUD the editor uses.
  */
 
-import type { ResponseOf } from '@bunbraco/contracts'
+import type { ResponseOf } from '@crombolo/contracts'
 import {
   type ContentTypeAggregate,
   invalidSkipTake,
@@ -15,7 +15,7 @@ import {
   problemResponse,
   systemFieldViolation,
   type TreeItem,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { ContentTypeKind, ContentTypePort, FolderPort, SkipTake } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 
@@ -507,7 +507,7 @@ export function registerContentTypeHandlers(
         problemDetails({
           title: 'This content type cannot be deleted',
           status: 400,
-          detail: 'It is provided by Bunbraco and always present.',
+          detail: 'It is provided by Crombolo and always present.',
           operationStatus: 'NotAllowed',
         }),
       )

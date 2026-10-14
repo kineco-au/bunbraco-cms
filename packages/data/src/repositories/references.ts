@@ -10,7 +10,7 @@
  * A picker stores its target as `umb://document/<hex>` or a bare uuid, so both
  * spellings are matched.
  */
-import { normaliseUuid } from '@bunbraco/core'
+import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
 
 export interface ReferencingNode {

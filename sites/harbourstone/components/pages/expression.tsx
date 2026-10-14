@@ -1,4 +1,4 @@
-import type { PageProps, PublishedElement } from 'bunbraco'
+import type { PageProps, PublishedElement } from '@crombolo/crombolo'
 import { specOf, TastingNotes } from '../shared/bottling.tsx'
 import { Layout } from '../shared/layout.tsx'
 import { Eyebrow } from '../shared/section-intro.tsx'

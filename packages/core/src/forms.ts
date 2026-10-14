@@ -1,7 +1,7 @@
 /**
  * The form model, and the closed set of field types it may use.
  *
- * Here rather than in `@bunbraco/schema` because both the schema parser and the
+ * Here rather than in `@crombolo/schema` because both the schema parser and the
  * renderer need it, and `render` depends on `core` alone. What a form *is* is
  * domain knowledge; how it is written to a file is not.
  *

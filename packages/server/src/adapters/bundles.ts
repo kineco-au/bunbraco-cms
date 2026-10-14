@@ -3,8 +3,8 @@
  * `docs/17-bundles.md`.
  *
  * Nothing new is serialized here. Schema travels as the canonical TOML
- * `@bunbraco/schema` already writes, content and media as the bundle
- * `@bunbraco/transfer` already exports, files as themselves, and dictionary
+ * `@crombolo/schema` already writes, content and media as the bundle
+ * `@crombolo/transfer` already exports, files as themselves, and dictionary
  * items as the `.udt` the dictionary already exports. The build is composition,
  * which is why a bundle can carry everything the builder UI offers.
  */
@@ -17,8 +17,8 @@ import {
   type PackagePort,
   type PackageWriteResult,
   packageFileName,
-} from '@bunbraco/api-management'
-import { ObjectTypes, type Page } from '@bunbraco/core'
+} from '@crombolo/api-management'
+import { ObjectTypes, type Page } from '@crombolo/core'
 import {
   type Bundle,
   BundleRepository,
@@ -29,7 +29,7 @@ import {
   DictionaryRepository,
   type NodeRow,
   resolveNodeRef,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   exportSchemaSet,
   fileNameFor,
@@ -39,7 +39,7 @@ import {
   writeLanguages,
   writeMediaType,
   writeSchemaVersion,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import {
   BUNDLE_SECTIONS,
   type BundleBlob,
@@ -51,7 +51,7 @@ import {
   type ContentSet,
   exportBundle,
   writeBundle,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import { dictionaryToUdt, writeDictionaryUdt } from '../dictionary-transfer.ts'
 import { readBlobs } from '../media-files.ts'
 import type { MediaStore } from '../media-store.ts'

@@ -2,7 +2,7 @@
 # fixed-version set. Versions the registry already holds are skipped, so a tag
 # that only moves some packages is safe to push.
 #
-# Needs an NPM_TOKEN secret with publish rights to the @bunbraco scope.
+# Needs an NPM_TOKEN secret with publish rights to the @crombolo scope.
 name: Release
 
 # What the Actions list shows for the run. Without this, a push event is titled
@@ -53,10 +53,10 @@ jobs:
 
             - name: Check the tag matches the package version
               run: |
-                  version="$(bun --print 'require("./packages/bunbraco/package.json").version')"
+                  version="$(bun --print 'require("./packages/crombolo/package.json").version')"
                   tag="${GITHUB_REF_NAME#v}"
                   if [ "$version" != "$tag" ]; then
-                    echo "Tag $GITHUB_REF_NAME does not match bunbraco@$version" >&2
+                    echo "Tag $GITHUB_REF_NAME does not match @crombolo/crombolo@$version" >&2
                     exit 1
                   fi
 
@@ -78,7 +78,7 @@ jobs:
 
     # Our own product site runs on the platform as an ordinary tenant, so a
     # release republishes its content the way a customer's CI would (`115` in
-    # bunbraco-enterprise). It publishes to **preview**; production is promoted
+    # crombolo-enterprise). It publishes to **preview**; production is promoted
     # by hand once somebody has looked at it.
     #
     # Gated on a repository variable rather than on a secret being absent: a
@@ -101,11 +101,11 @@ jobs:
             - name: Publish the product site to preview
               run: bun run brochureware:publish
               env:
-                  BUNBRACO_PLATFORM_URL: ${{ vars.BUNBRACO_PLATFORM_URL }}
-                  BUNBRACO_PLATFORM_TOKEN: ${{ secrets.BUNBRACO_PLATFORM_TOKEN }}
-                  BUNBRACO_PLATFORM_ORGANISATION: ${{ vars.BUNBRACO_PLATFORM_ORGANISATION }}
-                  BUNBRACO_PLATFORM_SITE: ${{ vars.BUNBRACO_PLATFORM_SITE }}
-                  BUNBRACO_PLATFORM_ENVIRONMENT: ${{ vars.BUNBRACO_PLATFORM_PREVIEW }}
+                  CROMBOLO_PLATFORM_URL: ${{ vars.CROMBOLO_PLATFORM_URL }}
+                  CROMBOLO_PLATFORM_TOKEN: ${{ secrets.CROMBOLO_PLATFORM_TOKEN }}
+                  CROMBOLO_PLATFORM_ORGANISATION: ${{ vars.CROMBOLO_PLATFORM_ORGANISATION }}
+                  CROMBOLO_PLATFORM_SITE: ${{ vars.CROMBOLO_PLATFORM_SITE }}
+                  CROMBOLO_PLATFORM_ENVIRONMENT: ${{ vars.CROMBOLO_PLATFORM_PREVIEW }}
 
             - name: Say that production is still waiting
               run: |

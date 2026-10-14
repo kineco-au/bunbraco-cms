@@ -24,7 +24,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 
 const K = (n: number) => `7c3f91a2-1111-4b2c-9d3e-${String(n).padStart(12, '0')}`
 
@@ -61,7 +61,7 @@ name = "Intro"
 type = "textarea"
 `
 
-const MIGRATION = `import { defineValueMigration } from '@bunbraco/schema'
+const MIGRATION = `import { defineValueMigration } from '@crombolo/schema'
 
 export default defineValueMigration({
   since: '1.1.0',
@@ -78,7 +78,7 @@ const TSCONFIG = `${JSON.stringify(
       module: 'Preserve',
       moduleResolution: 'bundler',
       jsx: 'react-jsx',
-      jsxImportSource: 'bunbraco',
+      jsxImportSource: '@crombolo/crombolo',
       allowImportingTsExtensions: true,
       noEmit: true,
       types: ['bun'],
@@ -125,8 +125,8 @@ import {
   DocumentRepository,
   ComponentRepository,
   currentSchemaState,
-} from '@bunbraco/data'
-import { bootstrapDatabase, loadConfig } from '@bunbraco/server'
+} from '@crombolo/data'
+import { bootstrapDatabase, loadConfig } from '@crombolo/server'
 
 const [, , mode, ...args] = Bun.argv
 const config = loadConfig({}, process.cwd())
@@ -195,15 +195,15 @@ describe('the upgrade, end to end through the CLI', () => {
   function environment(database: Environment, release: Release): Record<string, string> {
     return {
       ...(process.env as Record<string, string>),
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
-      BUNBRACO_SCHEMA_DIR: join(releaseDir(release), 'schema'),
-      BUNBRACO_COMPONENTS_DIR: join(releaseDir(release), 'components'),
-      BUNBRACO_SCHEMA_REVISION: RELEASES[release].revision,
-      BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
-      BUNBRACO_LOGS_DIR: join(dir, 'logs'),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_SQLITE_FILE: join(dir, `${database}.sqlite`),
+      CROMBOLO_SCHEMA_DIR: join(releaseDir(release), 'schema'),
+      CROMBOLO_COMPONENTS_DIR: join(releaseDir(release), 'components'),
+      CROMBOLO_SCHEMA_REVISION: RELEASES[release].revision,
+      CROMBOLO_MEDIA_DIR: join(dir, `${database}-media`),
+      CROMBOLO_LOGS_DIR: join(dir, 'logs'),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
     }
   }
 
@@ -276,7 +276,7 @@ describe('the upgrade, end to end through the CLI', () => {
   }
 
   /**
-   * Boots a release as a deploy does — `bunbraco start`, in production, on a
+   * Boots a release as a deploy does — `crombolo start`, in production, on a
    * port the OS picks — and waits for the banner to name its URL.
    */
   async function serve(database: Environment, release: Release): Promise<Serving> {
@@ -336,7 +336,7 @@ describe('the upgrade, end to end through the CLI', () => {
     )
     writeFileSync(join(root, 'schema', 'content-types', 'article.toml'), RELEASES[release].type)
     writeFileSync(join(root, 'components', 'article.tsx'), VIEW)
-    // The same tsconfig `bunbraco init` scaffolds: without `jsxImportSource` the
+    // The same tsconfig `crombolo init` scaffolds: without `jsxImportSource` the
     // view transpiles against React and every page is a 500.
     writeFileSync(join(root, 'tsconfig.json'), TSCONFIG)
     if (RELEASES[release].migration) {
@@ -429,7 +429,7 @@ describe('the upgrade, end to end through the CLI', () => {
     const refused = await cli('dev', 2, 'upgrade')
     expect(refused.code).toBe(1)
     expect(refused.out).toContain('upgrade refused: 1 outstanding finding(s)')
-    expect(refused.out).toContain('Run `bunbraco upgrade check --fix`')
+    expect(refused.out).toContain('Run `crombolo upgrade check --fix`')
     expect(await stateOf('dev')).toEqual({ version: '1.0.0', revision: '1' })
   })
 
@@ -516,7 +516,7 @@ describe('the upgrade, end to end through the CLI', () => {
       }),
     )
     expect(refused.out).toContain('need data work before they can apply')
-    expect(refused.out).toContain('bunbraco upgrade check')
+    expect(refused.out).toContain('crombolo upgrade check')
     expect(refused.code, refused.out).not.toBe(0)
     expect(await stateOf('prod')).toEqual({ version: '1.0.0', revision: '1' })
   })

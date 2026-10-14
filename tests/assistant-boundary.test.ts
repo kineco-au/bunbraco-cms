@@ -17,8 +17,8 @@ import {
   readableOperations,
   SCHEMA_KINDS,
   scanTemplateSource,
-} from '@bunbraco/assistant'
-import { listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
+} from '@crombolo/assistant'
+import { listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 
 const operations = listOperations(loadSpec())
 const byId = new Map(operations.map((operation) => [operation.operationId, operation]))
@@ -156,7 +156,7 @@ describe('what an approval can apply', () => {
 })
 
 describe('proposed template source', () => {
-  const clean = `import type { PageProps } from 'bunbraco'
+  const clean = `import type { PageProps } from '@crombolo/crombolo'
 export default function Page({ model }: PageProps) {
   return <h1>{model.text('title')}</h1>
 }
@@ -171,7 +171,7 @@ export default function Page({ model }: PageProps) {
       {
         file: 'page.tsx',
         path: 'imports',
-        message: 'bun is not an allowed import; use bunbraco or a file beside this one',
+        message: 'bun is not an allowed import; use @crombolo/crombolo or a file beside this one',
       },
     ])
     expect(scanTemplateSource('page.tsx', 'await Bun.$`ls`\n')).toEqual([
@@ -189,7 +189,7 @@ export default function Page({ model }: PageProps) {
   })
 
   test('page text that happens to read like code is left alone', () => {
-    const source = `import type { PageProps } from 'bunbraco'
+    const source = `import type { PageProps } from '@crombolo/crombolo'
 export default ({ model }: PageProps) => (
   <p>Our process is to fetch the Bun and eval the require</p>
 )
@@ -245,13 +245,13 @@ export default ({ model }: PageProps) => (
     )
   })
 
-  test('allows a sibling partial and the bunbraco entry point', () => {
-    const source = `import { Html } from 'bunbraco'\nimport Card from './card.tsx'\nexport default () => <Html><Card /></Html>\n`
+  test('allows a sibling partial and the crombolo entry point', () => {
+    const source = `import { Html } from '@crombolo/crombolo'\nimport Card from './card.tsx'\nexport default () => <Html><Card /></Html>\n`
     expect(scanTemplateSource('page.tsx', source)).toEqual([])
   })
 
   test('a property called fetch is not mistaken for the global', () => {
-    const source = `import type { PageProps } from 'bunbraco'\nexport default ({ model }: PageProps) => <p>{model.text('fetch')}</p>\n`
+    const source = `import type { PageProps } from '@crombolo/crombolo'\nexport default ({ model }: PageProps) => <p>{model.text('fetch')}</p>\n`
     expect(scanTemplateSource('page.tsx', source)).toEqual([])
   })
 

@@ -1,5 +1,5 @@
 /**
- * Migration 026 — the form verbs move from `Umb.` to `Bunbraco.`.
+ * Migration 026 — the form verbs move from `Umb.` to `Crombolo.`.
  *
  * Migration 025 granted them under `Umb.Form.*` and `Umb.FormEntry.*`, which
  * claimed they were Umbraco's. They are not: Umbraco has no forms in core, so
@@ -17,17 +17,17 @@ export const STATE_FORM_PERMISSION_PREFIX = '{6f1d4a8e-0026-4e72-9a55-3d7c1b8e4f
 
 /** Old spelling to new, for every verb migration 025 could have written. */
 export const RENAMED_FORM_VERBS: ReadonlyArray<readonly [string, string]> = [
-  ['Umb.Form.Read', 'Bunbraco.Form.Read'],
-  ['Umb.Form.Manage', 'Bunbraco.Form.Manage'],
-  ['Umb.FormEntry.Read', 'Bunbraco.FormEntry.Read'],
-  ['Umb.FormEntry.Manage', 'Bunbraco.FormEntry.Manage'],
-  ['Umb.FormEntry.Sensitive', 'Bunbraco.FormEntry.Sensitive'],
+  ['Umb.Form.Read', 'Crombolo.Form.Read'],
+  ['Umb.Form.Manage', 'Crombolo.Form.Manage'],
+  ['Umb.FormEntry.Read', 'Crombolo.FormEntry.Read'],
+  ['Umb.FormEntry.Manage', 'Crombolo.FormEntry.Manage'],
+  ['Umb.FormEntry.Sensitive', 'Crombolo.FormEntry.Sensitive'],
 ]
 
 export const formPermissionPrefixMigration: Migration = {
   from: STATE_FORM_PERMISSIONS,
   to: STATE_FORM_PERMISSION_PREFIX,
-  name: 'PrefixFormPermissionsWithBunbraco',
+  name: 'PrefixFormPermissionsWithCrombolo',
   kind: 'expand',
   release: '0.5.0',
   up: async (db: Db) => {

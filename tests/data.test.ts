@@ -11,7 +11,7 @@ import {
   readState,
   sqliteDialect,
   stampFinalState,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 const STATE_1 = '{11111111-1111-1111-1111-111111111111}'

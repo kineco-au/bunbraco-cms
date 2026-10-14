@@ -2,7 +2,7 @@
  * The browser's view of a condition and the server's must agree.
  *
  * Two implementations exist on purpose: the server is the authority
- * (`@bunbraco/core`), and the script is what makes a field appear between
+ * (`@crombolo/core`), and the script is what makes a field appear between
  * keystrokes without a round trip. If they disagree, a visitor watches a field
  * appear and then gets told it should not have been there — so every operator
  * is run through both and the answers compared.
@@ -14,8 +14,8 @@ import {
   type FormConditionOperator,
   isShown,
   type SubmittedValues,
-} from '@bunbraco/core'
-import { FORM_SCRIPT } from '@bunbraco/render'
+} from '@crombolo/core'
+import { FORM_SCRIPT } from '@crombolo/render'
 
 interface ScriptApi {
   rule(form: unknown, rule: { field: string; operator: string; value?: string }): boolean
@@ -34,7 +34,7 @@ function loadScript(): ScriptApi {
     document: { querySelectorAll: () => [] },
   }
   new Function('window', 'document', FORM_SCRIPT)(globals.window, globals.document)
-  return globals.window.__bunbracoForms as ScriptApi
+  return globals.window.__cromboloForms as ScriptApi
 }
 
 /** A stand-in for the rendered form: text inputs holding the given values. */
@@ -52,9 +52,9 @@ describe('the script loads', () => {
     expect(typeof script.rule).toBe('function')
     expect(typeof script.shown).toBe('function')
     // A second run finds the flag and returns, so two forms do not double-bind.
-    const globals = { window: { __bunbracoForms: script } as Record<string, unknown>, document: {} }
+    const globals = { window: { __cromboloForms: script } as Record<string, unknown>, document: {} }
     new Function('window', 'document', FORM_SCRIPT)(globals.window, globals.document)
-    expect(globals.window.__bunbracoForms).toBe(script)
+    expect(globals.window.__cromboloForms).toBe(script)
   })
 })
 

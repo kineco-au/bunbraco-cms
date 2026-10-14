@@ -51,7 +51,7 @@ const INTRO: Record<FindingClass, string> = {
   blocking: 'The import will not run until these are dealt with.',
   'needs-a-person':
     'These come across, but somebody has work to do before they behave as they did.',
-  'cannot-migrate': 'These have no equivalent in Bunbraco. Nothing is imported for them.',
+  'cannot-migrate': 'These have no equivalent in Crombolo. Nothing is imported for them.',
   'not-yet': 'These could be imported, but this version of the importer does not do it.',
   dropped: 'These are left behind on purpose.',
   migrates: 'These are converted, with nothing to do.',

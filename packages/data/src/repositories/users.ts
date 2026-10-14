@@ -3,7 +3,7 @@
  * start nodes and permission verbs. Password hashing and the rules about who
  * may change what live with the callers; this is storage.
  */
-import { type GroupGrant, normaliseUuid, type StartNodePath } from '@bunbraco/core'
+import { type GroupGrant, normaliseUuid, type StartNodePath } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 import { mapNode, type NodeRow } from './nodes.ts'

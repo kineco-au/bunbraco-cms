@@ -1,10 +1,10 @@
 /** The Phase 1 Management API handlers, exercised with an authenticated caller. */
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
-import { createManagementApiRouter, type Principal } from '@bunbraco/api-management'
-import { createBackOfficePaths, createExtensionRegistry } from '@bunbraco/backoffice-host'
-import { CORE_SECTION_ALIASES, ROOT_ACCESS } from '@bunbraco/core'
-import { CORE_SECTIONS, createDeps, loadConfig } from '@bunbraco/server'
+import { createManagementApiRouter, type Principal } from '@crombolo/api-management'
+import { createBackOfficePaths, createExtensionRegistry } from '@crombolo/backoffice-host'
+import { CORE_SECTION_ALIASES, ROOT_ACCESS } from '@crombolo/core'
+import { CORE_SECTIONS, createDeps, loadConfig } from '@crombolo/server'
 
 const paths = createBackOfficePaths()
 const deps = createDeps({

@@ -2,10 +2,10 @@
  * The sites this repository builds: one directory each under `sites/`.
  *
  * A site here is a real site, run in place — its own `package.json` (a private
- * workspace, so `bunbraco` resolves to the working tree), config, schema,
+ * workspace, so `@crombolo/crombolo` resolves to the working tree), config, schema,
  * components and committed content bundle — and is not published by default.
  * One that sets `"distribute": true` in its `site.json` is staged into
- * `@bunbraco/cli`'s `templates/` while the CLI is packed, so `bunbraco init
+ * `@crombolo/cli`'s `templates/` while the CLI is packed, so `crombolo init
  * --template <id>` can write it.
  *
  *   site.json     id, name, description; `distribute` and the server `bundles`
@@ -24,7 +24,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
-import { siteMediaTypeFiles } from '@bunbraco/schema'
+import { siteMediaTypeFiles } from '@crombolo/schema'
 import { ROOT } from './packages.ts'
 
 export const SITES_DIR = join(ROOT, 'sites')
@@ -107,7 +107,7 @@ export function copyTemplateFiles(site: RepoSite, dir: string): void {
   }
 }
 
-/** Writes a site out as a template under `<into>/<id>`, in the layout `@bunbraco/cli` reads. */
+/** Writes a site out as a template under `<into>/<id>`, in the layout `@crombolo/cli` reads. */
 export function stageTemplate(site: RepoSite, into: string): string {
   const target = join(into, site.id)
   if (existsSync(target)) throw new Error(`${target} already exists; refusing to overwrite it`)
@@ -159,8 +159,8 @@ export function unstage(staged: readonly string[], into: string): void {
 export function runState(dir: string): string[] {
   if (!existsSync(dir)) return []
   return readdirSync(dir)
-    .filter((name) => RUN_STATE.has(name) || name.startsWith('bunbraco.sqlite'))
+    .filter((name) => RUN_STATE.has(name) || name.startsWith('crombolo.sqlite'))
     .map((name) => join(dir, name))
 }
 
-const RUN_STATE = new Set(['media', 'logs', '.bunbraco'])
+const RUN_STATE = new Set(['media', 'logs', '.crombolo'])

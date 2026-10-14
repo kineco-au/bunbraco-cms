@@ -4,7 +4,7 @@
  * Everything bearer-shaped is stored hashed, so a database read cannot yield a
  * usable credential.
  */
-import { type Db, DbDate, fromDbBool, Locks } from '@bunbraco/data'
+import { type Db, DbDate, fromDbBool, Locks } from '@crombolo/data'
 import { hashToken } from './pkce.ts'
 
 export interface UserRow {

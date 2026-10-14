@@ -1,7 +1,7 @@
 /**
  * The same JSX runtime with unchecked attributes: any attribute on any tag, and
  * a JSX expression typed as text. For a site that is upgrading and has views
- * the checked types would flag; set `"jsxImportSource": "bunbraco/loose"`.
+ * the checked types would flag; set `"jsxImportSource": "@crombolo/crombolo/loose"`.
  * What renders is identical either way.
  */
 import type { Child, ElementProps } from '../jsx-runtime.ts'

@@ -4,36 +4,36 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Gallwch newid eich cyfrinair i gyrchu Swyddfa Gefn Bunbracogan lenwi allan y ffurflen isod a chlicio'r botwm 'Newid Cyfrinair'",
-    "createUserHelp": "Creu defnyddwyr newydd i roi hawliau iddynt gyrchu Bunbraco. Pan mae defnyddiwr newydd yn cael ei greu, bydd cyfrinair yn cael ei generadu y gallwch chi rannu gyda'r defnyddiwr.",
-    "inviteUserHelp": "Gwahodd defnyddwyr newydd i roi hawliau iddynt gyrchu Bunbraco. Bydd gwahoddiad ebost yn cael ei anfon at y defnyddiwr gyda gwybodaeth ar sut i fewngofnodi i Bunbraco. Mae gwahoddiadau yn para am 72 awr.",
-    "noConsole": "Analluogi Mynediad Bunbraco",
-    "userCreatedSuccessHelp": "Mae'r defnyddiwr newydd wedi'i greu. Er mwyn mewngofnodi i Bunbraco defnyddiwch y cyfrinair isod.",
-    "userInvitedSuccessHelp": "Mae gwahoddiad wedi cael ei anfon at y defnyddiwr newydd gyda manylion ar sut i fewngofnodi i Bunbraco.",
-    "userinviteWelcomeMessage": "Helo a chroeso i Bunbraco! Mewn 1 munud yn unig, byddech chi'n barod i fynd, rydym dim ond angen gosod cyfrinair.",
-    "userinviteExpiredMessage": "Croeso i Bunbraco! Yn anffodus, mae eich gwahoddiad wedi terfynu. Cysylltwch â'ch gweinyddwr a gofynnwch iddynt ail-anfon.",
+    "changePasswordDescription": "Gallwch newid eich cyfrinair i gyrchu Swyddfa Gefn Crombologan lenwi allan y ffurflen isod a chlicio'r botwm 'Newid Cyfrinair'",
+    "createUserHelp": "Creu defnyddwyr newydd i roi hawliau iddynt gyrchu Crombolo. Pan mae defnyddiwr newydd yn cael ei greu, bydd cyfrinair yn cael ei generadu y gallwch chi rannu gyda'r defnyddiwr.",
+    "inviteUserHelp": "Gwahodd defnyddwyr newydd i roi hawliau iddynt gyrchu Crombolo. Bydd gwahoddiad ebost yn cael ei anfon at y defnyddiwr gyda gwybodaeth ar sut i fewngofnodi i Crombolo. Mae gwahoddiadau yn para am 72 awr.",
+    "noConsole": "Analluogi Mynediad Crombolo",
+    "userCreatedSuccessHelp": "Mae'r defnyddiwr newydd wedi'i greu. Er mwyn mewngofnodi i Crombolo defnyddiwch y cyfrinair isod.",
+    "userInvitedSuccessHelp": "Mae gwahoddiad wedi cael ei anfon at y defnyddiwr newydd gyda manylion ar sut i fewngofnodi i Crombolo.",
+    "userinviteWelcomeMessage": "Helo a chroeso i Crombolo! Mewn 1 munud yn unig, byddech chi'n barod i fynd, rydym dim ond angen gosod cyfrinair.",
+    "userinviteExpiredMessage": "Croeso i Crombolo! Yn anffodus, mae eich gwahoddiad wedi terfynu. Cysylltwch â'ch gweinyddwr a gofynnwch iddynt ail-anfon.",
     "documentType": "Math o Gynnwys"
   },
   "general": {
-    "umbracoInfo": "Gwybodaeth Bunbraco"
+    "umbracoInfo": "Gwybodaeth Crombolo"
   },
   "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Chwilio'r swyddfa gefn Bunbraco"
+    "searchOverlayTitle": "Chwilio'r swyddfa gefn Crombolo"
   },
   "languages": {
-    "defaultLanguageHelp": "Gall wefan Bunbraco ddim ond cael un iaith ddiofyn."
+    "defaultLanguageHelp": "Gall wefan Crombolo ddim ond cael un iaith ddiofyn."
   },
   "paste": {
-    "errorMessage": "Mae'r testun yr ydych yn ceisio gludo yn cynnwys nodauneu fformatio arbennig. Gall hyn gael ei achosi gan ludo testun o Microsoft Word. Gall Bunbraco ddileu nodau neu fformatio arbennig yn awtomatig, fel bod y cynnwys sy'n cael ei ludo yn fwy addas ar gyfer y we."
+    "errorMessage": "Mae'r testun yr ydych yn ceisio gludo yn cynnwys nodauneu fformatio arbennig. Gall hyn gael ei achosi gan ludo testun o Microsoft Word. Gall Crombolo ddileu nodau neu fformatio arbennig yn awtomatig, fel bod y cynnwys sy'n cael ei ludo yn fwy addas ar gyfer y we."
   },
   "dashboard": {
-    "nothinghappens": "Os nad yw Bunbraco yn agor, efallai byddwch angen galluogi popups o'r safle yma"
+    "nothinghappens": "Os nad yw Crombolo yn agor, efallai byddwch angen galluogi popups o'r safle yma"
   },
   "logViewer": {
-    "searchUmbracoSource": "Chwilio'r cod gwreiddiol Bunbraco",
-    "searchWithinUmbracoSourceCodeOnGithub": "Chwilio tu fewn y cod gwreiddiol Bunbraco ar Github",
-    "searchUmbracoIssues": "Chwilio Problemau Bunbraco",
-    "searchUmbracoIssuesOnGithub": "Chwilio Problemau Bunbraco ar Github"
+    "searchUmbracoSource": "Chwilio'r cod gwreiddiol Crombolo",
+    "searchWithinUmbracoSourceCodeOnGithub": "Chwilio tu fewn y cod gwreiddiol Crombolo ar Github",
+    "searchUmbracoIssues": "Chwilio Problemau Crombolo",
+    "searchUmbracoIssuesOnGithub": "Chwilio Problemau Crombolo ar Github"
   },
   "actions": {
     "changeDocType": "Newid Math o Gynnwys",

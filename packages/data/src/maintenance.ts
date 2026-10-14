@@ -6,7 +6,7 @@
 import type { Db } from './database.ts'
 import { readKeyValue, writeKeyValue } from './migrations.ts'
 
-export const WRITES_PAUSED_KEY = 'Bunbraco.Operations.WritesPaused'
+export const WRITES_PAUSED_KEY = 'Crombolo.Operations.WritesPaused'
 
 export interface WritesPaused {
   reason: string

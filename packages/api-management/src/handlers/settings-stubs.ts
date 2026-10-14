@@ -6,7 +6,7 @@
  * when its work package lands (docs/07-roadmap.md, Phase 6). Counted
  * separately by `coverage:api`.
  */
-import { invalidSkipTake, notFound, problemResponse } from '@bunbraco/core'
+import { invalidSkipTake, notFound, problemResponse } from '@crombolo/core'
 import type { ManagementApiRouter } from '../router.ts'
 import { paging } from './content-type.ts'
 

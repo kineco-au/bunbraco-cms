@@ -12,7 +12,7 @@ import type { Dialect } from './dialect.ts'
 import type { LockManager } from './locks.ts'
 import { Locks } from './locks.ts'
 
-export const MIGRATION_STATE_KEY = 'Bunbraco.Core.Upgrader.State'
+export const MIGRATION_STATE_KEY = 'Crombolo.Core.Upgrader.State'
 export const INITIAL_STATE = '{00000000-0000-0000-0000-000000000000}'
 
 export type MigrationKind = 'expand' | 'contract'
@@ -288,7 +288,7 @@ export class UpgradeStateError extends Error {
     readonly codeState: string,
   ) {
     super(
-      `The database is at migration state ${databaseState}, which this version of bunbraco (plan ends at ${codeState}) does not know. ` +
+      `The database is at migration state ${databaseState}, which this version of crombolo (plan ends at ${codeState}) does not know. ` +
         'It was upgraded by a newer version; run that version, or restore the backup taken before the upgrade.',
     )
   }

@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
-import { siteMediaTypeFiles } from '@bunbraco/schema'
+import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
+import { siteMediaTypeFiles } from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

@@ -20,7 +20,7 @@ const SOURCES = {
   none: 'Not set',
 }
 
-export default class BunbracoSeoDocumentViewElement extends UmbLitElement {
+export default class CromboloSeoDocumentViewElement extends UmbLitElement {
   static properties = {
     _preview: { state: true },
     _error: { state: true },
@@ -158,4 +158,4 @@ export default class BunbracoSeoDocumentViewElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-seo-document-view', BunbracoSeoDocumentViewElement)
+customElements.define('crombolo-seo-document-view', CromboloSeoDocumentViewElement)

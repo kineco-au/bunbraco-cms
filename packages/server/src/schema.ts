@@ -25,7 +25,7 @@ import {
   updateSchemaStateHash,
   type WritesPaused,
   writeReport,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   type ChangeClass,
   type CheckReport,
@@ -37,9 +37,9 @@ import {
   type SyncReport,
   syncSchema,
   writeKeysBack,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import { listComponents } from './components.ts'
-import type { BunbracoConfig } from './config.ts'
+import type { CromboloConfig } from './config.ts'
 import { logger } from './logging.ts'
 import { materialiseSchema } from './schema-store.ts'
 
@@ -60,7 +60,7 @@ export class UpgradeRequiredError extends Error {
   constructor(readonly check: CheckReport) {
     super(
       `schema/ changes need data work before they can apply (${check.outstanding.length} finding(s), ${check.classification}): ` +
-        'run `bunbraco upgrade check`, then `bunbraco upgrade check --fix`, then `bunbraco upgrade`.',
+        'run `crombolo upgrade check`, then `crombolo upgrade check --fix`, then `crombolo upgrade`.',
     )
   }
 }
@@ -68,7 +68,7 @@ export class UpgradeRequiredError extends Error {
 /** The check over the site's diff, with its value migrations loaded. */
 export async function checkSchemaDirectory(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   node: { nodeId: string; revision: string },
   options: { set?: Record<string, unknown> } = {},
 ): Promise<CheckReport> {
@@ -104,7 +104,7 @@ export function componentAliasesIn(componentsDir: string): Set<string> {
   return new Set(listComponents(componentsDir).map((component) => component.alias))
 }
 
-export function syncOptionsFor(config: BunbracoConfig): SyncOptions {
+export function syncOptionsFor(config: CromboloConfig): SyncOptions {
   return {
     mode: config.development ? 'development' : 'production',
     componentAliases: componentAliasesIn(config.componentsDir),
@@ -114,7 +114,7 @@ export function syncOptionsFor(config: BunbracoConfig): SyncOptions {
 /** One sync of the directory, with key write-back in development. */
 export async function syncSchemaDirectory(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   node: { nodeId: string; version?: string; revision: string },
   options: Partial<SyncOptions> = {},
 ): Promise<SyncReport> {
@@ -141,7 +141,7 @@ export async function syncSchemaDirectory(
   })
 }
 
-export async function bootSchema(db: Db, config: BunbracoConfig): Promise<SchemaBoot> {
+export async function bootSchema(db: Db, config: CromboloConfig): Promise<SchemaBoot> {
   const nodeId = config.nodeId
   if (!existsSync(config.schemaDir)) {
     const nodeState = { version: '0', revision: config.schemaRevision }
@@ -193,7 +193,7 @@ export interface SchemaWatcher {
 /** Re-syncs on every change under `schema/`; development only. */
 export function watchSchema(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   node: { nodeId: string; revision: string },
   onReport: (report: SyncReport) => void,
 ): SchemaWatcher | undefined {
@@ -350,7 +350,7 @@ export interface SchemaImportResult {
  */
 export async function importSchema(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   boot: { nodeId: string; nodeState: NodeSchemaState },
   options: { dryRun?: boolean } = {},
 ): Promise<SchemaImportResult> {

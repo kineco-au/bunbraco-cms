@@ -2,14 +2,14 @@
  * Search and sharing on the server: `/sitemap.xml`, `/robots.txt`, the page an
  * unknown address renders, and the backoffice's settings and page preview.
  *
- * Site-wide settings come from `bunbraco.config.ts` and may be overridden in the
+ * Site-wide settings come from `crombolo.config.ts` and may be overridden in the
  * backoffice; an override is stored in `key_value` as JSON, field by field, so
  * clearing one falls back to the config again.
  */
-import type { Principal } from '@bunbraco/api-management'
-import { hasSection } from '@bunbraco/api-management'
-import { SYSTEM_CONTENT_TYPE_KEYS } from '@bunbraco/core'
-import { ContentTypeRepository, type Db, readKeyValue, writeKeyValue } from '@bunbraco/data'
+import type { Principal } from '@crombolo/api-management'
+import { hasSection } from '@crombolo/api-management'
+import { SYSTEM_CONTENT_TYPE_KEYS } from '@crombolo/core'
+import { ContentTypeRepository, type Db, readKeyValue, writeKeyValue } from '@crombolo/data'
 import {
   effectiveMeta,
   type PublishedCache,
@@ -19,10 +19,10 @@ import {
   type SeoSiteDefaults,
   sitemapEntries,
   urlsIn,
-} from '@bunbraco/render'
-import type { BunbracoConfig, NotFoundRule } from './config.ts'
+} from '@crombolo/render'
+import type { CromboloConfig, NotFoundRule } from './config.ts'
 
-export const SEO_SETTINGS_KEY = 'Bunbraco.Seo.Settings'
+export const SEO_SETTINGS_KEY = 'Crombolo.Seo.Settings'
 
 export interface SeoSettings {
   sitemap: boolean
@@ -59,7 +59,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
  * The scheme and host the visitor used: a proxy's forwarded values first, then
  * the request's own, then the configured public address.
  */
-export function originOf(request: Request, config: Pick<BunbracoConfig, 'applicationUrl'>): string {
+export function originOf(request: Request, config: Pick<CromboloConfig, 'applicationUrl'>): string {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
   const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
   try {
@@ -151,7 +151,7 @@ export interface DraftModel {
 
 export interface SeoHostOptions {
   db: Db
-  config: BunbracoConfig
+  config: CromboloConfig
   cache: PublishedCache
   /** Whether a visitor who is not signed in would be turned away from a page. */
   isProtected(content: PublishedContent): Promise<boolean>
@@ -172,7 +172,7 @@ export interface SeoHost {
     host: string,
     pathname: string,
   ): Promise<{ content: PublishedContent; culture: string | null } | undefined>
-  /** Backoffice routes below `<backoffice>/bunbraco/api/seo`. */
+  /** Backoffice routes below `<backoffice>/crombolo/api/seo`. */
   handle(request: Request, subpath: string, principal: Principal): Promise<Response | undefined>
 }
 

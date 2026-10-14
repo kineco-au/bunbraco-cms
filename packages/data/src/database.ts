@@ -98,12 +98,12 @@ class PostgresDb implements Db {
 }
 
 export function resolveDialectName(options: ConnectOptions = {}): DialectName {
-  return options.dialect ?? (Bun.env.BUNBRACO_DB as DialectName | undefined) ?? 'sqlite'
+  return options.dialect ?? (Bun.env.CROMBOLO_DB as DialectName | undefined) ?? 'sqlite'
 }
 
 export async function connect(options: ConnectOptions = {}): Promise<Db> {
   if (resolveDialectName(options) === 'postgres') {
-    const url = options.url ?? Bun.env.BUNBRACO_POSTGRES_URL ?? Bun.env.DATABASE_URL
+    const url = options.url ?? Bun.env.CROMBOLO_POSTGRES_URL ?? Bun.env.DATABASE_URL
     if (!url) throw new Error('Postgres selected but no connection string was provided.')
     const { SQL } = await import('bun')
     // A modest pool: many short-lived connections exhaust Postgres' client limit,

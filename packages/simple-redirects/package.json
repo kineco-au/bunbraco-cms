@@ -1,21 +1,21 @@
 {
-  "name": "@bunbraco/simple-redirects",
-  "version": "0.8.1",
-  "description": "Manage redirects in the Bunbraco backoffice: a Settings screen over the redirect engine in core.",
+  "name": "@crombolo/simple-redirects",
+  "version": "0.9.0",
+  "description": "Manage redirects in the Crombolo backoffice: a Settings screen over the redirect engine in core.",
   "license": "MIT",
-  "author": "Kineco",
-  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
     "directory": "packages/simple-redirects"
   },
   "bugs": {
-    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
   },
   "keywords": [
-    "bunbraco",
-    "bunbraco-bundle",
+    "crombolo",
+    "crombolo-bundle",
     "redirects",
     "url-rewriting",
     "cms"
@@ -35,19 +35,19 @@
   "publishConfig": {
     "access": "public"
   },
-  "bunbraco": {
-    "id": "Bunbraco.SimpleRedirects",
+  "crombolo": {
+    "id": "Crombolo.SimpleRedirects",
     "name": "Redirects",
     "extensions": [
       {
         "type": "menuItem",
-        "alias": "Bunbraco.MenuItem.Redirects",
+        "alias": "Crombolo.MenuItem.Redirects",
         "name": "Redirects Menu Item",
         "weight": 250,
         "meta": {
           "label": "Redirects",
           "icon": "icon-arrow-right",
-          "entityType": "bunbraco-redirects",
+          "entityType": "crombolo-redirects",
           "menus": [
             "Umb.Menu.AdvancedSettings"
           ]
@@ -55,16 +55,16 @@
       },
       {
         "type": "workspace",
-        "alias": "Bunbraco.Workspace.Redirects",
+        "alias": "Crombolo.Workspace.Redirects",
         "name": "Redirects Workspace",
         "element": "plugin/redirects-workspace.js",
         "meta": {
-          "entityType": "bunbraco-redirects"
+          "entityType": "crombolo-redirects"
         }
       }
     ]
   },
   "dependencies": {
-    "@bunbraco/server": "workspace:*"
+    "@crombolo/server": "workspace:*"
   }
 }

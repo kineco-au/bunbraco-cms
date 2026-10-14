@@ -6,7 +6,7 @@
  * here twice over: npm refuses to be framed (`x-frame-options: SAMEORIGIN`), and
  * an Umbraco package does not install into this CMS anyway.
  *
- * What it shows instead is the npm registry, searched for the keyword a bunbraco
+ * What it shows instead is the npm registry, searched for the keyword a crombolo
  * bundle publishes, and filtered to the ones that really declare backoffice
  * extensions. Installing runs `bun add` on the server.
  */
@@ -14,7 +14,7 @@ import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 import { installBundle, searchMarketplace } from './bundles-client.js'
 
-export default class BunbracoBundlesMarketplaceElement extends UmbLitElement {
+export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _loading: { state: true },
@@ -32,7 +32,7 @@ export default class BunbracoBundlesMarketplaceElement extends UmbLitElement {
     this._error = ''
     this._busy = ''
     this._notice = ''
-    this._keyword = 'bunbraco-bundle'
+    this._keyword = 'crombolo-bundle'
     this._url = ''
     this._query = ''
   }
@@ -196,4 +196,4 @@ export default class BunbracoBundlesMarketplaceElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-bundles-marketplace', BunbracoBundlesMarketplaceElement)
+customElements.define('crombolo-bundles-marketplace', CromboloBundlesMarketplaceElement)

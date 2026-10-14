@@ -3,7 +3,7 @@
  * retirement, and a type with content refuses to disappear. The algorithm and
  * the multi-node rules are in docs/09-schema-as-code.md, "Synchronisation".
  */
-import { type ContentTypeAggregate, ObjectTypes, type PropertyTypeModel } from '@bunbraco/core'
+import { type ContentTypeAggregate, ObjectTypes, type PropertyTypeModel } from '@crombolo/core'
 import {
   appendCacheInstruction,
   appendSchemaState,
@@ -26,7 +26,7 @@ import {
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
   updateSchemaStateHash,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor, systemPropertyKeys } from './builtin.ts'
 import { hashSchemaSet, type LoadedSchema } from './load.ts'
 import {
@@ -142,7 +142,7 @@ export async function syncSchema(
     const missing = elementsWithoutKeys(set)
     if (missing.length > 0)
       return emptySyncReport('refused', {
-        reason: `production requires every element to carry a key; run \`bunbraco schema sync\` in development to assign them: ${missing.join(', ')}`,
+        reason: `production requires every element to carry a key; run \`crombolo schema sync\` in development to assign them: ${missing.join(', ')}`,
       })
   }
   const hash = hashSchemaSet(set)

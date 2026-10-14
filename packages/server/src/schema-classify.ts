@@ -19,9 +19,9 @@
  * Removing a property is none of these: the schema system retires properties
  * rather than deleting them, and their values come back if the property does.
  */
-import type { ContentTypeAggregate, PropertyTypeModel } from '@bunbraco/core'
-import { type Db, DocumentRepository } from '@bunbraco/data'
-import { type ChangeClass, typeNodeIdsCarrying } from '@bunbraco/schema'
+import type { ContentTypeAggregate, PropertyTypeModel } from '@crombolo/core'
+import { type Db, DocumentRepository } from '@crombolo/data'
+import { type ChangeClass, typeNodeIdsCarrying } from '@crombolo/schema'
 
 /** Whether anything is stored against this type, compositions included. */
 async function hasContent(db: Db, typeKey: string): Promise<boolean> {

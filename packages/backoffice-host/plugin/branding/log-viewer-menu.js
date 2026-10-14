@@ -5,7 +5,7 @@
  * `log-viewer-message.element.js` builds six items in `_getSearchMenuData()`,
  * four of them Umbraco's: two that search the Umbraco forum — one under the
  * Umbraco mark — and two that search Umbraco-CMS on GitHub by the line's
- * `SourceContext`. The forum pair goes, because there is no bunbraco forum to
+ * `SourceContext`. The forum pair goes, because there is no crombolo forum to
  * send anyone to and the item above it already puts the message into Google.
  * The GitHub pair stays, repointed: searching the source and the issues by the
  * type that logged a line is how you chase one down, it just has to be this
@@ -24,7 +24,7 @@
  * Patched rather than registered, because the menu is not an extension point.
  */
 const TAG = 'umb-log-viewer-message'
-export const REPOSITORY = 'https://github.com/kineco-au/bunbraco-cms'
+export const REPOSITORY = 'https://github.com/kineco-au/crombolo-cms'
 
 /** The forum pair, which has no equivalent here. */
 export const DROPPED = ['logViewer_searchOurUmbraco', 'logViewer_searchOurUmbracoWithGoogle']

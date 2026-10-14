@@ -9,7 +9,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { FileEntry, FileResult, FileStatus, FileSystemPort, Snippet } from '../ports-files.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 

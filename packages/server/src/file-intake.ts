@@ -9,8 +9,8 @@ import {
   FILE_VALUE_EDITORS,
   IMAGE_CROPPER_EDITOR_ALIAS,
   toStoredUpload,
-} from '@bunbraco/core'
-import type { ValueIntake } from '@bunbraco/data'
+} from '@crombolo/core'
+import type { ValueIntake } from '@crombolo/data'
 import type { MediaFileStore, PlacedFile } from './media-files.ts'
 
 const AUTO_FILL = {

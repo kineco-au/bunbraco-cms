@@ -13,7 +13,7 @@ import type {
   SkipTake,
   TemplatePort,
   TreePage,
-} from '@bunbraco/api-management'
+} from '@crombolo/api-management'
 import {
   type ComponentModel,
   type ContentTypeAggregate,
@@ -22,7 +22,7 @@ import {
   type Page,
   SystemNodes,
   type TreeItem,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   CONTENT_TYPE_OBJECT_TYPES,
   type ComponentFileStore,
@@ -36,8 +36,8 @@ import {
   Locks,
   type NodeRepository,
   type NodeRow,
-} from '@bunbraco/data'
-import { aliasFromName } from '@bunbraco/schema'
+} from '@crombolo/data'
+import { aliasFromName } from '@crombolo/schema'
 import { readContentTypeUdt, writeContentTypeUdt } from '../content-type-udt.ts'
 import { classifyTypeChange } from '../schema-classify.ts'
 import { contentTypeJsonSchema, schemaForStorage, valueTypeName } from '../value-schemas.ts'
@@ -641,7 +641,7 @@ export function scaffoldTemplate(
   layout: string | null = null,
 ): string {
   const layoutLine = layout ? `export const layout = '${layout}'\n\n` : ''
-  return `import type { PageProps } from 'bunbraco'
+  return `import type { PageProps } from '@crombolo/crombolo'
 
 ${layoutLine}export default function ${toIdentifier(name || alias)}({ model }: PageProps) {
   return (

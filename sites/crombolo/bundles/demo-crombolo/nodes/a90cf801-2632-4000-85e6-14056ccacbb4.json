@@ -1,0 +1,42 @@
+{
+  "key": "a90cf801-2632-4000-85e6-14056ccacbb4",
+  "kind": "element",
+  "contentType": {
+    "key": "bd46f89c-5685-4048-adb7-b4bd40b65c8a",
+    "alias": "step"
+  },
+  "parent": null,
+  "sortOrder": 23,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Write a template",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "command",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "bunx crombolo components new pages/article\nbunx crombolo generate"
+    },
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Add a component under components/, or create one from the back office. Generate types for your content types to get autocomplete as you write."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Write a template"
+    }
+  ]
+}

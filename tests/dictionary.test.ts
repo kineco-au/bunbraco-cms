@@ -3,14 +3,14 @@
  * move rules, and `.udt` export and import as Umbraco writes them.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { DictionaryRepository } from '@bunbraco/data'
+import { DictionaryRepository } from '@crombolo/data'
 import {
   dictionaryToUdt,
   importDictionaryUdt,
   readUdt,
   writeDictionaryUdt,
   writeUdt,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

@@ -7,11 +7,11 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { toContentTypeResponse } from '@bunbraco/api-management'
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { toContentTypeResponse } from '@crombolo/api-management'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
-  bunbracoPlan,
   ContentTypeRepository,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   DocumentRepository,
@@ -22,8 +22,8 @@ import {
   pendingUntil,
   seedContent,
   seedIdentity,
-} from '@bunbraco/data'
-import { loadSchemaDirectory, syncSchema } from '@bunbraco/schema'
+} from '@crombolo/data'
+import { loadSchemaDirectory, syncSchema } from '@crombolo/schema'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 const open: Db[] = []
@@ -40,7 +40,7 @@ afterEach(async () => {
 async function prepared(): Promise<Db> {
   const db = await freshDb()
   open.push(db)
-  await migrate(db, bunbracoPlan)
+  await migrate(db, cromboloPlan)
   await seedIdentity(db, {
     admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
     hashPassword,

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@crombolo/crombolo",
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["bun"]
+  }
+}

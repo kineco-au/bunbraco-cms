@@ -10,7 +10,7 @@
  * site that wants its own member types adds files under `schema/member-types/`;
  * this one is what makes "create a member" work on a fresh install.
  */
-import { type ContentTypeAggregate, SYSTEM_MEMBER_TYPE_KEY } from '@bunbraco/core'
+import { type ContentTypeAggregate, SYSTEM_MEMBER_TYPE_KEY } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { ContentTypeRepository } from '../repositories/content-types.ts'
 

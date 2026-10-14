@@ -14,7 +14,7 @@
  *   `.temp/<uuid>/photo.jpg`    an upload not yet placed, with `meta.json` beside it
  *   `.cache/ab/<hash>.webp`     a processed image variant
  *
- * A site picks a store in `bunbraco.config.ts` — `fileSystemMediaStore`,
+ * A site picks a store in `crombolo.config.ts` — `fileSystemMediaStore`,
  * `s3MediaStore` or `azureMediaStore` — or leaves it to the environment, which
  * is what a container deployment wants.
  */
@@ -193,18 +193,18 @@ export function fileSystemMediaStore(
 export type MediaStoreKind = 'filesystem' | 's3' | 'azure'
 
 /**
- * The store the environment asks for. `BUNBRACO_MEDIA_STORE` picks the kind;
+ * The store the environment asks for. `CROMBOLO_MEDIA_STORE` picks the kind;
  * each kind reads its own variables, and an unset one falls back to the
  * credentials its SDK would find anyway (an instance role, for S3).
  *
- *   BUNBRACO_MEDIA_STORE=s3
- *   BUNBRACO_MEDIA_S3_BUCKET=my-site-media
- *   BUNBRACO_MEDIA_S3_REGION=ap-southeast-2
+ *   CROMBOLO_MEDIA_STORE=s3
+ *   CROMBOLO_MEDIA_S3_BUCKET=my-site-media
+ *   CROMBOLO_MEDIA_S3_REGION=ap-southeast-2
  *
- *   BUNBRACO_MEDIA_STORE=azure
- *   BUNBRACO_MEDIA_AZURE_ACCOUNT=mysite
- *   BUNBRACO_MEDIA_AZURE_CONTAINER=media
- *   BUNBRACO_MEDIA_AZURE_KEY=…              (or …_SAS=?sv=…)
+ *   CROMBOLO_MEDIA_STORE=azure
+ *   CROMBOLO_MEDIA_AZURE_ACCOUNT=mysite
+ *   CROMBOLO_MEDIA_AZURE_CONTAINER=media
+ *   CROMBOLO_MEDIA_AZURE_KEY=…              (or …_SAS=?sv=…)
  *
  * Anything unrecognised is the file system, so a mistyped value degrades to the
  * default rather than losing the media library.
@@ -213,36 +213,36 @@ export async function mediaStoreFromEnvironment(
   mediaDir: string,
   env: Record<string, string | undefined> = Bun.env,
 ): Promise<MediaStore> {
-  const kind = (env.BUNBRACO_MEDIA_STORE ?? 'filesystem').toLowerCase()
+  const kind = (env.CROMBOLO_MEDIA_STORE ?? 'filesystem').toLowerCase()
   if (kind === 's3') {
     const { s3MediaStore } = await import('./media-store-s3.ts')
     return s3MediaStore({
-      bucket: env.BUNBRACO_MEDIA_S3_BUCKET ?? '',
-      region: env.BUNBRACO_MEDIA_S3_REGION,
-      endpoint: env.BUNBRACO_MEDIA_S3_ENDPOINT,
-      accessKeyId: env.BUNBRACO_MEDIA_S3_ACCESS_KEY_ID,
-      secretAccessKey: env.BUNBRACO_MEDIA_S3_SECRET_ACCESS_KEY,
-      sessionToken: env.BUNBRACO_MEDIA_S3_SESSION_TOKEN,
-      prefix: env.BUNBRACO_MEDIA_S3_PREFIX,
-      publicUrlPrefix: env.BUNBRACO_MEDIA_S3_PUBLIC_URL,
-      presignSeconds: env.BUNBRACO_MEDIA_S3_PRESIGN_SECONDS
-        ? Number(env.BUNBRACO_MEDIA_S3_PRESIGN_SECONDS)
+      bucket: env.CROMBOLO_MEDIA_S3_BUCKET ?? '',
+      region: env.CROMBOLO_MEDIA_S3_REGION,
+      endpoint: env.CROMBOLO_MEDIA_S3_ENDPOINT,
+      accessKeyId: env.CROMBOLO_MEDIA_S3_ACCESS_KEY_ID,
+      secretAccessKey: env.CROMBOLO_MEDIA_S3_SECRET_ACCESS_KEY,
+      sessionToken: env.CROMBOLO_MEDIA_S3_SESSION_TOKEN,
+      prefix: env.CROMBOLO_MEDIA_S3_PREFIX,
+      publicUrlPrefix: env.CROMBOLO_MEDIA_S3_PUBLIC_URL,
+      presignSeconds: env.CROMBOLO_MEDIA_S3_PRESIGN_SECONDS
+        ? Number(env.CROMBOLO_MEDIA_S3_PRESIGN_SECONDS)
         : undefined,
     })
   }
   if (kind === 'azure') {
     const { azureMediaStore } = await import('./media-store-azure.ts')
     return azureMediaStore({
-      account: env.BUNBRACO_MEDIA_AZURE_ACCOUNT ?? '',
-      container: env.BUNBRACO_MEDIA_AZURE_CONTAINER ?? 'media',
-      accountKey: env.BUNBRACO_MEDIA_AZURE_KEY,
-      sasToken: env.BUNBRACO_MEDIA_AZURE_SAS,
-      endpoint: env.BUNBRACO_MEDIA_AZURE_ENDPOINT,
-      prefix: env.BUNBRACO_MEDIA_AZURE_PREFIX,
-      publicUrlPrefix: env.BUNBRACO_MEDIA_AZURE_PUBLIC_URL,
+      account: env.CROMBOLO_MEDIA_AZURE_ACCOUNT ?? '',
+      container: env.CROMBOLO_MEDIA_AZURE_CONTAINER ?? 'media',
+      accountKey: env.CROMBOLO_MEDIA_AZURE_KEY,
+      sasToken: env.CROMBOLO_MEDIA_AZURE_SAS,
+      endpoint: env.CROMBOLO_MEDIA_AZURE_ENDPOINT,
+      prefix: env.CROMBOLO_MEDIA_AZURE_PREFIX,
+      publicUrlPrefix: env.CROMBOLO_MEDIA_AZURE_PUBLIC_URL,
     })
   }
   return fileSystemMediaStore(mediaDir, {
-    publicUrlPrefix: env.BUNBRACO_MEDIA_PUBLIC_URL,
+    publicUrlPrefix: env.CROMBOLO_MEDIA_PUBLIC_URL,
   })
 }

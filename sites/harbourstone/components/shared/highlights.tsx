@@ -1,4 +1,4 @@
-import type { PublishedContent, PublishedElement } from 'bunbraco'
+import type { PublishedContent, PublishedElement } from '@crombolo/crombolo'
 
 /**
  * An element picker always yields a list, as Umbraco's converter does, even

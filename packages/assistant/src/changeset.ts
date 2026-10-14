@@ -6,7 +6,7 @@
  * takes the same authorised path as the editor's own Save. Until then it is
  * inert: nothing here touches a database or a file.
  */
-import type { SchemaProblem } from '@bunbraco/schema'
+import type { SchemaProblem } from '@crombolo/schema'
 import type { ChangeKind } from './operations.ts'
 
 export type ChangeStatus = 'proposed' | 'applied' | 'discarded' | 'failed'

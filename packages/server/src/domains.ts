@@ -3,7 +3,7 @@
  *
  * Hostnames are the one piece of site metadata that differs in every
  * environment, so they are neither content nor schema. They are a file of their
- * own at the site root — data, not code, so `bunbraco domains set` can write it
+ * own at the site root — data, not code, so `crombolo domains set` can write it
  * — with `${VAR}` read from the environment at sync time, which is how one
  * committed file serves development, staging and production.
  *
@@ -14,7 +14,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ObjectTypes } from '@bunbraco/core'
+import { ObjectTypes } from '@crombolo/core'
 import {
   type Db,
   DocumentRepository,
@@ -24,7 +24,7 @@ import {
   NodeRepository,
   type NodeRow,
   resolveNodeRef,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 
 export const DOMAINS_FILE = 'domains.toml'
 
@@ -88,7 +88,7 @@ export function writeDomainsFile(declarations: readonly DomainDeclaration[]): st
   const lines: string[] = [
     '# Which hostnames reach which page, and in which culture.',
     `# \`\${VAR}\` is read from the environment when this is applied, so one file`,
-    '# serves every environment. `bunbraco domains` prints what is in force.',
+    '# serves every environment. `crombolo domains` prints what is in force.',
   ]
   for (const declaration of declarations) {
     lines.push('', '[[domain]]', `node = ${quote(declaration.node)}`)

@@ -16,10 +16,10 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 /** The one page the `basic` template publishes: its node name, and text from its view. */
 const HOME = 'Home'
-const HOME_TEXT = 'A new bunbraco site'
+const HOME_TEXT = 'A new crombolo site'
 
 interface Run {
   code: number
@@ -49,22 +49,22 @@ describe('a split deployment, as separate processes', () => {
   function environment(role?: string): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_SCHEMA_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_CSS_DIR',
-      'BUNBRACO_SCRIPTS_DIR',
-      'BUNBRACO_SITE_NAME',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_SCHEMA_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_CSS_DIR',
+      'CROMBOLO_SCRIPTS_DIR',
+      'CROMBOLO_SITE_NAME',
     ])
       delete inherited[name]
     return {
       ...inherited,
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_SQLITE_FILE: join(dir, 'shared.sqlite'),
-      BUNBRACO_LOGS_DIR: join(dir, 'logs', role ?? 'all'),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
-      ...(role ? { BUNBRACO_ROLE: role } : {}),
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_SQLITE_FILE: join(dir, 'shared.sqlite'),
+      CROMBOLO_LOGS_DIR: join(dir, 'logs', role ?? 'all'),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
+      ...(role ? { CROMBOLO_ROLE: role } : {}),
     }
   }
 
@@ -99,7 +99,7 @@ describe('a split deployment, as separate processes', () => {
       cwd: site(),
       env: {
         ...environment(role),
-        BUNBRACO_LOGS_DIR: logs,
+        CROMBOLO_LOGS_DIR: logs,
         NODE_ENV: 'production',
         PORT: '0',
       },

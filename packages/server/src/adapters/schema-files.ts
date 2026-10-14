@@ -7,9 +7,9 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import type { PortFailure } from '@bunbraco/api-management'
-import type { ContentTypeAggregate, DataTypeModel } from '@bunbraco/core'
-import { currentSchemaState, type Db, updateSchemaStateHash } from '@bunbraco/data'
+import type { PortFailure } from '@crombolo/api-management'
+import type { ContentTypeAggregate, DataTypeModel } from '@crombolo/core'
+import { currentSchemaState, type Db, updateSchemaStateHash } from '@crombolo/data'
 import {
   type ChangeClass,
   exportSchemaSet,
@@ -25,7 +25,7 @@ import {
   writeLanguages,
   writeSchemaFiles,
   writeSchemaVersion,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import { logger } from '../logging.ts'
 
 export interface SchemaFiles {

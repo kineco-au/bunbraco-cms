@@ -1,11 +1,11 @@
 /**
- * Talks to the assistant endpoints under <backoffice>/bunbraco/api/assistant.
+ * Talks to the assistant endpoints under <backoffice>/crombolo/api/assistant.
  * The session cookie carries the identity, so there is no token handling here —
  * and the server re-issues every CMS call as that same user.
  */
 function base() {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/assistant`
+  return `${href.replace(/\/$/, '')}/crombolo/api/assistant`
 }
 
 async function send(path, init = {}) {

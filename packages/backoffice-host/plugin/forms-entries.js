@@ -18,7 +18,7 @@ import {
   setEntryState,
 } from './forms-client.js'
 
-export default class BunbracoFormsEntriesElement extends UmbLitElement {
+export default class CromboloFormsEntriesElement extends UmbLitElement {
   static properties = {
     _forms: { state: true },
     _selected: { state: true },
@@ -241,4 +241,4 @@ export default class BunbracoFormsEntriesElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-forms-entries', BunbracoFormsEntriesElement)
+customElements.define('crombolo-forms-entries', CromboloFormsEntriesElement)

@@ -1,7 +1,7 @@
 /**
  * Logging, through LogTape, into the files Umbraco's log viewer reads: Serilog's
  * compact JSON (CLEF), one event per line, one file per machine per UTC day in
- * the site's `logs/` — `BunbracoTraceLog.<machine>.<yyyyMMdd>.json`, after
+ * the site's `logs/` — `CromboloTraceLog.<machine>.<yyyyMMdd>.json`, after
  * Umbraco's `UmbracoTraceLog.<machine>.<yyyyMMdd>.json`. A message is a
  * template (`'Published {name}'`) with its properties, as Serilog's are; an
  * `error` property carries the exception.
@@ -29,7 +29,7 @@ export const SERILOG_LEVELS: Record<LogLevel, string> = {
   fatal: 'Fatal',
 }
 
-export const LOG_FILE_PREFIX = 'BunbracoTraceLog'
+export const LOG_FILE_PREFIX = 'CromboloTraceLog'
 
 /** Today's file for this machine: the day is UTC, as the timestamps are. */
 export function logFileName(date: Date, machine = hostname()): string {
@@ -85,7 +85,7 @@ export interface LoggingOptions {
 }
 
 /**
- * Points every `bunbraco` logger at the site's files (and the console). LogTape
+ * Points every `crombolo` logger at the site's files (and the console). LogTape
  * holds one configuration per process, so the most recently started server's
  * wins.
  */
@@ -98,20 +98,20 @@ export function configureLogging(options: LoggingOptions): void {
     },
     loggers: [
       {
-        category: ['bunbraco'],
+        category: ['crombolo'],
         lowestLevel: options.level,
         sinks: options.console ? ['file', 'console'] : ['file'],
       },
       // The development 501 log prints its own line; its events only go to the file
       {
-        category: ['bunbraco', 'not-implemented'],
+        category: ['crombolo', 'not-implemented'],
         sinks: ['file'],
         parentSinks: 'override',
       },
       // The request trace is thousands of lines per backoffice boot: the console
       // only, so the log viewer's files stay readable
       {
-        category: ['bunbraco', 'http'],
+        category: ['crombolo', 'http'],
         sinks: options.console ? ['console'] : [],
         parentSinks: 'override',
       },
@@ -122,5 +122,5 @@ export function configureLogging(options: LoggingOptions): void {
 
 /** A logger for one part of the server; its category becomes the event's `SourceContext`. */
 export function logger(...category: string[]): Logger {
-  return getLogger(['bunbraco', ...category])
+  return getLogger(['crombolo', ...category])
 }

@@ -1,7 +1,7 @@
 /**
  * Rendering a form definition to HTML.
  *
- * Built with `element()` rather than JSX syntax: `jsxImportSource` is `bunbraco`,
+ * Built with `element()` rather than JSX syntax: `jsxImportSource` is `@crombolo/crombolo`,
  * which depends on this package, so a `.tsx` file here would be a cycle.
  *
  * Progressive enhancement is the baseline. The form is a real
@@ -30,12 +30,12 @@ import {
   type SchemaFormGroup,
   type SchemaFormPage,
   type SubmittedValues,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import { RawHtml } from './html.ts'
 import { type Child, element, Fragment } from './jsx-runtime.ts'
 
 /** Where a submission is posted; the form's key is the only identifier it needs. */
-export const FORM_SUBMIT_PATH = '/bunbraco/forms'
+export const FORM_SUBMIT_PATH = '/crombolo/forms'
 
 /**
  * How a rendered form gets its signed token.
@@ -245,11 +245,11 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
 
   singleChoice: ({ field, values, id, name, shown }) =>
     element('div', {
-      class: 'bunbraco-form__choices',
+      class: 'crombolo-form__choices',
       role: 'radiogroup',
       children: field.values.map((option, index) =>
         element('label', {
-          class: 'bunbraco-form__choice',
+          class: 'crombolo-form__choice',
           children: [
             element(
               'input',
@@ -270,10 +270,10 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
 
   multipleChoice: ({ field, values, id, name }) =>
     element('div', {
-      class: 'bunbraco-form__choices',
+      class: 'crombolo-form__choices',
       children: field.values.map((option, index) =>
         element('label', {
-          class: 'bunbraco-form__choice',
+          class: 'crombolo-form__choice',
           children: [
             element(
               'input',
@@ -311,10 +311,10 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
   titleAndDescription: ({ field }) =>
     element(Fragment, {
       children: [
-        element('h3', { class: 'bunbraco-form__title', children: field.caption }),
+        element('h3', { class: 'crombolo-form__title', children: field.caption }),
         field.content
           ? element('div', {
-              class: 'bunbraco-form__description',
+              class: 'crombolo-form__description',
               setInnerHTML: { __html: field.content, dangerously: true },
             })
           : null,
@@ -323,7 +323,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
 
   richText: ({ field }) =>
     element('div', {
-      class: 'bunbraco-form__richtext',
+      class: 'crombolo-form__richtext',
       setInnerHTML: { __html: field.content ?? '', dangerously: true },
     }),
 }
@@ -360,21 +360,21 @@ function renderField(
 
   if (field.type === 'hidden') return control
 
-  const classes = ['bunbraco-form__field', `bunbraco-form__field--${field.type}`]
+  const classes = ['crombolo-form__field', `crombolo-form__field--${field.type}`]
   if (field.cssClass) classes.push(field.cssClass)
-  if (error) classes.push('bunbraco-form__field--invalid')
+  if (error) classes.push('crombolo-form__field--invalid')
 
   const labelled = info.presentational
     ? [control]
     : [
         element('label', {
-          class: 'bunbraco-form__label',
+          class: 'crombolo-form__label',
           for: id,
           children: [
             field.caption,
             field.mandatory
               ? element('span', {
-                  class: 'bunbraco-form__required',
+                  class: 'crombolo-form__required',
                   'aria-hidden': 'true',
                   children: '*',
                 })
@@ -383,7 +383,7 @@ function renderField(
         }),
         field.helpText
           ? element('p', {
-              class: 'bunbraco-form__help',
+              class: 'crombolo-form__help',
               id: `${id}-help`,
               children: field.helpText,
             })
@@ -391,7 +391,7 @@ function renderField(
         control,
         error
           ? element('p', {
-              class: 'bunbraco-form__error',
+              class: 'crombolo-form__error',
               id: `${id}-error`,
               role: 'alert',
               children: error,
@@ -415,18 +415,18 @@ function renderField(
 }
 
 function renderGroup(group: SchemaFormGroup, options: Parameters<typeof renderField>[1]): Child {
-  const classes = ['bunbraco-form__group']
-  if (group.columns > 1) classes.push(`bunbraco-form__group--columns-${group.columns}`)
+  const classes = ['crombolo-form__group']
+  if (group.columns > 1) classes.push(`crombolo-form__group--columns-${group.columns}`)
   return element(
     'div',
     attrs({
       class: classes.join(' '),
       hidden: isShown(group.condition, options.values) ? undefined : true,
       'data-condition': group.condition ? JSON.stringify(group.condition) : undefined,
-      style: group.columns > 1 ? `--bunbraco-form-columns:${group.columns}` : undefined,
+      style: group.columns > 1 ? `--crombolo-form-columns:${group.columns}` : undefined,
       children: [
         group.caption
-          ? element('legend', { class: 'bunbraco-form__group-caption', children: group.caption })
+          ? element('legend', { class: 'crombolo-form__group-caption', children: group.caption })
           : null,
         ...group.fields.map((field) => renderField(field, options)),
       ],
@@ -442,13 +442,13 @@ function renderPage(
   return element(
     'fieldset',
     attrs({
-      class: 'bunbraco-form__page',
+      class: 'crombolo-form__page',
       'data-page': index,
       hidden: isShown(page.condition, options.values) ? undefined : true,
       'data-condition': page.condition ? JSON.stringify(page.condition) : undefined,
       children: [
         page.caption
-          ? element('legend', { class: 'bunbraco-form__page-caption', children: page.caption })
+          ? element('legend', { class: 'crombolo-form__page-caption', children: page.caption })
           : null,
         ...page.groups.map((group) => renderGroup(group, options)),
       ],
@@ -471,7 +471,7 @@ export function Form(props: FormProps): RawHtml {
     (props.submission?.formKey === (form.key ?? form.alias) ? props.submission.message : undefined)
   if (accepted !== undefined)
     return element('div', {
-      class: 'bunbraco-form bunbraco-form--submitted',
+      class: 'crombolo-form crombolo-form--submitted',
       role: 'status',
       children: accepted,
     })
@@ -490,8 +490,8 @@ export function Form(props: FormProps): RawHtml {
     page.groups.some((group) => group.fields.some((field) => field.type === 'fileUpload')),
   )
 
-  const classes = ['bunbraco-form']
-  if (form.theme) classes.push(`bunbraco-form--${form.theme}`)
+  const classes = ['crombolo-form']
+  if (form.theme) classes.push(`crombolo-form--${form.theme}`)
   if (props.className) classes.push(props.className)
 
   const key = form.key ?? form.alias
@@ -512,7 +512,7 @@ export function Form(props: FormProps): RawHtml {
       children: [
         errors.length > 0
           ? element('div', {
-              class: 'bunbraco-form__summary',
+              class: 'crombolo-form__summary',
               role: 'alert',
               children: element('ul', {
                 children: errors.map((error) => element('li', { children: error.message })),
@@ -531,7 +531,7 @@ export function Form(props: FormProps): RawHtml {
         // tab stop of -1 keep a real browser out of it.
         form.honeypot
           ? element('div', {
-              class: 'bunbraco-form__honeypot',
+              class: 'crombolo-form__honeypot',
               'aria-hidden': 'true',
               style: 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden',
               children: element('input', {
@@ -544,10 +544,10 @@ export function Form(props: FormProps): RawHtml {
             })
           : null,
         element('div', {
-          class: 'bunbraco-form__actions',
+          class: 'crombolo-form__actions',
           children: element('button', {
             type: 'submit',
-            class: 'bunbraco-form__submit',
+            class: 'crombolo-form__submit',
             children: form.submitLabel ?? 'Submit',
           }),
         }),

@@ -15,7 +15,7 @@ document keeps them apart:
 
 The section reads **Bundles**. One word for one thing: the artifact the builder
 produces is a bundle ([`13-content-transfer.md`](13-content-transfer.md)), and
-an installable extension is published to npm under the `bunbraco-bundle`
+an installable extension is published to npm under the `crombolo-bundle`
 keyword, so both halves of the section hold the same kind of thing by name.
 
 Its three views are named for what each one holds rather than for the section:
@@ -29,12 +29,12 @@ Three of those labels are dictionary keys, so the rename is an override in
 | --- | --- |
 | The section, in the nav | `sections_packages` |
 | The button that starts a bundle, and the empty state beside it | `packager_createPackage`, `packager_noPackagesCreated` |
-| The Marketplace, Created and Installed views | bunbraco's own `sectionView` manifests |
+| The Marketplace, Created and Installed views | crombolo's own `sectionView` manifests |
 
 **A replacement `section` manifest would not have worked.** The nav lists
 section manifests whose *alias* appears in the signed-in user's
 `allowedSections` (`apps/backoffice/backoffice.context.js`), and the server
-sends Umbraco's `Umb.Section.Packages`. A manifest under a bunbraco alias —
+sends Umbraco's `Umb.Section.Packages`. A manifest under a crombolo alias —
 even one declaring `overwrites` — matches nothing, so the section would have
 disappeared rather than been renamed.
 
@@ -72,7 +72,7 @@ would make the screen disagree with every command it tells you to run.
 ### What stayed `Umb.`
 
 Six identifiers in this repo wore `Umb.` and were invented here: the Forms
-section alias and the five form permission verbs. They are `Bunbraco.` now, and
+section alias and the five form permission verbs. They are `Crombolo.` now, and
 migration 026 rewrites the verbs already stored. Everything else spelled `Umb.`
 is Umbraco's and names something upstream defines — including three that the
 vendored *client* never mentions and that are Umbraco's all the same:
@@ -141,7 +141,7 @@ are distinguishable only by filename, which is the first thing to be lost.
 A content-only bundle still says `formatVersion: 1` and carries no `carries`
 key, so it is byte-for-byte what it was and an older node still reads it. Only a
 bundle with sections says 2, which an older node refuses by name — "upgrade
-bunbraco to import it" — rather than failing an integrity check it cannot
+crombolo to import it" — rather than failing an integrity check it cannot
 explain.
 
 Three existing exporters compose it, and the build writes no new serialization
@@ -267,7 +267,7 @@ manifest declares; the third is a deprecation warning string. Nothing dispatches
 on the path. The manifest is the contract.
 
 This repo already proves it: the framework's own extensions serve from
-`/bunbraco-plugin` (`backoffice-host/src/paths.ts:45`) and are registered
+`/crombolo-plugin` (`backoffice-host/src/paths.ts:45`) and are registered
 exactly like an `App_Plugins` package.
 
 ### What removal touched
@@ -276,7 +276,7 @@ exactly like an `App_Plugins` package.
 | --- | --- |
 | `backoffice-host/src/static.ts` | the serving branch, replaced by `resolveExtensionFile` |
 | `backoffice-host/src/manifests.ts` | `collectManifests` now takes the discovered extensions |
-| `server/src/config.ts` | `appPluginsDir` and `BUNBRACO_APP_PLUGINS_DIR` are gone |
+| `server/src/config.ts` | `appPluginsDir` and `CROMBOLO_APP_PLUGINS_DIR` are gone |
 | `server/src/ports.ts`, `server.ts` | wiring, now an `ExtensionRegistry` |
 | `cli/src/templates.ts` | stopped scaffolding `App_Plugins/.gitkeep` |
 | `tests/` | views, backoffice-host, api-handlers |
@@ -293,13 +293,13 @@ at 1.0.
 ## `package.json` is the source of truth
 
 A site's extensions are its dependencies. Discovery reads the site's
-`package.json`, resolves each dependency, and reads a `bunbraco` field from the
+`package.json`, resolves each dependency, and reads a `crombolo` field from the
 dependency's own `package.json`:
 
 ```json
 {
   "name": "@acme/seo-tools",
-  "bunbraco": {
+  "crombolo": {
     "id": "Acme.SeoTools",
     "extensions": [
       { "type": "dashboard", "alias": "Acme.Dashboard.Seo", "element": "dist/seo.js" }
@@ -337,25 +337,25 @@ an author editing a local extension expects a reload to show it.
 
 ## Finding packages on npm: discovery and declaration are different jobs
 
-The `bunbraco` field is **not searchable**. Tested against the registry:
-`text=bunbraco:true` returns zero results and no error — npm's search indexes
+The `crombolo` field is **not searchable**. Tested against the registry:
+`text=crombolo:true` returns zero results and no error — npm's search indexes
 `keywords:`, `author:`, `maintainer:` and `scope:`, and nothing else. A custom
 field cannot be queried.
 
 But a packument *does* preserve custom top-level fields (confirmed: `oclif` on
 `oclif@6.0.2`, `packageManager` on `netlify-cli`). So:
 
-- **Discovery** is a published keyword convention: `"keywords": ["bunbraco-bundle"]`.
+- **Discovery** is a published keyword convention: `"keywords": ["crombolo-bundle"]`.
   It is the only thing npm will index, so it is a publishing requirement, and
   `docs` and the package template say so.
-- **Declaration** is the `bunbraco` field, which the server reads after install.
+- **Declaration** is the `crombolo` field, which the server reads after install.
 
 The two combine into a free quality gate: the marketplace searches the keyword,
 then reads each hit's packument and offers only the ones that actually declare
-`bunbraco`. One cheap HTTP call per hit, no tarball download, and a package that
+`crombolo`. One cheap HTTP call per hit, no tarball download, and a package that
 squats the keyword without declaring anything never reaches the list.
 
-The gap this leaves: a package that declares `bunbraco` but forgets the keyword
+The gap this leaves: a package that declares `crombolo` but forgets the keyword
 is invisible to search. Install by exact name is therefore always available as
 its own input, independent of the listing.
 
@@ -376,7 +376,7 @@ site that wants the Umbraco marketplace back can set it.
 
 `Umb.SectionView.Packages.Installed` is overwritten too — it is built around
 pending package migrations, which do not exist here. The native view lists the
-declared `bunbraco` dependencies with their versions.
+declared `crombolo` dependencies with their versions.
 
 ## Runtime install
 
@@ -420,7 +420,7 @@ resolved version is recorded, and nothing is fetched outside the registry.
 
 That is the whole of what an install trusts today: the registry's integrity
 hash and the permission to install. Saying who published a package — the
-registry's provenance attestation, and a list of publishers bunbraco has
+registry's provenance attestation, and a list of publishers crombolo has
 reviewed — is WP-6.13 in `07-roadmap.md`.
 
 ---
@@ -431,8 +431,8 @@ A package is a bundle, so it installs through the bundle's own commands — ther
 is no second importer:
 
 ```
-bunbraco bundle check  <dir>      # read-only: what it would do here
-bunbraco bundle install <dir>     # apply it
+crombolo bundle check  <dir>      # read-only: what it would do here
+crombolo bundle install <dir>     # apply it
 ```
 
 `bundle` is the artifact's name and `install` reads better for one that brings
@@ -482,7 +482,7 @@ file is not a replacement.
 The content half is a transfer run, so `content revert <run>` takes it back as
 any import. The files are not in that ledger — but they are not left to git
 either. Before replacing a file, the install copies the original to
-`.bunbraco/transfer/<runId>/replaced/<bundle path>`, with a record of which
+`.crombolo/transfer/<runId>/replaced/<bundle path>`, with a record of which
 files it created rather than replaced, and `content revert` puts the replaced
 ones back and removes the created ones.
 
@@ -497,7 +497,7 @@ Two details that make that work:
   it is left alone, because it holds the only copy of what was replaced, and the
   CLI prints where it is.
 
-`.bunbraco/transfer/` is a sibling of `.bunbraco/components`, never inside it:
+`.crombolo/transfer/` is a sibling of `.crombolo/components`, never inside it:
 the components cache is rebuilt from `components/` and cleared at boot, and these
 have to outlive a restart to be worth taking.
 
@@ -521,7 +521,7 @@ repeat install is not a silent no-op the way re-importing unchanged content is.
 | The installer | `cli/src/operations/sections.ts`, wired into `contentCheck`/`contentImport` |
 | File safety and revert | `replacementsNeedingPermission`, `stageBackups`/`promoteBackups`/`restoreSectionFiles`, same file |
 | Discovery and serving | `backoffice-host/src/extensions.ts`, wired through `static.ts` and `manifests.ts` |
-| The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/bunbraco/api/bundles/*` |
+| The marketplace and install | `server/src/marketplace.ts`, routed at `<backoffice>/crombolo/api/bundles/*` |
 | The two native views | `backoffice-host/plugin/bundles-marketplace.js`, `bundles-installed.js` |
 | The App_Plugins notice | `server/src/extensions-notice.ts` |
 | Server-side bundles | `server/src/bundles.ts`, wired in `server.ts`, `bundles` in `config.ts` |
@@ -591,7 +591,7 @@ precedence between the three sources is checked by what actually answers the
 request.
 
 Those fixture sites live under `output/` rather than the system temp directory —
-a site's views cache has to resolve `bunbraco/jsx-runtime` by walking up to a
+a site's views cache has to resolve `@crombolo/crombolo/jsx-runtime` by walking up to a
 `node_modules` that carries it, which nothing outside the repository can do.
 
 ---
@@ -601,7 +601,7 @@ a site's views cache has to resolve `bunbraco/jsx-runtime` by walking up to a
 Part 2 said a bundle that needs to run in the server process is "a dependency
 plus a deploy" and left it there. This is that, made into something a bundle can
 be written against: `bundles.ts` in `packages/server`, and
-`@bunbraco/simple-redirects` as the first one.
+`@crombolo/simple-redirects` as the first one.
 
 ## The objection, and what actually answers it
 
@@ -611,11 +611,11 @@ see a runtime install. Neither is solved by a sandbox — Bun has no mechanism t
 would make a hostile dependency safe inside this process.
 
 What answers it is that **nothing here is discovered**. There is no
-`BUNBRACO_BUNDLES` and no scan of `node_modules`; a bundle's server half runs
+`CROMBOLO_BUNDLES` and no scan of `node_modules`; a bundle's server half runs
 only because a site wrote this:
 
 ```ts
-import { redirects } from '@bunbraco/simple-redirects'
+import { redirects } from '@crombolo/simple-redirects'
 
 export default defineConfig({
   bundles: [redirects()],
@@ -626,8 +626,8 @@ So the two halves of a bundle arrive by different routes on purpose:
 
 | Half | How it arrives | What it takes |
 | --- | --- | --- |
-| The backoffice screen | discovered from the `bunbraco` field once the package is a dependency | `bun add`, no restart |
-| The server endpoints | imported by name into `bunbraco.config.ts` | an edit, a review, a deploy |
+| The backoffice screen | discovered from the `crombolo` field once the package is a dependency | `bun add`, no restart |
+| The server endpoints | imported by name into `crombolo.config.ts` | an edit, a review, a deploy |
 
 That asymmetry is the whole security story. The dangerous path — someone clicks
 *Install* in the Bundles section and third-party code is in the request path — is
@@ -659,7 +659,7 @@ export interface ServerBundle {
 a section of the bundle's own by its manifest alias (`Acme.Section.Design`).
 
 - **Its own namespace.** Routes mount at
-  `<backoffice>/bunbraco/api/bundle/<id>/`. The id is lowercase letters, digits
+  `<backoffice>/crombolo/api/bundle/<id>/`. The id is lowercase letters, digits
   and hyphens, so it cannot climb out of its segment however it is spelled, and
   each route path is validated as a plain path of segments with at most one
   `:name` each. Two bundles cannot claim one id.
@@ -692,12 +692,12 @@ section the bundle declared. Everything a finer check needs is on it:
 | `startNodes` | where they may work in the document, media and element trees |
 | `languages`, `hasAccessToAllLanguages` | the content languages they may write |
 
-`@bunbraco/server` re-exports `Principal`, `AppAlias`, `BundleSection`, `hasSection` and
+`@crombolo/server` re-exports `Principal`, `AppAlias`, `BundleSection`, `hasSection` and
 `hasCultureAccess`, so a bundle needs that one dependency rather than reaching
-into `@bunbraco/api-management` for them:
+into `@crombolo/api-management` for them:
 
 ```ts
-import { hasSection, type Principal } from '@bunbraco/server'
+import { hasSection, type Principal } from '@crombolo/server'
 
 const mayPublish = (principal: Principal) =>
   principal.isAdmin || principal.permissions.includes('Umb.Document.Publish')
@@ -709,7 +709,7 @@ either spelling, and it normalises both.
 ### A section of its own
 
 A bundle that wants a top-level tab beside Content and Settings declares a
-`section` manifest in its `bunbraco` field like any other extension, and gates
+`section` manifest in its `crombolo` field like any other extension, and gates
 its server half on the same alias. Nothing else is registered: the backoffice
 lists a section whose alias the signed-in user holds, and a user group is
 granted the section by that alias. The server stores the alias as it was sent
@@ -739,7 +739,7 @@ a third party may touch.
 
 ## The first bundle: Simple Redirects
 
-`@bunbraco/simple-redirects` adds what the Umbraco redirect packages add over
+`@crombolo/simple-redirects` adds what the Umbraco redirect packages add over
 Umbraco's own Redirect URL Management dashboard: an administrator **creating and
 editing** a rule, rather than only listing and deleting the ones a rename
 recorded.
@@ -750,7 +750,7 @@ What the bundle adds is the third `source`:
 
 | Source | Who owns it | Precedence |
 | --- | --- | --- |
-| `config` | `bunbraco.config.ts`, synced at boot | first |
+| `config` | `crombolo.config.ts`, synced at boot | first |
 | `manual` | an administrator, through this bundle | second |
 | `tracked` | the URL tracker, on a rename or move | last |
 
@@ -847,7 +847,7 @@ const response = await fetch(`${base()}/rules`, {
 ```
 
 `base()` is read from `<base href>` rather than hard-coded, because the
-backoffice path is configurable (`BUNBRACO_BACKOFFICE_PATH`) and the plugin path
+backoffice path is configurable (`CROMBOLO_BACKOFFICE_PATH`) and the plugin path
 moves with it — see `plugin/redirects-client.js`.
 
 The identity needs no passing: the cookie is the session, the server resolves it
@@ -867,25 +867,25 @@ anything private, so the bundle joined the set by existing.
 
 Two things it needs that an ordinary package does not:
 
-- **The `bunbraco-bundle` keyword.** npm indexes keywords and not custom fields
+- **The `crombolo-bundle` keyword.** npm indexes keywords and not custom fields
   (Part 2), so a bundle without it is invisible in the Bundles section however
   correct the rest of it is. `tests/packaging.test.ts` asserts it, and that every
-  asset the `bunbraco` field points at exists and is inside `files`.
+  asset the `crombolo` field points at exists and is inside `files`.
 - **A place in `OPT_IN`.** The packaging suite otherwise requires every published
-  package to be a dependency of `bunbraco`, and a bundle is by definition
+  package to be a dependency of `@crombolo/crombolo`, and a bundle is by definition
   something a site chooses.
 
 ### A template may wire one
 
-`bunbraco init --template demo/harbourstone` scaffolds a site with this bundle
+`crombolo init --template demo/harbourstone` scaffolds a site with this bundle
 already wired, because `template.json` says so:
 
 ```json
-"bundles": [{ "package": "@bunbraco/simple-redirects", "import": "redirects" }]
+"bundles": [{ "package": "@crombolo/simple-redirects", "import": "redirects" }]
 ```
 
 `init` then writes the dependency into the site's `package.json` **and** the
-import and `bundles: [redirects()]` into its `bunbraco.config.ts`. That is the
+import and `bundles: [redirects()]` into its `crombolo.config.ts`. That is the
 same opt-in, not a way around it: the line lands in the site's own committed
 file, where it is visible in the first diff and removable by deleting it. A
 template cannot wire a bundle into a site without the site's code saying so.

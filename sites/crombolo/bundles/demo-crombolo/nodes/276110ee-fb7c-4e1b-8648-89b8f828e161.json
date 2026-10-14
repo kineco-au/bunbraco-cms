@@ -1,0 +1,42 @@
+{
+  "key": "276110ee-fb7c-4e1b-8648-89b8f828e161",
+  "kind": "element",
+  "contentType": {
+    "key": "bd46f89c-5685-4048-adb7-b4bd40b65c8a",
+    "alias": "step"
+  },
+  "parent": null,
+  "sortOrder": 24,
+  "template": null,
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Check before you ship",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "command",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "bunx crombolo components check"
+    },
+    {
+      "property": "detail",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Compile every template in CI, so a broken page never reaches a visitor."
+    },
+    {
+      "property": "heading",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Check before you ship"
+    }
+  ]
+}

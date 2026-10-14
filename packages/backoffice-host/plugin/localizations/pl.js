@@ -4,15 +4,15 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Możesz zmienić swoje hasło w Bunbraco backoffice przez wypełnienie formularza poniżej i kliknięcie przycisku \"Zmień hasło\"",
-    "noConsole": "Wyłącz dostęp do Bunbraco",
+    "changePasswordDescription": "Możesz zmienić swoje hasło w Crombolo backoffice przez wypełnienie formularza poniżej i kliknięcie przycisku \"Zmień hasło\"",
+    "noConsole": "Wyłącz dostęp do Crombolo",
     "documentType": "Typ treści"
   },
   "paste": {
-    "errorMessage": "Tekst, który wklejasz zawiera specjalne znaki formatujące. Prawdopodobnie tekst pochodzi z programu Microsoft Word. Bunbraco może usunąć specjalne znaki lub formatowanie automatycznie, więc skopiowana treść będzie lepiej dopasowana do wyświetlania w Internecie."
+    "errorMessage": "Tekst, który wklejasz zawiera specjalne znaki formatujące. Prawdopodobnie tekst pochodzi z programu Microsoft Word. Crombolo może usunąć specjalne znaki lub formatowanie automatycznie, więc skopiowana treść będzie lepiej dopasowana do wyświetlania w Internecie."
   },
   "dashboard": {
-    "nothinghappens": "Jeśli Bunbraco się nie otwiera, prawdopodobnie musisz zezwolić tej stronie na otwieranie wyskakujących okienek"
+    "nothinghappens": "Jeśli Crombolo się nie otwiera, prawdopodobnie musisz zezwolić tej stronie na otwieranie wyskakujących okienek"
   },
   "actions": {
     "changeDocType": "Zmień typ treści",

@@ -1,12 +1,12 @@
 /**
  * Umbraco's definitions → the schema-as-code model: document, media and member
- * types, data types and languages, as `@bunbraco/schema` writes them to TOML.
+ * types, data types and languages, as `@crombolo/schema` writes them to TOML.
  *
  * Keys are carried over unchanged, which is what lets the content bundle name a
  * content type by key and find it after the schema has been synced.
  */
-import { ObjectTypes } from '@bunbraco/core'
-import { BUILT_IN_MEDIA_TYPES, DEFAULT_DATA_TYPES, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
+import { ObjectTypes } from '@crombolo/core'
+import { BUILT_IN_MEDIA_TYPES, DEFAULT_DATA_TYPES, SYSTEM_MEMBER_TYPE } from '@crombolo/data'
 import {
   aliasFromName,
   BUILTIN_DATA_TYPES,
@@ -20,11 +20,11 @@ import {
   type SchemaTypeKind,
   validateSchemaSet,
   writeMediaType,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import type { Findings } from './findings.ts'
 import { key, type Source } from './source.ts'
 
-/** The property editors bunbraco has an editor and a value converter for. */
+/** The property editors crombolo has an editor and a value converter for. */
 export const SUPPORTED_EDITORS: ReadonlySet<string> = new Set([
   ...DEFAULT_DATA_TYPES.map((dataType) => dataType.editorAlias),
   'Umbraco.BlockList',
@@ -555,7 +555,7 @@ export function convertSchema(source: Source, findings: Findings): ConvertedSche
     if (kind === 'document') schemaContentTypes.push(type)
     else if (kind === 'media') {
       // A media type Umbraco ships is written only where the site changed it.
-      // Property keys are left out of the comparison: bunbraco seeds its own.
+      // Property keys are left out of the comparison: crombolo seeds its own.
       const shipped = BUILT_IN_MEDIA_TYPES.find((t) => t.key === meta.key)
       const present = new Set(
         typeRows.filter((r) => KIND_OF[key(r.objectType)] === 'media').map((r) => r.alias),

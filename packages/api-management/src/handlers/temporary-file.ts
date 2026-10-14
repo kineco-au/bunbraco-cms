@@ -2,7 +2,7 @@
  * Temporary files: what an upload editor or the media dropzone posts before the
  * value that uses it is saved.
  */
-import { notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import { notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { TemporaryFilePort } from '../ports.ts'
 import type { ManagementApiRouter } from '../router.ts'
 import { created } from './content-type.ts'

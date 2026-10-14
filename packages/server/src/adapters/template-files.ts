@@ -6,7 +6,7 @@
  */
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { ComponentFileStore } from '@bunbraco/data'
+import type { ComponentFileStore } from '@crombolo/data'
 
 /** Aliases become filenames, so they must not be able to escape the directory. */
 function safeAlias(alias: string): string | undefined {

@@ -3,8 +3,8 @@
  * data is a name. Files place types in them by `folder = "A/B"`; the sync makes
  * the path exist; the backoffice's folder actions rewrite the files.
  */
-import type { Page } from '@bunbraco/core'
-import { SystemNodes } from '@bunbraco/core'
+import type { Page } from '@crombolo/core'
+import { SystemNodes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { NodeRepository, type NodeRow } from './nodes.ts'
 

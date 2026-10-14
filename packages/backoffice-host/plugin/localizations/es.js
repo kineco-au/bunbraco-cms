@@ -4,23 +4,23 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "changePasswordDescription": "Puedes cambiar tu contraseña para acceder al 'back office' de Bunbraco rellenando el siguiente formulario y haciendo clic en el botón 'Cambiar contraseña'",
-    "createUserHelp": "Crear nuevos usuarios para darles acceso a Bunbraco. Cuando un nuevo usuario es creado, una nueva contraseña será generada y la podrás compartir con el usuario.",
-    "inviteUserHelp": "Invita nuevos usuarios para darles acceso a Bunbraco. Un email de invitación será enviado al usuario con información sobre cómo acceder a Bunbraco.",
-    "noConsole": "Deshabilitar acceso a Bunbraco",
-    "userCreatedSuccessHelp": "Se ha creado el nuevo usuario con éxito. Para acceder a Bunbraco usa la contraseña siguiente.",
-    "userInvitedSuccessHelp": "Se ha enviado una invitación al nuevo usuario con detalles sobre cómo acceder a Bunbraco.",
-    "userinviteWelcomeMessage": "¡Hola y bienvenido a Bunbraco!. En un minuto todo estará listo para empezar, sólo necesitamos que configures tu contraseña.",
+    "changePasswordDescription": "Puedes cambiar tu contraseña para acceder al 'back office' de Crombolo rellenando el siguiente formulario y haciendo clic en el botón 'Cambiar contraseña'",
+    "createUserHelp": "Crear nuevos usuarios para darles acceso a Crombolo. Cuando un nuevo usuario es creado, una nueva contraseña será generada y la podrás compartir con el usuario.",
+    "inviteUserHelp": "Invita nuevos usuarios para darles acceso a Crombolo. Un email de invitación será enviado al usuario con información sobre cómo acceder a Crombolo.",
+    "noConsole": "Deshabilitar acceso a Crombolo",
+    "userCreatedSuccessHelp": "Se ha creado el nuevo usuario con éxito. Para acceder a Crombolo usa la contraseña siguiente.",
+    "userInvitedSuccessHelp": "Se ha enviado una invitación al nuevo usuario con detalles sobre cómo acceder a Crombolo.",
+    "userinviteWelcomeMessage": "¡Hola y bienvenido a Crombolo!. En un minuto todo estará listo para empezar, sólo necesitamos que configures tu contraseña.",
     "documentType": "Tipo de contenido"
   },
   "languages": {
-    "defaultLanguageHelp": "Un sitio de Bunbraco solo puede tener un conjunto de idiomas predeterminado."
+    "defaultLanguageHelp": "Un sitio de Crombolo solo puede tener un conjunto de idiomas predeterminado."
   },
   "paste": {
-    "errorMessage": "El texto que estás intentando pegar contiene caracteres o formato especial. El problema puede ser debido al copiar texto desde Microsoft Word. Bunbraco puede eliminar estos caracteres o formato especial automáticamente, de esa manera el contenido será más adecuado para la web."
+    "errorMessage": "El texto que estás intentando pegar contiene caracteres o formato especial. El problema puede ser debido al copiar texto desde Microsoft Word. Crombolo puede eliminar estos caracteres o formato especial automáticamente, de esa manera el contenido será más adecuado para la web."
   },
   "dashboard": {
-    "nothinghappens": "Si Bunbraco no se ha abierto tendrás que permitir ventanas emergentes para este sitio Web"
+    "nothinghappens": "Si Crombolo no se ha abierto tendrás que permitir ventanas emergentes para este sitio Web"
   },
   "actions": {
     "changeDocType": "Cambiar tipo de contenido",

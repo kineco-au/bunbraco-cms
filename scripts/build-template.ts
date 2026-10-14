@@ -8,14 +8,14 @@
  *
  * The content is created through the repositories in a throwaway SQLite site
  * built from its own schema files, then exported through the same
- * path `bunbraco content export` uses. So the committed bundle is a real export:
+ * path `crombolo content export` uses. So the committed bundle is a real export:
  * its integrity hash comes from the shipping writer and every value is in the
  * shape the editors actually store. Node keys are fixed below, so regenerating
  * yields the same bundle rather than a diff full of new uuids.
  */
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { listTemplates, type SiteTemplate } from '@bunbraco/cli'
+import { listTemplates, type SiteTemplate } from '@crombolo/cli'
 import {
   ComponentRepository,
   ContentTypeRepository,
@@ -23,23 +23,23 @@ import {
   type Db,
   DocumentRepository,
   type NodeRow,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
-  type BunbracoConfig,
   bootstrapDatabase,
+  type CromboloConfig,
   loadConfig,
   mediaStoreFor,
   readBlobs,
   syncSchemaDirectory,
-} from '@bunbraco/server'
-import { exportBundle, writeBundle } from '@bunbraco/transfer'
+} from '@crombolo/server'
+import { exportBundle, writeBundle } from '@crombolo/transfer'
 import { copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
 
 // The throwaway site is always a file, whatever the shell is pointed at.
-delete process.env.BUNBRACO_DB
-delete process.env.BUNBRACO_POSTGRES_URL
+delete process.env.CROMBOLO_DB
+delete process.env.CROMBOLO_POSTGRES_URL
 
 // --------------------------------------------------------------- the site
 
@@ -69,7 +69,7 @@ const fromSite = (site: RepoSite): Target => ({
 
 interface Site {
   db: Db
-  config: BunbracoConfig
+  config: CromboloConfig
   template: Target
   dir: string
   /** The keys to export, in the order they should be read. */
@@ -271,13 +271,13 @@ const BASIC: Builder = async (site) => {
     type: 'homePage',
     name: 'Home',
     values: {
-      title: 'A new bunbraco site',
+      title: 'A new crombolo site',
       bodyText: richtext(
         '<p>This page is content: it lives in the database and you edit it in the backoffice. ' +
           'Its <em>shape</em> is code — <code>schema/content-types/home-page.toml</code> — and the ' +
           'markup around it is <code>components/homePage.tsx</code>.</p>' +
-          '<p>Add a property to the TOML, run <code>bunbraco schema check</code> to see what it would ' +
-          'do to this page, then <code>bunbraco start</code> to apply it.</p>',
+          '<p>Add a property to the TOML, run <code>crombolo schema check</code> to see what it would ' +
+          'do to this page, then <code>crombolo start</code> to apply it.</p>',
       ),
     },
   })
@@ -673,7 +673,7 @@ const HARBOURSTONE: Builder = async (site) => {
 }
 
 /** The sample on the developer page, as it would sit in `components/pages/`. */
-const TSX_SAMPLE = `import type { PageProps } from 'bunbraco'
+const TSX_SAMPLE = `import type { PageProps } from '@crombolo/crombolo'
 import { Layout } from '../shared/layout.tsx'
 
 export default function Article({ model, nav }: PageProps) {
@@ -685,7 +685,7 @@ export default function Article({ model, nav }: PageProps) {
   )
 }`
 
-const BUNBRACO: Builder = async (site) => {
+const CROMBOLO: Builder = async (site) => {
   const { page, element } = await writers(site)
 
   const feature = (key: string, heading: string, detail: string) =>
@@ -763,7 +763,7 @@ const BUNBRACO: Builder = async (site) => {
     await feature(
       '566477d3-97a4-446b-b9f1-d9b0f810caa8',
       'Your content model in Git',
-      'Content types are readable TOML files you can diff and review, and bunbraco generate turns them into TypeScript types.',
+      'Content types are readable TOML files you can diff and review, and crombolo generate turns them into TypeScript types.',
     ),
     await feature(
       '6bd08968-76a1-4f96-a7bf-453bad090fdc',
@@ -778,7 +778,7 @@ const BUNBRACO: Builder = async (site) => {
     await feature(
       'eda4ab14-74bf-446d-bb3e-064be4e5913b',
       'Checks before production',
-      'bunbraco components check compiles every template in CI, so a broken page is caught before a visitor sees it.',
+      'crombolo components check compiles every template in CI, so a broken page is caught before a visitor sees it.',
     ),
     await feature(
       'ad985566-f642-413e-83e5-3e9bb4cdf283',
@@ -801,14 +801,14 @@ const BUNBRACO: Builder = async (site) => {
     await step(
       '03ef280b-511e-4778-859b-34e6a48be6f6',
       'Install Bun',
-      'Bunbraco runs on Bun 1.3 or later. A SQLite site needs nothing else.',
+      'Crombolo runs on Bun 1.3 or later. A SQLite site needs nothing else.',
       'curl -fsSL https://bun.sh/install | bash',
     ),
     await step(
       '6fbd32fd-64ea-4cc1-867d-a453a3fc6d7a',
       'Create a site',
       'Scaffold a site in an empty folder. Add --template list to see the starter sites, or --postgres to use Postgres.',
-      'mkdir my-site && cd my-site\nbunx bunbraco init --name "My Site"',
+      'mkdir my-site && cd my-site\nbunx crombolo init --name "My Site"',
     ),
     await step(
       'c7d11c0f-afa9-4269-9f26-c52e8cb09b0e',
@@ -819,19 +819,19 @@ const BUNBRACO: Builder = async (site) => {
     await step(
       '05b6bdcb-2635-4a84-96e3-aa51980f368a',
       'Model your content',
-      'Sign in at http://localhost:8080/bunbraco and create your content types. Each one is saved as a TOML file under schema/, ready to commit.',
+      'Sign in at http://localhost:8080/crombolo and create your content types. Each one is saved as a TOML file under schema/, ready to commit.',
     ),
     await step(
       'a90cf801-2632-4000-85e6-14056ccacbb4',
       'Write a template',
       'Add a component under components/, or create one from the back office. Generate types for your content types to get autocomplete as you write.',
-      'bunx bunbraco components new pages/article\nbunx bunbraco generate',
+      'bunx crombolo components new pages/article\nbunx crombolo generate',
     ),
     await step(
       '276110ee-fb7c-4e1b-8648-89b8f828e161',
       'Check before you ship',
       'Compile every template in CI, so a broken page never reaches a visitor.',
-      'bunx bunbraco components check',
+      'bunx crombolo components check',
     ),
   ]
 
@@ -842,9 +842,9 @@ const BUNBRACO: Builder = async (site) => {
     values: {
       title: 'The CMS your editors already know',
       strapline:
-        'Bunbraco gives your content team the Umbraco editing experience they trust, on an open-source platform that is quicker to build on and cheaper to run.',
+        'Crombolo gives your content team the Umbraco editing experience they trust, on an open-source platform that is quicker to build on and cheaper to run.',
       heroCtaLabel: 'Get started',
-      whyHeading: 'Why teams switch to Bunbraco',
+      whyHeading: 'Why teams switch to Crombolo',
       whyIntro:
         'Keep the editing experience your team relies on, without the platform costs and constraints that usually come with it.',
       reasons,
@@ -856,7 +856,7 @@ const BUNBRACO: Builder = async (site) => {
       migrateBody: richtext(
         '<p>The import tool starts with a compatibility report, so you know exactly what will ' +
           'move across before anything changes. It then brings your content types, content and ' +
-          'media into a new Bunbraco site.</p>' +
+          'media into a new Crombolo site.</p>' +
           '<p>Your editors keep working in a back office they already trust.</p>',
       ),
       developersHeading: 'Your developers will thank you',
@@ -866,8 +866,8 @@ const BUNBRACO: Builder = async (site) => {
       closingHeading: 'Up and running in minutes',
       closingBody:
         'One command creates a site, and the developer guide takes you from there to your first published page.',
-      repositoryUrl: 'https://github.com/kineco-au/bunbraco-cms',
-      installCommand: 'bunx bunbraco init',
+      repositoryUrl: 'https://github.com/kineco-au/crombolo-cms',
+      installCommand: 'bunx crombolo init',
     },
   })
 
@@ -880,7 +880,7 @@ const BUNBRACO: Builder = async (site) => {
       eyebrow: 'For developers',
       title: 'Templates in TSX, schema in Git, one runtime',
       standfirst:
-        'Bunbraco keeps the back office your editors know and rebuilds everything behind it in TypeScript on Bun. Here is what that means for you, and how to get started.',
+        'Crombolo keeps the back office your editors know and rebuilds everything behind it in TypeScript on Bun. Here is what that means for you, and how to get started.',
       codeHeading: 'Templates are typed components',
       codeIntro:
         'Write pages as React-style TSX components. They render to HTML on the server, with no React runtime and no hydration, and your changes show up without a restart.',
@@ -899,7 +899,7 @@ const BUNBRACO: Builder = async (site) => {
 
 const BUILDERS: Record<string, Builder> = {
   basic: BASIC,
-  'demo/bunbraco': BUNBRACO,
+  'demo/crombolo': CROMBOLO,
   'demo/harbourstone': HARBOURSTONE,
   starter: STARTER,
 }
@@ -911,7 +911,7 @@ const BUILDERS: Record<string, Builder> = {
  */
 const BUNDLE_IDS: Record<string, string> = {
   basic: '2de473a2-d391-4161-801e-e34b202759b8',
-  'demo/bunbraco': 'ffc7145b-99fa-48da-9daf-12cd61454a22',
+  'demo/crombolo': 'ffc7145b-99fa-48da-9daf-12cd61454a22',
   'demo/harbourstone': 'af030aee-ba70-4bed-8a27-a3806a79100d',
   starter: 'da9fd74e-b964-44b4-8d61-afa7f65a28d2',
 }

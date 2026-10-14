@@ -8,7 +8,7 @@
  * unrelated failures elsewhere rather than here. Hence these.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { connect, readKeyValue, readLedger, writeKeyValue } from '@bunbraco/data'
+import { connect, readKeyValue, readLedger, writeKeyValue } from '@crombolo/data'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 

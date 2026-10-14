@@ -5,13 +5,13 @@
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { MANAGEMENT_API_PATH } from '@bunbraco/core'
+import { MANAGEMENT_API_PATH } from '@crombolo/core'
 import type { BackOfficePaths } from './paths.ts'
 
 export const GRAPHICS_PREFIX = `${MANAGEMENT_API_PATH}/security/back-office/graphics`
 
 /**
- * Bunbraco's own marks, as Umbraco's names them. The plain names are the ones
+ * Crombolo's own marks, as Umbraco's names them. The plain names are the ones
  * the client asks for on the header bar, which the theme paints orange, so they
  * get the cocoa mark; the `-alternative` ones sit on white surfaces and get the
  * orange one.
@@ -31,7 +31,7 @@ const GRAPHICS: Record<string, string> = {
 }
 
 /**
- * Vendored asset paths served as bunbraco's instead.
+ * Vendored asset paths served as crombolo's instead.
  *
  * These are Umbraco's own marks and artwork, which MIT does not license:
  * MIT grants copyright permission and says nothing about trademarks. Each is
@@ -70,7 +70,7 @@ const BRANDED_PATTERNS: readonly (readonly [RegExp, string])[] = [
   [/(?:^|\/)icon-umbraco(?:-[0-9a-z]+)?\.js$/, 'branding/icon-mark.js'],
 ]
 
-/** The bunbraco file to serve in place of a vendored one, by vendor-relative path. */
+/** The crombolo file to serve in place of a vendored one, by vendor-relative path. */
 export function brandedAsset(relative: string): string | undefined {
   return (
     BRANDED_ASSETS[relative] ?? BRANDED_PATTERNS.find(([pattern]) => pattern.test(relative))?.[1]

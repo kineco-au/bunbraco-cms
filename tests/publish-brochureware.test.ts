@@ -29,7 +29,7 @@ import {
 import { findSite, SITES_DIR } from '../scripts/sites.ts'
 
 const TARGET: Target = {
-  url: 'https://console.bunbraco.com',
+  url: 'https://console.crombolo.com',
   token: 'bbe_secret',
   organisation: '7f3e2a10-4b5c-4d6e-8f90-a1b2c3d4e5f6',
   site: '0c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f',
@@ -87,7 +87,7 @@ describe('the configuration', () => {
 
   test('refuses to carry the token over plain http, except to localhost', () => {
     expect(
-      parseTarget(configured({ [VARIABLES.url]: 'http://console.bunbraco.com' })),
+      parseTarget(configured({ [VARIABLES.url]: 'http://console.crombolo.com' })),
     ).toHaveProperty('error')
     expect(parseTarget(configured({ [VARIABLES.url]: 'http://localhost:3000' }))).toMatchObject({
       url: 'http://localhost:3000',
@@ -97,8 +97,8 @@ describe('the configuration', () => {
 
   test('trims a trailing slash, so no path is ever built with two', () => {
     expect(
-      parseTarget(configured({ [VARIABLES.url]: 'https://console.bunbraco.com//' })),
-    ).toMatchObject({ url: 'https://console.bunbraco.com' })
+      parseTarget(configured({ [VARIABLES.url]: 'https://console.crombolo.com//' })),
+    ).toMatchObject({ url: 'https://console.crombolo.com' })
   })
 
   test('does not check the token against a prefix the platform owns', () => {
@@ -115,8 +115,8 @@ describe('the archive', () => {
   test('is the product site’s committed bundle, not its database', () => {
     // What a laptop's copy of the site holds is whatever was last done to it, so
     // publishing anything but the committed bundle would put that on the live site.
-    expect(BUNDLE_DIR).toBe(join(SITES_DIR, 'bunbraco', 'bundles', 'demo-bunbraco'))
-    expect(findSite(TEMPLATE)?.dir).toBe(join(SITES_DIR, 'bunbraco'))
+    expect(BUNDLE_DIR).toBe(join(SITES_DIR, 'crombolo', 'bundles', 'demo-crombolo'))
+    expect(findSite(TEMPLATE)?.dir).toBe(join(SITES_DIR, 'crombolo'))
     const files = bundleFiles(BUNDLE_DIR)
     expect(files).toContain('bundle.json')
     expect(files.some((path) => path.startsWith('nodes/'))).toBe(true)
@@ -149,7 +149,7 @@ describe('the calls a publish makes', () => {
     // minutes only to be refused.
     const call = ticketCall(TARGET, { filename: 'bundle.zip', bytes: 1234 })
     expect(call.url).toBe(
-      `https://console.bunbraco.com/v1/organisations/${TARGET.organisation}/sites/${TARGET.site}/environments/${TARGET.environment}/bundles`,
+      `https://console.crombolo.com/v1/organisations/${TARGET.organisation}/sites/${TARGET.site}/environments/${TARGET.environment}/bundles`,
     )
     expect(call.init.method).toBe('POST')
     expect(JSON.parse(call.init.body as string)).toEqual({ filename: 'bundle.zip', bytes: 1234 })
@@ -175,7 +175,7 @@ describe('the calls a publish makes', () => {
 
   test('read the job by id, and send the token to do it', () => {
     const call = jobCall(TARGET, 'job-1')
-    expect(call.url).toBe('https://console.bunbraco.com/v1/jobs/job-1')
+    expect(call.url).toBe('https://console.crombolo.com/v1/jobs/job-1')
     expect(call.init.method).toBe('GET')
     expect(JSON.stringify(call.init.headers)).toContain(TARGET.token)
   })

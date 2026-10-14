@@ -7,7 +7,7 @@
  * dispatches, so "the assistant changed something" is not a state this code can
  * produce — only an approval, elsewhere, can.
  */
-import { type HttpMethod, listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
+import { type HttpMethod, listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 import type { ChangesetStore, ProposedChange, SchemaProposalPort } from './changeset.ts'
 import { scanTemplateSource } from './guardrails.ts'
 import { APPLY_OPERATIONS, type ChangeKind, isReadable, readableOperations } from './operations.ts'
@@ -146,7 +146,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   {
     name: 'propose_template',
     description:
-      'Propose template source. TSX only: import from "bunbraco" or a file beside it, and no Bun, process, fetch, eval or node: imports. Approving this goes live at once, so say what it changes.',
+      'Propose template source. TSX only: import from "@crombolo/crombolo" or a file beside it, and no Bun, process, fetch, eval or node: imports. Approving this goes live at once, so say what it changes.',
     inputSchema: {
       type: 'object',
       properties: {

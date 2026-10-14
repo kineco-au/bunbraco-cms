@@ -11,7 +11,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Principal } from '@bunbraco/api-management'
+import type { Principal } from '@crombolo/api-management'
 import {
   BUNDLE_API_SEGMENT,
   type BundleHost,
@@ -20,10 +20,10 @@ import {
   type ServerBundle,
   validateRedirectInput,
   validateServerBundles,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { ROOT } from '../scripts/packages.ts'
 
-const PLUGIN_API = '/umbraco/bunbraco/api'
+const PLUGIN_API = '/umbraco/crombolo/api'
 const BASE = `${PLUGIN_API}/${BUNDLE_API_SEGMENT}/`
 
 const admin: Principal = {
@@ -240,7 +240,7 @@ describe('dispatch', () => {
     // `undefined` rather than a 404: the server has its own routes after this
     // one, and a bundle namespace must not swallow them.
     expect(await call(mount([simple()]), `${BASE}absent/things`)).toBeUndefined()
-    expect(await call(mount([simple()]), '/umbraco/bunbraco/api/forms')).toBeUndefined()
+    expect(await call(mount([simple()]), '/umbraco/crombolo/api/forms')).toBeUndefined()
   })
 
   test('does not claim the Bundles section’s own endpoints', async () => {
@@ -478,11 +478,11 @@ describe('nothing mounts a bundle except the site’s own configuration', () => 
   const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
 
   test('the default is no bundles, whatever the environment says', () => {
-    // There is deliberately no BUNBRACO_BUNDLES: an environment variable naming
+    // There is deliberately no CROMBOLO_BUNDLES: an environment variable naming
     // a package would be a way to start third-party server code without a code
     // change, which is the whole thing this design refuses.
     expect(loadConfig({}).bundles).toEqual([])
-    expect(read('packages/server/src/config.ts')).not.toContain('BUNBRACO_BUNDLES')
+    expect(read('packages/server/src/config.ts')).not.toContain('CROMBOLO_BUNDLES')
   })
 
   test('the server mounts exactly what the configuration listed', () => {

@@ -12,7 +12,7 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { SchemaForm } from '@bunbraco/core'
+import type { SchemaForm } from '@crombolo/core'
 import {
   fileNameFor,
   loadSchemaDirectory,
@@ -20,7 +20,7 @@ import {
   type SchemaProblem,
   validateForms,
   writeForm,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 
 export interface FormFileOptions {
   schemaDir: string

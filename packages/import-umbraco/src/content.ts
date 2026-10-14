@@ -5,8 +5,8 @@
  * The snapshot rule is the exporter's: a published page carries its published
  * values, an unpublished one its draft, and `drafts` takes the draft throughout.
  */
-import { ObjectTypes, toEditorValue } from '@bunbraco/core'
-import { hashSchemaSet } from '@bunbraco/schema'
+import { ObjectTypes, toEditorValue } from '@crombolo/core'
+import { hashSchemaSet } from '@crombolo/schema'
 import {
   BUNDLE_FORMAT_VERSION,
   type BundleBlob,
@@ -17,7 +17,7 @@ import {
   type BundleVariant,
   type ContentSet,
   referenceCandidates,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import type { Findings } from './findings.ts'
 import type { ConvertedSchema } from './schema.ts'
 import { key, type Source, wallClock } from './source.ts'
@@ -406,7 +406,7 @@ export function convertContent(
         formatVersion: BUNDLE_FORMAT_VERSION,
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
-        createdBy: 'bunbraco import umbraco',
+        createdBy: 'crombolo import umbraco',
         // writeBundle recomputes this over the files it emits.
         integrity: '',
         snapshot: options.snapshot,

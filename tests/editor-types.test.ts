@@ -13,11 +13,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
-import { EDITOR_CONTENT_TYPES, editorTypeLibs, siteJsxImportSource } from '@bunbraco/server'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import { EDITOR_CONTENT_TYPES, editorTypeLibs, siteJsxImportSource } from '@crombolo/server'
 import { type Harness, signedInServer } from './support/harness.ts'
 
-const EDITOR_TYPES = `${DEFAULT_BACKOFFICE_PATH}/bunbraco/api/editor-types`
+const EDITOR_TYPES = `${DEFAULT_BACKOFFICE_PATH}/crombolo/api/editor-types`
 
 interface Lib {
   path: string
@@ -73,7 +73,7 @@ const source = (file: string) => Bun.file(`packages/backoffice-host/${file}`).te
  * Run through bun rather than the `tsc` shim, which wants a node on the PATH
  * that the test image does not have.
  */
-async function typecheck(view: string, jsxImportSource = 'bunbraco'): Promise<string[]> {
+async function typecheck(view: string, jsxImportSource = '@crombolo/crombolo'): Promise<string[]> {
   const root = mkdtempSync(join(process.cwd(), 'output', 'editor-tsc-'))
   dirs.push(root)
   const libs = await editorTypeLibs({ schemaDir: schemaFiles() })
@@ -118,15 +118,17 @@ describe('the declarations the view editor checks a view against', () => {
     const { libs } = await h.json<{ libs: Lib[] }>(EDITOR_TYPES)
     const at = (path: string) => libs.find((lib) => lib.path === path)
 
-    // Where `import type { PageProps } from 'bunbraco'` lands, by TypeScript's
+    // Where `import type { PageProps } from '@crombolo/crombolo'` lands, by TypeScript's
     // own directory-index lookup.
-    expect(at('file:///node_modules/bunbraco/index.ts')?.content).toContain(
+    expect(at('file:///node_modules/@crombolo/crombolo/index.ts')?.content).toContain(
       "export * from './model.ts'",
     )
-    expect(at('file:///node_modules/bunbraco/model.ts')?.content).toContain(
+    expect(at('file:///node_modules/@crombolo/crombolo/model.ts')?.content).toContain(
       'export interface PageProps',
     )
-    expect(at('file:///node_modules/bunbraco/jsx-runtime.ts')?.content).toContain('namespace JSX')
+    expect(at('file:///node_modules/@crombolo/crombolo/jsx-runtime.ts')?.content).toContain(
+      'namespace JSX',
+    )
 
     // The generated types, at the depth a view reaches them by `../schema/`.
     expect(EDITOR_CONTENT_TYPES).toBe('file:///schema/content-types.d.ts')
@@ -142,11 +144,11 @@ describe('the declarations the view editor checks a view against', () => {
     const { h } = await site()
     const { libs } = await h.json<{ libs: Lib[] }>(EDITOR_TYPES)
     const served = libs
-      .filter((lib) => lib.path.startsWith('file:///node_modules/bunbraco/'))
-      .map((lib) => lib.path.slice('file:///node_modules/bunbraco/'.length))
+      .filter((lib) => lib.path.startsWith('file:///node_modules/@crombolo/crombolo/'))
+      .map((lib) => lib.path.slice('file:///node_modules/@crombolo/crombolo/'.length))
       .sort()
 
-    const dir = dirname(fileURLToPath(import.meta.resolve('@bunbraco/render')))
+    const dir = dirname(fileURLToPath(import.meta.resolve('@crombolo/render')))
     const onDisk = (await readdir(dir, { recursive: true }))
       .filter((name) => name.endsWith('.ts'))
       .sort()
@@ -180,22 +182,22 @@ describe('the declarations the view editor checks a view against', () => {
   test('say which JSX mode the site chose, as its tsconfig does', async () => {
     const { h } = await site()
     expect((await h.json<{ jsxImportSource: string }>(EDITOR_TYPES)).jsxImportSource).toBe(
-      'bunbraco',
+      '@crombolo/crombolo',
     )
     const siteDir = mkdtempSync(join(process.cwd(), 'output', 'editor-jsx-'))
     dirs.push(siteDir)
-    expect(siteJsxImportSource(siteDir)).toBe('bunbraco')
+    expect(siteJsxImportSource(siteDir)).toBe('@crombolo/crombolo')
     writeFileSync(
       join(siteDir, 'tsconfig.json'),
-      '{\n  // upgrading\n  "compilerOptions": { "jsxImportSource": "bunbraco/loose" }\n}\n',
+      '{\n  // upgrading\n  "compilerOptions": { "jsxImportSource": "@crombolo/crombolo/loose" }\n}\n',
     )
-    expect(siteJsxImportSource(siteDir)).toBe('bunbraco/loose')
+    expect(siteJsxImportSource(siteDir)).toBe('@crombolo/crombolo/loose')
     // Anything this package does not serve is checked as the default.
     writeFileSync(
       join(siteDir, 'tsconfig.json'),
       '{ "compilerOptions": { "jsxImportSource": "react" } }',
     )
-    expect(siteJsxImportSource(siteDir)).toBe('bunbraco')
+    expect(siteJsxImportSource(siteDir)).toBe('@crombolo/crombolo')
   })
 
   test('are fetched again only when they have changed', async () => {
@@ -240,11 +242,11 @@ describe('the editor configuration', () => {
 
     expect(tsconfig.jsx).toBe('react-jsx')
     expect(editors).toContain('jsx: JsxEmit.ReactJSX')
-    expect(tsconfig.jsxImportSource).toBe('bunbraco')
+    expect(tsconfig.jsxImportSource).toBe('@crombolo/crombolo')
     // The mode comes from the server, which reads the site's tsconfig; checked as
     // the default when it does not say.
     expect(editors).toMatch(/\n\s+jsxImportSource,\n/)
-    expect(editors).toContain(": 'bunbraco'")
+    expect(editors).toContain(": '@crombolo/crombolo'")
     expect(tsconfig.strict).toBe(true)
     expect(editors).toContain('strict: true')
     expect(tsconfig.allowImportingTsExtensions).toBe(true)
@@ -259,11 +261,11 @@ describe('the editor configuration', () => {
     // The endpoint and the options are only worth having if a view built from
     // them type-checks, so this lays the declarations out the way the editor
     // does and asks `tsc`. It covers what nothing else can: that a bare
-    // `bunbraco` resolves to the served module, that `jsxImportSource` reaches
+    // `@crombolo/crombolo` resolves to the served module, that `jsxImportSource` reaches
     // the JSX namespace so a tag is legal at all, and that `components/` is the right
     // depth for the generated types.
     expect(
-      await typecheck(`import type { PageProps } from 'bunbraco'
+      await typecheck(`import type { PageProps } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 export default function Template({ model }: PageProps) {
@@ -280,7 +282,7 @@ export default function Template({ model }: PageProps) {
 
   test('types a page by its generated interface, built-in compositions included', async () => {
     expect(
-      await typecheck(`import { type PageProps, type PublishedContent, SeoHead } from 'bunbraco'
+      await typecheck(`import { type PageProps, type PublishedContent, SeoHead } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 function Crumb({ page }: { page: PublishedContent }) {
@@ -308,7 +310,7 @@ export default function Template(props: PageProps<HomePage>) {
   })
 
   test('and refuses a property the type does not have, or the wrong type for one', async () => {
-    const errors = await typecheck(`import type { PageProps } from 'bunbraco'
+    const errors = await typecheck(`import type { PageProps } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 export function Untyped({ model }: PageProps) {
@@ -333,9 +335,9 @@ export default function Template({ model }: PageProps<HomePage>) {
 
   test('checks each tag’s attributes, and accepts how HTML spells them', async () => {
     expect(
-      await typecheck(`import type { Child } from 'bunbraco'
+      await typecheck(`import type { Child } from '@crombolo/crombolo'
 
-declare module 'bunbraco' {
+declare module '@crombolo/crombolo' {
   interface ExtraAttributes {
     popoverx?: 'auto' | 'manual'
   }
@@ -388,14 +390,14 @@ export const e = (<b>x</b>).toUpperCase()
   return <a herf="/x" tabIndex="first">{text}</a>
 }
 `,
-        'bunbraco/loose',
+        '@crombolo/crombolo/loose',
       ),
     ).toEqual([])
   })
 
   test('types usePage() by the page’s interface, and a Provider’s children as a function', async () => {
     const errors = (
-      await typecheck(`import { createContext, usePage, useContext } from 'bunbraco'
+      await typecheck(`import { createContext, usePage, useContext } from '@crombolo/crombolo'
 import type { HomePage } from '../schema/content-types'
 
 const Theme = createContext('light')
@@ -419,7 +421,7 @@ export const typo = () => usePage<HomePage>().model.text('titel')
   })
 
   test('and reports a real mistake, rather than passing everything', async () => {
-    const errors = await typecheck(`import type { PageProps } from 'bunbraco'
+    const errors = await typecheck(`import type { PageProps } from '@crombolo/crombolo'
 
 export default function Template({ model }: PageProps) {
   return <h1>{model.nosuchthing()}</h1>

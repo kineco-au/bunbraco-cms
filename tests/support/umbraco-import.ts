@@ -1,7 +1,7 @@
 /** Shared by the importer's tests: the fixture, and putting a plan on disk as the CLI does. */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import type { ImportPlan } from '@bunbraco/import-umbraco'
+import type { ImportPlan } from '@crombolo/import-umbraco'
 
 /** An Umbraco 17 site with Umbraco Commerce; see `tests/fixtures/umbraco/README.md`. */
 export const DEMO_STORE = join(

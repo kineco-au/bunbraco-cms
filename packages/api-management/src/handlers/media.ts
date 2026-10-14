@@ -2,14 +2,14 @@
  * The Media section: the tree, the editor, the collection view, the recycle bin
  * and the file URLs its thumbnails and pickers need.
  */
-import type { DocumentAggregate, DocumentTreeItem } from '@bunbraco/core'
+import type { DocumentAggregate, DocumentTreeItem } from '@crombolo/core'
 import {
   invalidSkipTake,
   notFound,
   problemDetails,
   problemResponse,
   ROOT_ACCESS,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { MediaPort, PortFailure } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging } from './content-type.ts'

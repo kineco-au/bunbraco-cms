@@ -10,21 +10,21 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { assertPortAvailable, DEFAULTS, describeDatabase, portInUse } from '@bunbraco/server'
+import { assertPortAvailable, DEFAULTS, describeDatabase, portInUse } from '@crombolo/server'
 
 describe('the database a server names', () => {
   test('is the file itself on SQLite', () => {
-    expect(describeDatabase({ dialect: 'sqlite', sqliteFile: '/site/bunbraco.sqlite' })).toBe(
-      '/site/bunbraco.sqlite',
+    expect(describeDatabase({ dialect: 'sqlite', sqliteFile: '/site/crombolo.sqlite' })).toBe(
+      '/site/crombolo.sqlite',
     )
   })
 
   test('is the host and database on Postgres, never the password', () => {
     const described = describeDatabase(
-      { dialect: 'postgres', sqliteFile: '/site/bunbraco.sqlite' },
-      'postgres://bunbraco:s3cret@db:5432/bunbraco',
+      { dialect: 'postgres', sqliteFile: '/site/crombolo.sqlite' },
+      'postgres://crombolo:s3cret@db:5432/crombolo',
     )
-    expect(described).toBe('postgres db:5432/bunbraco')
+    expect(described).toBe('postgres db:5432/crombolo')
     expect(described).not.toContain('s3cret')
   })
 
@@ -35,13 +35,13 @@ describe('the database a server names', () => {
   })
 
   test('falls back to the dialect when nothing configures a URL', () => {
-    const previous = [Bun.env.BUNBRACO_POSTGRES_URL, Bun.env.DATABASE_URL]
-    Bun.env.BUNBRACO_POSTGRES_URL = undefined
+    const previous = [Bun.env.CROMBOLO_POSTGRES_URL, Bun.env.DATABASE_URL]
+    Bun.env.CROMBOLO_POSTGRES_URL = undefined
     Bun.env.DATABASE_URL = undefined
     try {
       expect(describeDatabase({ dialect: 'postgres', sqliteFile: 'x.sqlite' })).toBe('postgres')
     } finally {
-      Bun.env.BUNBRACO_POSTGRES_URL = previous[0]
+      Bun.env.CROMBOLO_POSTGRES_URL = previous[0]
       Bun.env.DATABASE_URL = previous[1]
     }
   })
@@ -106,11 +106,11 @@ describe('the test containers', () => {
     // repository ships a stack that cannot run what it builds.
     expect(cms).not.toContain('profiles:')
     // Unset means `all` — site, backoffice and Management API in one process.
-    expect(cms).not.toContain('BUNBRACO_ROLE')
+    expect(cms).not.toContain('CROMBOLO_ROLE')
     expect(cms).toContain('working_dir: /app/apps/site')
     expect(cms).toContain('/health')
     // Host and container port are one value, so the backoffice's own links work.
-    const port = `\${${'BUNBRACO_PORT:-8080'}}`
+    const port = `\${${'CROMBOLO_PORT:-8080'}}`
     expect(cms).toContain(`PORT: '${port}'`)
     expect(cms).toContain(`- '${port}:${port}'`)
     expect(scripts['docker:up']).toContain('--wait cms')
@@ -149,7 +149,7 @@ describe('the test containers', () => {
     // Debian image against the CMS image's Alpine: one install cannot serve both.
     expect(browser).toContain('browser_node_modules:/app/node_modules')
     // Empty selects Playwright's Chromium; Chrome has no Linux arm64 build.
-    expect(browser).toContain("BUNBRACO_BROWSER_CHANNEL: ''")
+    expect(browser).toContain("CROMBOLO_BROWSER_CHANNEL: ''")
   })
 
   test('every image reinstalls its node_modules volume when bun.lock changes', () => {
@@ -173,7 +173,7 @@ describe('the test containers', () => {
       compose.indexOf('cms-test-sqlite:'),
       compose.indexOf('  cms-test:'),
     )
-    expect(sqlite).toContain('BUNBRACO_DB: sqlite')
+    expect(sqlite).toContain('CROMBOLO_DB: sqlite')
     expect(sqlite).not.toContain('depends_on')
     // Both are behind the profile, so `docker compose up` never starts them.
     expect(sqlite).toContain("profiles: ['test']")
@@ -181,12 +181,12 @@ describe('the test containers', () => {
 
   test('both test services take the environment a host run sets', () => {
     for (const key of [
-      'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_ADMIN_PASSWORD',
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_LOGS_DIR',
-      'BUNBRACO_LOG_TO_CONSOLE',
+      'CROMBOLO_SQLITE_FILE',
+      'CROMBOLO_ADMIN_PASSWORD',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_LOGS_DIR',
+      'CROMBOLO_LOG_TO_CONSOLE',
     ])
       expect(scripts['test:sqlite']).toContain(key)
     // One anchor supplies them to every test service rather than copies drifting.

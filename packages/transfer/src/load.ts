@@ -171,7 +171,7 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
   if (formatVersion > BUNDLE_FORMAT_VERSION) {
     problems.push({
       file: MANIFEST_FILE,
-      message: `format ${formatVersion} is newer than this version understands (${BUNDLE_FORMAT_VERSION}) — upgrade bunbraco to import it`,
+      message: `format ${formatVersion} is newer than this version understands (${BUNDLE_FORMAT_VERSION}) — upgrade crombolo to import it`,
     })
     return undefined
   }

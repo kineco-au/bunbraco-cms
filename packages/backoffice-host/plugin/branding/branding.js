@@ -9,7 +9,7 @@
  *
  * So it is corrected as it is written. The suffix is the site's own name, which
  * the shell states in `<meta name="application-name">` — so a site called
- * something other than Bunbraco gets its own name rather than a second hardcoded
+ * something other than Crombolo gets its own name rather than a second hardcoded
  * one.
  *
  * Not read from `document.title`, although the shell puts the name there too.
@@ -24,7 +24,7 @@ const CLIENT_SUFFIX = ' | Umbraco'
 /** The site's name as the shell stated it. */
 export function brandName(doc = document) {
   const stated = doc.querySelector('meta[name="application-name"]')?.getAttribute('content')
-  return stated?.trim() || 'Bunbraco'
+  return stated?.trim() || 'Crombolo'
 }
 
 /**
@@ -42,7 +42,7 @@ export function brandedTitle(title, brand) {
 
 /**
  * The logo popover carries a link to umbraco.com, hardcoded in
- * `backoffice-header-logo.element.js`. Its image is already served as bunbraco's
+ * `backoffice-header-logo.element.js`. Its image is already served as crombolo's
  * (see `graphics.ts`), so only the link is left.
  *
  * This reaches into a vendored element's shadow root, which is worth naming as
@@ -68,8 +68,8 @@ function correctLogoLink() {
   const logo = deepQuery('umb-backoffice-header-logo')
   const anchor = logo?.shadowRoot?.querySelector('a[href*="umbraco.com"]')
   if (!anchor) return false
-  anchor.href = 'https://github.com/kineco-au/bunbraco-cms'
-  anchor.textContent = 'Bunbraco on GitHub'
+  anchor.href = 'https://github.com/kineco-au/crombolo-cms'
+  anchor.textContent = 'Crombolo on GitHub'
   const image = logo.shadowRoot.querySelector('img[alt="Umbraco"]')
   if (image) image.alt = brandName()
   return true

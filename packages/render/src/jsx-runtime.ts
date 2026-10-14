@@ -49,7 +49,7 @@ export interface ElementProps extends Record<string, unknown> {
 
 export type Component = (props: ElementProps) => Child
 
-export const Fragment = Symbol.for('bunbraco.fragment')
+export const Fragment = Symbol.for('crombolo.fragment')
 
 export function isPromise(value: unknown): value is Promise<unknown> {
   return typeof (value as { then?: unknown } | null | undefined)?.then === 'function'
@@ -69,7 +69,7 @@ function refuseChild(child: unknown): never {
   if (typeof child === 'symbol') throw new Error('A symbol is not valid as a child.')
   if (REACT_ELEMENTS.has((child as { $$typeof?: symbol }).$$typeof as symbol))
     throw new Error(
-      "A React element was rendered in a page template. Templates render with Bunbraco's own " +
+      "A React element was rendered in a page template. Templates render with Crombolo's own " +
         'JSX, to static HTML, so a React component cannot run here. Render an element to mount ' +
         'it on, and load your client code from /scripts/.',
     )
@@ -282,7 +282,7 @@ export const jsxDEV = jsx
 
 /**
  * What a view's `.tsx` compiles against: each tag with its own attributes (see
- * `jsx-attributes.ts`), and markup out. `bunbraco/loose` is the same runtime
+ * `jsx-attributes.ts`), and markup out. `@crombolo/crombolo/loose` is the same runtime
  * with any attribute on any tag, for a site not ready to be checked.
  */
 export declare namespace JSX {

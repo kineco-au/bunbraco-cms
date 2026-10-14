@@ -1,17 +1,17 @@
 {
-  "name": "@bunbraco/cli",
-  "version": "0.8.1",
-  "description": "The bunbraco command line: scaffolding a site, schema, views, domains, content transfer and upgrades.",
+  "name": "@crombolo/cli",
+  "version": "0.9.0",
+  "description": "The crombolo command line: scaffolding a site, schema, views, domains, content transfer and upgrades.",
   "license": "MIT",
-  "author": "Kineco",
-  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
     "directory": "packages/cli"
   },
   "bugs": {
-    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
   },
   "engines": {
     "bun": ">=1.3.0"
@@ -19,10 +19,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./bin": "./bin/bunbraco.ts"
+    "./bin": "./bin/crombolo.ts"
   },
   "bin": {
-    "bunbraco": "./bin/bunbraco.ts"
+    "crombolo": "./bin/crombolo.ts"
   },
   "files": [
     "src",
@@ -34,11 +34,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@bunbraco/auth": "workspace:*",
-    "@bunbraco/core": "workspace:*",
-    "@bunbraco/data": "workspace:*",
-    "@bunbraco/schema": "workspace:*",
-    "@bunbraco/server": "workspace:*",
-    "@bunbraco/transfer": "workspace:*"
+    "@crombolo/auth": "workspace:*",
+    "@crombolo/core": "workspace:*",
+    "@crombolo/data": "workspace:*",
+    "@crombolo/schema": "workspace:*",
+    "@crombolo/server": "workspace:*",
+    "@crombolo/transfer": "workspace:*"
   }
 }

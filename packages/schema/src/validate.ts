@@ -2,7 +2,7 @@
  * Whole-set validation. Every problem is reported, not just the first, because
  * a person fixing a schema wants the full list.
  */
-import { SYSTEM_MEDIA_TYPES, SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
+import { SYSTEM_MEDIA_TYPES, SYSTEM_MEMBER_TYPE } from '@crombolo/data'
 import {
   BUILTIN_DATA_TYPE_ALIASES,
   checkSystemContentTypeFile,

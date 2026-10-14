@@ -159,7 +159,7 @@ export async function checkComponents(options: {
 /**
  * `tsc --noEmit` with the site's own tsconfig, when the site has the compiler.
  *
- * `typescript` is not a dependency of bunbraco — a site that has not installed
+ * `typescript` is not a dependency of crombolo — a site that has not installed
  * it is told so rather than being made to carry one.
  */
 async function checkTypes(siteDir: string): Promise<ComponentCheckReport['types']> {
@@ -199,7 +199,7 @@ export function componentFileFor(root: string, alias: string): string {
 /** What a component looks like: a function, taking whatever imports it hands it. */
 export function componentScaffold(alias: string): string {
   const name = componentName(alias)
-  return `import type { PublishedContent } from 'bunbraco'
+  return `import type { PublishedContent } from '@crombolo/crombolo'
 
 export function ${name}({ model }: { model: PublishedContent }) {
   return <p>{model.name}</p>

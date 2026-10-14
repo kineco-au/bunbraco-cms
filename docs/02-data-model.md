@@ -10,7 +10,7 @@ attributes make the DTOs *the* schema) and
 Umbraco's prefixes are historical accident (`umbraco*` vs `cms*`) and carry no
 meaning, so they are dropped. Singular, snake_case.
 
-| Umbraco | Bunbraco |
+| Umbraco | Crombolo |
 | --- | --- |
 | `umbracoNode` | `node` |
 | `umbracoContent` | `content` |
@@ -444,7 +444,7 @@ three is `(node_id, property_type_id, language_id, segment, id DESC)`.
 
   Two things about that one row were worth the trouble. It is a single guarded
   `INSERT … SELECT … FROM node … WHERE NOT EXISTS … LIMIT 1` rather than a read
-  followed by an insert, because `bunbraco upgrade --plan` runs every migration
+  followed by an insert, because `crombolo upgrade --plan` runs every migration
   against a recorder whose `query` refuses to read — a migration that reads cannot
   be planned. And `FROM node` is load-bearing: a fresh database is seeded *after*
   migrations run, and `seedContent` only seeds while `node` is empty, so an

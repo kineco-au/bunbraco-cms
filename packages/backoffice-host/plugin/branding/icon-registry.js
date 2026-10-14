@@ -27,7 +27,7 @@ export const WITHHELD = new Set(['icon-umbraco'])
 
 export const isOffered = (icon) => !WITHHELD.has(icon.name)
 
-export class BunbracoIconRegistryContext extends UmbIconRegistryContext {
+export class CromboloIconRegistryContext extends UmbIconRegistryContext {
   constructor(host) {
     super(host)
     // `approvedIcons` is the parent's own filter on `hidden`; this composes with
@@ -37,4 +37,4 @@ export class BunbracoIconRegistryContext extends UmbIconRegistryContext {
   }
 }
 
-export { BunbracoIconRegistryContext as api }
+export { CromboloIconRegistryContext as api }

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "bunbraco",
+      "name": "crombolo",
       "dependencies": {
         "@heximal/expressions": "^0.1.5",
         "@microsoft/signalr": "^10.0.11",
@@ -46,208 +46,208 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.5.14",
-        "@bunbraco/api-management": "workspace:*",
-        "@bunbraco/assistant": "workspace:*",
-        "@bunbraco/auth": "workspace:*",
-        "@bunbraco/backoffice-dist": "workspace:*",
-        "@bunbraco/backoffice-host": "workspace:*",
-        "@bunbraco/cli": "workspace:*",
-        "@bunbraco/contracts": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
-        "@bunbraco/import-umbraco": "workspace:*",
-        "@bunbraco/render": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
-        "@bunbraco/server": "workspace:*",
-        "@bunbraco/simple-redirects": "workspace:*",
-        "@bunbraco/transfer": "workspace:*",
+        "@crombolo/api-management": "workspace:*",
+        "@crombolo/assistant": "workspace:*",
+        "@crombolo/auth": "workspace:*",
+        "@crombolo/backoffice-dist": "workspace:*",
+        "@crombolo/backoffice-host": "workspace:*",
+        "@crombolo/cli": "workspace:*",
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/crombolo": "workspace:*",
+        "@crombolo/data": "workspace:*",
+        "@crombolo/import-umbraco": "workspace:*",
+        "@crombolo/render": "workspace:*",
+        "@crombolo/schema": "workspace:*",
+        "@crombolo/server": "workspace:*",
+        "@crombolo/simple-redirects": "workspace:*",
+        "@crombolo/transfer": "workspace:*",
         "@playwright/test": "^1.63.0",
         "@types/bun": "^1.4.2",
-        "bunbraco": "workspace:*",
         "openapi-typescript": "^6.7.6",
         "typescript": "^7.0.2",
       },
     },
     "apps/site": {
-      "name": "@bunbraco/site",
+      "name": "@crombolo/site",
       "version": "0.0.0",
       "dependencies": {
-        "@bunbraco/simple-redirects": "0.5.1",
-        "bunbraco": "workspace:*",
+        "@crombolo/crombolo": "workspace:*",
+        "@crombolo/simple-redirects": "workspace:*",
       },
     },
     "packages/api-management": {
-      "name": "@bunbraco/api-management",
-      "version": "0.8.1",
+      "name": "@crombolo/api-management",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/contracts": "workspace:*",
-        "@bunbraco/core": "workspace:*",
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
       },
     },
     "packages/assistant": {
-      "name": "@bunbraco/assistant",
-      "version": "0.8.1",
+      "name": "@crombolo/assistant",
+      "version": "0.9.0",
       "dependencies": {
         "@aws-sdk/client-bedrock-runtime": "^3.1142.0",
         "@aws-sdk/credential-provider-node": "^3.972.84",
-        "@bunbraco/contracts": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/schema": "workspace:*",
         "@smithy/node-http-handler": "^4.12.1",
         "@smithy/types": "^4.19.0",
       },
     },
     "packages/auth": {
-      "name": "@bunbraco/auth",
-      "version": "0.8.1",
+      "name": "@crombolo/auth",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
       },
     },
     "packages/backoffice-dist": {
-      "name": "@bunbraco/backoffice-dist",
+      "name": "@crombolo/backoffice-dist",
       "version": "18.2.0",
     },
     "packages/backoffice-host": {
-      "name": "@bunbraco/backoffice-host",
-      "version": "0.8.1",
+      "name": "@crombolo/backoffice-host",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/backoffice-dist": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-      },
-    },
-    "packages/bunbraco": {
-      "name": "bunbraco",
-      "version": "0.8.1",
-      "bin": {
-        "bunbraco": "./bin/bunbraco.ts",
-      },
-      "dependencies": {
-        "@bunbraco/api-management": "workspace:*",
-        "@bunbraco/assistant": "workspace:*",
-        "@bunbraco/auth": "workspace:*",
-        "@bunbraco/backoffice-dist": "workspace:*",
-        "@bunbraco/backoffice-host": "workspace:*",
-        "@bunbraco/cli": "workspace:*",
-        "@bunbraco/contracts": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
-        "@bunbraco/render": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
-        "@bunbraco/server": "workspace:*",
-        "@bunbraco/transfer": "workspace:*",
+        "@crombolo/backoffice-dist": "workspace:*",
+        "@crombolo/core": "workspace:*",
       },
     },
     "packages/cli": {
-      "name": "@bunbraco/cli",
-      "version": "0.8.1",
+      "name": "@crombolo/cli",
+      "version": "0.9.0",
       "bin": {
-        "bunbraco": "./bin/bunbraco.ts",
+        "crombolo": "./bin/crombolo.ts",
       },
       "dependencies": {
-        "@bunbraco/auth": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
-        "@bunbraco/server": "workspace:*",
-        "@bunbraco/transfer": "workspace:*",
+        "@crombolo/auth": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
+        "@crombolo/schema": "workspace:*",
+        "@crombolo/server": "workspace:*",
+        "@crombolo/transfer": "workspace:*",
       },
     },
     "packages/contracts": {
-      "name": "@bunbraco/contracts",
-      "version": "0.8.1",
+      "name": "@crombolo/contracts",
+      "version": "0.9.0",
     },
     "packages/core": {
-      "name": "@bunbraco/core",
-      "version": "0.8.1",
+      "name": "@crombolo/core",
+      "version": "0.9.0",
+    },
+    "packages/crombolo": {
+      "name": "@crombolo/crombolo",
+      "version": "0.9.0",
+      "bin": {
+        "crombolo": "./bin/crombolo.ts",
+      },
+      "dependencies": {
+        "@crombolo/api-management": "workspace:*",
+        "@crombolo/assistant": "workspace:*",
+        "@crombolo/auth": "workspace:*",
+        "@crombolo/backoffice-dist": "workspace:*",
+        "@crombolo/backoffice-host": "workspace:*",
+        "@crombolo/cli": "workspace:*",
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
+        "@crombolo/render": "workspace:*",
+        "@crombolo/schema": "workspace:*",
+        "@crombolo/server": "workspace:*",
+        "@crombolo/transfer": "workspace:*",
+      },
     },
     "packages/data": {
-      "name": "@bunbraco/data",
-      "version": "0.8.1",
+      "name": "@crombolo/data",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
+        "@crombolo/core": "workspace:*",
       },
     },
     "packages/import-umbraco": {
-      "name": "@bunbraco/import-umbraco",
-      "version": "0.8.1",
+      "name": "@crombolo/import-umbraco",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
-        "@bunbraco/transfer": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
+        "@crombolo/schema": "workspace:*",
+        "@crombolo/transfer": "workspace:*",
         "@kineco-au/bacpac-importer": "^0.1.0",
       },
     },
     "packages/render": {
-      "name": "@bunbraco/render",
-      "version": "0.8.1",
+      "name": "@crombolo/render",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
+        "@crombolo/core": "workspace:*",
         "@types/react": "^19.3.0",
       },
     },
     "packages/schema": {
-      "name": "@bunbraco/schema",
-      "version": "0.8.1",
+      "name": "@crombolo/schema",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
       },
     },
     "packages/server": {
-      "name": "@bunbraco/server",
-      "version": "0.8.1",
+      "name": "@crombolo/server",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/api-management": "workspace:*",
-        "@bunbraco/assistant": "workspace:*",
-        "@bunbraco/auth": "workspace:*",
-        "@bunbraco/backoffice-host": "workspace:*",
-        "@bunbraco/contracts": "workspace:*",
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
-        "@bunbraco/render": "workspace:*",
-        "@bunbraco/schema": "workspace:*",
-        "@bunbraco/transfer": "workspace:*",
+        "@crombolo/api-management": "workspace:*",
+        "@crombolo/assistant": "workspace:*",
+        "@crombolo/auth": "workspace:*",
+        "@crombolo/backoffice-host": "workspace:*",
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
+        "@crombolo/render": "workspace:*",
+        "@crombolo/schema": "workspace:*",
+        "@crombolo/transfer": "workspace:*",
         "@logtape/logtape": "^2.3.8",
       },
     },
     "packages/simple-redirects": {
-      "name": "@bunbraco/simple-redirects",
-      "version": "0.8.1",
+      "name": "@crombolo/simple-redirects",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/server": "workspace:*",
+        "@crombolo/server": "workspace:*",
       },
     },
     "packages/transfer": {
-      "name": "@bunbraco/transfer",
-      "version": "0.8.1",
+      "name": "@crombolo/transfer",
+      "version": "0.9.0",
       "dependencies": {
-        "@bunbraco/core": "workspace:*",
-        "@bunbraco/data": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/data": "workspace:*",
       },
     },
-    "sites/bunbraco": {
-      "name": "@bunbraco/site-bunbraco",
+    "sites/crombolo": {
+      "name": "@crombolo/site-crombolo",
       "version": "0.0.0",
       "dependencies": {
-        "bunbraco": "workspace:*",
+        "@crombolo/crombolo": "workspace:*",
       },
     },
     "sites/harbourstone": {
-      "name": "@bunbraco/site-harbourstone",
+      "name": "@crombolo/site-harbourstone",
       "version": "0.0.0",
       "dependencies": {
-        "@bunbraco/simple-redirects": "workspace:*",
-        "bunbraco": "workspace:*",
+        "@crombolo/crombolo": "workspace:*",
+        "@crombolo/simple-redirects": "workspace:*",
       },
     },
     "sites/starter": {
-      "name": "@bunbraco/site-starter",
+      "name": "@crombolo/site-starter",
       "version": "0.0.0",
       "dependencies": {
-        "bunbraco": "workspace:*",
+        "@crombolo/crombolo": "workspace:*",
       },
     },
   },
@@ -308,43 +308,45 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.14", "", { "os": "win32", "cpu": "x64" }, "sha512-oJWmBhoHsnhUKIke+0gXDX0mltJrWHA1UyHsrTlXwX0TL64ilVZAo+TYZm97baecV0esBdpzy3k96q+09JaZUQ=="],
 
-    "@bunbraco/api-management": ["@bunbraco/api-management@workspace:packages/api-management"],
+    "@crombolo/api-management": ["@crombolo/api-management@workspace:packages/api-management"],
 
-    "@bunbraco/assistant": ["@bunbraco/assistant@workspace:packages/assistant"],
+    "@crombolo/assistant": ["@crombolo/assistant@workspace:packages/assistant"],
 
-    "@bunbraco/auth": ["@bunbraco/auth@workspace:packages/auth"],
+    "@crombolo/auth": ["@crombolo/auth@workspace:packages/auth"],
 
-    "@bunbraco/backoffice-dist": ["@bunbraco/backoffice-dist@workspace:packages/backoffice-dist"],
+    "@crombolo/backoffice-dist": ["@crombolo/backoffice-dist@workspace:packages/backoffice-dist"],
 
-    "@bunbraco/backoffice-host": ["@bunbraco/backoffice-host@workspace:packages/backoffice-host"],
+    "@crombolo/backoffice-host": ["@crombolo/backoffice-host@workspace:packages/backoffice-host"],
 
-    "@bunbraco/cli": ["@bunbraco/cli@workspace:packages/cli"],
+    "@crombolo/cli": ["@crombolo/cli@workspace:packages/cli"],
 
-    "@bunbraco/contracts": ["@bunbraco/contracts@workspace:packages/contracts"],
+    "@crombolo/contracts": ["@crombolo/contracts@workspace:packages/contracts"],
 
-    "@bunbraco/core": ["@bunbraco/core@workspace:packages/core"],
+    "@crombolo/core": ["@crombolo/core@workspace:packages/core"],
 
-    "@bunbraco/data": ["@bunbraco/data@workspace:packages/data"],
+    "@crombolo/crombolo": ["@crombolo/crombolo@workspace:packages/crombolo"],
 
-    "@bunbraco/import-umbraco": ["@bunbraco/import-umbraco@workspace:packages/import-umbraco"],
+    "@crombolo/data": ["@crombolo/data@workspace:packages/data"],
 
-    "@bunbraco/render": ["@bunbraco/render@workspace:packages/render"],
+    "@crombolo/import-umbraco": ["@crombolo/import-umbraco@workspace:packages/import-umbraco"],
 
-    "@bunbraco/schema": ["@bunbraco/schema@workspace:packages/schema"],
+    "@crombolo/render": ["@crombolo/render@workspace:packages/render"],
 
-    "@bunbraco/server": ["@bunbraco/server@workspace:packages/server"],
+    "@crombolo/schema": ["@crombolo/schema@workspace:packages/schema"],
 
-    "@bunbraco/simple-redirects": ["@bunbraco/simple-redirects@workspace:packages/simple-redirects"],
+    "@crombolo/server": ["@crombolo/server@workspace:packages/server"],
 
-    "@bunbraco/site": ["@bunbraco/site@workspace:apps/site"],
+    "@crombolo/simple-redirects": ["@crombolo/simple-redirects@workspace:packages/simple-redirects"],
 
-    "@bunbraco/site-bunbraco": ["@bunbraco/site-bunbraco@workspace:sites/bunbraco"],
+    "@crombolo/site": ["@crombolo/site@workspace:apps/site"],
 
-    "@bunbraco/site-harbourstone": ["@bunbraco/site-harbourstone@workspace:sites/harbourstone"],
+    "@crombolo/site-crombolo": ["@crombolo/site-crombolo@workspace:sites/crombolo"],
 
-    "@bunbraco/site-starter": ["@bunbraco/site-starter@workspace:sites/starter"],
+    "@crombolo/site-harbourstone": ["@crombolo/site-harbourstone@workspace:sites/harbourstone"],
 
-    "@bunbraco/transfer": ["@bunbraco/transfer@workspace:packages/transfer"],
+    "@crombolo/site-starter": ["@crombolo/site-starter@workspace:sites/starter"],
+
+    "@crombolo/transfer": ["@crombolo/transfer@workspace:packages/transfer"],
 
     "@fastify/busboy": ["@fastify/busboy@2.1.1", "", {}, "sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA=="],
 
@@ -525,8 +527,6 @@
     "braces": ["braces@3.0.3", "", { "dependencies": { "fill-range": "^7.1.1" } }, "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA=="],
 
     "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
-
-    "bunbraco": ["bunbraco@workspace:packages/bunbraco"],
 
     "bundle-name": ["bundle-name@4.1.0", "", { "dependencies": { "run-applescript": "^7.0.0" } }, "sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q=="],
 
@@ -746,34 +746,10 @@
 
     "@aws-sdk/credential-provider-sso/@aws-sdk/token-providers": ["@aws-sdk/token-providers@3.1138.0", "", { "dependencies": { "@aws-sdk/core": "^3.978.1", "@aws-sdk/nested-clients": "^3.997.46", "@aws-sdk/types": "^3.974.6", "@smithy/core": "^3.35.0", "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-GpyAr0DD63YOEmYFM6Df+gJuIgC92MMTiBK4FTKfxii5MJ9ge20epR7LyroulscYlG89J+ZB2ivFDPjvfQhzdw=="],
 
-    "@bunbraco/site/@bunbraco/simple-redirects": ["@bunbraco/simple-redirects@0.5.1", "", { "dependencies": { "@bunbraco/server": "0.5.1" } }, "sha512-HQxauwaoOWig4B12fFtdxcUqQcFjOHMMAiBMgudOYsuGC7rsfsUs5aA8ts/BSRHtaxtEJOo0w2jWKoidkFjxHA=="],
-
     "monaco-editor/dompurify": ["dompurify@3.4.15", "", { "optionalDependencies": { "@types/trusted-types": "^2.0.7" } }, "sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw=="],
 
     "monaco-editor/marked": ["marked@14.0.0", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-uIj4+faQ+MgHgwUW1l2PsPglZLOLOT1uErt06dAPtx2kjteLAkbsd/0FiYg/MGS+i7ZKLb7w2WClxHkzOOuryQ=="],
 
     "pkg-types/confbox": ["confbox@0.3.1", "", {}, "sha512-cKUSoKa8YxFZZSmraVi7onONx3amu77ngK3kGpsYHDH7drPwCRkQE1RYMPlLRrMtnciRj274XNRxcHxnKmDSnA=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server": ["@bunbraco/server@0.5.1", "", { "dependencies": { "@bunbraco/api-management": "0.5.1", "@bunbraco/assistant": "0.5.1", "@bunbraco/auth": "0.5.1", "@bunbraco/backoffice-host": "0.5.1", "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1", "@bunbraco/render": "0.5.1", "@bunbraco/schema": "0.5.1", "@bunbraco/transfer": "0.5.1", "@logtape/logtape": "^2.3.8" } }, "sha512-VyrRlcHF/6BChZ3fL+UHYEsGXlbCuG/K15Oyb8VlOZvBboVn82ZzayYHB8QEAe6w7by/bazq5s0FjehPqtxsnA=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/api-management": ["@bunbraco/api-management@0.5.1", "", { "dependencies": { "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1" } }, "sha512-XQ9GMfKcR6fZLB3lJgTuJxiJc600RXf5MzP8dEeRLhLjq2YuD49s8tm/A5MX6O7Do4rk18fD8fvoMhmEWqqMvQ=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/assistant": ["@bunbraco/assistant@0.5.1", "", { "dependencies": { "@aws-sdk/client-bedrock-runtime": "^3.1142.0", "@aws-sdk/credential-provider-node": "^3.972.84", "@bunbraco/contracts": "0.5.1", "@bunbraco/core": "0.5.1", "@bunbraco/schema": "0.5.1", "@smithy/node-http-handler": "^4.12.1", "@smithy/types": "^4.19.0" } }, "sha512-9MDdCEsdH1HSmgOXlX1am7rbgiMVf88ldBFU8zEz3ktYVRkiPBCn+GEaqdcxviQfqZkNLn2vggrEHF5sf9LGAg=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/auth": ["@bunbraco/auth@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-VV0q4Ihxkx1zq09Tw2gMwquHt2M0b7Ogo3atLEDYBrfO45RjU56uW2kGgWZF9YBBy81oMua74hHbGkzwQLuDcg=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/backoffice-host": ["@bunbraco/backoffice-host@0.5.1", "", { "dependencies": { "@bunbraco/backoffice-dist": "18.2.0", "@bunbraco/core": "0.5.1" } }, "sha512-QDD93WYCxZYi+OQtUxUFnoRtHizjsShEGETuCrjIdlrQ23Wk16FeaLZFoLb2vnGLL6e82ow4LP6TM3UHkdtCLw=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/contracts": ["@bunbraco/contracts@0.5.1", "", {}, "sha512-UJPB5H65zSgZ7KVDbMtuN8CmkJwMHBgx68Y08a5rsZz+3jadbuEVhqdVtTATWTMSEwN559daypnF3Z41XQAUdg=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/core": ["@bunbraco/core@0.5.1", "", {}, "sha512-zh1gn9R1D+SZoB27JjgI/oStaIjrXCaG4lV2pI3uw8wc+nOzw0LyS2rddDbCRU8eSuZxpTD9ipvUTCSqigcnqA=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/data": ["@bunbraco/data@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1" } }, "sha512-FL5XwAqkabEmqFt/ZR8i1tmghF02ouWnCmG5eoPlGqJ1CKLL6eWTz0E9B9EWUFB0hsZhq/tsx7DhR6Q3VDzJMA=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/render": ["@bunbraco/render@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1" } }, "sha512-Aj4jsz6Urv1If1oNbQEbwh5krqiS0QPLfzAsJ5Y9mbQ+lp37ymNtrMM7//GedwcjdY/LCVaiZSxq8mYctTZNGQ=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/schema": ["@bunbraco/schema@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-vYFjvXJCKksS28dlTNzinBXcQXW4EX6fjqlgbR9j/JZbn6vzM3oxgYFE5mgIRSGETOzqYyrUesX8sr4rnpsgdg=="],
-
-    "@bunbraco/site/@bunbraco/simple-redirects/@bunbraco/server/@bunbraco/transfer": ["@bunbraco/transfer@0.5.1", "", { "dependencies": { "@bunbraco/core": "0.5.1", "@bunbraco/data": "0.5.1" } }, "sha512-j0pNai6xR5yrl/gRfwxX2Ss69Mgm5a4v+s+bLOR3rUzoHjpwEwil2cFHZWvPqwlasda3syjh1HpVlsaTVJ1DLA=="],
   }
 }

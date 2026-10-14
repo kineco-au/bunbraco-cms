@@ -10,8 +10,8 @@ import { mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { inflateRawSync } from 'node:zlib'
-import { packageFileName } from '@bunbraco/api-management'
-import { loadBundle } from '@bunbraco/transfer'
+import { packageFileName } from '@crombolo/api-management'
+import { loadBundle } from '@crombolo/transfer'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -156,7 +156,7 @@ describe('the Packages section loads', () => {
   test('configuration names where the marketplace is', async () => {
     const { h } = await site()
     const config = await h.json<{ marketplaceUrl: string }>(`${PACKAGES}/configuration`)
-    expect(config.marketplaceUrl).toContain('bunbraco-bundle')
+    expect(config.marketplaceUrl).toContain('crombolo-bundle')
   })
 
   test('migration status is an empty page, not a 501', async () => {
@@ -419,7 +419,7 @@ describe('the download', () => {
 
     // Write the bundle out and load it the way an import would, so the package
     // is proved to carry a real bundle rather than a file of the right name.
-    const dir = mkdtempSync(join(tmpdir(), 'bunbraco-package-'))
+    const dir = mkdtempSync(join(tmpdir(), 'crombolo-package-'))
     temporary.push(dir)
     for (const [path, bytes] of entries) {
       if (
@@ -537,7 +537,7 @@ describe('the download', () => {
 describe('the files half of a package', () => {
   /** Its own site: the file areas have to be writable directories under a temp root. */
   async function fileSite() {
-    const root = mkdtempSync(join(tmpdir(), 'bunbraco-package-files-'))
+    const root = mkdtempSync(join(tmpdir(), 'crombolo-package-files-'))
     temporary.push(root)
     mkdirSync(join(root, 'schema'), { recursive: true })
     mkdirSync(join(root, 'components'), { recursive: true })

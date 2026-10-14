@@ -22,7 +22,7 @@ import {
   writeContentType,
   writeDataType,
   writeLanguages,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 
 const HOME_PAGE = `
 # a comment, which the writer will drop

@@ -1,4 +1,4 @@
-name: bunbraco
+name: crombolo
 
 # Postgres, one CMS node, and a service per test shape.
 #
@@ -14,7 +14,7 @@ x-cms-image: &cms-image
   build:
     context: ./docker
     dockerfile: Dockerfile.cms
-  image: bunbraco-cms
+  image: crombolo-cms
   volumes:
     - .:/app
     - cms_node_modules:/app/node_modules
@@ -28,20 +28,20 @@ x-cms: &cms
 # What `bun run test` sets on the host, so the two paths test the same thing. The
 # dialect is not here: each test service picks its own.
 x-test-environment: &test-environment
-  BUNBRACO_SQLITE_FILE: ':memory:'
-  BUNBRACO_ADMIN_PASSWORD: test-password
-  BUNBRACO_COMPONENTS_DIR: output/test-views
-  BUNBRACO_MEDIA_DIR: output/test-media
-  BUNBRACO_LOGS_DIR: output/test-logs
-  BUNBRACO_LOG_TO_CONSOLE: 'false'
+  CROMBOLO_SQLITE_FILE: ':memory:'
+  CROMBOLO_ADMIN_PASSWORD: test-password
+  CROMBOLO_COMPONENTS_DIR: output/test-views
+  CROMBOLO_MEDIA_DIR: output/test-media
+  CROMBOLO_LOGS_DIR: output/test-logs
+  CROMBOLO_LOG_TO_CONSOLE: 'false'
 
 services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: bunbraco
-      POSTGRES_PASSWORD: bunbraco
-      POSTGRES_DB: bunbraco
+      POSTGRES_USER: crombolo
+      POSTGRES_PASSWORD: crombolo
+      POSTGRES_DB: crombolo
     ports:
       # 5433 on the host: 5432 is usually taken by a local Postgres install.
       - '5433:5432'
@@ -49,12 +49,12 @@ services:
       - db_data:/var/lib/postgresql
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U bunbraco -d bunbraco']
+      test: ['CMD-SHELL', 'pg_isready -U crombolo -d crombolo']
       interval: 2s
       timeout: 3s
       retries: 30
 
-  # One node serving everything. `BUNBRACO_ROLE` is deliberately unset, which means
+  # One node serving everything. `CROMBOLO_ROLE` is deliberately unset, which means
   # `all`: the site, the backoffice and the Management API from one process, owning
   # the schema sync and the background jobs.
   #
@@ -64,25 +64,25 @@ services:
     <<: *cms
     working_dir: /app/apps/site
     # The CLI rather than server.ts, so the container logs the sign-in banner on
-    # every boot. BUNBRACO_ADMIN_PASSWORD is fixed below, so the reset it does is a
+    # every boot. CROMBOLO_ADMIN_PASSWORD is fixed below, so the reset it does is a
     # no-op and a watch reload does not end anyone's session.
-    command: ['bun', '--watch', '../../packages/cli/bin/bunbraco.ts', 'start']
+    command: ['bun', '--watch', '../../packages/cli/bin/crombolo.ts', 'start']
     environment:
-      BUNBRACO_DB: postgres
-      BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@db:5432/bunbraco
-      BUNBRACO_ADMIN_PASSWORD: ${BUNBRACO_ADMIN_PASSWORD:-bunbraco-dev-password}
-      BUNBRACO_LOG_TO_CONSOLE: 'true'
+      CROMBOLO_DB: postgres
+      CROMBOLO_POSTGRES_URL: postgres://crombolo:crombolo@db:5432/crombolo
+      CROMBOLO_ADMIN_PASSWORD: ${CROMBOLO_ADMIN_PASSWORD:-crombolo-dev-password}
+      CROMBOLO_LOG_TO_CONSOLE: 'true'
       # Loud on purpose, for diagnosis: debug-level logging, a line per request as
       # it arrives and as its handler returns, and every 30 s the heap, RSS and the
       # requests still in flight. Set any of these in `.env` to quieten it
       # (info / false / 0).
-      BUNBRACO_LOG_LEVEL: ${BUNBRACO_LOG_LEVEL:-debug}
-      BUNBRACO_TRACE_REQUESTS: ${BUNBRACO_TRACE_REQUESTS:-true}
-      BUNBRACO_HEAP_INTERVAL_SECONDS: ${BUNBRACO_HEAP_INTERVAL_SECONDS:-30}
+      CROMBOLO_LOG_LEVEL: ${CROMBOLO_LOG_LEVEL:-debug}
+      CROMBOLO_TRACE_REQUESTS: ${CROMBOLO_TRACE_REQUESTS:-true}
+      CROMBOLO_HEAP_INTERVAL_SECONDS: ${CROMBOLO_HEAP_INTERVAL_SECONDS:-30}
       # The assistant, off unless a model is named. Compose reads these from
       # `.env`, which is gitignored. AWS_PROFILE works because ~/.aws is mounted
       # below; the keys remain for a machine that has no profile.
-      BUNBRACO_ASSISTANT_MODEL: ${BUNBRACO_ASSISTANT_MODEL:-}
+      CROMBOLO_ASSISTANT_MODEL: ${CROMBOLO_ASSISTANT_MODEL:-}
       AWS_PROFILE: ${AWS_PROFILE:-}
       AWS_REGION: ${AWS_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
@@ -90,9 +90,9 @@ services:
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       # Host and container port are kept identical: the backoffice derives its
       # application URL from PORT, so a remapped host port would break links.
-      PORT: '${BUNBRACO_PORT:-8080}'
+      PORT: '${CROMBOLO_PORT:-8080}'
     ports:
-      - '${BUNBRACO_PORT:-8080}:${BUNBRACO_PORT:-8080}'
+      - '${CROMBOLO_PORT:-8080}:${CROMBOLO_PORT:-8080}'
     # Repeated rather than merged from the image anchor: a merge key replaces a
     # list rather than adding to it, so naming `volumes` here would otherwise drop
     # the source mount and the node_modules volume with it.
@@ -103,14 +103,14 @@ services:
       # the bind mount because this is runtime data, not source — `apps/site/media`
       # is gitignored, and without this every upload would land in the host
       # checkout. In production this is a bucket instead, via
-      # `BUNBRACO_MEDIA_STORE=s3`, which is a store rather than a mount.
+      # `CROMBOLO_MEDIA_STORE=s3`, which is a store rather than a mount.
       - cms_media:/app/apps/site/media
       # Snapshots of the views tree, so an edited template is picked up without a
       # restart. A tmpfs because it is pure cache — rebuilt from `components/` in
       # milliseconds — and because it must not reach the bind mount, where
       # `--watch` would see the server's own writes and reload on them.
       - type: tmpfs
-        target: /app/apps/site/.bunbraco
+        target: /app/apps/site/.crombolo
       # `output/` is where the test services put their views, media and logs, and
       # it sits inside the mounted repository. Without a volume of its own here,
       # every write a test run makes is a change this container's `--watch` sees:
@@ -142,7 +142,7 @@ services:
     command: ['bun', 'test']
     environment:
       <<: *test-environment
-      BUNBRACO_DB: sqlite
+      CROMBOLO_DB: sqlite
 
   cms-test:
     <<: *cms
@@ -156,8 +156,8 @@ services:
     command: ['bun', 'test', '--timeout', '20000']
     environment:
       <<: *test-environment
-      BUNBRACO_DB: postgres
-      BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@db:5432/bunbraco_test
+      CROMBOLO_DB: postgres
+      CROMBOLO_POSTGRES_URL: postgres://crombolo:crombolo@db:5432/crombolo_test
 
   # The browser suite needs browsers, so it has its own image — and its own
   # node_modules volume, because that image is Debian and the CMS image is Alpine:
@@ -166,7 +166,7 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile.browser
-    image: bunbraco-browser
+    image: crombolo-browser
     profiles: ['test']
     working_dir: /app
     command: ['bun', 'run', 'test:browser']
@@ -175,10 +175,10 @@ services:
       - browser_node_modules:/app/node_modules
     environment:
       <<: *test-environment
-      BUNBRACO_DB: sqlite
+      CROMBOLO_DB: sqlite
       # Empty means Playwright's bundled Chromium. Google Chrome, which the suite
       # drives on a developer's machine, has no Linux arm64 build.
-      BUNBRACO_BROWSER_CHANNEL: ''
+      CROMBOLO_BROWSER_CHANNEL: ''
 
 volumes:
   db_data:

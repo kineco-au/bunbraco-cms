@@ -43,7 +43,7 @@ export function gitHub(options: GitHubOptions): GitProvider {
   const api = (options.api ?? 'https://api.github.com').replace(/\/$/, '')
   const branch = options.branch ?? 'main'
   const base = `${api}/repos/${options.repository}`
-  const author = options.author ?? { name: 'bunbraco', email: 'bunbraco@users.noreply.github.com' }
+  const author = options.author ?? { name: 'crombolo', email: 'crombolo@users.noreply.github.com' }
 
   const call = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
     const response = await fetch(`${base}${path}`, {
@@ -135,7 +135,7 @@ export function gitHub(options: GitHubOptions): GitProvider {
         return { branch, commit: commit.sha }
       }
 
-      const topic = `bunbraco/schema-${commit.sha.slice(0, 8)}`
+      const topic = `crombolo/schema-${commit.sha.slice(0, 8)}`
       await call('/git/refs', {
         method: 'POST',
         body: JSON.stringify({ ref: `refs/heads/${topic}`, sha: commit.sha }),

@@ -9,9 +9,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { FormPermissions, SECTION_ALIASES, toSectionAliases } from '@bunbraco/core'
-import { FormEntryRepository } from '@bunbraco/data'
-import { FORM_SCRIPT, FORM_SCRIPT_PATH } from '@bunbraco/render'
+import { FormPermissions, SECTION_ALIASES, toSectionAliases } from '@crombolo/core'
+import { FormEntryRepository } from '@crombolo/data'
+import { FORM_SCRIPT, FORM_SCRIPT_PATH } from '@crombolo/render'
 import {
   BACKOFFICE,
   type Harness,
@@ -32,7 +32,7 @@ afterEach(async () => {
   while (dirs.length > 0) rmSync(dirs.pop() as string, { recursive: true, force: true })
 })
 
-const FORMS = `${BACKOFFICE}/bunbraco/api/forms`
+const FORMS = `${BACKOFFICE}/crombolo/api/forms`
 const FORM_KEY = '9c4a7d1e-0001-4b2a-9f31-6d8e2c5a7b40'
 
 const CONTACT = `[form]
@@ -88,7 +88,7 @@ async function asGroup(
   h: Harness,
   alias: string,
   permissions: string[],
-  sections = ['Bunbraco.Section.Forms'],
+  sections = ['Crombolo.Section.Forms'],
 ) {
   const created = await h.post(`${V1}/user-group`, {
     name: alias,
@@ -111,10 +111,10 @@ async function asGroup(
 
 describe('the Forms section', () => {
   test('the alias resolves, which it could not while Forms was an add-on', () => {
-    expect(SECTION_ALIASES.forms).toBe('Bunbraco.Section.Forms')
+    expect(SECTION_ALIASES.forms).toBe('Crombolo.Section.Forms')
     // Umbraco seeds the stored `forms` alias and has no section for it; here it
     // reaches the client, which is what makes the section openable.
-    expect(toSectionAliases(['forms'])).toEqual(['Bunbraco.Section.Forms'])
+    expect(toSectionAliases(['forms'])).toEqual(['Crombolo.Section.Forms'])
   })
 
   test('the section and its two views are in the manifests', async () => {
@@ -122,17 +122,17 @@ describe('the Forms section', () => {
     const manifests = await h.json<
       Array<{ name: string; extensions: Array<{ type: string; alias: string }> }>
     >(`${V1}/manifest/manifest`)
-    const ours = manifests.find((manifest) => manifest.name === 'Bunbraco')
+    const ours = manifests.find((manifest) => manifest.name === 'Crombolo')
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
-    expect(aliases).toContain('section:Bunbraco.Section.Forms')
-    expect(aliases).toContain('sectionView:Bunbraco.SectionView.Forms.Overview')
-    expect(aliases).toContain('sectionView:Bunbraco.SectionView.Forms.Entries')
+    expect(aliases).toContain('section:Crombolo.Section.Forms')
+    expect(aliases).toContain('sectionView:Crombolo.SectionView.Forms.Overview')
+    expect(aliases).toContain('sectionView:Crombolo.SectionView.Forms.Entries')
   })
 
   test('the admin may open it, because the group has always carried the alias', async () => {
     const { h } = await site()
     const user = await h.json<{ allowedSections: string[] }>(`${V1}/user/current`)
-    expect(user.allowedSections).toContain('Bunbraco.Section.Forms')
+    expect(user.allowedSections).toContain('Crombolo.Section.Forms')
   })
 })
 
@@ -426,12 +426,12 @@ describe('the enhancement script', () => {
   })
 
   test('guards against running twice, since two forms could each load it', () => {
-    expect(FORM_SCRIPT).toContain('window.__bunbracoForms')
+    expect(FORM_SCRIPT).toContain('window.__cromboloForms')
   })
 
   test('nothing emits it automatically, because a form works without it', async () => {
     // A site adds it to a layout. The script is an enhancement, not a
     // dependency, and auto-emitting it twice for two forms would run it twice.
-    expect(FORM_SCRIPT_PATH).toBe('/bunbraco/forms.js')
+    expect(FORM_SCRIPT_PATH).toBe('/crombolo/forms.js')
   })
 })

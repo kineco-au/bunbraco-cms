@@ -1,4 +1,4 @@
-import type { Child, Navigation, PublishedContent } from 'bunbraco'
+import type { Child, Navigation, PublishedContent } from '@crombolo/crombolo'
 import { SiteFooter } from './site-footer.tsx'
 import { SiteHeader } from './site-header.tsx'
 

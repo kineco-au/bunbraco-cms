@@ -10,9 +10,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Principal } from '@bunbraco/api-management'
-import { SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import { createMemberPort } from '@bunbraco/server'
+import type { Principal } from '@crombolo/api-management'
+import { SYSTEM_MEMBER_TYPE } from '@crombolo/data'
+import { createMemberPort } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -105,7 +105,7 @@ interface MemberResponse {
   variants: Array<{ name: string }>
 }
 
-describe(`members (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`members (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('are created, read back, changed and deleted', async () => {
     const { h, member, group } = await site()
     const subscribers = await group('Subscribers')

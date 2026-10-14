@@ -1,0 +1,433 @@
+/*
+ * Crombolo: the terracotta, cocoa and cream of the logo, in system fonts.
+ * Hand-written, so the template ships a stylesheet rather than a build step.
+ */
+
+:root {
+  --terracotta: #cb6f48;
+  --terracotta-deep: #af5732;
+  /* Darkest of the three, and the only one that clears AA as text on cream. */
+  --terracotta-text: #974b2b;
+  --arc: #fdebd4;
+  --cream: #fff7ea;
+  --ink: #54321f;
+  --muted: #6a584d;
+  --line: #ebdfcb;
+  --white: #fff;
+
+  --sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --measure: 70rem;
+  --gutter: clamp(1rem, 4vw, 1.5rem);
+  --ease: 0.15s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease: 0s;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--cream);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+}
+
+h2 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  color: var(--terracotta-text);
+}
+
+a {
+  color: var(--link, var(--terracotta-text));
+}
+
+.container {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.narrow {
+  max-width: 48rem;
+}
+
+/* ------------------------------------------------------------- masthead */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--ink);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+.masthead__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-block: 0.75rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.4rem;
+  text-decoration: none;
+}
+
+.masthead nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+}
+
+.masthead nav a {
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 500;
+  opacity: 0.85;
+  transition: opacity var(--ease);
+}
+
+.masthead nav a:hover,
+.masthead nav a[aria-current="page"] {
+  opacity: 1;
+}
+
+.masthead nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+/* ----------------------------------------------------------------- mark */
+
+.mark {
+  display: inline-block;
+  width: 2.5rem;
+  height: 2.5rem;
+  line-height: 0;
+}
+
+.mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mark--large {
+  width: 5rem;
+  height: 5rem;
+}
+
+/* ----------------------------------------------------------------- hero */
+
+.hero,
+.page-header {
+  background: linear-gradient(180deg, var(--terracotta-deep) 0%, var(--terracotta-text) 100%);
+  color: var(--white);
+  text-align: center;
+  padding: clamp(3rem, 8vw, 5rem) 0 clamp(4rem, 10vw, 6rem);
+}
+
+.hero h1,
+.page-header h1 {
+  font-size: clamp(2.2rem, 6vw, 3.25rem);
+  margin: 1.25rem 0 1rem;
+}
+
+.page-header h1 {
+  margin-top: 0.25rem;
+}
+
+.strapline {
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  max-width: 45rem;
+  margin: 0 auto 2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* -------------------------------------------------------------- buttons */
+
+.button {
+  display: inline-block;
+  background: var(--white);
+  color: var(--terracotta-text);
+  padding: 0.85rem 1.75rem;
+  border: 2px solid var(--white);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-decoration: none;
+  transition:
+    transform var(--ease),
+    box-shadow var(--ease);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.15);
+}
+
+.button--outline {
+  background: transparent;
+  color: var(--white);
+}
+
+.button--solid {
+  background: var(--terracotta-deep);
+  border-color: var(--terracotta-deep);
+  color: var(--white);
+}
+
+/* ------------------------------------------------------------- sections */
+
+.section {
+  padding: clamp(3.5rem, 8vw, 5rem) 0;
+}
+
+.section--white {
+  background: var(--white);
+}
+
+.section--dark {
+  background: var(--ink);
+  color: var(--arc);
+  text-align: center;
+}
+
+.section--dark h2 {
+  color: var(--white);
+}
+
+.lead {
+  font-size: 1.15rem;
+  color: var(--muted);
+  max-width: 42rem;
+  margin: 0 0 2.5rem;
+}
+
+.section--dark .lead,
+.cta .lead {
+  color: inherit;
+  margin-inline: auto;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1.75rem;
+  box-shadow: 0 4px 16px rgb(193 122 74 / 0.08);
+}
+
+.card h3 {
+  font-size: 1.25rem;
+  color: var(--terracotta-text);
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card--feature {
+  background: var(--cream);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  align-items: center;
+}
+
+.two-col--top {
+  grid-template-columns: 2fr 3fr;
+  align-items: start;
+}
+
+/* Lets a code block scroll inside its column instead of widening it. */
+.two-col > * {
+  min-width: 0;
+}
+
+@media (max-width: 48rem) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklist li {
+  position: relative;
+  padding: 0.75rem 0 0.75rem 2.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.checklist li::before {
+  content: "✓";
+  position: absolute;
+  left: 0.25rem;
+  color: var(--terracotta);
+  font-weight: 700;
+}
+
+.checklist strong {
+  display: block;
+}
+
+.checklist span {
+  color: var(--muted);
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose > :last-child {
+  margin-bottom: 0;
+}
+
+/* ----------------------------------------------------------------- code */
+
+.code {
+  margin: 1rem 0;
+  padding: 1.25rem;
+  background: var(--ink);
+  color: var(--arc);
+  border-radius: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code--inline {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0 2rem;
+  background: #704329;
+  font-size: 1.05rem;
+}
+
+/* ---------------------------------------------------------------- steps */
+
+.steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 2rem 0;
+  padding: 0;
+}
+
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 2rem 3.5rem;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--terracotta);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.steps h3 {
+  font-size: 1.2rem;
+  padding-top: 0.3rem;
+}
+
+.steps p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ cta */
+
+.cta {
+  background: var(--terracotta-text);
+  color: var(--white);
+  text-align: center;
+  padding: clamp(3.5rem, 8vw, 5rem) 0;
+}
+
+.cta h2 {
+  color: var(--white);
+}
+
+/* --------------------------------------------------------------- footer */
+
+.site-footer {
+  --link: var(--arc);
+  background: var(--ink);
+  color: var(--arc);
+  text-align: center;
+  padding: 2.5rem 0;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.site-footer p + p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}

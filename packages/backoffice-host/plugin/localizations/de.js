@@ -4,31 +4,31 @@
 // Umbraco says "document type".
 export default {
   "login": {
-    "userInviteWelcomeMessage": "Hallo und Willkommen bei Bunbraco! In nur einer Minute sind Sie bereit loszulegen, Sie müssen nur ein Kennwort festlegen.",
-    "userInviteExpiredMessage": "Willkommen bei Bunbraco! Bedauerlicherweise ist Ihre Einladung verfallen. Bitte kontaktieren Sie Ihren Administrator und bitten Sie ihn, diese erneut zu schicken."
+    "userInviteWelcomeMessage": "Hallo und Willkommen bei Crombolo! In nur einer Minute sind Sie bereit loszulegen, Sie müssen nur ein Kennwort festlegen.",
+    "userInviteExpiredMessage": "Willkommen bei Crombolo! Bedauerlicherweise ist Ihre Einladung verfallen. Bitte kontaktieren Sie Ihren Administrator und bitten Sie ihn, diese erneut zu schicken."
   },
   "user": {
-    "changePasswordDescription": "Sie können Ihr Kennwort für den Zugriff auf den Bunbraco-Verwaltungsbereich ändern, indem Sie das nachfolgende Formular ausfüllen und auf 'Kennwort ändern' klicken",
-    "createUserHelp": "\n      Lege neue Benutzer an, um ihnen Zugang zum Bunbraco-Back-Office zu geben.\n      Während des Anlegens eines neuen Benutzer wird ein Kennwort erzeugt, das Sie dem Benutzer mitteilen können.\n    ",
-    "inviteUserHelp": "\n      Laden Sie neue Benutzer ein, um ihnen Zugang zum Bunbraco-Back-Office zu geben.\n      Eine Einladungs-E-Mail wird an dem Benutzer geschickt. Diese enthält Informationen, wie sich der Benutzer im Bunbraco-Back-Office anmelden kann.\n      Einladungen sind 72 Stunden lang gültig.\n    ",
-    "noConsole": "Bunbraco-Back-Office sperren",
-    "userCreatedSuccessHelp": "Der Benutzer wurde erfolgreich angelegt. Zu Anmelden im Bunbraco-Back-Office verwenden Sie bitte folgendes Kennwort:",
-    "userInvitedSuccessHelp": "Eine Einladung mit Anweisungen zur Anmeldung im Bunbraco-Back-Office wurde dem neuen Benutzer zugeschickt.",
-    "userinviteWelcomeMessage": "Hallo und Willkommen bei Bunbraco! In nur einer Minute sind Sie bereit loszulegen, Sie müssen nur ein Kennwort festlegen.",
-    "userinviteExpiredMessage": "Willkommen bei Bunbraco! Bedauerlicherweise ist Ihre Einladung verfallen. Bitte kontaktieren Sie Ihren Administrator und bitten Sie ihn, diese erneut zu schicken.",
+    "changePasswordDescription": "Sie können Ihr Kennwort für den Zugriff auf den Crombolo-Verwaltungsbereich ändern, indem Sie das nachfolgende Formular ausfüllen und auf 'Kennwort ändern' klicken",
+    "createUserHelp": "\n      Lege neue Benutzer an, um ihnen Zugang zum Crombolo-Back-Office zu geben.\n      Während des Anlegens eines neuen Benutzer wird ein Kennwort erzeugt, das Sie dem Benutzer mitteilen können.\n    ",
+    "inviteUserHelp": "\n      Laden Sie neue Benutzer ein, um ihnen Zugang zum Crombolo-Back-Office zu geben.\n      Eine Einladungs-E-Mail wird an dem Benutzer geschickt. Diese enthält Informationen, wie sich der Benutzer im Crombolo-Back-Office anmelden kann.\n      Einladungen sind 72 Stunden lang gültig.\n    ",
+    "noConsole": "Crombolo-Back-Office sperren",
+    "userCreatedSuccessHelp": "Der Benutzer wurde erfolgreich angelegt. Zu Anmelden im Crombolo-Back-Office verwenden Sie bitte folgendes Kennwort:",
+    "userInvitedSuccessHelp": "Eine Einladung mit Anweisungen zur Anmeldung im Crombolo-Back-Office wurde dem neuen Benutzer zugeschickt.",
+    "userinviteWelcomeMessage": "Hallo und Willkommen bei Crombolo! In nur einer Minute sind Sie bereit loszulegen, Sie müssen nur ein Kennwort festlegen.",
+    "userinviteExpiredMessage": "Willkommen bei Crombolo! Bedauerlicherweise ist Ihre Einladung verfallen. Bitte kontaktieren Sie Ihren Administrator und bitten Sie ihn, diese erneut zu schicken.",
     "documentType": "Inhaltstyp"
   },
   "general": {
-    "umbracoInfo": "Bunbraco Information"
+    "umbracoInfo": "Crombolo Information"
   },
   "languages": {
-    "defaultLanguageHelp": "Eine Bunbraco site kann nur eine Standardsprache haben."
+    "defaultLanguageHelp": "Eine Crombolo site kann nur eine Standardsprache haben."
   },
   "paste": {
-    "errorMessage": "Der Text, den Sie einfügen möchten, enthält Sonderzeichen oder spezielle Formatierungen. Dies kann zum Beispiel beim Kopieren aus Microsoft Word heraus passieren. Bunbraco kann Sonderzeichen und spezielle Formatierungen automatisch entfernen, damit der eingefügte Inhalt besser für die Veröffentlichung im Web geeignet ist."
+    "errorMessage": "Der Text, den Sie einfügen möchten, enthält Sonderzeichen oder spezielle Formatierungen. Dies kann zum Beispiel beim Kopieren aus Microsoft Word heraus passieren. Crombolo kann Sonderzeichen und spezielle Formatierungen automatisch entfernen, damit der eingefügte Inhalt besser für die Veröffentlichung im Web geeignet ist."
   },
   "dashboard": {
-    "nothinghappens": "Wenn Bunbraco nicht geöffnet wurde, wurde möglicherweise das Pop-Up unterdrückt."
+    "nothinghappens": "Wenn Crombolo nicht geöffnet wurde, wurde möglicherweise das Pop-Up unterdrückt."
   },
   "actions": {
     "changeDocType": "Inhaltstyp ändern",

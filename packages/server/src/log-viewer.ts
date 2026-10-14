@@ -7,9 +7,9 @@
 import { existsSync } from 'node:fs'
 import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { LogEntry, LogLevelName, LogRange, LogViewerPort } from '@bunbraco/api-management'
-import { type Db, LogSearchRepository } from '@bunbraco/data'
-import type { BunbracoConfig } from './config.ts'
+import type { LogEntry, LogLevelName, LogRange, LogViewerPort } from '@crombolo/api-management'
+import { type Db, LogSearchRepository } from '@crombolo/data'
+import type { CromboloConfig } from './config.ts'
 import { type LogEvent, logFilter } from './log-expressions.ts'
 import { SERILOG_LEVELS } from './logging.ts'
 
@@ -123,7 +123,7 @@ const propertyValue = (value: unknown): string | null =>
 
 export function createLogViewerPort(
   db: Db,
-  config: Pick<BunbracoConfig, 'logsDir' | 'logLevel'>,
+  config: Pick<CromboloConfig, 'logsDir' | 'logLevel'>,
 ): LogViewerPort {
   const searches = new LogSearchRepository(db)
   return {
@@ -179,7 +179,7 @@ export function createLogViewerPort(
     loggers: () => [
       { name: 'Global', level: SERILOG_LEVELS[config.logLevel] as LogLevelName },
       // Everything the loggers pass reaches the file
-      { name: 'BunbracoFile', level: 'Verbose' },
+      { name: 'CromboloFile', level: 'Verbose' },
     ],
 
     savedSearches: () => searches.all(),

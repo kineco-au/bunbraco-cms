@@ -8,8 +8,8 @@
  * the currency throughout — a composition, an allowed child and a template are
  * all referenced by alias, because keys differ between sites.
  */
-import type { ContentTypeAggregate } from '@bunbraco/core'
-import type { ContentTypeKind } from '@bunbraco/data'
+import type { ContentTypeAggregate } from '@crombolo/core'
+import type { ContentTypeKind } from '@crombolo/data'
 import { escapeText, parseXml, type XmlElement } from './udt.ts'
 
 const ROOT = {

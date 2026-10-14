@@ -10,7 +10,7 @@ set -e
 STAMP=/app/node_modules/.bun-lock.sha256
 LOCK=$(sha256sum /app/bun.lock | cut -d ' ' -f 1)
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$LOCK" ]; then
-  echo 'bunbraco: bun.lock has changed, installing dependencies into the container volume...'
+  echo 'crombolo: bun.lock has changed, installing dependencies into the container volume...'
   (cd /app && bun install --frozen-lockfile)
   echo "$LOCK" > "$STAMP"
 fi

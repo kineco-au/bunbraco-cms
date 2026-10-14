@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEMBER_TYPE } from '@bunbraco/data'
-import { parseContentType, parseMemberType, validateSchemaSet } from '@bunbraco/schema'
+import { SYSTEM_MEMBER_TYPE } from '@crombolo/data'
+import { parseContentType, parseMemberType, validateSchemaSet } from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

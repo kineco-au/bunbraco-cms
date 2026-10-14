@@ -180,7 +180,7 @@ export interface BundleManifest {
 
 /**
  * A bundle read into memory: the manifest and its nodes. Named for
- * `SchemaSet` in `@bunbraco/schema`, which plays the same part for structure.
+ * `SchemaSet` in `@crombolo/schema`, which plays the same part for structure.
  */
 export interface ContentSet {
   manifest: BundleManifest

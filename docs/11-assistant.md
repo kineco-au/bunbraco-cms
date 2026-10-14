@@ -189,7 +189,7 @@ implementation would only be a second thing to get wrong.
 Content is checked instead. Proposed TSX is scanned before the user sees it, and
 a proposal that fails is not shown as approvable:
 
-- imports read from `Bun.Transpiler().scan()` — only `bunbraco` and relative
+- imports read from `Bun.Transpiler().scan()` — only `@crombolo/crombolo` and relative
   specifiers that do not climb out of the views directory
 - rejected outright: `node:*` and `bun` imports, `Bun`, `process`, `eval`,
   `Function`, `require`, `globalThis`, `fetch`, dynamic `import()`
@@ -224,7 +224,7 @@ transport-agnostic — tool definitions plus a dispatch function, with no coupli
 to the chat loop.
 
 It is JSON-RPC 2.0 over a single POST at
-`<backoffice>/bunbraco/api/assistant/mcp` — the subset of the streamable HTTP
+`<backoffice>/crombolo/api/assistant/mcp` — the subset of the streamable HTTP
 transport a stateless server needs, so nothing holds a connection open. It
 answers `initialize`, `ping`, `tools/list` and `tools/call`, and it needs the same
 signed-in user as every other route.
@@ -306,7 +306,7 @@ propagated.
 
 ## Configuration
 
-`assistant` on `BunbracoConfig`, following `mediaStore` and `sendUserLink`:
+`assistant` on `CromboloConfig`, following `mediaStore` and `sendUserLink`:
 present means on, absent means the feature is not there.
 
 ```ts
@@ -324,14 +324,14 @@ gitignored and which Bun and Docker Compose both read, so one file serves a host
 and the container stack. The `cms` service mounts `~/.aws` read-only, which is what
 makes a profile mean anything inside it; the tokens there are short-lived and the
 mount cannot write back, so `aws sso login` stays something done on the host. The
-reference site builds the provider only when `BUNBRACO_ASSISTANT_MODEL` is set, so
+reference site builds the provider only when `CROMBOLO_ASSISTANT_MODEL` is set, so
 credentials present for another purpose do not turn the feature on.
 
 Degradation is by construction, not by branches at the call sites:
 
 - absent → `packages/server/src/assistant.ts` is never imported, so no route is
   registered and no provider is constructed; `createManifestPort` omits
-  `Bunbraco.Assistant`, so the backoffice is served no extension and loads no
+  `Crombolo.Assistant`, so the backoffice is served no extension and loads no
   drawer
 - enabled but the model endpoint is unreachable → the drawer reports it; the
   CMS, the rendering pipeline and the rest of the backoffice are unaffected
@@ -371,8 +371,8 @@ or approve somebody else's proposal.
 | `POST /changes/{key}/discard`         | drops it                                      |
 | `POST /mcp`                           | JSON-RPC, when `mcp` is on                    |
 
-Under `<backoffice>/bunbraco/api/assistant`, which follows the configured
-backoffice mount — `/bunbraco` by default, not the fixed Management API prefix.
+Under `<backoffice>/crombolo/api/assistant`, which follows the configured
+backoffice mount — `/crombolo` by default, not the fixed Management API prefix.
 
 ## The assistant
 
@@ -382,7 +382,7 @@ own, and cannot publish. Absent from the config it does not exist: no route, no
 tools, no model client, no extension in the backoffice.
 
 ```ts
-import { bedrock, defineConfig } from 'bunbraco'
+import { bedrock, defineConfig } from '@crombolo/crombolo'
 
 export default defineConfig({
   assistant: {
@@ -414,14 +414,14 @@ first and the drawer says which of the two you are about to do. A proposal recor
 what the entity looked like when it was made and is refused if it moved since,
 rather than overwriting whoever got there first.
 
-Proposed TSX is scanned before you see it — imports limited to `bunbraco` and
+Proposed TSX is scanned before you see it — imports limited to `@crombolo/crombolo` and
 files beside it, and no `Bun`, `process`, `fetch`, `eval`, `new Function` or
 `node:` — because `render/renderer.ts` imports templates as real ES modules. The
 assistant may deliberately write less than a person can. It is defence in depth
 behind human approval, not a sandbox.
 
 `mcp: true` serves the same tools at
-`<backoffice>/bunbraco/api/assistant/mcp` over JSON-RPC, so Claude Code and Claude
+`<backoffice>/crombolo/api/assistant/mcp` over JSON-RPC, so Claude Code and Claude
 Desktop drive the CMS through the identical definitions and the identical
 approval model. MCP clients get `query` and `propose` and **not** apply: an agent
 approving its own changeset would defeat the point of having one.
@@ -443,7 +443,7 @@ which is gitignored and which both Bun and Docker Compose read, so one file serv
 a host run and the container stack:
 
 ```sh
-BUNBRACO_ASSISTANT_MODEL=apac.anthropic.claude-…   # naming a model is what enables it
+CROMBOLO_ASSISTANT_MODEL=apac.anthropic.claude-…   # naming a model is what enables it
 AWS_PROFILE=my-sso-profile
 AWS_REGION=ap-southeast-2
 ```
@@ -452,10 +452,10 @@ Then `aws sso login --profile my-sso-profile` on the host, and `bun run db:up`
 or `bun run start:local`. Static `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` are
 still read when there is no profile, and take precedence when both are set.
 
-`apps/site/bunbraco.config.ts` builds the provider only when
-`BUNBRACO_ASSISTANT_MODEL` is set, so AWS credentials you already have for
+`apps/site/crombolo.config.ts` builds the provider only when
+`CROMBOLO_ASSISTANT_MODEL` is set, so AWS credentials you already have for
 something else never quietly turn on an AI feature. It is the *site's* choice, not
-the framework's: `BunbracoConfig.assistant` has no environment variable, because
+the framework's: `CromboloConfig.assistant` has no environment variable, because
 enabling it takes a provider and a provider is code.
 
 The container mounts `~/.aws` **read-only**, which is what makes `AWS_PROFILE` mean
@@ -479,7 +479,7 @@ Assistant cannot reach its model: Token is expired. To refresh this SSO session
   Run `aws sso login --profile my-sso-profile`, or set AWS_ACCESS_KEY_ID …
 ```
 
-The same answer is served at `<backoffice>/bunbraco/api/assistant/status` and shown
+The same answer is served at `<backoffice>/crombolo/api/assistant/status` and shown
 in the drawer when it opens, so an expired session is visible **before** you type a
 request rather than as a failed message after it. A failure never stops the site
 booting; the assistant is optional and the rest of the CMS is untouched.

@@ -3,15 +3,15 @@
  * Publish, Delete — and the development log of operations still answering 501.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
   BUILT_IN_GROUP_PERMISSIONS,
-  bunbracoPlan,
+  cromboloPlan,
   type Db,
   migrate,
   STATE_RECYCLE_BIN,
   seedIdentity,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { freshDb, undoMigrationsSinceContentEditing } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -48,7 +48,7 @@ describe('permission verbs', () => {
   test('migration 007 grants the defaults to a database seeded without them, once', async () => {
     const db = await freshDb()
     dbs.push(db)
-    await migrate(db, bunbracoPlan)
+    await migrate(db, cromboloPlan)
     await seedIdentity(db, {
       admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
       hashPassword,
@@ -71,10 +71,10 @@ describe('permission verbs', () => {
     await db.exec('DROP TABLE member_property_type')
     // …and before migration 010's tables
     await undoMigrationsSinceContentEditing(db)
-    await db.exec("UPDATE key_value SET value = ? WHERE key = 'Bunbraco.Core.Upgrader.State'", [
+    await db.exec("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'", [
       STATE_RECYCLE_BIN,
     ])
-    const result = await migrate(db, bunbracoPlan)
+    const result = await migrate(db, cromboloPlan)
     // 007, and whatever the plan has added since
     expect(result.applied[0]).toBe('GrantBuiltInGroupPermissions')
     expect(await count()).toBe(expected)

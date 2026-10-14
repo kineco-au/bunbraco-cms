@@ -5,7 +5,7 @@
  * reach, only the way down to a start node. Nodes on that way are shown with
  * `noAccess`. With root access nothing is filtered.
  */
-import { type DocumentTreeItem, hasPathAccess, type Page, type StartNodes } from '@bunbraco/core'
+import { type DocumentTreeItem, hasPathAccess, type Page, type StartNodes } from '@crombolo/core'
 import type { SkipTake } from '../ports-content.ts'
 
 export interface TreeSource {

@@ -97,21 +97,21 @@ jobs:
             db:
                 image: postgres:18-alpine
                 env:
-                    POSTGRES_USER: bunbraco
-                    POSTGRES_PASSWORD: bunbraco
+                    POSTGRES_USER: crombolo
+                    POSTGRES_PASSWORD: crombolo
                     # The suite drops and recreates the `public` schema, so it gets a
                     # database of its own — the same split docker/initdb makes locally.
-                    POSTGRES_DB: bunbraco_test
+                    POSTGRES_DB: crombolo_test
                 ports:
                     - 5432:5432
                 options: >-
-                    --health-cmd "pg_isready -U bunbraco -d bunbraco_test"
+                    --health-cmd "pg_isready -U crombolo -d crombolo_test"
                     --health-interval 2s
                     --health-timeout 3s
                     --health-retries 30
         env:
-            BUNBRACO_DB: ${{ matrix.dialect }}
-            BUNBRACO_POSTGRES_URL: postgres://bunbraco:bunbraco@localhost:5432/bunbraco_test
+            CROMBOLO_DB: ${{ matrix.dialect }}
+            CROMBOLO_POSTGRES_URL: postgres://crombolo:crombolo@localhost:5432/crombolo_test
         steps:
             - uses: actions/checkout@v5
             - uses: oven-sh/setup-bun@v2
@@ -141,7 +141,7 @@ jobs:
     # The integration suites drive the real CLI as a pipeline would: a process per
     # step and two SQLite databases, for content transfer (a bundle written to disk
     # and read back) and for the upgrade (three releases of one site, each booted
-    # with `bunbraco start` and asserted over HTTP). That is what covers argument
+    # with `crombolo start` and asserted over HTTP). That is what covers argument
     # parsing, exit codes and the output somebody reads — none of which the unit
     # tests touch.
     #
@@ -190,7 +190,7 @@ jobs:
         runs-on: ubuntu-latest
         env:
             # Empty selects Playwright's bundled Chromium over installed Chrome.
-            BUNBRACO_BROWSER_CHANNEL: ""
+            CROMBOLO_BROWSER_CHANNEL: ""
         steps:
             - uses: actions/checkout@v5
             - uses: oven-sh/setup-bun@v2

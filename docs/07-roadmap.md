@@ -8,7 +8,7 @@ criterion is always "works in the actual Umbraco backoffice", never "returns 200
 Repo layout and Bun workspaces; TypeScript strict; Biome for format/lint;
 `contracts/OpenApi.json` vendored from `release-18.2.0`; types generated from it;
 a typed route table with `501` stubs for all 513 operations; the dialect seam with
-both drivers connecting; the migration runner; `vendor:backoffice`; `bunbraco dev`.
+both drivers connecting; the migration runner; `vendor:backoffice`; `crombolo dev`.
 
 **Exit:** `bun run check` (format + lint + typecheck) and `bun test` are green;
 `bun run coverage:api` reports 513 operations with a known implemented count;
@@ -118,30 +118,30 @@ order; the full design is in `09-schema-as-code.md` and
 
 ### 5a — Packaging ✅
 
-Move the composition root out of `apps/site` into `@bunbraco/server`; declare
+Move the composition root out of `apps/site` into `@crombolo/server`; declare
 every inter-package dependency and an `exports` map; publish the built backoffice
-as `@bunbraco/backoffice-dist` and resolve it from `node_modules`; an umbrella
-`bunbraco` package with the CLI (`init`, `start`, `migrate`, `schema`, `generate`,
+as `@crombolo/backoffice-dist` and resolve it from `node_modules`; an umbrella
+`@crombolo/crombolo` package with the CLI (`init`, `start`, `migrate`, `schema`, `generate`,
 `upgrade`, `admin`); turn `apps/site` into a genuine reference site.
 
-**Exit:** a fresh directory with `bun add bunbraco`, a config file and a
+**Exit:** a fresh directory with `bun add @crombolo/crombolo`, a config file and a
 three-line `server.ts` boots the backoffice and renders a page. No tsconfig
 `paths` in the site.
 
-**Done.** `@bunbraco/server` holds the composition root; `@bunbraco/backoffice-dist`
-holds the built client and is resolved as a dependency; `@bunbraco/contracts`
+**Done.** `@crombolo/server` holds the composition root; `@crombolo/backoffice-dist`
+holds the built client and is resolved as a dependency; `@crombolo/contracts`
 carries its own `OpenApi.json`; every package declares dependencies and an
-`exports` map; the root tsconfig has no `paths`; `bunbraco` ships `bunbraco()`
+`exports` map; the root tsconfig has no `paths`; `@crombolo/crombolo` ships `crombolo()`
 and the CLI (`start`, `init`, `admin reset-password`, with `upgrade`, `schema`
 and `generate` stubbed until 5b/5c). Verified with a site in `/tmp` whose only
-dependency is `bunbraco`: `init`, boot, login, a template in the site's own
+dependency is `@crombolo/crombolo`: `init`, boot, login, a template in the site's own
 `components/`, and a rendered page.
 
 The exit test earned its keep on the first run: everything passed except the
-render, because a view's JSX imported `@bunbraco/render/jsx-dev-runtime` — a
+render, because a view's JSX imported `@crombolo/render/jsx-dev-runtime` — a
 name that resolves inside the monorepo (the root depends on every package) but
-not from a site that depends only on `bunbraco`. The umbrella package now exports
-the JSX runtime itself and `jsxImportSource` is `bunbraco` everywhere. Nothing
+not from a site that depends only on `@crombolo/crombolo`. The umbrella package now exports
+the JSX runtime itself and `jsxImportSource` is `@crombolo/crombolo` everywhere. Nothing
 in the test suite could have caught that; only a consumer outside the repo could.
 
 ### 5b — Schema as code, and the value layer
@@ -158,7 +158,7 @@ and the cut-over does. Two Umbraco-visible behaviours changed on purpose: every
 save is a recoverable version (Umbraco versions only on publish), and rollback
 appends rather than rewrites. Cleanup that respects pinned events is designed
 but has no job runner yet. Then the TOML schema package — its pure core is **done** in
-Then **schema-as-code** (`09-schema-as-code.md`) — **done**. `@bunbraco/schema`:
+Then **schema-as-code** (`09-schema-as-code.md`) — **done**. `@crombolo/schema`:
 a strict parser (unknown keys are errors, every problem reported with file and
 path), whole-set validation, a canonical writer that round-trips byte-for-byte,
 a directory loader, an order-independent hash, and `syncSchema` — the
@@ -223,7 +223,7 @@ Four slices, each green on both dialects before the next starts.
   must name `contracts: <expand migration name>`, and the `MigrationPlan`
   constructor throws unless that expand's `release` is lower than the
   contract's. The three existing migrations are `expand`, release `0.1.0`.
-- **`bunbraco upgrade --plan`.** A `RecordingDb` implements `Db`: `exec`
+- **`crombolo upgrade --plan`.** A `RecordingDb` implements `Db`: `exec`
   captures rendered SQL, `query` throws `Unplannable`, `transaction` recurses.
   Each pending step runs against it; the output is the DDL per step, or
   "unplannable: <step> reads data". Migrations 001–003 are plannable.
@@ -237,7 +237,7 @@ Four slices, each green on both dialects before the next starts.
   TABLE … DROP/RENAME COLUMN`, so no copy-table dance is needed; the helper
   exists so a migration is written once.
 - **Backups.** `backupBefore(db, config, what)`: SQLite copies the file to
-  `<file>.<timestamp>.bak` beside it; Postgres runs `BUNBRACO_PG_DUMP` when
+  `<file>.<timestamp>.bak` beside it; Postgres runs `CROMBOLO_PG_DUMP` when
   set, else refuses unless `--backup-taken`. Used by `check --fix`, `upgrade`
   and `schema purge`.
 
@@ -247,7 +247,7 @@ An element is **pending** on a node when the state that created it
 (`since_state_id`) is newer than the node's `(version, revision)`, or when its
 file says `since` newer than the node's version. `since` from the file is
 stored as `since_version` on the row by the sync, so the rule is one comparison
-in one place: `isPending(row, nodeState)` in `@bunbraco/data`.
+in one place: `isPending(row, nodeState)` in `@crombolo/data`.
 
 - `ContentTypeRepository` takes `nodeState` (as `DocumentRepository` does) and
   marks each property and type `pending: { version, revision } | null`.
@@ -314,9 +314,9 @@ in one place: `isPending(row, nodeState)` in `@bunbraco/data`.
 
 - **Upgrade dashboard** (the Changes dashboard since migration 018): a
   framework-shipped backoffice package
-  (`packages/backoffice-host/plugin/`, served at `<backoffice>/bunbraco/*` and
+  (`packages/backoffice-host/plugin/`, served at `<backoffice>/crombolo/*` and
   merged into the manifests like an installed npm extension): a Settings-section
-  dashboard reading `GET <backoffice>/bunbraco/api/change-report` (non-contract,
+  dashboard reading `GET <backoffice>/crombolo/api/change-report` (non-contract,
   same footing as the auth routes) — counts by kind, each finding with its
   link, resolved ones greyed; and a header app that shows a *read-only* banner
   when `server/status` reports compatibility mode. Plain Lit modules against
@@ -499,7 +499,7 @@ walk through a section shows everything it still needs.
   front end; the value converters and rendering model for Block List, Block
   Grid, Multi-URL Picker, Content Picker (`model.value()` returns typed
   content, not JSON); Tags (`GetTag`); the RTE's `oembed` proxy.
-- `bunbraco generate` types the block values.
+- `crombolo generate` types the block values.
 
 **Exit:** a page using every built-in editor round-trips through the editor
 and renders; an uploaded file is served at its URL.
@@ -520,7 +520,7 @@ and renders; an uploaded file is served at its URL.
   databases gain the missing ones at boot. True/false reads back as a boolean
   and dates as the wall-clock time the picker sent, not shifted by the
   server's zone.
-- **Values as templates receive them** (`@bunbraco/render` values): a content
+- **Values as templates receive them** (`@crombolo/render` values): a content
   picker yields the page, a tree picker the pages, a multi URL picker links
   with resolved URLs, block list and block grid their elements
   (`PublishedElement`, with the same `value()`), the media picker media with
@@ -530,7 +530,7 @@ and renders; an uploaded file is served at its URL.
 - **Tags** are read from the current values of Tags properties, grouped by the
   data type's configuration, with stable ids; no table of their own.
 - **oEmbed**: Umbraco's providers, each asked for JSON; photos become `<img>`.
-- **`bunbraco generate`** types pickers, links and blocks, down to the element
+- **`crombolo generate`** types pickers, links and blocks, down to the element
   types a block editor allows (`TypedElement<Feature>`), and imports only the
   value types it uses.
 
@@ -558,7 +558,7 @@ decision: Folder, Image and File are system types — shipped, ensured at every
 boot (before the sync, so files may reference them, and after, so Folder
 allows whichever built-ins the site has), not deletable, alias fixed, a file
 may override one only by its key; Video, Audio, Article and Vector Graphics
-are site files that `bunbraco init` scaffolds (and `apps/site` now has), which
+are site files that `crombolo init` scaffolds (and `apps/site` now has), which
 a site may delete. Their seven supporting data types (pixel and byte labels,
 four upload variants, the media list view) are built-ins, ensured in older
 databases at boot. The vocabulary gained a top-level `[[group]]` — Umbraco's
@@ -570,7 +570,7 @@ Remaining below: media itself.
 forever — the dialog waits on the upload settings
 (`GetTemporaryFileConfiguration`), which answered 501. It now reports
 Umbraco's defaults (image types, the executable-extension blocklist, an empty
-allow-list, no size limit) from `DEFAULT_UPLOAD_SETTINGS` in `@bunbraco/core`,
+allow-list, no size limit) from `DEFAULT_UPLOAD_SETTINGS` in `@crombolo/core`,
 the same lists WP-6.3's upload endpoints will enforce.
 
 Media types as files (`schema/media-types/*.toml`, same parser vocabulary),
@@ -624,9 +624,9 @@ processor and the temporary-upload flow use. Three stores ship: the file system
 (the default, unchanged on disk), **S3** through Bun's own client — so no
 dependency, and any S3-compatible service works — and **Azure Blob Storage**
 through the REST API with Shared Key or SAS auth, rather than pulling in
-`@azure/storage-blob` for four verbs. A site picks one in `bunbraco.config.ts`
+`@azure/storage-blob` for four verbs. A site picks one in `crombolo.config.ts`
 with `fileSystemMediaStore`, `s3MediaStore` or `azureMediaStore`, or leaves it to
-`BUNBRACO_MEDIA_STORE`, which is what a container deployment wants.
+`CROMBOLO_MEDIA_STORE`, which is what a container deployment wants.
 
 Three consequences follow from the interface rather than from any one store, and
 each is a small improvement on what was there:
@@ -676,7 +676,7 @@ document's action menu works in the real backoffice.
   the expiry, and the variant reports both dates. A job runs every minute.
   Each schedule is claimed with `DELETE … RETURNING`, so on several nodes it
   still runs once.
-- **Version cleanup**, hourly when `BUNBRACO_VERSION_CLEANUP=true`, off by
+- **Version cleanup**, hourly when `CROMBOLO_VERSION_CLEANUP=true`, off by
   default as in Umbraco. It keeps the current draft, the published version,
   pinned versions, everything newer than keep-all days, then each day's latest
   for keep-latest days; a content type's own policy wins. Values are
@@ -935,7 +935,7 @@ members with auto-linking. `external_login` is already there for them.
 through an external provider.
 
 **Decided for the provider work:** the integrations are typed config presets
-exported from `bunbraco` — `entra(...)`, `awsIdentityCenter(...)` and a generic
+exported from `@crombolo/crombolo` — `entra(...)`, `awsIdentityCenter(...)` and a generic
 `oidc(...)` — each knowing its issuer, scopes and claim mapping. Not separate
 packages: the plan defers a plugin ecosystem, and a preset is an import rather
 than an install.
@@ -951,7 +951,7 @@ Delivery API first.
 **Built so far — the log viewer.** The server logs through LogTape (chosen for
 its Serilog-style message templates, with no dependencies of its own) into the
 files Umbraco's log viewer reads: Serilog's compact JSON, one event per line,
-`logs/BunbracoTraceLog.<machine>.<yyyyMMdd>.json`, with `SourceContext`,
+`logs/CromboloTraceLog.<machine>.<yyyyMMdd>.json`, with `SourceContext`,
 `MachineName` and `ProcessId` as Umbraco enriches them. The viewer reads the
 files of each day in the range (the last day by default), refuses ranges whose
 files pass Umbraco's 100 MB cap, counts levels (not Verbose, as Umbraco),
@@ -960,7 +960,7 @@ subset covering the saved searches and the filter box, with Umbraco's fallback
 to a text search for a plain word or anything that does not compile. Saved
 searches are migration 012's `log_viewer_query`, seeded with Umbraco's; the
 two that ask about Umbraco's own namespace and message template ask the same of
-bunbraco's, and the two about Umbraco's `SortedComponentTypes` property are
+crombolo's, and the two about Umbraco's `SortedComponentTypes` property are
 left out. Server messages that went to the console — schema sync, imaging,
 template errors, background jobs, the development 501 log — are now log events.
 Pinned by `tests/log-viewer.test.ts` and, in the backoffice, the log viewer step
@@ -1017,7 +1017,7 @@ stacking rows behind it. Same observable behaviour, bounded growth.
   `/<segment>`, so re-ordering the roots moves them, and Umbraco's handler listens
   to publish and move only. The capture is by parent there, since the write is on
   the parent and the URLs that move belong to its children.
-- **Configured redirects** are `redirect()` in `bunbraco.config.ts`, which Umbraco
+- **Configured redirects** are `redirect()` in `crombolo.config.ts`, which Umbraco
   has no equivalent for — it expects a rewrite rule in front of the site. Three
   decisions, all taken deliberately: they are **synced into the database at boot**
   so the dashboard lists everything in force in one place (and the API answers 409
@@ -1109,7 +1109,7 @@ culture cannot see is simply not in its view. `loadElements()` reuses the query 
 builds the content cache, because `loadPublished()` is keyed on the repository's own
 object type and only ever needed `kind: 'element'` passing to it. And invalidation
 was already in place: the element port writes a `{ elements: true }` cache
-instruction on every change. `bunbraco generate` narrows a pick to its element type
+instruction on every change. `crombolo generate` narrows a pick to its element type
 from the picker's `allowedContentTypes`, reusing `TypedElement<T>`. The full design
 is `05-rendering.md` → "Published elements".
 
@@ -1148,7 +1148,7 @@ table); dynamic root pickers (2); and the odds and ends
 **Deliberate divergence, not gaps** — listed so they are not mistaken for one:
 
 - The **install wizard** (3 ops) and the **upgrade endpoints** (2) answer 501 on
-  purpose; `bunbraco init`, schema-as-code and `bunbraco upgrade` replace them.
+  purpose; `crombolo init`, schema-as-code and `crombolo upgrade` replace them.
   The real consequence is that there is no first-run browser experience, so a
   non-developer cannot stand a site up.
 - The **template query builder** (3 ops) stays 501: it is Razor-specific.
@@ -1204,7 +1204,7 @@ Not before WP-6.8: provisioning needs something to provision.
 in the site directory, which verifies the tarball against the registry's
 sha512 integrity. That proves the bytes match what the registry holds and says
 nothing about who published them. The marketplace lists a package only when
-the `bunbraco-bundle` keyword *and* a real `bunbraco` field agree, which stops
+the `crombolo-bundle` keyword *and* a real `crombolo` field agree, which stops
 a squatter and does nothing against a package that declares a real extension
 with bad intent. Bun refuses lifecycle scripts outside `trustedDependencies`,
 so an install cannot run code in the server process; a server half is wired by
@@ -1214,8 +1214,8 @@ backoffice origin with the signed-in user's session, able to call the
 Management API as that user, and the only gate is who may install.
 
 **Three ways to say more were weighed.** A signing scheme of our own — a
-signature in the `bunbraco` field over the tarball hash, countersigned by a
-bunbraco key — would reinvent Sigstore's key management and revocation, and is
+signature in the `crombolo` field over the tarball hash, countersigned by a
+crombolo key — would reinvent Sigstore's key management and revocation, and is
 rejected. The other two are this work package, in order.
 
 #### 6.13a — Provenance: where the code came from
@@ -1253,7 +1253,7 @@ administrator can act on: *built from `github.com/org/repo` at `abc1234`*.
 **What the badge must not claim.** Provenance ties bytes to a build. It does
 not review the source, and the wording is *built from*, never *verified* or
 *safe*. The `sigstore` dependency is pure JavaScript and lands in
-`@bunbraco/server` only.
+`@crombolo/server` only.
 
 **Exit:** against a recorded registry, an attested package installs and the
 response names its repository; a tampered attestation refuses the install with
@@ -1264,7 +1264,7 @@ Two things to confirm before starting, written here as assumptions: that Bun
 performs no provenance check of its own, and that `sigstore` ships a
 TUF-refreshed trust root that the tests can pin.
 
-#### 6.13b — Reviewed publishers: who bunbraco has looked at
+#### 6.13b — Reviewed publishers: who crombolo has looked at
 
 Provenance cannot say whether the repository it names is one anyone should
 trust. That is a human statement, and the precedent is Umbraco's marketplace,
@@ -1273,13 +1273,13 @@ cryptographic.
 
 **Shape.**
 
-- One JSON document at a bunbraco-controlled URL, configurable with a default,
+- One JSON document at a crombolo-controlled URL, configurable with a default,
   naming *publishers* rather than packages: an npm scope or user name, the
   source repositories that belong to them, the date reviewed and a line on what
   the review covered. Fetched when the marketplace opens and cached for the
   session; an unreachable list is an empty list with a log line, never a
   failed marketplace.
-- A listing is *reviewed by bunbraco* when its publisher is on the list and,
+- A listing is *reviewed by crombolo* when its publisher is on the list and,
   where 6.13a verified an attestation, the attested repository is one the list
   names for them. When the two disagree the badge is withheld and the log says
   why.
@@ -1303,9 +1303,9 @@ with the bundles this repository ships itself.
 
 ### WP-6.12 — Import an existing Umbraco site — **built for schema, content and views**
 
-`bunbraco import umbraco`: pointed at a backup of an Umbraco site, it first
+`crombolo import umbraco`: pointed at a backup of an Umbraco site, it first
 produces a compatibility report listing what cannot be migrated — packages,
-plugins, Razor views, custom code — and then writes a Bunbraco site: schema as
+plugins, Razor views, custom code — and then writes a Crombolo site: schema as
 TOML, content as a bundle, a view stub per template, the media files. It converts
 into the existing interchange formats rather than writing rows, so the import
 itself is `start --bundle`.
@@ -1313,7 +1313,7 @@ itself is `start --bundle`.
 It is two stages. A `.bacpac` is the primary input, and restoring one needs
 .NET, so a standalone open-source TypeScript library,
 `@kineco-au/bacpac-importer`, decodes it and writes a faithful copy to SQLite,
-knowing nothing about Umbraco. `@bunbraco/import-umbraco` then reads that copy and
+knowing nothing about Umbraco. `@crombolo/import-umbraco` then reads that copy and
 does everything Umbraco-specific. It is opt-in: the CLI loads it on demand, so no
 site carries it unless it asks.
 
@@ -1400,11 +1400,11 @@ before any more code lands:
   `schema/*.toml` in the site's repo; the database caches them. The backoffice
   type editor writes the files. Comments are stripped on write; `description` and
   `notes` fields survive instead.
-- **A site installs `bunbraco`.** Done in 5a: the composition root lives in
-  `@bunbraco/server`, the built backoffice in `@bunbraco/backoffice-dist`, every
+- **A site installs `@crombolo/crombolo`.** Done in 5a: the composition root lives in
+  `@crombolo/server`, the built backoffice in `@crombolo/backoffice-dist`, every
   package declares its dependencies and an `exports` map, and there are no
   tsconfig `paths` anywhere. A directory outside this repo with `bun add
-bunbraco`, a config file and a three-line `server.ts` boots the backoffice and
+crombolo`, a config file and a three-line `server.ts` boots the backoffice and
   renders a page.
 - **Metadata promotes through environments the way code does.** A schema
   change moves dev → test → production as files; when it needs data moved, a
@@ -1414,11 +1414,11 @@ bunbraco`, a config file and a three-line `server.ts` boots the backoffice and
   values back. A framework upgrade is the same process with one more source of
   change.
 - **Changes are proven and prepared before they run.** Schema migrations are
-  expand/contract with a ledger and a `--plan`. `bunbraco upgrade check` reports
+  expand/contract with a ledger and a `--plan`. `crombolo upgrade check` reports
   what a release needs from the data — auto-fixable, needs a person, or blocking
   — and `check --fix` applies the additive part on the live site, so a new
   required field appears in the backoffice to be filled in before the deploy.
-  `bunbraco upgrade` refuses until the check is clean. Values are append-only
+  `crombolo upgrade` refuses until the check is clean. Values are append-only
   and tagged with the schema state that wrote them, and only a node at the
   current state may write — so old nodes keep serving reads through a rolling
   deploy and there is never a maintenance page. Production never auto-upgrades.

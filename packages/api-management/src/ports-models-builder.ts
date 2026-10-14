@@ -1,6 +1,6 @@
 /**
  * Umbraco's ModelsBuilder, which generates strongly-typed models from the
- * content types. Bunbraco's models are the TypeScript `bunbraco generate`
+ * content types. Crombolo's models are the TypeScript `crombolo generate`
  * writes from the TOML schema, so the same three operations describe it.
  */
 

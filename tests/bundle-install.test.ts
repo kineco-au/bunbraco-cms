@@ -20,15 +20,15 @@ import {
   replacementsNeedingPermission,
   restoreSectionFiles,
   stageBackups,
-} from '@bunbraco/cli'
-import { ContentTypeRepository, DictionaryRepository } from '@bunbraco/data'
+} from '@crombolo/cli'
+import { ContentTypeRepository, DictionaryRepository } from '@crombolo/data'
 import {
   type BundleFile,
   type ContentSet,
   exportBundle,
   loadBundle,
   writeBundle,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import { type Harness, signedInServer } from './support/harness.ts'
 
 const PAGE_TOML = `[content-type]
@@ -427,9 +427,9 @@ describe('reverting the files an install wrote', () => {
   })
 
   test('the backups sit beside the components cache, not inside it', async () => {
-    // `.bunbraco/components` is rebuilt from components/ and cleared at boot;
+    // `.crombolo/components` is rebuilt from components/ and cleared at boot;
     // these have to outlive a restart to be worth taking.
-    expect(RUN_BACKUP_DIR).toBe(join('.bunbraco', 'transfer'))
-    expect(RUN_BACKUP_DIR.startsWith(join('.bunbraco', 'components'))).toBe(false)
+    expect(RUN_BACKUP_DIR).toBe(join('.crombolo', 'transfer'))
+    expect(RUN_BACKUP_DIR.startsWith(join('.crombolo', 'components'))).toBe(false)
   })
 })

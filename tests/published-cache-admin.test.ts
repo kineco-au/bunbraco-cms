@@ -5,7 +5,7 @@
  * — lazily on the next read, or before the response.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { PublishedCache, type PublishedNode } from '@bunbraco/render'
+import { PublishedCache, type PublishedNode } from '@crombolo/render'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

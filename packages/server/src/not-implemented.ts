@@ -3,7 +3,7 @@
  * operation that answers 501, and a running list, so one walk through a
  * section shows everything it still needs.
  */
-import type { OperationInfo } from '@bunbraco/contracts'
+import type { OperationInfo } from '@crombolo/contracts'
 
 export interface NotImplementedEntry {
   operationId: string

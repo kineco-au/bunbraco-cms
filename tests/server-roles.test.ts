@@ -1,5 +1,5 @@
 /**
- * `BUNBRACO_ROLE`: splitting one deployment into an editing node and a public one.
+ * `CROMBOLO_ROLE`: splitting one deployment into an editing node and a public one.
  *
  * The gating is what these assert, because the failure mode is silent. A `web`
  * node that still served the Management API would expose the editor on the
@@ -15,12 +15,12 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  type BunbracoConfig,
+  type CromboloConfig,
   createServer,
   DatabaseNotReadyError,
   loadConfig,
   type ServerHandle,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { dialectUnderTest, resetPostgresSchema } from './support/db.ts'
 import { BACKOFFICE, ORIGIN, V1 } from './support/harness.ts'
 
@@ -31,14 +31,14 @@ describe(`server roles (${dialectUnderTest})`, () => {
   let web: ServerHandle
   let api: ServerHandle
 
-  const configFor = (overrides: Partial<BunbracoConfig> = {}) =>
+  const configFor = (overrides: Partial<CromboloConfig> = {}) =>
     loadConfig({ sqliteFile: shared, ...overrides })
 
   const get = (server: ServerHandle, path: string, init?: RequestInit) =>
     server.fetch(new Request(`${ORIGIN}${path}`, init))
 
   beforeAll(async () => {
-    dir = mkdtempSync(join(tmpdir(), 'bunbraco-roles-'))
+    dir = mkdtempSync(join(tmpdir(), 'crombolo-roles-'))
     // Shared on SQLite, where ':memory:' would give each server its own database.
     // Ignored on Postgres, where the schema is what the two share.
     shared = join(dir, 'roles.sqlite')
@@ -84,7 +84,7 @@ describe(`server roles (${dialectUnderTest})`, () => {
     const login = await get(web, `${V1}/security/back-office/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username: 'admin@bunbraco.local', password: 'test-password' }),
+      body: JSON.stringify({ username: 'admin@crombolo.local', password: 'test-password' }),
     })
     expect(login.status).toBe(404)
   })
@@ -128,13 +128,13 @@ describe(`server roles (${dialectUnderTest})`, () => {
 
   test('a misspelt role is refused rather than quietly treated as all', () => {
     expect(() => loadConfig({ role: 'webb' as never })).toThrow(/role must be one of/)
-    const previous = Bun.env.BUNBRACO_ROLE
+    const previous = Bun.env.CROMBOLO_ROLE
     try {
-      Bun.env.BUNBRACO_ROLE = 'webb'
+      Bun.env.CROMBOLO_ROLE = 'webb'
       expect(() => loadConfig()).toThrow(/role must be one of/)
     } finally {
-      if (previous === undefined) delete Bun.env.BUNBRACO_ROLE
-      else Bun.env.BUNBRACO_ROLE = previous
+      if (previous === undefined) delete Bun.env.CROMBOLO_ROLE
+      else Bun.env.CROMBOLO_ROLE = previous
     }
   })
 

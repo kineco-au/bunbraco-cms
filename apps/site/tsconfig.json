@@ -5,7 +5,7 @@
     "module": "Preserve",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "jsxImportSource": "bunbraco",
+    "jsxImportSource": "@crombolo/crombolo",
     "strict": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,

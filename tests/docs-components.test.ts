@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { generateTypes, loadSchemaDirectory } from '@bunbraco/schema'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { generateTypes, loadSchemaDirectory } from '@crombolo/schema'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const GUIDE = join(import.meta.dir, '..', 'docs', '21-writing-components.md')
@@ -128,7 +128,7 @@ describe('docs/21-writing-components.md', () => {
           siteDir: root,
           schemaDir: join(root, 'schema'),
           componentsDir: join(root, 'components'),
-          componentsCacheDir: join(root, '.bunbraco', 'components'),
+          componentsCacheDir: join(root, '.crombolo', 'components'),
           development: true,
           schemaWritable: true,
         },

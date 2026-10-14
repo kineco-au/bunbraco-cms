@@ -1,4 +1,4 @@
-# Bunbraco — Overview
+# Crombolo — Overview
 
 A CMS with a Bun + TypeScript backend and React-style TSX templates, edited
 through the Umbraco backoffice.
@@ -50,7 +50,7 @@ Umbraco-shaped relational model, plus a front-end rendering layer.
 | Federated members | **External identity providers** (OIDC/OAuth) linked to locally-stored members, mirroring Umbraco's external-login model. |
 | Sequencing | **Deep vertical slice first**: login → content type → edit → save → publish → render; then widen. |
 | Schema definitions | **Code first, in TOML files** under `schema/` — content types, data types, languages. The database's schema tables are a cache synced at boot. The backoffice type editor writes the files. See `09-schema-as-code.md`. |
-| Packaging | A site installs `bunbraco`; the built backoffice ships as `@bunbraco/backoffice-dist`; the composition root is framework code. One Umbraco backoffice major per bunbraco major. See `10-packaging-and-upgrades.md`. |
+| Packaging | A site installs `@crombolo/crombolo`; the built backoffice ships as `@crombolo/backoffice-dist`; the composition root is framework code. One Umbraco backoffice major per crombolo major. See `10-packaging-and-upgrades.md`. |
 | Promotion and upgrades | Metadata promotes development → test → production as files; site-authored value migrations run once per environment; a framework release is the same process with one more source of change. Expand/contract schema migrations with a ledger and `--plan`. **A pre-upgrade check proves and prepares the data while the current version is live**: findings are auto-fixable, need a person, or blocking; `check --fix` applies the additive part early so new required fields appear in the live backoffice to be filled in, gated by a `since` version so they are not enforced or rendered until their release deploys; `upgrade` is gated on a clean check. Values are append-only and tagged with the schema state that wrote them, and only a node at the current state may write — so a rolling deploy of even a breaking change never interrupts readers. Production never auto-upgrades. |
 
 **Status:** phases 0–4 are complete — the slice works end to end. 49 of 513 API
@@ -68,9 +68,9 @@ operations are implemented and 161 tests pass on both dialects. See
 - Opening an existing Umbraco database in place (excluded by the snake_case decision).
   A one-way importer does that instead: [`16-umbraco-import.md`](16-umbraco-import.md)
 
-## Glossary — Umbraco term → bunbraco module
+## Glossary — Umbraco term → crombolo module
 
-| Umbraco | Bunbraco |
+| Umbraco | Crombolo |
 | --- | --- |
 | `Umbraco.Core` (domain, notifications) | `packages/core` |
 | `Umbraco.Infrastructure` + `Persistence.Sqlite` | `packages/data` |

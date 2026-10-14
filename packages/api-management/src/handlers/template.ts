@@ -2,9 +2,9 @@
  * Templates. The record holds the alias; the view file on disk holds the markup,
  * and the editor reads and writes it through `content`.
  */
-import type { ResponseOf } from '@bunbraco/contracts'
-import type { ComponentModel } from '@bunbraco/core'
-import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import type { ResponseOf } from '@crombolo/contracts'
+import type { ComponentModel } from '@crombolo/core'
+import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { TemplatePort } from '../ports-content.ts'
 import type { ManagementApiRouter } from '../router.ts'
 import { created, paging, toTreeItemResponse } from './content-type.ts'

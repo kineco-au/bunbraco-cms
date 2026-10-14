@@ -6,14 +6,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SEO_FIELDS_PROPERTIES, SYSTEM_CONTENT_TYPE_KEYS } from '@bunbraco/core'
+import { SEO_FIELDS_PROPERTIES, SYSTEM_CONTENT_TYPE_KEYS } from '@crombolo/core'
 import {
   ComponentRepository,
   ContentTypeRepository,
   ensureSystemContentTypes,
-} from '@bunbraco/data'
-import { exportSchemaSet, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
-import type { BunbracoConfig } from '@bunbraco/server'
+} from '@crombolo/data'
+import { exportSchemaSet, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
+import type { CromboloConfig } from '@crombolo/server'
 import { BACKOFFICE, type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -52,13 +52,13 @@ components = ["page"]
 default-component = "page"
 `
 
-const VIEW = `import { SeoHead } from 'bunbraco'
+const VIEW = `import { SeoHead } from '@crombolo/crombolo'
 export default function Page(props) {
   return <html><head><SeoHead {...props} /></head><body><h1>{props.model.name}</h1></body></html>
 }
 `
 
-async function site(config: Partial<BunbracoConfig> = {}) {
+async function site(config: Partial<CromboloConfig> = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'seo-'))
   dirs.push(root)
   const schemaDir = join(root, 'schema')
@@ -108,7 +108,7 @@ async function site(config: Partial<BunbracoConfig> = {}) {
   }
   const visit = (url: string, init: RequestInit = {}) =>
     h.server.fetch(new Request(url, { redirect: 'manual', ...init }))
-  const seoApi = (path: string) => `${BACKOFFICE}/bunbraco/api/seo${path}`
+  const seoApi = (path: string) => `${BACKOFFICE}/crombolo/api/seo${path}`
   return { h, root, schemaDir, create, publish, page, visit, seoApi, typeKey }
 }
 
@@ -142,7 +142,7 @@ describe('the Search & sharing type', () => {
     })
     expect(removed.status).toBe(400)
     expect(JSON.stringify(await removed.json())).toContain(
-      "'Search title' field is provided by Bunbraco",
+      "'Search title' field is provided by Crombolo",
     )
 
     const extra = {
@@ -172,10 +172,10 @@ describe('the Search & sharing type', () => {
     )
     const messages = validateSchemaSet(loadSchemaDirectory(schemaDir).set).map((p) => p.message)
     expect(messages).toContainEqual(
-      expect.stringContaining('"seoTitle" field is provided by Bunbraco'),
+      expect.stringContaining('"seoTitle" field is provided by Crombolo'),
     )
     expect(messages).toContainEqual(
-      expect.stringContaining('"seoDescription" field is provided by Bunbraco'),
+      expect.stringContaining('"seoDescription" field is provided by Crombolo'),
     )
   })
 

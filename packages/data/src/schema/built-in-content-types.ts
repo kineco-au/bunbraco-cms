@@ -12,7 +12,7 @@ import {
   SEO_FIELDS_PROPERTIES,
   SYSTEM_CONTENT_TYPE_KEYS,
   type SystemPropertyModel,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { ContentTypeRepository } from '../repositories/content-types.ts'
 

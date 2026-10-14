@@ -9,7 +9,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { LanguageInput, LocalizationPort } from '../ports.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 

@@ -8,9 +8,9 @@
 import { test as base, expect, type Page } from '@playwright/test'
 
 /** The editor's own paths and the API's, which do not move with it. */
-const OURS = /^\/(bunbraco|umbraco)\//
+const OURS = /^\/(crombolo|umbraco)\//
 
-export const BROWSER_ADMIN = { login: 'admin@bunbraco.local', password: 'browser-suite-password' }
+export const BROWSER_ADMIN = { login: 'admin@crombolo.local', password: 'browser-suite-password' }
 
 /** An element type `serve.ts` writes with no library flag, for the workspace hint. */
 export const BLOCK_ONLY_ELEMENT_TYPE = '7c4b1f0e-2a5d-4e8b-9f31-6d2c8a0b5e17'
@@ -127,7 +127,7 @@ export async function signIn(
   page: Page,
   credentials: { login: string; password: string } = BROWSER_ADMIN,
 ): Promise<void> {
-  await page.goto('/bunbraco')
+  await page.goto('/crombolo')
   await page.locator('input[name="username"]').fill(credentials.login)
   await page.locator('input[name="password"]').fill(credentials.password)
   // The label differs between login builds ("Login", "Sign in"); the role does not.

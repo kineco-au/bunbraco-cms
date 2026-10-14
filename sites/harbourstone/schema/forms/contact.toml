@@ -104,7 +104,7 @@ minimum-submit-seconds = 3
 
 # Telling somebody about a submission takes an e-mail provider, which this
 # template does not configure — see `docs/14-configuration.md`. With
-# BUNBRACO_EMAIL_* set, uncomment this and the message is mailed on submit; the
+# CROMBOLO_EMAIL_* set, uncomment this and the message is mailed on submit; the
 # queue retries, so a provider that is briefly down loses nothing.
 #
 # [[workflow]]

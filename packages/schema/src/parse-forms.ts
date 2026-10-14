@@ -21,7 +21,7 @@ import {
   type SchemaFormGroup,
   type SchemaFormPage,
   type SchemaFormWorkflow,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import { type ParseResult, Reader, type Toml, toml } from './reader.ts'
 
 const FORM_KEYS = [

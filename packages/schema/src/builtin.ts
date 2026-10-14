@@ -1,6 +1,6 @@
 /**
  * The data types that ship built in and need no file. A site file with the same
- * alias overrides the built-in. Mirrors the seeded set in @bunbraco/data.
+ * alias overrides the built-in. Mirrors the seeded set in @crombolo/data.
  */
 import {
   ALL_SEEDED_DATA_TYPES,
@@ -9,7 +9,7 @@ import {
   type BuiltInMediaType,
   SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import type { SchemaContentType, SchemaDataType, SchemaProperty } from './model.ts'
 import { fileNameFor, writeMediaType } from './write.ts'
 
@@ -31,7 +31,7 @@ export const SYSTEM_MEDIA_TYPE_ALIASES: ReadonlySet<string> = new Set(
 )
 
 /**
- * A built-in media type in the file vocabulary: what `bunbraco init` writes
+ * A built-in media type in the file vocabulary: what `crombolo init` writes
  * for the site-owned four, and what export compares a system type against.
  * Folder allows only the built-ins in `present`.
  */
@@ -146,22 +146,22 @@ export function checkSystemContentTypeFile(t: SchemaContentType): string[] {
   if (!def) return []
   const findings: string[] = []
   if (t.key && t.key.toLowerCase() !== def.key)
-    findings.push(`"${t.alias}" is provided by Bunbraco; its key must be ${def.key}`)
+    findings.push(`"${t.alias}" is provided by Crombolo; its key must be ${def.key}`)
   if (t.isElement)
-    findings.push(`"${t.alias}" is provided by Bunbraco and cannot be an element type`)
+    findings.push(`"${t.alias}" is provided by Crombolo and cannot be an element type`)
   const declared = declaredProperties(t)
   for (const shipped of def.properties) {
     const found = declared.find((p) => p.alias === shipped.alias)
     const type = dataTypeAliasOf(shipped.dataTypeKey)
     if (!found)
-      findings.push(`the "${shipped.alias}" field is provided by Bunbraco and cannot be removed`)
+      findings.push(`the "${shipped.alias}" field is provided by Crombolo and cannot be removed`)
     else if (found.type !== type)
       findings.push(
-        `the "${shipped.alias}" field is provided by Bunbraco; its type must stay "${type}"`,
+        `the "${shipped.alias}" field is provided by Crombolo; its type must stay "${type}"`,
       )
     else if (found.key && found.key.toLowerCase() !== shipped.key)
       findings.push(
-        `the "${shipped.alias}" field is provided by Bunbraco; its key must be ${shipped.key}`,
+        `the "${shipped.alias}" field is provided by Crombolo; its key must be ${shipped.key}`,
       )
   }
   return findings
@@ -182,7 +182,7 @@ export function storageTypeFor(
     case 'Umbraco.UploadField':
     case 'Umbraco.EmailAddress':
     // One form key, which is a UUID and never long.
-    case 'Bunbraco.FormPicker':
+    case 'Crombolo.FormPicker':
       return 'Nvarchar'
     case 'Umbraco.Integer':
     case 'Umbraco.TrueFalse':
@@ -202,7 +202,7 @@ export const BUILTIN_DATA_TYPE_ALIASES: ReadonlySet<string> = new Set(
 
 /**
  * The media types a new site owns as files: Umbraco's Video, Audio, Article
- * and Vector Graphics, keyed as Umbraco keys them. `bunbraco init` writes these
+ * and Vector Graphics, keyed as Umbraco keys them. `crombolo init` writes these
  * to `schema/media-types/`; relative path → canonical TOML.
  */
 export function siteMediaTypeFiles(): Record<string, string> {

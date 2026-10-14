@@ -5,8 +5,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { findTemplate, listTemplates, scaffoldFiles } from '@bunbraco/cli'
-import { siteMediaTypeFiles } from '@bunbraco/schema'
+import { findTemplate, listTemplates, scaffoldFiles } from '@crombolo/cli'
+import { siteMediaTypeFiles } from '@crombolo/schema'
 import { ROOT } from '../scripts/packages.ts'
 import {
   findSite,
@@ -34,7 +34,7 @@ describe('the sites', () => {
   const sites = listSites()
 
   test('are found by their site.json, by id or by directory', () => {
-    expect(sites.map((site) => site.id)).toEqual(['demo/bunbraco', 'demo/harbourstone', 'starter'])
+    expect(sites.map((site) => site.id)).toEqual(['demo/crombolo', 'demo/harbourstone', 'starter'])
     expect(findSite('demo/harbourstone')?.dir).toBe(join(SITES_DIR, 'harbourstone'))
     expect(findSite('harbourstone')?.id).toBe('demo/harbourstone')
     expect(findSite('nope')).toBeUndefined()
@@ -55,7 +55,7 @@ describe('the sites', () => {
       }
       expect(manifest.private).toBe(true)
       for (const range of Object.values(manifest.dependencies)) expect(range).toBe('workspace:*')
-      expect(manifest.scripts.start).toBe(`bunbraco start --bundle ${site.bundle} --publish`)
+      expect(manifest.scripts.start).toBe(`crombolo start --bundle ${site.bundle} --publish`)
       expect(existsSync(join(site.dir, site.bundle, 'bundle.json'))).toBe(true)
     },
   )
@@ -68,7 +68,7 @@ describe('the sites', () => {
       const manifest = json(join(site.dir, 'package.json')) as {
         dependencies: Record<string, string>
       }
-      const config = readFileSync(join(site.dir, 'bunbraco.config.ts'), 'utf8')
+      const config = readFileSync(join(site.dir, 'crombolo.config.ts'), 'utf8')
       for (const bundle of site.bundles as { package: string; import: string }[]) {
         expect(Object.keys(manifest.dependencies)).toContain(bundle.package)
         expect(config).toContain(`import { ${bundle.import} } from '${bundle.package}'`)
@@ -101,7 +101,7 @@ describe('staging a site as a template', () => {
     stageTemplates(into, [site])
     const template = findTemplate('demo/harbourstone', into)
     expect(template?.serverBundles).toEqual([
-      { package: '@bunbraco/simple-redirects', import: 'redirects' },
+      { package: '@crombolo/simple-redirects', import: 'redirects' },
     ])
     const dir = join(into, 'demo', 'harbourstone')
     expect(readdirSync(dir).sort()).toEqual(['CREDITS.md', 'bundle', 'files', 'template.json'])
@@ -146,12 +146,12 @@ describe('what a site writes as it runs', () => {
   test('is the database, its backups, media, logs and the view cache', () => {
     const dir = tempDir()
     const names = [
-      'bunbraco.sqlite',
-      'bunbraco.sqlite-wal',
-      'bunbraco.sqlite.2026-10-14T00-45-07-199Z.content-import.bak',
+      'crombolo.sqlite',
+      'crombolo.sqlite-wal',
+      'crombolo.sqlite.2026-10-14T00-45-07-199Z.content-import.bak',
       'media',
       'logs',
-      '.bunbraco',
+      '.crombolo',
     ]
     const committed = ['site.json', 'package.json', 'components', 'schema', 'bundles']
     for (const name of [...names, ...committed]) mkdirSync(join(dir, name))
@@ -171,7 +171,7 @@ describe('what a site writes as it runs', () => {
       '*.content-import.bak',
       'sites/*/media/',
       'logs/',
-      '.bunbraco/',
+      '.crombolo/',
       'packages/cli/templates/*',
       '!packages/cli/templates/basic/',
     ])

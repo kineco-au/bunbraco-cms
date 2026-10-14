@@ -1,5 +1,5 @@
 /**
- * Umbraco's ModelsBuilder over `bunbraco generate`: the models are the
+ * Umbraco's ModelsBuilder over `crombolo generate`: the models are the
  * TypeScript in `schema/content-types.d.ts`, written from the TOML schema.
  *
  * Umbraco reports staleness from a flag file written when a content type
@@ -14,18 +14,18 @@ import type {
   ModelsBuilderInfo,
   ModelsBuilderPort,
   OutOfDateStatus,
-} from '@bunbraco/api-management'
-import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
-import type { BunbracoConfig } from './config.ts'
+} from '@crombolo/api-management'
+import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
+import type { CromboloConfig } from './config.ts'
 import { VERSION } from './config.ts'
 import { logger } from './logging.ts'
 
-/** The file `bunbraco generate` writes, inside the schema directory. */
+/** The file `crombolo generate` writes, inside the schema directory. */
 export const GENERATED_FILE = 'content-types.d.ts'
 
 export type Intended = { types: string } | { problems: string[] }
 
-/** What `bunbraco generate` would write now, or the problems stopping it. */
+/** What `crombolo generate` would write now, or the problems stopping it. */
 export function intendedTypes(schemaDir: string): Intended {
   if (!existsSync(schemaDir)) return { problems: [`No schema directory at ${schemaDir}`] }
   const loaded = loadSchemaDirectory(schemaDir)
@@ -50,7 +50,7 @@ export async function compareModels(
 }
 
 export function createModelsBuilderPort(
-  config: Pick<BunbracoConfig, 'schemaDir'>,
+  config: Pick<CromboloConfig, 'schemaDir'>,
 ): ModelsBuilderPort {
   // Umbraco keeps the last generation error in memory and shows it on the
   // dashboard; a build that succeeds clears it.

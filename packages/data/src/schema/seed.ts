@@ -2,7 +2,7 @@
  * Install seed data, mirroring Umbraco's DatabaseDataCreator.
  *
  * Password hashing is injected rather than imported so this package stays free of
- * a dependency on @bunbraco/auth.
+ * a dependency on @crombolo/auth.
  */
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
@@ -33,11 +33,11 @@ const ELEMENT_EDIT = [
  */
 /** Everything about forms, which only an administrator gets by default. */
 const FORM_FULL = [
-  'Bunbraco.Form.Read',
-  'Bunbraco.Form.Manage',
-  'Bunbraco.FormEntry.Read',
-  'Bunbraco.FormEntry.Manage',
-  'Bunbraco.FormEntry.Sensitive',
+  'Crombolo.Form.Read',
+  'Crombolo.Form.Manage',
+  'Crombolo.FormEntry.Read',
+  'Crombolo.FormEntry.Manage',
+  'Crombolo.FormEntry.Sensitive',
 ] as const
 
 export const BUILT_IN_GROUP_PERMISSIONS: Record<string, readonly string[]> = {
@@ -87,9 +87,9 @@ export const BUILT_IN_GROUP_PERMISSIONS: Record<string, readonly string[]> = {
     'Umb.Document.PropertyValue.Write',
     // An editor reads entries and acts on them, but does not design forms and
     // does not see what a definition marks sensitive.
-    'Bunbraco.Form.Read',
-    'Bunbraco.FormEntry.Read',
-    'Bunbraco.FormEntry.Manage',
+    'Crombolo.Form.Read',
+    'Crombolo.FormEntry.Read',
+    'Crombolo.FormEntry.Manage',
     ...ELEMENT_EDIT,
   ],
   writer: [
@@ -109,7 +109,7 @@ export const BUILT_IN_GROUP_PERMISSIONS: Record<string, readonly string[]> = {
   ],
   // The group that exists only to carry sensitive-data access; it has no
   // sections of its own and is added alongside another group.
-  sensitiveData: ['Bunbraco.FormEntry.Sensitive'],
+  sensitiveData: ['Crombolo.FormEntry.Sensitive'],
   translator: [
     'Umb.Document.Update',
     'Umb.Document.Read',

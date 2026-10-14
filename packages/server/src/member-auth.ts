@@ -29,13 +29,13 @@ import {
   serializeCookie,
   signMemberTicket,
   verifyPassword,
-} from '@bunbraco/auth'
+} from '@crombolo/auth'
 import {
   DEFAULT_PASSWORD_CONFIGURATION,
   isValidPassword,
   localReturnUrl,
   ObjectTypes,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   ContentTypeRepository,
   type Db,
@@ -43,12 +43,12 @@ import {
   MemberRepository,
   type NodeSchemaState,
   PublicAccessRepository,
-} from '@bunbraco/data'
-import type { AccessDecision, PublishedContent, RequestMember } from '@bunbraco/render'
-import type { BunbracoConfig } from './config.ts'
+} from '@crombolo/data'
+import type { AccessDecision, PublishedContent, RequestMember } from '@crombolo/render'
+import type { CromboloConfig } from './config.ts'
 
 /** The key member tickets are signed with, generated once and shared by every node. */
-const SIGNING_KEY = 'bunbraco/memberCookieKey'
+const SIGNING_KEY = 'crombolo/memberCookieKey'
 
 export const MEMBER_ROUTE_PREFIX = '/umbraco/members'
 
@@ -126,7 +126,7 @@ function fromThisSite(request: Request): boolean {
 
 export function createMemberAuth(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   options: MemberAuthOptions = {},
 ): MemberAuth {
   // A registration is a write, so it is refused unless the repository is told

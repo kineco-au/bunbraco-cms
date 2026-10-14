@@ -12,7 +12,7 @@
  * navigation resolve within the culture of the page that asks.
  */
 
-import type { SchemaForm } from '@bunbraco/core'
+import type { SchemaForm } from '@crombolo/core'
 import { PublishedMedia } from './media.ts'
 import { type Navigation, PublishedContent, type PublishedProperty } from './model.ts'
 import { matchRedirect, type RedirectRule } from './redirects.ts'

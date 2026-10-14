@@ -5,7 +5,7 @@
  * names it reports are .NET's. The shape is what a caller needs to validate or
  * generate a value, which for us follows the data type's storage column.
  */
-import type { ValueStorageTypeName } from '@bunbraco/core'
+import type { ValueStorageTypeName } from '@crombolo/core'
 
 /** The .NET name Umbraco reports for each storage type. */
 export const VALUE_TYPE_NAMES: Record<ValueStorageTypeName, string> = {

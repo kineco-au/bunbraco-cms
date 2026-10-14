@@ -1,5 +1,5 @@
 /** Dictionary items: a tree of keys, each with a translation per language. */
-import { normaliseUuid } from '@bunbraco/core'
+import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
 
 export interface DictionaryTranslation {

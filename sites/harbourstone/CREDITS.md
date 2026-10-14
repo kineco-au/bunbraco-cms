@@ -1,9 +1,9 @@
 # Harbourstone demo site — image credits
 
 The Harbourstone site is distributed (`"distribute": true` in its `site.json`), so
-it is staged into `@bunbraco/cli`'s `templates/` when the CLI is packed, and every
+it is staged into `@crombolo/cli`'s `templates/` when the CLI is packed, and every
 binary in its bundle is **redistributed** to anyone who runs
-`bunbraco init --template demo/harbourstone`. Each one therefore needs a recorded
+`crombolo init --template demo/harbourstone`. Each one therefore needs a recorded
 source and licence, and `tests/packaging.test.ts` asserts that none is missing
 from this file.
 

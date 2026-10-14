@@ -7,11 +7,11 @@
  * lives there instead and this file leaves it alone.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { authorize, type NodeLookup, type Principal, sectionsOf } from '@bunbraco/api-management'
-import { AuthService, type AuthStore, hashPassword } from '@bunbraco/auth'
-import { listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
-import { localReturnUrl, sectionKey, toSectionAliases } from '@bunbraco/core'
-import { loadConfig, type ServerBundle } from '@bunbraco/server'
+import { authorize, type NodeLookup, type Principal, sectionsOf } from '@crombolo/api-management'
+import { AuthService, type AuthStore, hashPassword } from '@crombolo/auth'
+import { listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
+import { localReturnUrl, sectionKey, toSectionAliases } from '@crombolo/core'
+import { loadConfig, type ServerBundle } from '@crombolo/server'
 import { BACKOFFICE, type Harness, signedInServer, signInAsGroup, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -144,7 +144,7 @@ describe('the media collection', () => {
   test('a core section compares as its stored alias whichever name it arrived under', () => {
     // Forms is the core section whose manifest alias is not `Umb.`-prefixed, so
     // stripping the prefix was never enough to match it.
-    expect(sectionKey('Bunbraco.Section.Forms')).toBe('forms')
+    expect(sectionKey('Crombolo.Section.Forms')).toBe('forms')
     expect(sectionKey('forms')).toBe('forms')
     expect(sectionKey('Umb.Section.Content')).toBe('content')
     expect(sectionKey('Acme.Section.Design')).toBe('acme.section.design')
@@ -203,7 +203,7 @@ describe('a section an extension registers', () => {
 
     // A bundle gated on it answers them and refuses the administrator, who was
     // never granted it: core sections do not imply an extension's.
-    const route = `${BACKOFFICE}/bunbraco/api/bundle/acme`
+    const route = `${BACKOFFICE}/crombolo/api/bundle/acme`
     expect((await designer.call(route)).status).toBe(200)
     expect((await h.call(route)).status).toBe(403)
   })
@@ -212,7 +212,7 @@ describe('a section an extension registers', () => {
 describe('the plugin routes outside the contract', () => {
   test('the change report gives the findings to Settings and the health to everyone', async () => {
     const h = await site()
-    const report = `${BACKOFFICE}/bunbraco/api/change-report`
+    const report = `${BACKOFFICE}/crombolo/api/change-report`
     const asAdmin = await h.json<{ health: unknown; findings?: unknown[] }>(report)
     expect(asAdmin.findings).toEqual([])
 

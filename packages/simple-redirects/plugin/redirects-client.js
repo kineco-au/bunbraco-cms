@@ -1,14 +1,14 @@
 /**
  * Reads and drives this bundle's endpoints at
- * `<backoffice>/bunbraco/api/bundle/redirects/*`. The session cookie carries the
+ * `<backoffice>/crombolo/api/bundle/redirects/*`. The session cookie carries the
  * auth, exactly as the framework's own plugin endpoints do.
  *
  * The base is read from `<base href>` rather than hard-coded, because the
- * backoffice path is configurable (`BUNBRACO_BACKOFFICE_PATH`).
+ * backoffice path is configurable (`CROMBOLO_BACKOFFICE_PATH`).
  */
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/bundle/redirects`
+  return `${href.replace(/\/$/, '')}/crombolo/api/bundle/redirects`
 }
 
 const json = async (path, init) => {

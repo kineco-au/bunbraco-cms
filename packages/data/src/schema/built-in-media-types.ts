@@ -6,10 +6,10 @@
  * Folder, Image and File are **system** media types (Umbraco's
  * `IsSystemMediaType`): shipped with the framework, ensured at every boot, not
  * deletable, alias fixed. Video, Audio, Article and Vector Graphics are
- * ordinary types a site owns as files in `schema/media-types/`; `bunbraco
+ * ordinary types a site owns as files in `schema/media-types/`; `crombolo
  * init` scaffolds them and deleting one deletes its file.
  */
-import { type ContentTypeAggregate, normaliseUuid, SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
+import { type ContentTypeAggregate, normaliseUuid, SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { ContentTypeRepository } from '../repositories/content-types.ts'
 import { DEFAULT_DATA_TYPES } from './content-seed.ts'

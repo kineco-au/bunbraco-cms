@@ -32,7 +32,7 @@ const FIELD_TYPES = [
 ]
 const CHOICE_TYPES = new Set(['dropdown', 'singleChoice', 'multipleChoice'])
 
-export default class BunbracoFormsOverviewElement extends UmbLitElement {
+export default class CromboloFormsOverviewElement extends UmbLitElement {
   static properties = {
     _forms: { state: true },
     _editing: { state: true },
@@ -377,4 +377,4 @@ export default class BunbracoFormsOverviewElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-forms-overview', BunbracoFormsOverviewElement)
+customElements.define('crombolo-forms-overview', CromboloFormsOverviewElement)

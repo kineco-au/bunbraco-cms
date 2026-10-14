@@ -10,7 +10,7 @@
  * `execute` runs the query it describes, so the count and the sample are the
  * answer the snippet would give rather than a guess about it.
  */
-import type { ResponseOf } from '@bunbraco/contracts'
+import type { ResponseOf } from '@crombolo/contracts'
 import type {
   TemplateQueryFilter,
   TemplateQueryPort,

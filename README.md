@@ -1,4 +1,8 @@
-# Bunbraco
+<p align="center">
+  <img src="packages/backoffice-host/plugin/branding/logo-surface.svg" alt="crombolo" width="420">
+</p>
+
+# Crombolo
 
 A content management system for [Bun](https://bun.sh). Pages are **React-style
 components** in `.tsx` files, rendered on the server. The content model lives in
@@ -6,7 +10,7 @@ your repository as files. The site, the editing UI and the API are one Bun proce
 on SQLite or Postgres.
 
 ```tsx
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import { Layout } from './components/layout.tsx'
 
 export default function Article({ model, nav }: PageProps) {
@@ -38,10 +42,10 @@ A full CMS, not a headless content store with a rendering problem left over:
 - **For editors**, a complete backoffice: a content tree, drafts and publishing,
   version history and rollback, media with crops, block editors, languages and
   variants, members, users and permissions. The editing UI is the open-source
-  Umbraco backoffice, served by Bunbraco
+  Umbraco backoffice, served by Crombolo
 - **For developers**, a site is a small Bun project: `components/**/*.tsx` for its views,
   `schema/*.toml` for content types, a config file and a three-line `server.ts`.
-  Everything else arrives with `bun add bunbraco`
+  Everything else arrives with `bun add @crombolo/crombolo`
 
 ### Templates are React components, without React
 
@@ -49,7 +53,7 @@ A template is a function from props to JSX, exactly as you would write it for
 React: components, props, `children`, fragments, `.map()` over a list, TypeScript
 throughout. Shared markup is an ordinary component in an ordinary import.
 
-What differs is what happens to the JSX. It compiles against Bunbraco's own JSX
+What differs is what happens to the JSX. It compiles against Crombolo's own JSX
 runtime and comes out as an HTML string — there is **no React dependency, no
 virtual DOM and no hydration**, so nothing is shipped to the browser unless you
 add a script yourself. The practical consequences:
@@ -74,10 +78,10 @@ partials and routing.
   client bundle and no hydration step
 - **Schema as code.** Document and media types are TOML files in `schema/`,
   diffable and reviewed in a pull request. The backoffice type editor writes the
-  same files, and `bunbraco generate` turns them into a TypeScript interface per
+  same files, and `crombolo generate` turns them into a TypeScript interface per
   content type
 - **One runtime, one process.** Bun runs the server, the build and the tests. No
-  Node, no .NET, and with SQLite no database server either — `bunx bunbraco init`
+  Node, no .NET, and with SQLite no database server either — `bunx crombolo init`
   to a running site is three commands
 - **A mature editing experience from day one.** Editors get a backoffice that has
   years of real use behind it, rather than a new admin UI
@@ -91,7 +95,7 @@ partials and routing.
 It is a poor fit if you need Umbraco packages or plugins (they do not run here),
 Razor views, SQL Server, or client-side React with hydration out of the box.
 
-Bunbraco is in active development. What is built and what is not is tracked in
+Crombolo is in active development. What is built and what is not is tracked in
 the [roadmap](docs/07-roadmap.md).
 
 ### What is in the box
@@ -104,7 +108,7 @@ the [roadmap](docs/07-roadmap.md).
 | **Schema as code** | Document and media types as TOML in `schema/`. The backoffice writes the files; `schema sync` applies them |
 | **Upgrades** | Check, fix, then cut over, with old nodes serving reads throughout a rolling deploy |
 | **Content transfer** | Export, check and import content between environments as a bundle of files |
-| **Bundles** | Build a bundle from a slice of the site — schema, views, content and media — and install it into another with `bundle install`. Installable bundles are npm dependencies in the site's `package.json`, published under the `bunbraco-bundle` keyword. A bundle may also carry server endpoints, which run only once the site imports it into `bunbraco.config.ts` |
+| **Bundles** | Build a bundle from a slice of the site — schema, views, content and media — and install it into another with `bundle install`. Installable bundles are npm dependencies in the site's `package.json`, published under the `crombolo-bundle` keyword. A bundle may also carry server endpoints, which run only once the site imports it into `crombolo.config.ts` |
 | **Storage** | SQLite by default, Postgres as an option. Media on the file system, S3 or Azure |
 | **Forms** | Form building in core, not an add-on: definitions as TOML in `schema/forms/`, a Forms section with a designer and an entries view, rendering and submission with no JavaScript required, and workflows on a retrying queue |
 | **E-mail** | Opt-in, over a provider's HTTPS API — Resend, Postmark, Amazon SES, or an endpoint of your own. Off by default, and what needs it says so rather than failing |
@@ -155,7 +159,7 @@ package alone is not loadable.
 ### Run it
 
 ```bash
-bun run start:local          # runs `bunbraco start` in apps/site
+bun run start:local          # runs `crombolo start` in apps/site
 ```
 
 One process on SQLite, on port 8080. It migrates and seeds the database, **resets
@@ -163,35 +167,35 @@ the administrator's password, and prints the credentials**:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Bunbraco is running                                 │
+│ Crombolo is running                                 │
 │                                                     │
-│   backoffice  http://localhost:8080/bunbraco        │
+│   backoffice  http://localhost:8080/crombolo        │
 │   site        http://localhost:8080/                │
 │                                                     │
 │   Sign in with                                      │
-│     username  admin@bunbraco.local                  │
+│     username  admin@crombolo.local                  │
 │     password  23whoMrmWsZP3DF                       │
 │                                                     │
 │   A fresh password is generated on every start; set │
-│   BUNBRACO_ADMIN_PASSWORD to keep one.              │
+│   CROMBOLO_ADMIN_PASSWORD to keep one.              │
 └─────────────────────────────────────────────────────┘
 ```
 
 It resets the password on every start so that what it prints is always true, and
 it clears any lockout. Changing the password ends existing sessions, so other tabs
-are signed out. Set `BUNBRACO_ADMIN_PASSWORD` to keep a stable one:
+are signed out. Set `CROMBOLO_ADMIN_PASSWORD` to keep a stable one:
 
 ```bash
-BUNBRACO_ADMIN_PASSWORD=localdev123 bun run start:local
+CROMBOLO_ADMIN_PASSWORD=localdev123 bun run start:local
 ```
 
 Use `bun run start:local:watch` to reload on change; it passes `--keep-admin`, so a
 reload keeps the password and your sessions. A restart with an unchanged
-`BUNBRACO_ADMIN_PASSWORD` keeps sessions too. Or use `bun run dev` for the
+`CROMBOLO_ADMIN_PASSWORD` keeps sessions too. Or use `bun run dev` for the
 plain server with no password handling — that one prints a generated password only
 on the run that _creates_ the database, and because seeding is idempotent it can
 never print it again. If you have locked yourself out of an existing
-`bunbraco.sqlite`, `bun run start:local` is the way back in.
+`crombolo.sqlite`, `bun run start:local` is the way back in.
 
 A port already in use is reported before the database is touched, so nothing is
 migrated or seeded on a run that cannot serve:
@@ -199,7 +203,7 @@ migrated or seeded on a run that cannot serve:
 ```
 error: Port 8080 is already in use, so this server cannot start.
   The container stack publishes the same port — "bun run docker:down" stops it.
-  Otherwise set PORT (or BUNBRACO_PORT for the stack) to something else.
+  Otherwise set PORT (or CROMBOLO_PORT for the stack) to something else.
 ```
 
 Give it another port with `PORT=3000 bun run start:local`.
@@ -216,9 +220,9 @@ The same single node — site, backoffice and Management API in one process — 
 Postgres rather than SQLite, with nothing to install but Docker. `docker:up` waits
 for the health check, so when it returns the site is actually serving.
 
-The admin password is fixed at `bunbraco-dev-password` here rather than generated,
+The admin password is fixed at `crombolo-dev-password` here rather than generated,
 so a watch reload neither changes it nor ends your session; set
-`BUNBRACO_ADMIN_PASSWORD` to override. The repository is bind-mounted and the
+`CROMBOLO_ADMIN_PASSWORD` to override. The repository is bind-mounted and the
 server runs under `bun --watch`, so editing a file on the host — in `packages/**`
 as much as in `apps/site` — reloads the server in the container.
 
@@ -232,18 +236,18 @@ fails and says so.
 bun run db:up                # just Postgres, on localhost:5433
 ```
 
-Then point a host run at it with `BUNBRACO_DB=postgres` and
-`BUNBRACO_POSTGRES_URL`. This is the same database the Postgres half of the test
+Then point a host run at it with `CROMBOLO_DB=postgres` and
+`CROMBOLO_POSTGRES_URL`. This is the same database the Postgres half of the test
 suite uses — see [Running the tests](#running-the-tests).
 
 ### Start a site of your own
 
 `apps/site` is this repository's reference site. A new one is three files plus its
-views and its schema, and `bunbraco init` writes them:
+views and its schema, and `crombolo init` writes them:
 
 ```bash
 mkdir my-site && cd my-site
-bunx bunbraco init --name "My Site"     # add --postgres for a Postgres .env
+bunx crombolo init --name "My Site"     # add --postgres for a Postgres .env
 bun install && bun start
 ```
 
@@ -252,18 +256,18 @@ holding page saying nothing is published yet, with a link to the backoffice. To
 start from something instead, scaffold a **starter template**:
 
 ```bash
-bunx bunbraco init --template list                   # what there is
-bunx bunbraco init --template basic                  # a home page type, a view, one page
-bunx bunbraco init --template starter                # header, footer, two columns, placeholder pages
-bunx bunbraco init --template demo/harbourstone      # a whole brochure site, content and all
+bunx crombolo init --template list                   # what there is
+bunx crombolo init --template basic                  # a home page type, a view, one page
+bunx crombolo init --template starter                # header, footer, two columns, placeholder pages
+bunx crombolo init --template demo/harbourstone      # a whole brochure site, content and all
 ```
 
 ### The sites in this repository
 
 `sites/` holds the sites this repository builds — `starter`, `demo/harbourstone`
-and the product site `demo/bunbraco` — each a real site, committed and run in
+and the product site `demo/crombolo` — each a real site, committed and run in
 place as a private workspace on the working tree. None is published by default:
-one whose `site.json` says `"distribute": true` is staged into `@bunbraco/cli`'s
+one whose `site.json` says `"distribute": true` is staged into `@crombolo/cli`'s
 templates only while the CLI is packed. Content bundles are generated by
 `bun run build:template <id>`.
 
@@ -279,11 +283,11 @@ The database is forced to SQLite inside the site, whatever the environment says.
 how distribution works and the safety rules.
 
 A template brings `schema/`, `components/`, a stylesheet, its images — and its content as
-a **bundle**, the same artifact `bunbraco content export` writes. `init` puts it in
+a **bundle**, the same artifact `crombolo content export` writes. `init` puts it in
 `bundles/` and wires the import into the scaffolded `start` script:
 
 ```json
-"scripts": { "start": "bunbraco start --bundle bundles/demo-harbourstone --publish" }
+"scripts": { "start": "crombolo start --bundle bundles/demo-harbourstone --publish" }
 ```
 
 `start --bundle <dir>` is not template-only: it applies any bundle before the site
@@ -313,7 +317,7 @@ and a rebuild neither churns the diff nor re-compresses them.
 A template may also wire a bundle's server half, which the demo does for
 redirects: `template.json` names the package and the factory, and `init` writes
 both the dependency and the `bundles: [redirects()]` line into the site's own
-`bunbraco.config.ts` — visible, and removable, from the first commit
+`crombolo.config.ts` — visible, and removable, from the first commit
 ([`docs/17-bundles.md`](docs/17-bundles.md)).
 
 ### Bring an existing Umbraco site
@@ -322,9 +326,9 @@ An Umbraco 15 or later site can be imported from a backup: its database as a
 `.bacpac` (or Umbraco's own SQLite file), and its files if you have them.
 
 ```bash
-bun add -d bunbraco @bunbraco/import-umbraco     # the importer is opt-in
-bunx bunbraco import umbraco report site.bacpac --site ./site-files
-bunx bunbraco import umbraco apply  site.bacpac --site ./site-files --out my-site
+bun add -d @crombolo/crombolo @crombolo/import-umbraco     # the importer is opt-in
+bunx crombolo import umbraco report site.bacpac --site ./site-files
+bunx crombolo import umbraco apply  site.bacpac --site ./site-files --out my-site
 cd my-site && bun install && bun start
 ```
 
@@ -342,7 +346,7 @@ has the detail and what is left.
 
 ### Walk the slice in the editor
 
-Open the backoffice at `http://localhost:8080/bunbraco` and sign in.
+Open the backoffice at `http://localhost:8080/crombolo` and sign in.
 
 1. **Settings → Templates → Create.** Name it `Home Page`. The editor opens with
    Umbraco's Razor starter; save it unchanged and it becomes a TSX view, written
@@ -413,7 +417,7 @@ browser suite.
 
 ### Publishing the product site
 
-The Bunbraco product site is `sites/bunbraco`, and it runs on the
+The Crombolo product site is `sites/crombolo`, and it runs on the
 hosted platform as an ordinary tenant — so a release republishes its content the
 way a customer's own CI would:
 
@@ -422,7 +426,7 @@ bun run brochureware:publish --dry-run    # what it would send, and where
 bun run brochureware:publish              # upload, publish, wait
 ```
 
-What is sent is the committed bundle under `sites/bunbraco/bundles/demo-bunbraco`,
+What is sent is the committed bundle under `sites/crombolo/bundles/demo-crombolo`,
 never the site's database, which holds whatever was last done to it locally. The archive is deterministic, so unchanged content
 produces the same bytes and the same hash.
 
@@ -431,8 +435,8 @@ registry publish, and only when the repository variable `BROCHUREWARE_PUBLISH`
 is `enabled` — gated on a variable rather than on a secret being absent, because
 a rotated token would otherwise skip silently. It publishes to **preview**;
 production is promoted by hand once somebody has looked at it. It needs
-`BUNBRACO_PLATFORM_URL`, `_ORGANISATION`, `_SITE` and `_PREVIEW` as variables and
-`BUNBRACO_PLATFORM_TOKEN` as a secret, which is a `deploy`-scoped platform token.
+`CROMBOLO_PLATFORM_URL`, `_ORGANISATION`, `_SITE` and `_PREVIEW` as variables and
+`CROMBOLO_PLATFORM_TOKEN` as a secret, which is a `deploy`-scoped platform token.
 
 ---
 
@@ -464,19 +468,21 @@ Design documents, in reading order:
 | [19-seo](docs/19-seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
 | [20-adding-a-page](docs/20-adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |
 | [21-writing-components](docs/21-writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |
+| [22-brand](docs/22-brand.md) | the mark, the logo files and the palette taken from them |
 
 ---
 
 ## Structure
 
 ```
-bunbraco/
+crombolo/
 ├── docs/                          # the detail: design documents, configuration, operations
+│   └── brand/                     # PNG exports of the mark and the full logo, for use outside the product
 ├── assets/                        # source media for the starter templates, at the size it ships at;
 │                                  #    outside the published `files` list, so it is never published twice
 ├── packages/
-│   ├── bunbraco/                  # the package a site installs: `bunbraco()`, the JSX runtime,
-│   │                              #    a `bunbraco` bin that delegates to cli/, and `bunbraco/branding`
+│   ├── crombolo/                  # the package a site installs: `crombolo()`, the JSX runtime,
+│   │                              #    a `crombolo` bin that delegates to cli/, and `@crombolo/crombolo/branding`
 │   │                              #    — the marks and the palette, for a surface outside this repo
 │   ├── cli/                       # the command line, installable on its own;
 │   │                              #    templates/ holds `basic`; the distributed sites are staged in at pack time
@@ -509,7 +515,7 @@ bunbraco/
 │                                  #    URL and hostname routing, language fallback, the dictionary,
 │                                  #    value converters (pickers, links, blocks, media and crops), <SeoHead> and the sitemap;
 │                                  #    each tag's attributes typed from @types/react, a type-only dependency
-├── apps/site/                     # the reference site: bunbraco.config.ts, server.ts, components/, schema/
+├── apps/site/                     # the reference site: crombolo.config.ts, server.ts, components/, schema/
 ├── sites/                         # the sites this repository builds: starter, harbourstone, the product site;
 │                                  #    private workspaces run in place, shipped as templates only on opt-in
 ├── scripts/                       # vendoring, module-graph check, coverage, versioning and publishing
@@ -521,16 +527,16 @@ bunbraco/
 └── tests/                         # the suite; tests/support/ holds the dialect harness and signed-in server
 ```
 
-A site is three files plus its views and its schema: `bunbraco.config.ts`, a
+A site is three files plus its views and its schema: `crombolo.config.ts`, a
 three-line `server.ts`, `components/**/*.tsx`, and `schema/*.toml`. Everything else — the composition root, the
-migrations, the backoffice — arrives with `bun add bunbraco`. `apps/site` is
-exactly that shape and nothing more; `bunbraco init` scaffolds the same.
+migrations, the backoffice — arrives with `bun add @crombolo/crombolo`. `apps/site` is
+exactly that shape and nothing more; `crombolo init` scaffolds the same.
 
 ---
 
 ## Relationship to Umbraco
 
-Bunbraco is its own CMS: its own server, data layer, schema-as-code, upgrade
+Crombolo is its own CMS: its own server, data layer, schema-as-code, upgrade
 process, content transfer and rendering. Two things come from Umbraco, both
 MIT-licensed and neither .NET-specific:
 
@@ -539,10 +545,10 @@ MIT-licensed and neither .NET-specific:
 - **the Management API contract** that SPA speaks, a committed OpenAPI document
   from `release-18.2.0`, which the server here implements
 
-That is the extent of it. Bunbraco does not run Umbraco packages or plugins, does
+That is the extent of it. Crombolo does not run Umbraco packages or plugins, does
 not render Razor, and does not open an Umbraco database, so it is not a drop-in
 replacement for an Umbraco install. An existing site comes across with
-[`bunbraco import umbraco`](#bring-an-existing-umbraco-site), which converts what
+[`crombolo import umbraco`](#bring-an-existing-umbraco-site), which converts what
 can be converted and reports what cannot.
 
 For contributors: `Umbraco.Web.UI.Client/mocks/` in the Umbraco repository is an
@@ -553,7 +559,7 @@ response shapes when the OpenAPI schema is ambiguous.
 
 ## Licence
 
-bunbraco is MIT licensed — see `LICENSE`.
+crombolo is MIT licensed — see `LICENSE`.
 
 Umbraco CMS is MIT licensed too. Three things here are redistributed rather than
 merely depended on, and `NOTICE` covers all three:
@@ -571,7 +577,7 @@ One more thing is in the repository without being in any package:
 `tests/fixtures/umbraco/` holds the Umbraco Commerce demo store's database, MIT
 licensed, which the importer's tests run against. Its licence is beside it.
 
-`NOTICE` ships inside every published package, because `bunbraco` is what a site
+`NOTICE` ships inside every published package, because `@crombolo/crombolo` is what a site
 installs and what a downstream redistributor reads. `tests/packaging.test.ts`
 asserts that each manifest lists it, since npm adds `LICENSE` automatically but
 not `NOTICE`.
@@ -579,13 +585,13 @@ not `NOTICE`.
 **No Umbraco trademark is redistributed.** MIT grants copyright permission and
 says nothing about trademarks, so the Umbraco wordmark, the "U" roundel favicon
 and the installer illustration are deliberately not in this repository.
-`BRANDED_ASSETS` in `@bunbraco/backoffice-host` serves bunbraco's own marks at
+`BRANDED_ASSETS` in `@crombolo/backoffice-host` serves crombolo's own marks at
 those paths instead, and `tests/backoffice-host.test.ts` asserts that none of the
 three resolves to a vendored file.
 
-bunbraco is an independent project. It is not affiliated with, endorsed by, or
+crombolo is an independent project. It is not affiliated with, endorsed by, or
 sponsored by Umbraco A/S, which owns the Umbraco trademark.
 
 The enterprise distribution — the container topology and the operations tooling
 around it — is a separate, proprietary repository. It consumes these packages;
-nothing in it is required to run bunbraco.
+nothing in it is required to run crombolo.

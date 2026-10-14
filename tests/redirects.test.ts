@@ -5,9 +5,9 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@bunbraco/data'
-import { redirect } from '@bunbraco/render'
-import { type BunbracoConfig, syncConfiguredRedirects } from '@bunbraco/server'
+import { ComponentRepository, ContentTypeRepository, RedirectRepository } from '@crombolo/data'
+import { redirect } from '@crombolo/render'
+import { type CromboloConfig, syncConfiguredRedirects } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -56,7 +56,7 @@ const VIEW = `export default function Page({ model }) {
 }
 `
 
-async function site(config: Partial<BunbracoConfig> = {}, variant = false) {
+async function site(config: Partial<CromboloConfig> = {}, variant = false) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'redirects-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })

@@ -11,9 +11,9 @@ import type {
   TemplateQueryPort,
   TemplateQueryRequest,
   TemplateQuerySort,
-} from '@bunbraco/api-management'
-import type { ContentTypeRepository } from '@bunbraco/data'
-import type { PublishedCache, PublishedContent } from '@bunbraco/render'
+} from '@crombolo/api-management'
+import type { ContentTypeRepository } from '@crombolo/data'
+import type { PublishedCache, PublishedContent } from '@crombolo/render'
 
 /** The accessor each queryable property names, and how it compares. */
 const FIELDS: Record<

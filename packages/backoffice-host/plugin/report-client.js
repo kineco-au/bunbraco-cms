@@ -1,10 +1,10 @@
 /**
- * Reads the change report the server keeps at <backoffice>/bunbraco/api/change-report.
+ * Reads the change report the server keeps at <backoffice>/crombolo/api/change-report.
  * The cookie carries the session, so no token handling is needed here.
  */
 export async function fetchReport() {
   const base = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  const response = await fetch(`${base.replace(/\/$/, '')}/bunbraco/api/change-report`, {
+  const response = await fetch(`${base.replace(/\/$/, '')}/crombolo/api/change-report`, {
     credentials: 'include',
     headers: { accept: 'application/json' },
   })

@@ -1,5 +1,5 @@
 /**
- * `bunbraco status`: what an environment is, asked without starting it.
+ * `crombolo status`: what an environment is, asked without starting it.
  *
  * The rule that matters most is the one that is easy to break by accident:
  * reading the status must never change anything. Everything else is reporting
@@ -8,8 +8,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { bunbracoPlan, connect, INITIAL_STATE, pendingMigrations, readState } from '@bunbraco/data'
-import { loadConfig, siteStatus } from '@bunbraco/server'
+import { connect, cromboloPlan, INITIAL_STATE, pendingMigrations, readState } from '@crombolo/data'
+import { loadConfig, siteStatus } from '@crombolo/server'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
 
@@ -82,7 +82,7 @@ describe(`status (${dialectUnderTest})`, () => {
     // The site's own facts are known without a database at all.
     expect(report.site.name).toBe('Status Test')
     expect(report.schema.files).toBe('1.0.0')
-    expect(report.versions.bunbraco).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(report.versions.crombolo).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
   sqliteOnly('reads a database that exists with nothing in it, and installs nothing', async () => {
@@ -101,7 +101,7 @@ describe(`status (${dialectUnderTest})`, () => {
     const db = await connect({ file })
     try {
       expect(await readState(db)).toBe(INITIAL_STATE)
-      expect((await pendingMigrations(db, bunbracoPlan)).length).toBeGreaterThan(0)
+      expect((await pendingMigrations(db, cromboloPlan)).length).toBeGreaterThan(0)
     } finally {
       await db.close()
     }

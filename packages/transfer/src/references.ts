@@ -5,7 +5,7 @@
  * — by scanning for a known key. Exporting needs the outbound direction, from a
  * value to the keys inside it, and nothing knew how to do that.
  *
- * Two spellings travel, as `references.ts` in `@bunbraco/data` documents: a
+ * Two spellings travel, as `references.ts` in `@crombolo/data` documents: a
  * picker stores `umb://document/<hex>` or a bare uuid, dashed or not. Element
  * pickers store a bare `Guid[]`, and rich text and block editors hold both
  * inside JSON, so the scan goes through structures and through JSON held in a
@@ -16,7 +16,7 @@
  * each against `node.unique_id` and discards what does not exist. Being wrong
  * in this direction is cheap; missing a reference is not.
  */
-import { keyFromReference } from '@bunbraco/core'
+import { keyFromReference } from '@crombolo/core'
 
 /** Dashed uuids, and 32-hex runs that are not part of a longer hex string. */
 const DASHED = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi

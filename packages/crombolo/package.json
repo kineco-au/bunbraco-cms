@@ -1,0 +1,64 @@
+{
+  "name": "@crombolo/crombolo",
+  "version": "0.9.0",
+  "crombolo": {
+    "migrations": "compatible"
+  },
+  "description": "A CMS on Bun with React-style TSX templates, edited through the Umbraco backoffice.",
+  "license": "MIT",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
+    "directory": "packages/crombolo"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
+  },
+  "keywords": [
+    "cms",
+    "umbraco",
+    "bun",
+    "content-management",
+    "headless",
+    "tsx",
+    "sqlite",
+    "postgres"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./branding": "./src/branding.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./loose/jsx-runtime": "./src/loose/jsx-runtime.ts",
+    "./loose/jsx-dev-runtime": "./src/loose/jsx-runtime.ts"
+  },
+  "bin": {
+    "crombolo": "./bin/crombolo.ts"
+  },
+  "files": [
+    "src",
+    "bin",
+    "NOTICE"
+  ],
+  "dependencies": {
+    "@crombolo/api-management": "workspace:*",
+    "@crombolo/assistant": "workspace:*",
+    "@crombolo/auth": "workspace:*",
+    "@crombolo/backoffice-dist": "workspace:*",
+    "@crombolo/backoffice-host": "workspace:*",
+    "@crombolo/cli": "workspace:*",
+    "@crombolo/contracts": "workspace:*",
+    "@crombolo/core": "workspace:*",
+    "@crombolo/data": "workspace:*",
+    "@crombolo/render": "workspace:*",
+    "@crombolo/server": "workspace:*",
+    "@crombolo/schema": "workspace:*",
+    "@crombolo/transfer": "workspace:*"
+  }
+}

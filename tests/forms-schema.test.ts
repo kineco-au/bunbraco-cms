@@ -22,7 +22,7 @@ import {
   validateForms,
   validateSchemaSet,
   writeForm,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 
 const CONTACT = `[form]
 key = "9c4a7d1e-0001-4b2a-9f31-6d8e2c5a7b40"

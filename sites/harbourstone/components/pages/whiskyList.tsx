@@ -1,4 +1,4 @@
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import { BottlingCard } from '../shared/bottling.tsx'
 import { Layout } from '../shared/layout.tsx'
 import { PageHeader } from '../shared/section-intro.tsx'

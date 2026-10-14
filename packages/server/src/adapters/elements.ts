@@ -11,8 +11,8 @@
  * by the generic folder repository, which is why they worked before elements
  * themselves did.
  */
-import type { ElementPort, Principal } from '@bunbraco/api-management'
-import { type ElementTreeItem, normaliseUuid, ObjectTypes, SystemNodes } from '@bunbraco/core'
+import type { ElementPort, Principal } from '@crombolo/api-management'
+import { type ElementTreeItem, normaliseUuid, ObjectTypes, SystemNodes } from '@crombolo/core'
 import {
   appendCacheInstruction,
   type Db,
@@ -24,7 +24,7 @@ import {
   PublishBlockedError,
   type ValueIntake,
   WriteRejectedError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { TemporaryFileMissingError } from '../file-intake.ts'
 import { createFolderPort, createSettingsTree } from './content.ts'
 

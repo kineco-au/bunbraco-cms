@@ -70,7 +70,7 @@ async function openAction(page: Page, itemName: string, action: string, entity =
  * that is already open does not reload it.
  */
 async function showContent(page: Page) {
-  await page.goto('/bunbraco/section/content')
+  await page.goto('/crombolo/section/content')
   await settle(page)
 }
 
@@ -295,7 +295,7 @@ test('save and preview opens the preview app, framing the draft', async ({ page 
   const HOME = unique('Home')
   await signIn(page)
   const home = await createPage(page, HOME)
-  await page.goto(`/bunbraco/section/content/workspace/document/edit/${home}`)
+  await page.goto(`/crombolo/section/content/workspace/document/edit/${home}`)
   await page.locator('umb-property-editor-ui-text-box #input').first().fill('Draft for preview')
   // A plain draft save first: its toast comes from the server's Umb-Notifications
   // header, not from a client-side peek like publishing's, so it is the half that
@@ -306,7 +306,7 @@ test('save and preview opens the preview app, framing the draft', async ({ page 
   const popup = page.waitForEvent('popup')
   await page.getByTestId('workspace-action:Umb.WorkspaceAction.Document.SaveAndPreview').click()
   const preview = await popup
-  await expect(preview).toHaveURL(new RegExp(`/bunbraco/preview\\?id=${home}`))
+  await expect(preview).toHaveURL(new RegExp(`/crombolo/preview\\?id=${home}`))
   const frame = preview.frameLocator('iframe')
   await expect(frame.locator('body')).toContainText('Draft for preview', { timeout: 15_000 })
   await preview.screenshot({ path: 'output/preview.png' })
@@ -317,7 +317,7 @@ test('publish with descendants publishes the branch from the workspace', async (
   await signIn(page)
   const home = await createPage(page, HOME)
   const child = await createPage(page, 'Child', home)
-  await page.goto(`/bunbraco/section/content/workspace/document/edit/${home}`)
+  await page.goto(`/crombolo/section/content/workspace/document/edit/${home}`)
   await page
     .locator('umb-workspace-action')
     .filter({ hasText: 'Save and publish' })

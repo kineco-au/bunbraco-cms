@@ -39,7 +39,7 @@ test('every built-in property editor renders, and an upload saves as a served fi
 }) => {
   await signIn(page)
   const key = await everyEditorPage(page, unique('Editors'))
-  await page.goto(`/bunbraco/section/content/workspace/document/edit/${key}`)
+  await page.goto(`/crombolo/section/content/workspace/document/edit/${key}`)
   await expectEveryPropertyEditorRenders(page)
 
   await page.locator('umb-property-editor-ui-text-box #input').first().fill('Typed')
@@ -86,7 +86,7 @@ test('an image uploaded to Media, picked on a page and published renders as a re
 
   const pageName = unique('Gallery')
   const key = await everyEditorPage(page, pageName)
-  await page.goto(`/bunbraco/section/content/workspace/document/edit/${key}`)
+  await page.goto(`/crombolo/section/content/workspace/document/edit/${key}`)
   const picker = page.locator('umb-property').filter({ hasText: 'Image Media Picker' }).first()
   await picker.scrollIntoViewIfNeeded()
   await picker

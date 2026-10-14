@@ -13,7 +13,7 @@
  * numbers its bins as Umbraco's does.
  */
 
-import { ObjectTypes, SystemNodes } from '@bunbraco/core'
+import { ObjectTypes, SystemNodes } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
 import type { Migration } from '../migrations.ts'
@@ -28,7 +28,7 @@ export const elementsMigration: Migration = {
   kind: 'expand',
   release: '0.3.0',
   async up(db: Db) {
-    // One statement, with both guards in SQL, because `bunbraco upgrade --plan`
+    // One statement, with both guards in SQL, because `crombolo upgrade --plan`
     // runs every migration against a recorder whose `query` refuses to read —
     // a migration that reads cannot be planned, and the plan is the thing that
     // lets a release be reviewed before it runs.

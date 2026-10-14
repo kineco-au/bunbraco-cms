@@ -5,7 +5,7 @@
  * the OpenAPI document, so they are matched by path rather than through the
  * contract-first router.
  */
-import { MANAGEMENT_API_PATH, problemDetails, problemResponse } from '@bunbraco/core'
+import { MANAGEMENT_API_PATH, problemDetails, problemResponse } from '@crombolo/core'
 import {
   type CookieOptions,
   cookieNames,

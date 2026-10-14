@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { DEFAULT_BACKOFFICE_PATH as CORE_DEFAULT } from '@bunbraco/core'
+import { DEFAULT_BACKOFFICE_PATH as CORE_DEFAULT } from '@crombolo/core'
 
 /**
  * Path layout for the hosted backoffice.
@@ -21,13 +21,13 @@ export interface BackOfficePaths {
   readonly cacheBustHash: string
   /** Directory on disk holding the vendored client. */
   readonly vendorDir: string
-  /** e.g. /bunbraco/bunbraco — where the framework's own backoffice package is served. */
+  /** e.g. /crombolo/crombolo — where the framework's own backoffice package is served. */
   readonly pluginPath: string
   /** Directory on disk holding that package: a manifest and its modules. */
   readonly pluginDir: string
 }
 
-export { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
+export { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
 
 /**
  * Where the vendored client's own manifest says its assets live. The vendor
@@ -42,7 +42,7 @@ export const VENDORED_ASSETS_PATH = '/umbraco/backoffice'
  * the real path moves with wherever the backoffice is mounted, and a manifest on
  * disk cannot know that, so it names this instead.
  */
-export const PLUGIN_PATH_PLACEHOLDER = '/bunbraco-plugin'
+export const PLUGIN_PATH_PLACEHOLDER = '/crombolo-plugin'
 
 export interface BackOfficePathOptions {
   backOfficePath?: string
@@ -63,14 +63,14 @@ export function cacheBustHash(vendorDir: string): string {
 }
 
 /**
- * The built client ships as its own package, `@bunbraco/backoffice-dist`, so it
+ * The built client ships as its own package, `@crombolo/backoffice-dist`, so it
  * is resolved like any dependency. The fallback is the monorepo layout, for a
  * checkout where the workspace has not been installed yet.
  */
 export function defaultVendorDir(): string {
   try {
     return join(
-      dirname(Bun.resolveSync('@bunbraco/backoffice-dist/package.json', import.meta.dir)),
+      dirname(Bun.resolveSync('@crombolo/backoffice-dist/package.json', import.meta.dir)),
       'dist',
     )
   } catch {
@@ -89,7 +89,7 @@ export function createBackOfficePaths(options: BackOfficePathOptions = {}): Back
     assetsPath: `${virtualDirectory}/${hash}`,
     cacheBustHash: hash,
     vendorDir,
-    pluginPath: `${backOfficePath}/bunbraco`,
+    pluginPath: `${backOfficePath}/crombolo`,
     pluginDir: options.pluginDir ?? defaultPluginDir(),
   }
 }

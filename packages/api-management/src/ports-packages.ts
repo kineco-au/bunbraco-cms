@@ -5,7 +5,7 @@
  * The port hands back built bytes rather than a path, because the artifact is
  * never stored — it is serialized when it is asked for, so it cannot be stale.
  */
-import type { Page, SkipTake } from '@bunbraco/core'
+import type { Page, SkipTake } from '@crombolo/core'
 
 /** What a package would contain, in the aliases and keys the contract uses. */
 export interface PackageDefinitionInput {

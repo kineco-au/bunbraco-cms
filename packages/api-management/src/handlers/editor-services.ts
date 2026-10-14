@@ -2,7 +2,7 @@
  * Services property editors call while editing: tag suggestions and embed
  * markup for the rich text editor.
  */
-import { invalidSkipTake, problemDetails, problemResponse } from '@bunbraco/core'
+import { invalidSkipTake, problemDetails, problemResponse } from '@crombolo/core'
 import type { OEmbedPort, TagPort } from '../ports.ts'
 import type { ManagementApiRouter } from '../router.ts'
 import { paging } from './content-type.ts'

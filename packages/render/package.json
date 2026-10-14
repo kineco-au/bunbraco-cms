@@ -1,17 +1,17 @@
 {
-  "name": "@bunbraco/render",
-  "version": "0.8.1",
-  "description": "TSX server rendering and the published-content model for bunbraco.",
+  "name": "@crombolo/render",
+  "version": "0.9.0",
+  "description": "TSX server rendering and the published-content model for crombolo.",
   "license": "MIT",
-  "author": "Kineco",
-  "homepage": "https://github.com/kineco-au/bunbraco-cms#readme",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kineco-au/bunbraco-cms.git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
     "directory": "packages/render"
   },
   "bugs": {
-    "url": "https://github.com/kineco-au/bunbraco-cms/issues"
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
   },
   "engines": {
     "bun": ">=1.3.0"
@@ -32,7 +32,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@bunbraco/core": "workspace:*",
+    "@crombolo/core": "workspace:*",
     "@types/react": "^19.3.0"
   }
 }

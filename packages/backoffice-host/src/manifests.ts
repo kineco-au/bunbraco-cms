@@ -18,7 +18,7 @@ export const MANIFEST_FILE_NAME = 'umbraco-package.json'
  * The assistant's own manifest, which the server omits when the feature is not
  * configured — so an unconfigured site serves no drawer and no button.
  */
-export const ASSISTANT_MANIFEST_ID = 'Bunbraco.Assistant'
+export const ASSISTANT_MANIFEST_ID = 'Crombolo.Assistant'
 
 export interface PackageManifestImportmap {
   imports: Record<string, string>

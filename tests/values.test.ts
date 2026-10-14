@@ -3,13 +3,13 @@
  * docs/02-data-model.md, "Values are append-only".
  */
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
   appendSchemaState,
   BASELINE_NODE_STATE,
-  bunbracoPlan,
   ContentTypeRepository,
   compareVersions,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   DocumentRepository,
@@ -18,7 +18,7 @@ import {
   seedContent,
   seedIdentity,
   WriteRejectedError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { canConnect, dialectUnderTest, freshDb } from './support/db.ts'
 
 const TEXTSTRING = '0cc0eba1-9960-42c9-bf9b-60e150b429ae'
@@ -34,7 +34,7 @@ afterEach(async () => {
 async function prepared(): Promise<{ db: Db; typeKey: string }> {
   const db = await freshDb()
   open.push(db)
-  await migrate(db, bunbracoPlan)
+  await migrate(db, cromboloPlan)
   await seedIdentity(db, {
     admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
     hashPassword,

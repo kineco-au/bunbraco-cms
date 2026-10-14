@@ -19,4 +19,4 @@ export const SERVER_EVENT_HUB_PATH = '/umbraco/serverEventHub'
 export const PREVIEW_HUB_PATH = '/umbraco/PreviewHub'
 
 /** Where the editor is mounted unless a site overrides `backOfficePath`. */
-export const DEFAULT_BACKOFFICE_PATH = '/bunbraco'
+export const DEFAULT_BACKOFFICE_PATH = '/crombolo'

@@ -18,7 +18,7 @@ import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 /** The entity type Umbraco's builder workspace declares, and the route segment. */
 export const BUILDER_ENTITY_TYPE = 'package-builder'
 
-export default class BunbracoBundlesCreatedElement extends UmbLitElement {
+export default class CromboloBundlesCreatedElement extends UmbLitElement {
   static properties = {
     _routes: { state: true },
   }
@@ -67,4 +67,4 @@ export function routesFor(workspaces) {
   return routes
 }
 
-customElements.define('bunbraco-bundles-created', BunbracoBundlesCreatedElement)
+customElements.define('crombolo-bundles-created', CromboloBundlesCreatedElement)

@@ -19,9 +19,9 @@ import {
   listAssets,
   listComponents,
   loadConfig,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 
-const GOOD = `import type { PageProps } from 'bunbraco'
+const GOOD = `import type { PageProps } from '@crombolo/crombolo'
 
 export default function Page({ model }: PageProps) {
   return <main>{model.text('title')}</main>

@@ -2,25 +2,25 @@
  * Umbraco's seven built-in media types. Folder, Image and File are system
  * types: shipped with the framework, ensured at every boot, not deletable,
  * alias fixed. Video, Audio, Article and Vector Graphics are site files that
- * `bunbraco init` scaffolds; Folder allows whichever of them a site has.
+ * `crombolo init` scaffolds; Folder allows whichever of them a site has.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
+import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
 import {
   BUILT_IN_MEDIA_TYPES,
   ContentTypeRepository,
   ensureBuiltInDataTypes,
   ensureSystemMediaTypes,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   exportSchemaSet,
   loadSchemaDirectory,
   parseMediaType,
   siteMediaTypeFiles,
   validateSchemaSet,
-} from '@bunbraco/schema'
+} from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -37,7 +37,7 @@ afterEach(async () => {
 const SYSTEM = SYSTEM_MEDIA_TYPE_KEYS
 const VIDEO = BUILT_IN_MEDIA_TYPES.find((t) => t.alias === 'umbracoMediaVideo')?.key as string
 
-/** A site as `bunbraco init` would leave it, optionally without the four site-owned files. */
+/** A site as `crombolo init` would leave it, optionally without the four site-owned files. */
 async function site(options: { withSiteMediaTypes?: boolean } = {}) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'built-in-media-'))
   dirs.push(root)

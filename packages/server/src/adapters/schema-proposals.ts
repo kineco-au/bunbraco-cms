@@ -16,8 +16,8 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import type { SchemaProposalPort } from '@bunbraco/assistant'
-import type { Db } from '@bunbraco/data'
+import type { SchemaProposalPort } from '@crombolo/assistant'
+import type { Db } from '@crombolo/data'
 import {
   fileNameFor,
   loadSchemaDirectory,
@@ -30,8 +30,8 @@ import {
   writeContentType,
   writeDataType,
   writeSchemaVersion,
-} from '@bunbraco/schema'
-import type { BunbracoConfig } from '../config.ts'
+} from '@crombolo/schema'
+import type { CromboloConfig } from '../config.ts'
 import { logger } from '../logging.ts'
 import { componentAliasesIn, importSchema } from '../schema.ts'
 
@@ -45,7 +45,7 @@ const directoryFor = (kind: string) =>
 
 export interface SchemaProposalOptions {
   db: Db
-  config: BunbracoConfig
+  config: CromboloConfig
   /** The node's identity and state, refreshed in place by an import. */
   boot: { nodeId: string; nodeState: { version: string; revision: string } }
 }

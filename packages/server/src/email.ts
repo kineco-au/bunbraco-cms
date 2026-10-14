@@ -18,7 +18,7 @@
  * used. These adapters are plain `fetch` against a provider's HTTPS API, so this
  * file adds no dependency.
  */
-import { isValidEmail } from '@bunbraco/core'
+import { isValidEmail } from '@crombolo/core'
 import { customEmail } from './email-http.ts'
 import { postmarkEmail } from './email-postmark.ts'
 import { resendEmail } from './email-resend.ts'
@@ -221,7 +221,7 @@ export const EMAIL_DEPENDENT_FEATURES = [
 ]
 
 export const EMAIL_SETUP_HINT =
-  'Set BUNBRACO_EMAIL_PROVIDER to resend, postmark or custom with its key and BUNBRACO_EMAIL_FROM, or pass `email` in bunbraco.config.ts. See docs/14-configuration.md.'
+  'Set CROMBOLO_EMAIL_PROVIDER to resend, postmark or custom with its key and CROMBOLO_EMAIL_FROM, or pass `email` in crombolo.config.ts. See docs/14-configuration.md.'
 
 export function emailAvailability(port: EmailPort | undefined): EmailAvailability {
   if (!port)
@@ -255,25 +255,25 @@ export function emailAvailability(port: EmailPort | undefined): EmailAvailabilit
 export type EmailProviderKind = 'none' | 'resend' | 'postmark' | 'ses' | 'custom'
 
 /**
- * The provider the environment asks for. `BUNBRACO_EMAIL_PROVIDER` picks it and
+ * The provider the environment asks for. `CROMBOLO_EMAIL_PROVIDER` picks it and
  * each kind reads its own variables:
  *
- *   BUNBRACO_EMAIL_PROVIDER=resend
- *   BUNBRACO_EMAIL_API_KEY=re_…
- *   BUNBRACO_EMAIL_FROM=no-reply@example.com
- *   BUNBRACO_EMAIL_FROM_NAME=Example           (optional)
+ *   CROMBOLO_EMAIL_PROVIDER=resend
+ *   CROMBOLO_EMAIL_API_KEY=re_…
+ *   CROMBOLO_EMAIL_FROM=no-reply@example.com
+ *   CROMBOLO_EMAIL_FROM_NAME=Example           (optional)
  *
- *   BUNBRACO_EMAIL_PROVIDER=postmark
- *   BUNBRACO_EMAIL_API_KEY=…                   (server token)
- *   BUNBRACO_EMAIL_POSTMARK_STREAM=outbound    (optional)
+ *   CROMBOLO_EMAIL_PROVIDER=postmark
+ *   CROMBOLO_EMAIL_API_KEY=…                   (server token)
+ *   CROMBOLO_EMAIL_POSTMARK_STREAM=outbound    (optional)
  *
- *   BUNBRACO_EMAIL_PROVIDER=ses
- *   BUNBRACO_EMAIL_SES_REGION=ap-southeast-2
- *   AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=…   (or the BUNBRACO_EMAIL_SES_* pair)
+ *   CROMBOLO_EMAIL_PROVIDER=ses
+ *   CROMBOLO_EMAIL_SES_REGION=ap-southeast-2
+ *   AWS_ACCESS_KEY_ID=… / AWS_SECRET_ACCESS_KEY=…   (or the CROMBOLO_EMAIL_SES_* pair)
  *
- *   BUNBRACO_EMAIL_PROVIDER=custom
- *   BUNBRACO_EMAIL_URL=https://…               (your endpoint)
- *   BUNBRACO_EMAIL_API_KEY=…                   (sent as a bearer token)
+ *   CROMBOLO_EMAIL_PROVIDER=custom
+ *   CROMBOLO_EMAIL_URL=https://…               (your endpoint)
+ *   CROMBOLO_EMAIL_API_KEY=…                   (sent as a bearer token)
  *
  * Unset, or `none`, means no e-mail — the default. An unrecognised value or a
  * provider missing its key is *also* no e-mail, with a warning naming what is
@@ -292,7 +292,7 @@ function built(
   try {
     return make()
   } catch (error) {
-    log.warning('BUNBRACO_EMAIL_PROVIDER is {kind} but {detail} E-mail is off.', {
+    log.warning('CROMBOLO_EMAIL_PROVIDER is {kind} but {detail} E-mail is off.', {
       kind,
       detail: error instanceof Error ? error.message : String(error),
     })
@@ -304,35 +304,35 @@ export function emailFromEnvironment(
   env: Record<string, string | undefined> = Bun.env,
   log: { warning(message: string, properties?: Record<string, unknown>): void } = logger('email'),
 ): EmailPort | undefined {
-  const kind = (env.BUNBRACO_EMAIL_PROVIDER ?? 'none').toLowerCase()
+  const kind = (env.CROMBOLO_EMAIL_PROVIDER ?? 'none').toLowerCase()
   if (kind === 'none' || kind === '') return undefined
 
   if (kind !== 'resend' && kind !== 'postmark' && kind !== 'ses' && kind !== 'custom') {
-    log.warning('BUNBRACO_EMAIL_PROVIDER is {kind}, which is not a provider. {known}', {
+    log.warning('CROMBOLO_EMAIL_PROVIDER is {kind}, which is not a provider. {known}', {
       kind,
       known: 'Use resend, postmark, ses, custom or none. E-mail is off.',
     })
     return undefined
   }
 
-  const address = env.BUNBRACO_EMAIL_FROM ?? ''
+  const address = env.CROMBOLO_EMAIL_FROM ?? ''
   if (!isValidEmail(address)) {
-    log.warning('BUNBRACO_EMAIL_PROVIDER is {kind} but {missing}. E-mail is off.', {
+    log.warning('CROMBOLO_EMAIL_PROVIDER is {kind} but {missing}. E-mail is off.', {
       kind,
       missing: address
-        ? `BUNBRACO_EMAIL_FROM ('${address}') is not a valid address`
-        : 'BUNBRACO_EMAIL_FROM is not set',
+        ? `CROMBOLO_EMAIL_FROM ('${address}') is not a valid address`
+        : 'CROMBOLO_EMAIL_FROM is not set',
     })
     return undefined
   }
-  const from: EmailAddress = { email: address, name: env.BUNBRACO_EMAIL_FROM_NAME || undefined }
-  const apiKey = env.BUNBRACO_EMAIL_API_KEY ?? ''
+  const from: EmailAddress = { email: address, name: env.CROMBOLO_EMAIL_FROM_NAME || undefined }
+  const apiKey = env.CROMBOLO_EMAIL_API_KEY ?? ''
 
   if (kind === 'ses') {
-    const region = env.BUNBRACO_EMAIL_SES_REGION ?? env.AWS_REGION ?? ''
+    const region = env.CROMBOLO_EMAIL_SES_REGION ?? env.AWS_REGION ?? ''
     if (!region) {
-      log.warning('BUNBRACO_EMAIL_PROVIDER is ses but no region is set. {off}', {
-        off: 'Set BUNBRACO_EMAIL_SES_REGION or AWS_REGION. E-mail is off.',
+      log.warning('CROMBOLO_EMAIL_PROVIDER is ses but no region is set. {off}', {
+        off: 'Set CROMBOLO_EMAIL_SES_REGION or AWS_REGION. E-mail is off.',
       })
       return undefined
     }
@@ -343,20 +343,20 @@ export function emailFromEnvironment(
         // Defaulted to empty rather than left undefined, so what the environment
         // holds is the whole answer: the adapter's own fallback to `Bun.env`
         // would otherwise make this depend on variables not passed in here.
-        accessKeyId: env.BUNBRACO_EMAIL_SES_ACCESS_KEY_ID ?? env.AWS_ACCESS_KEY_ID ?? '',
+        accessKeyId: env.CROMBOLO_EMAIL_SES_ACCESS_KEY_ID ?? env.AWS_ACCESS_KEY_ID ?? '',
         secretAccessKey:
-          env.BUNBRACO_EMAIL_SES_SECRET_ACCESS_KEY ?? env.AWS_SECRET_ACCESS_KEY ?? '',
+          env.CROMBOLO_EMAIL_SES_SECRET_ACCESS_KEY ?? env.AWS_SECRET_ACCESS_KEY ?? '',
         sessionToken: env.AWS_SESSION_TOKEN,
-        endpoint: env.BUNBRACO_EMAIL_SES_ENDPOINT,
-        configurationSetName: env.BUNBRACO_EMAIL_SES_CONFIGURATION_SET,
+        endpoint: env.CROMBOLO_EMAIL_SES_ENDPOINT,
+        configurationSetName: env.CROMBOLO_EMAIL_SES_CONFIGURATION_SET,
       }),
     )
   }
 
   if (kind === 'custom') {
-    const url = env.BUNBRACO_EMAIL_URL ?? ''
+    const url = env.CROMBOLO_EMAIL_URL ?? ''
     if (!url) {
-      log.warning('BUNBRACO_EMAIL_PROVIDER is custom but BUNBRACO_EMAIL_URL is not set. {off}', {
+      log.warning('CROMBOLO_EMAIL_PROVIDER is custom but CROMBOLO_EMAIL_URL is not set. {off}', {
         off: 'E-mail is off.',
       })
       return undefined
@@ -365,7 +365,7 @@ export function emailFromEnvironment(
   }
 
   if (!apiKey) {
-    log.warning('BUNBRACO_EMAIL_PROVIDER is {kind} but BUNBRACO_EMAIL_API_KEY is not set. {off}', {
+    log.warning('CROMBOLO_EMAIL_PROVIDER is {kind} but CROMBOLO_EMAIL_API_KEY is not set. {off}', {
       kind,
       off: 'E-mail is off.',
     })
@@ -374,12 +374,12 @@ export function emailFromEnvironment(
 
   return built(kind, log, () =>
     kind === 'resend'
-      ? resendEmail({ from, apiKey, endpoint: env.BUNBRACO_EMAIL_URL })
+      ? resendEmail({ from, apiKey, endpoint: env.CROMBOLO_EMAIL_URL })
       : postmarkEmail({
           from,
           apiKey,
-          endpoint: env.BUNBRACO_EMAIL_URL,
-          messageStream: env.BUNBRACO_EMAIL_POSTMARK_STREAM,
+          endpoint: env.CROMBOLO_EMAIL_URL,
+          messageStream: env.CROMBOLO_EMAIL_POSTMARK_STREAM,
         }),
   )
 }
@@ -387,7 +387,7 @@ export function emailFromEnvironment(
 /**
  * The port a site ends up with, from the three states of `config.email`.
  *
- * Structural rather than taking `BunbracoConfig`, so this file stays free of
+ * Structural rather than taking `CromboloConfig`, so this file stays free of
  * the config module and can be used from anywhere that knows those two fields.
  */
 export function resolveEmailPort(

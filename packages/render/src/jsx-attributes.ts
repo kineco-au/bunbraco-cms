@@ -23,7 +23,7 @@ export type CSSProperties = {
  * Attributes a site adds to every element, for one these types do not know yet:
  *
  * ```ts
- * declare module 'bunbraco' {
+ * declare module '@crombolo/crombolo' {
  *   interface ExtraAttributes { popover?: 'auto' | 'manual' }
  * }
  * ```

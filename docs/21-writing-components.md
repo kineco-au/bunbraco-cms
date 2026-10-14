@@ -14,7 +14,7 @@ document, so they stay correct.
 
 ```tsx
 // components/shared/badge.tsx
-import type { Child } from 'bunbraco'
+import type { Child } from '@crombolo/crombolo'
 
 interface BadgeProps {
   tone?: 'info' | 'warning'
@@ -40,7 +40,7 @@ export function Badge({ tone = 'info', children }: BadgeProps) {
 
 ```tsx
 // components/shared/card-list.tsx
-import type { PublishedContent } from 'bunbraco'
+import type { PublishedContent } from '@crombolo/crombolo'
 import { Badge } from './badge.tsx'
 
 const WEEK = 7 * 24 * 60 * 60 * 1000
@@ -68,7 +68,7 @@ holds. There is no `key` to give a list item; it is accepted and ignored.
 
 ```tsx
 // components/shared/hero.tsx
-import type { Child } from 'bunbraco'
+import type { Child } from '@crombolo/crombolo'
 
 export function Hero({ image, children }: { image?: string; children: Child }) {
   return (
@@ -131,7 +131,7 @@ visitor's input to either.
 
 ```tsx
 // components/shared/newsletter-form.tsx
-import { useId } from 'bunbraco'
+import { useId } from '@crombolo/crombolo'
 
 export function NewsletterForm({ topics }: { topics: string[] }) {
   const email = useId()
@@ -178,7 +178,7 @@ A component can wait for something: another service, a file, a slow query.
 
 ```tsx
 // components/shared/upcoming-events.tsx
-import { usePage } from 'bunbraco'
+import { usePage } from '@crombolo/crombolo'
 
 interface UpcomingEvent {
   title: string
@@ -224,7 +224,7 @@ own values can be handed down with a context:
 
 ```tsx
 // components/shared/breadcrumbs.tsx
-import { usePage } from 'bunbraco'
+import { usePage } from '@crombolo/crombolo'
 
 export function Breadcrumbs() {
   const { model, nav } = usePage()
@@ -243,7 +243,7 @@ export function Breadcrumbs() {
 
 ```tsx
 // components/shared/theme.tsx
-import { type Child, createContext, useContext } from 'bunbraco'
+import { type Child, createContext, useContext } from '@crombolo/crombolo'
 
 export const Theme = createContext<'light' | 'dark'>('light')
 
@@ -271,7 +271,7 @@ has the detail.
 
 ```tsx
 // components/shared/layout.tsx
-import { type Child, SeoHead, usePage } from 'bunbraco'
+import { type Child, SeoHead, usePage } from '@crombolo/crombolo'
 import { Breadcrumbs } from './breadcrumbs.tsx'
 import { Theme } from './theme.tsx'
 
@@ -308,7 +308,7 @@ around the finished page, so it cannot provide a context to it.
 
 ```tsx
 // components/showcasePage.tsx
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import type { ShowcasePage as Page } from '../schema/content-types'
 import { ArrowIcon } from './shared/arrow-icon.tsx'
 import { CardList } from './shared/card-list.tsx'
@@ -342,7 +342,7 @@ export default function ShowcasePage({ model, nav }: PageProps<Page>) {
 }
 ```
 
-`PageProps<Page>` types the page by the interface `bunbraco generate` writes for
+`PageProps<Page>` types the page by the interface `crombolo generate` writes for
 its content type, so `model.value('title')` is a `string` and a misspelt alias
 is a type error.
 

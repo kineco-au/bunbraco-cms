@@ -8,14 +8,14 @@
  * install. What answers it is wiring rather than sandboxing: **nothing in this
  * file is discovered**. A bundle installed from the marketplace writes
  * `package.json` and nothing more; its server half exists only because someone
- * imported the factory into `bunbraco.config.ts` and deployed that, which is a
+ * imported the factory into `crombolo.config.ts` and deployed that, which is a
  * reviewable diff that reaches every node. The path from "someone clicked
  * install" to "third-party code is in the request path" is not merely guarded,
  * it is absent.
  *
  * What a wired bundle then gets is deliberately small:
  *
- * - Routes mount under `<backoffice>/bunbraco/api/bundle/<id>/`. The id and every
+ * - Routes mount under `<backoffice>/crombolo/api/bundle/<id>/`. The id and every
  *   route path are validated, so a bundle can neither shadow a core route nor
  *   reach another bundle's.
  * - The host authenticates and checks the declared section **before** dispatch. A
@@ -33,21 +33,21 @@
  * CMS, because a migration that arrives with a dependency is a schema no
  * `migration_history` can account for.
  */
-import { hasCultureAccess, hasSection, type Principal } from '@bunbraco/api-management'
+import { hasCultureAccess, hasSection, type Principal } from '@crombolo/api-management'
 import {
   type AppAlias,
   type ExtensionSectionAlias,
   isExtensionSectionAlias,
   SECTION_ALIASES,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   type Db,
   type RedirectMatchKind,
   RedirectRepository,
   type RedirectRow,
   type RedirectTargetKind,
-} from '@bunbraco/data'
-import { normaliseRedirectPath, type PublishedCache } from '@bunbraco/render'
+} from '@crombolo/data'
+import { normaliseRedirectPath, type PublishedCache } from '@crombolo/render'
 
 /** The segment every bundle's routes hang below, inside the plugin API. */
 export const BUNDLE_API_SEGMENT = 'bundle'
@@ -206,7 +206,7 @@ export interface MountedBundle {
   name: string
   section: BundleSection
   capabilities: readonly BundleCapability[]
-  /** `<backoffice>/bunbraco/api/bundle/<id>`. */
+  /** `<backoffice>/crombolo/api/bundle/<id>`. */
   prefix: string
   routes: readonly { method: BundleMethod; path: string }[]
 }
@@ -404,7 +404,7 @@ export function createBundleRedirects(options: {
 
 export interface ServerBundlesOptions {
   bundles: readonly ServerBundle[]
-  /** `<backoffice>/bunbraco/api`, from `createBackOfficePaths`. */
+  /** `<backoffice>/crombolo/api`, from `createBackOfficePaths`. */
   pluginApiPath: string
   host: BundleHost
   /** Named per bundle, so a log line says which one wrote it. */

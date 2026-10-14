@@ -8,7 +8,7 @@
  */
 import { expect, settle, signIn, test } from './fixtures.ts'
 
-const SECTION = '/bunbraco/section/content'
+const SECTION = '/crombolo/section/content'
 
 test('the backoffice comes up on every reload, not just the first', async ({ page }) => {
   // Six boots in one test, the first of them against a cold server: sign-in has
@@ -29,14 +29,14 @@ test('the title carries the site’s name, and correcting it settles', async ({ 
   await signIn(page)
   await page.goto(SECTION)
   await settle(page)
-  await expect(page).toHaveTitle(/ \| Bunbraco$/)
+  await expect(page).toHaveTitle(/ \| Crombolo$/)
 
   // What the client does on every navigation: write its own suffix. The
   // correction must land once and leave the page its main thread.
   await page.evaluate(() => {
     document.title = 'Somewhere | Umbraco'
   })
-  await expect(page).toHaveTitle('Somewhere | Bunbraco')
+  await expect(page).toHaveTitle('Somewhere | Crombolo')
   expect(await page.evaluate(() => 1 + 1)).toBe(2)
 })
 
@@ -53,7 +53,7 @@ test('an entry point that loads after the client has written its title does not 
   })
   await page.goto(SECTION)
   await settle(page)
-  await expect(page).toHaveTitle(/ \| Bunbraco$/, { timeout: 15_000 })
+  await expect(page).toHaveTitle(/ \| Crombolo$/, { timeout: 15_000 })
   const title = await page.title()
   expect(title.length).toBeLessThan(120)
   // Responsive, which a page stuck in an observer loop is not.

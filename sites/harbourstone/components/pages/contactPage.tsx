@@ -1,10 +1,10 @@
-import { Form, type PageProps, type SchemaForm } from 'bunbraco'
+import { Form, type PageProps, type SchemaForm } from '@crombolo/crombolo'
 import { Layout } from '../shared/layout.tsx'
 import { Eyebrow, PageHeader } from '../shared/section-intro.tsx'
 
 export default function ContactPage({ model, nav, submission }: PageProps) {
   // A `formPicker` property arrives as the definition itself, so there is
-  // nothing to look up here. `value()` is untyped — `bunbraco generate` is what
+  // nothing to look up here. `value()` is untyped — `crombolo generate` is what
   // types a model — so the cast is what a hand-written view pays.
   //
   // `submission` is what just happened to a post on this page: passing it

@@ -7,7 +7,7 @@ import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  bunbracoPlan,
+  cromboloPlan,
   type Db,
   INITIAL_STATE,
   isMajorRelease,
@@ -24,14 +24,14 @@ import {
   seedContent,
   stampFinalState,
   UpgradeStateError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   BackupRequiredError,
   backupBefore,
   loadConfig,
   UpgradePendingError,
   VERSION,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import {
   declaredCompatibility,
   expectedCompatibility,
@@ -149,27 +149,27 @@ describe('migration plan lint', () => {
     // the registry before anything is installed: it must never drift from the plan.
     const manifest = await Bun.file(UMBRELLA_MANIFEST).json()
     expect(manifest.version).toBe(VERSION)
-    expect(declaredCompatibility(manifest)).toBe(migrationCompatibility(bunbracoPlan, VERSION))
-    expect(expectedCompatibility(VERSION)).toBe(migrationCompatibility(bunbracoPlan, VERSION))
+    expect(declaredCompatibility(manifest)).toBe(migrationCompatibility(cromboloPlan, VERSION))
+    expect(expectedCompatibility(VERSION)).toBe(migrationCompatibility(cromboloPlan, VERSION))
   })
 
   test('the declaration is written into a manifest without disturbing it', () => {
-    const bare = '{\n  "name": "bunbraco",\n  "version": "1.0.0",\n  "license": "MIT"\n}\n'
+    const bare = '{\n  "name": "crombolo",\n  "version": "1.0.0",\n  "license": "MIT"\n}\n'
     const written = writeDeclaration(bare, 'compatible')
     expect(JSON.parse(written)).toEqual({
-      name: 'bunbraco',
+      name: 'crombolo',
       version: '1.0.0',
-      bunbraco: { migrations: 'compatible' },
+      crombolo: { migrations: 'compatible' },
       license: 'MIT',
     })
-    expect(JSON.parse(writeDeclaration(written, 'breaking')).bunbraco).toEqual({
+    expect(JSON.parse(writeDeclaration(written, 'breaking')).crombolo).toEqual({
       migrations: 'breaking',
     })
     expect(declaredCompatibility({ name: 'x' })).toBeUndefined()
   })
 
   test('the shipped plan is all expand, each with a release', () => {
-    for (const m of bunbracoPlan.migrations) {
+    for (const m of cromboloPlan.migrations) {
       expect(m.kind).toBe('expand')
       expect(m.release).toBeDefined()
     }
@@ -186,7 +186,7 @@ describe('migration plan lint', () => {
         .slice(0, 3)
         .map(Number)
         .reduce((a, part) => a * 1000 + part, 0)
-    for (const m of bunbracoPlan.migrations)
+    for (const m of cromboloPlan.migrations)
       expect([m.name, ordinal(m.release as string) <= ordinal(VERSION)]).toEqual([m.name, true])
   })
 })
@@ -198,23 +198,23 @@ describe(`migrations (${dialectUnderTest})`, () => {
 
   test('every applied step is ledgered with its kind, states and release', async () => {
     const d = await db()
-    const result = await migrate(d, bunbracoPlan, { by: 'node-x' })
-    expect(result.applied).toHaveLength(bunbracoPlan.migrations.length)
+    const result = await migrate(d, cromboloPlan, { by: 'node-x' })
+    expect(result.applied).toHaveLength(cromboloPlan.migrations.length)
     const ledger = await readLedger(d)
     expect(ledger.map((r) => [r.name, r.kind, r.appliedBy, r.note])).toEqual(
-      bunbracoPlan.migrations.map((m) => [m.name, 'expand', 'node-x', `release ${m.release}`]),
+      cromboloPlan.migrations.map((m) => [m.name, 'expand', 'node-x', `release ${m.release}`]),
     )
     expect(ledger[0]?.fromState).toBe(INITIAL_STATE)
-    expect(ledger.at(-1)?.toState).toBe(bunbracoPlan.finalState)
+    expect(ledger.at(-1)?.toState).toBe(cromboloPlan.finalState)
     // A second run adds nothing to the ledger
-    await migrate(d, bunbracoPlan)
-    expect(await readLedger(d)).toHaveLength(bunbracoPlan.migrations.length)
+    await migrate(d, cromboloPlan)
+    expect(await readLedger(d)).toHaveLength(cromboloPlan.migrations.length)
   })
 
   test('the plan records the DDL of every pending step without running it', async () => {
     const d = await db()
-    const steps = await planUpgrade(d, bunbracoPlan)
-    expect(steps.map((s) => s.name)).toEqual(bunbracoPlan.migrations.map((m) => m.name))
+    const steps = await planUpgrade(d, cromboloPlan)
+    expect(steps.map((s) => s.name)).toEqual(cromboloPlan.migrations.map((m) => m.name))
     expect(steps.every((s) => s.statements && s.statements.length > 0 && !s.unplannable)).toBe(true)
     expect(steps[2]?.statements?.some((sql) => /CREATE TABLE property_value/.test(sql))).toBe(true)
     // Nothing ran
@@ -227,8 +227,8 @@ describe(`migrations (${dialectUnderTest})`, () => {
     expect(Number(tables[0]?.n)).toBe(0)
 
     // Once applied, the plan is empty
-    await migrate(d, bunbracoPlan)
-    expect(await planUpgrade(d, bunbracoPlan)).toEqual([])
+    await migrate(d, cromboloPlan)
+    expect(await planUpgrade(d, cromboloPlan)).toEqual([])
   })
 
   test('a step that reads data is reported as unplannable, not guessed at', async () => {
@@ -316,7 +316,7 @@ describe('boot and backup rules', () => {
     const dir = mkdtempSync(join(process.cwd(), 'output', 'upgrade-'))
     dirs.push(dir)
     const file = join(dir, 'site.sqlite')
-    const { bootstrapDatabase } = await import('@bunbraco/server')
+    const { bootstrapDatabase } = await import('@crombolo/server')
     const prod = loadConfig({
       sqliteFile: file,
       development: false,
@@ -329,10 +329,10 @@ describe('boot and backup rules', () => {
     await first.db.close()
 
     // Newer code with one more step: production refuses; development applies
-    const { connect } = await import('@bunbraco/data')
+    const { connect } = await import('@crombolo/data')
     const d = await connect({ dialect: 'sqlite', file })
-    await d.exec("UPDATE key_value SET value = ? WHERE key = 'Bunbraco.Core.Upgrader.State'", [
-      bunbracoPlan.migrations.at(-2)?.to as string,
+    await d.exec("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'", [
+      cromboloPlan.migrations.at(-2)?.to as string,
     ])
     await d.close()
     let failure: unknown
@@ -343,13 +343,13 @@ describe('boot and backup rules', () => {
       failure = error
     }
     expect(failure).toBeInstanceOf(UpgradePendingError)
-    expect((failure as Error).message).toContain(bunbracoPlan.migrations.at(-1)?.name as string)
+    expect((failure as Error).message).toContain(cromboloPlan.migrations.at(-1)?.name as string)
 
     // Wait — that state already has the tables; a real re-run of 003 would fail on them.
     // Point the state back at the final one so the development boot proves the branch only.
     const d2 = await connect({ dialect: 'sqlite', file })
-    await d2.exec("UPDATE key_value SET value = ? WHERE key = 'Bunbraco.Core.Upgrader.State'", [
-      bunbracoPlan.finalState,
+    await d2.exec("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'", [
+      cromboloPlan.finalState,
     ])
     await d2.close()
     const dev = await bootstrapDatabase({ ...prod, development: true })
@@ -381,7 +381,7 @@ describe('boot and backup rules', () => {
 describe(`migration 009 (${dialectUnderTest})`, () => {
   test('corrects the rich text editor UI a database was seeded with, and leaves a customised one alone', async () => {
     const d = await db()
-    await migrate(d, bunbracoPlan)
+    await migrate(d, cromboloPlan)
     await seedContent(d)
     const RICHTEXT = 'ca90c950-0aff-4e72-b976-a30b1ac57dad'
     const read = async () =>
@@ -397,7 +397,7 @@ describe(`migration 009 (${dialectUnderTest})`, () => {
     const rewind = async () => {
       // Before migration 010, too
       await undoMigrationsSinceContentEditing(d)
-      await d.exec("UPDATE key_value SET value = ? WHERE key = 'Bunbraco.Core.Upgrader.State'", [
+      await d.exec("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'", [
         STATE_MEMBER_PROPERTY_TYPE,
       ])
     }
@@ -407,7 +407,7 @@ describe(`migration 009 (${dialectUnderTest})`, () => {
       [RICHTEXT],
     )
     await rewind()
-    await migrate(d, bunbracoPlan)
+    await migrate(d, cromboloPlan)
     const fixed = await read()
     expect(fixed?.editor_ui_alias).toBe('Umb.PropertyEditorUi.Tiptap')
     expect(JSON.parse(fixed?.config ?? '{}').toolbar).toBeDefined()
@@ -418,7 +418,7 @@ describe(`migration 009 (${dialectUnderTest})`, () => {
       [RICHTEXT],
     )
     await rewind()
-    await migrate(d, bunbracoPlan)
+    await migrate(d, cromboloPlan)
     expect((await read())?.editor_ui_alias).toBe('My.Custom.Editor')
   })
 })

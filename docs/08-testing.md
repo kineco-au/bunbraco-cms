@@ -27,8 +27,8 @@ covers formatting, lint *and* assist actions such as import ordering. Using
 verified — import order was exactly that gap, and 31 files drifted before the
 commands were paired up.
 
-`BUNBRACO_DB=sqlite|postgres` selects the dialect, and
-`BUNBRACO_POSTGRES_URL` points at the server (see `.env.example`). Individual
+`CROMBOLO_DB=sqlite|postgres` selects the dialect, and
+`CROMBOLO_POSTGRES_URL` points at the server (see `.env.example`). Individual
 Postgres tests skip with a clear message when no server is reachable, so a fresh
 clone is never blocked — but note that a skip is not a pass, and `test:all` is the
 real gate.
@@ -62,12 +62,12 @@ because that image is Debian while the CMS image is Alpine.
 **One behaviour differs in the container.** The host run drives installed Google
 Chrome (`channel: 'chrome'`, which is what a visitor uses); the container cannot,
 because Google publishes no Linux arm64 build — `playwright install chrome` answers
-"not supported on Linux Arm64". `BUNBRACO_BROWSER_CHANNEL` selects the channel and
+"not supported on Linux Arm64". `CROMBOLO_BROWSER_CHANNEL` selects the channel and
 the container sets it empty, which gives Playwright's bundled Chromium. Everything
 else about the two runs is the same.
 
 Postgres needs Docker either way; the SQLite half does not, and a host and a
-container Postgres run must not overlap, since they share `bunbraco_test`.
+container Postgres run must not overlap, since they share `crombolo_test`.
 
 Postgres isolation resets the `public` schema per test rather than creating a
 schema per test: `SET search_path` is per-connection and Bun's SQL client pools
@@ -75,7 +75,7 @@ connections, so a search_path set by one query does not apply to the next. The
 consequence is that Postgres test files must not run concurrently against the
 same database — and that anything else connected to it while the suite runs will
 have its tables dropped mid-query. That is why the stack provisions two
-databases: `bunbraco` for the CMS and `bunbraco_test` for the suite, so a running
+databases: `crombolo` for the CMS and `crombolo_test` for the suite, so a running
 CMS container cannot collide with a test run.
 
 ## Layers
@@ -107,7 +107,7 @@ standing in for two environments. This is the only layer that covers argument
 parsing, exit codes and the output somebody actually reads — everything else
 calls the functions directly.
 
-- `new-site.integration.ts` — `bunbraco init`, then `bunbraco start`, in a
+- `new-site.integration.ts` — `crombolo init`, then `crombolo start`, in a
   directory of its own: a bare site, one from each starter template. Nothing is
   written by the test, because the point is that what `init` writes is what
   boots. It asserts the holding page a site with nothing published serves, the
@@ -126,13 +126,13 @@ calls the functions directly.
   `publish`/`unpublish`, and `--with-blobs` carrying the media bytes into a
   second environment's store.
 - `import-umbraco.integration.ts` — `import umbraco report` and `apply` against a
-  real Umbraco 17 export, then `bunbraco start` in the directory it wrote: the
+  real Umbraco 17 export, then `crombolo start` in the directory it wrote: the
   bundle imports on the first boot, and every URL the Umbraco site served is
   fetched from the imported one.
 - `upgrade.integration.ts` — three releases of one site laid out as a deploy
   lays them out, a directory each: `upgrade --plan`, `check`, `check --fix`, the
   cut-over, the ledger, the refusals, and the backup restored. It boots each
-  release with `bunbraco start` and asserts over HTTP, because the guarantee the
+  release with `crombolo start` and asserts over HTTP, because the guarantee the
   design turns on — the running release keeps serving its own values while the
   next one's data work is prepared underneath it — needs two node states and a
   request, not one process calling functions.
@@ -310,7 +310,7 @@ Then the rendering half: a page picking two elements renders both in the order
 picked, with their own values and type; unpublishing one drops it from the page and
 publishing it again brings it back; a draft edit does not reach the page but a
 publish does; trashing drops it; and a deleted pick leaves no gap in the array. Plus
-`bunbraco generate` narrowing a picker to `Array<TypedElement<Quote>>` for one
+`crombolo generate` narrowing a picker to `Array<TypedElement<Quote>>` for one
 allowed type and `Array<TypedElement<Quote> | TypedElement<Aside>>` for two — that
 last assertion exists because `A | B[]` binds as `A | (B[])`, which the generator got
 wrong first time.
@@ -403,7 +403,7 @@ ordering, paging, the 100 MB cap (a sparse file) and saved searches.
 
 `bun run test:browser` drives the real vendored backoffice with the installed
 Chrome (Playwright, `channel: 'chrome'` by default, headless, no browser download;
-`BUNBRACO_BROWSER_CHANNEL=''` selects the bundled Chromium instead, which is what
+`CROMBOLO_BROWSER_CHANNEL=''` selects the bundled Chromium instead, which is what
 the container and CI use)
 against a throwaway copy of `apps/site`: its schema and views, a fresh SQLite
 file, a known admin password (`tests/browser/serve.ts`). It is not part of
@@ -691,7 +691,7 @@ would have recreated the schema, with 240-odd "no schema has been selected to cr
 in" errors and no way out but `psql`. `tests/support/db.ts` now ensures `public` on a
 connection of its own before calling `connect()`, so a Ctrl-C is survivable. Worth
 knowing that the same shape exists in the product: a Postgres database whose
-`public` schema has been dropped cannot boot bunbraco, and says so obscurely.
+`public` schema has been dropped cannot boot crombolo, and says so obscurely.
 
 The suite also wants `packages/backoffice-dist/dist/` present. About twenty tests
 skip themselves without it and the cache-busting hash test fails outright, so CI
@@ -743,8 +743,8 @@ from the start rather than porting later:
 ## The consumer test
 
 The suite runs inside the workspace, where the root depends on every package, so
-it cannot see what breaks for a site that depends only on `bunbraco`. 5a's exit
-test is therefore a directory outside the repo: `bun link bunbraco`, `bunbraco
+it cannot see what breaks for a site that depends only on `@crombolo/crombolo`. 5a's exit
+test is therefore a directory outside the repo: `bun link crombolo`, `crombolo
 init`, a view, boot, sign in, create a type and a page through the API, render.
 It found a JSX import-source name that resolved everywhere except from a real
 site. Until it is automated, it is the manual gate for any change to package
@@ -763,7 +763,7 @@ Because the harness boots a server per test, each one must close its database
 ### Two suites at once
 
 The harness gives each test **process** its own views cache
-(`.bunbraco/views-<pid>`), which is what makes it safe to run a second suite —
+(`.crombolo/views-<pid>`), which is what makes it safe to run a second suite —
 or a single file beside a full run — without the two interfering.
 
 Without it they do, in a way that looks nothing like its cause. The views cache
@@ -817,11 +817,11 @@ gets its own `node_modules` volume, because that image is Debian and the CMS ima
 is Alpine — one install cannot serve both. **One behaviour differs there**: the host
 run drives installed Google Chrome (`channel: 'chrome'`), and the container cannot,
 because Google publishes no Linux arm64 build of Chrome. The container sets
-`BUNBRACO_BROWSER_CHANNEL=''` and gets Playwright's bundled Chromium instead.
+`CROMBOLO_BROWSER_CHANNEL=''` and gets Playwright's bundled Chromium instead.
 
 The suite drops and recreates the `public` schema between servers, so it is given
-a database of its own: the stack provisions `bunbraco` for the CMS and
-`bunbraco_test` for the tests. The CMS container can stay up during a test run
+a database of its own: the stack provisions `crombolo` for the CMS and
+`crombolo_test` for the tests. The CMS container can stay up during a test run
 without the two colliding. Don't run a host and a container Postgres suite at the
 same time, though — they share that one database.
 
@@ -839,8 +839,8 @@ to lowercase while SQLite stores them verbatim.
 Individual Postgres tests **skip** rather than fail when no server is reachable,
 so a clone without Docker can still run `bun test` and `test:sqlite` and is never
 blocked. A skip is not a pass, though: `test:all` is the gate. To point at a
-Postgres of your own instead, set `BUNBRACO_POSTGRES_URL` and run `bun test`
-directly with `BUNBRACO_DB=postgres`.
+Postgres of your own instead, set `CROMBOLO_POSTGRES_URL` and run `bun test`
+directly with `CROMBOLO_DB=postgres`.
 
 ## How the test containers work
 

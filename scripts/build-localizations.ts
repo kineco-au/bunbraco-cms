@@ -51,8 +51,8 @@ function vendoredCultures(): { culture: string; file: string }[] {
 
 /**
  * French elides `de` before a vowel, so its dictionaries carry `d'Umbraco`.
- * Bunbraco opens on a consonant, where the elision is wrong — so the article
- * comes back rather than being left as `d'Bunbraco`.
+ * Crombolo opens on a consonant, where the elision is wrong — so the article
+ * comes back rather than being left as `d'Crombolo`.
  */
 const ELIDED = /\bd['\u2019](?=Umbraco)/g
 
@@ -60,8 +60,8 @@ export function rebrand(value: string): string | undefined {
   if (!/umbraco/i.test(value) || NAMES_SOMETHING_REAL.test(value)) return undefined
   return value
     .replace(ELIDED, 'de ')
-    .replaceAll('Umbraco', 'Bunbraco')
-    .replaceAll('umbraco', 'bunbraco')
+    .replaceAll('Umbraco', 'Crombolo')
+    .replaceAll('umbraco', 'crombolo')
 }
 
 /** The `section.key` pairs the English override curates, flattened. */
@@ -278,11 +278,11 @@ export function localizeDictionary(
 }
 
 /**
- * Its own namespace: English also has the hand-written `Bunbraco.Localization.EN`,
+ * Its own namespace: English also has the hand-written `Crombolo.Localization.EN`,
  * and the backoffice refuses a second extension with the same alias.
  */
 export const aliasOf = (culture: string) =>
-  `Bunbraco.Localization.Overrides.${culture.toUpperCase().replaceAll('-', '_')}`
+  `Crombolo.Localization.Overrides.${culture.toUpperCase().replaceAll('-', '_')}`
 
 export async function buildLocalizations(): Promise<number> {
   const handWritten = english as Record<string, Record<string, string>>
@@ -319,7 +319,7 @@ export async function buildLocalizations(): Promise<number> {
     extensions.push({
       type: 'localization',
       alias: aliasOf(culture),
-      name: `Bunbraco Localization Overrides (${culture})`,
+      name: `Crombolo Localization Overrides (${culture})`,
       weight: 0,
       meta: { culture },
       js: `${PLUGIN_PATH_PLACEHOLDER}/localizations/${culture}.js`,
@@ -331,8 +331,8 @@ export async function buildLocalizations(): Promise<number> {
     `${JSON.stringify(
       {
         $schema: '../../../backoffice-dist/dist/umbraco-package-schema.json',
-        name: 'Bunbraco Localizations',
-        id: 'Bunbraco.Localizations',
+        name: 'Crombolo Localizations',
+        id: 'Crombolo.Localizations',
         version,
         allowPublicAccess: false,
         extensions,

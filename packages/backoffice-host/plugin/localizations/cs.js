@@ -4,28 +4,28 @@
 // Umbraco says "document type".
 export default {
   "user": {
-    "createUserHelp": "Vytvořte nové uživatele a udělte mu přístup do Bunbraco. Po vytvoření nového uživatele bude vygenerováno heslo, které s ním můžete sdílet.",
-    "inviteUserHelp": "Pozvěte nové uživatele, a poskytněte jim přístup do Bunbraco. Uživatelům bude zaslán e-mail s pozvánkou a s informacemi o tom, jak se přihlásit do Bunbraco. Pozvánky mají platnost 72 hodin.",
-    "userCreatedSuccessHelp": "Nový uživatel byl úspěšně vytvořen. Pro přihlášení do Bunbraco použijte heslo níže.",
-    "userInvitedSuccessHelp": "Novému uživateli byla zaslána pozvánka s informacemi, jak se přihlásit do Bunbraco.",
-    "userinviteWelcomeMessage": "Dobrý den, vítejte v Bunbraco! Za pouhou 1 minutu budete moci používat Bunbraco. Jenom od vás potřebujeme, abyste si nastavili heslo.",
-    "userinviteExpiredMessage": "Vítejte v Bunbraco! Vaše pozvánka bohužel vypršela. Obraťte se na svého správce a požádejte jej, aby jí znovu odeslal.",
+    "createUserHelp": "Vytvořte nové uživatele a udělte mu přístup do Crombolo. Po vytvoření nového uživatele bude vygenerováno heslo, které s ním můžete sdílet.",
+    "inviteUserHelp": "Pozvěte nové uživatele, a poskytněte jim přístup do Crombolo. Uživatelům bude zaslán e-mail s pozvánkou a s informacemi o tom, jak se přihlásit do Crombolo. Pozvánky mají platnost 72 hodin.",
+    "userCreatedSuccessHelp": "Nový uživatel byl úspěšně vytvořen. Pro přihlášení do Crombolo použijte heslo níže.",
+    "userInvitedSuccessHelp": "Novému uživateli byla zaslána pozvánka s informacemi, jak se přihlásit do Crombolo.",
+    "userinviteWelcomeMessage": "Dobrý den, vítejte v Crombolo! Za pouhou 1 minutu budete moci používat Crombolo. Jenom od vás potřebujeme, abyste si nastavili heslo.",
+    "userinviteExpiredMessage": "Vítejte v Crombolo! Vaše pozvánka bohužel vypršela. Obraťte se na svého správce a požádejte jej, aby jí znovu odeslal.",
     "documentType": "Typ obsahu"
   },
   "languages": {
-    "defaultLanguageHelp": "Web Bunbraco může mít nastaven pouze jeden výchozí jazyk."
+    "defaultLanguageHelp": "Web Crombolo může mít nastaven pouze jeden výchozí jazyk."
   },
   "paste": {
-    "errorMessage": "Text, který chcete vložit, obsahuje speciální znaky nebo formatování. Toto může být způsobeno kopirováním textu z Microsoft Wordu. Bunbraco může odstranit speciální znaky nebo formatování, takže vložený obsah bude pro web vhodnější."
+    "errorMessage": "Text, který chcete vložit, obsahuje speciální znaky nebo formatování. Toto může být způsobeno kopirováním textu z Microsoft Wordu. Crombolo může odstranit speciální znaky nebo formatování, takže vložený obsah bude pro web vhodnější."
   },
   "dashboard": {
-    "nothinghappens": "Jestli se Bunbraco neotevírá, možná budete muset povolit na tomto webu vyskakovací okna"
+    "nothinghappens": "Jestli se Crombolo neotevírá, možná budete muset povolit na tomto webu vyskakovací okna"
   },
   "logViewer": {
-    "searchUmbracoSource": "Prohledat Bunbraco Source",
-    "searchWithinUmbracoSourceCodeOnGithub": "Vyhledat ve zdrojovém kódu Bunbraco na Github",
-    "searchUmbracoIssues": "Prohledat Bunbraco Issues",
-    "searchUmbracoIssuesOnGithub": "Prohledat Bunbraco Issues na Github"
+    "searchUmbracoSource": "Prohledat Crombolo Source",
+    "searchWithinUmbracoSourceCodeOnGithub": "Vyhledat ve zdrojovém kódu Crombolo na Github",
+    "searchUmbracoIssues": "Prohledat Crombolo Issues",
+    "searchUmbracoIssuesOnGithub": "Prohledat Crombolo Issues na Github"
   },
   "actions": {
     "changeDocType": "Změnit typ obsahu",

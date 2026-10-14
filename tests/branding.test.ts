@@ -1,5 +1,5 @@
 /**
- * Everything that makes the vendored Umbraco client read as bunbraco: the page
+ * Everything that makes the vendored Umbraco client read as crombolo: the page
  * title, the colour scheme, the logos, the System information modal, the
  * per-language product name, and "content type" where Umbraco says "document type".
  *
@@ -23,7 +23,7 @@ import {
   resolveGraphic,
   resolveStaticFile,
   VENDORED_ASSETS_PATH,
-} from '@bunbraco/backoffice-host'
+} from '@crombolo/backoffice-host'
 import { brandedTitle, brandName } from '../packages/backoffice-host/plugin/branding/branding.js'
 import {
   needsCorrection,
@@ -80,12 +80,12 @@ const doc = (html: string) =>
 
 describe('the title the client writes', () => {
   test('gets the site’s name in place of the client’s', () => {
-    expect(brandedTitle('Content | Umbraco', 'Bunbraco')).toBe('Content | Bunbraco')
+    expect(brandedTitle('Content | Umbraco', 'Crombolo')).toBe('Content | Crombolo')
     expect(brandedTitle('Settings | Templates | Umbraco', 'Acme')).toBe(
       'Settings | Templates | Acme',
     )
     // Not the client's suffix: left alone.
-    expect(brandedTitle('Bunbraco', 'Bunbraco')).toBe('Bunbraco')
+    expect(brandedTitle('Crombolo', 'Crombolo')).toBe('Crombolo')
     expect(brandedTitle('Umbraco rocks', 'Acme')).toBe('Umbraco rocks')
   })
 
@@ -93,7 +93,7 @@ describe('the title the client writes', () => {
     // Each of these names makes a naive correction produce something it would
     // correct again. The last is what the entry point once took for the site's
     // name, by reading a title the client had already written.
-    const names = ['Bunbraco', 'Umbraco', 'Acme | Umbraco', 'Content | Umbraco', ' | Umbraco', '']
+    const names = ['Crombolo', 'Umbraco', 'Acme | Umbraco', 'Content | Umbraco', ' | Umbraco', '']
     const titles = ['Content | Umbraco', 'A | B | Umbraco', 'Umbraco', ' | Umbraco', '']
     for (const name of names) {
       for (const title of titles) {
@@ -120,7 +120,7 @@ describe('the title the client writes', () => {
 
 describe('the site’s name', () => {
   test('is what the shell states, not whatever the title happens to say', () => {
-    const paths = createBackOfficePaths({ backOfficePath: '/bunbraco' })
+    const paths = createBackOfficePaths({ backOfficePath: '/crombolo' })
     const shell = renderBackOfficeShell(
       paths,
       { imports: {} },
@@ -133,9 +133,9 @@ describe('the site’s name', () => {
     expect(brandName(doc('<meta name="application-name" content="Acme" />'))).toBe('Acme')
   })
 
-  test('falls back to Bunbraco when the shell does not say', () => {
-    expect(brandName(doc('<title>Content | Umbraco</title>'))).toBe('Bunbraco')
-    expect(brandName(doc('<meta name="application-name" content="  " />'))).toBe('Bunbraco')
+  test('falls back to Crombolo when the shell does not say', () => {
+    expect(brandName(doc('<title>Content | Umbraco</title>'))).toBe('Crombolo')
+    expect(brandName(doc('<meta name="application-name" content="  " />'))).toBe('Crombolo')
   })
 
   test('is not read from the title by the entry point', async () => {
@@ -167,18 +167,18 @@ describe('the colour scheme', () => {
 
   test('repaints the accent the client routes through the violet-blue palette', async () => {
     const css = await Bun.file(`${BRANDING_DIR}/theme.css`).text()
-    expect(css).toContain('--uui-palette-violet-blue: var(--bunbraco-orange)')
-    expect(css).toContain('--uui-color-header-surface: var(--bunbraco-orange)')
-    expect(css).toContain('--bunbraco-orange: #e89550')
+    expect(css).toContain('--uui-palette-violet-blue: var(--crombolo-orange)')
+    expect(css).toContain('--uui-color-header-surface: var(--crombolo-orange)')
+    expect(css).toContain('--crombolo-orange: #da987c')
   })
 
   test('puts dark ink on the accent, because the accent is light', async () => {
     // Stock light.css puts white on it, which against this orange is ~2.4:1.
     const css = await Bun.file(`${BRANDING_DIR}/theme.css`).text()
     for (const token of ['--uui-color-default-contrast', '--uui-color-selected-contrast']) {
-      expect(css).toContain(`${token}: var(--bunbraco-cocoa)`)
+      expect(css).toContain(`${token}: var(--crombolo-cocoa)`)
     }
-    expect(css).toContain('--bunbraco-cocoa: #3b2412')
+    expect(css).toContain('--crombolo-cocoa: #54321f')
   })
 
   test('leaves the semantic colours alone, so success stays green and danger red', async () => {
@@ -190,14 +190,14 @@ describe('the colour scheme', () => {
 })
 
 describe('the logos', () => {
-  /** The oval bun and the rounded "b" set into it, as every file draws them. */
-  const BUN = '<ellipse cx="100" cy="105" rx="78" ry="58"'
-  const LETTER = /d="(M83 [^"]+)"/
+  /** The disc and the arcs set into it, as every file draws them. */
+  const DISC = '<circle cx="200" cy="388.5" r="116.75"'
+  const ARCS = /<path transform="matrix\(0\.025 0 0 -0\.025 75 516\)" d="([^"]+)"/
 
   test('carry the brand colours and no trace of the Umbraco-era blue', async () => {
     for (const file of ['logo-header.svg', 'logo-surface.svg', 'favicon.svg']) {
       const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-      expect([file, svg.includes(`${BUN} fill="#c17a4a"/>`)]).toEqual([file, true])
+      expect([file, svg.includes(`${DISC} fill="#cb6f48"/>`)]).toEqual([file, true])
       // The two blues the marks used before.
       expect([file, /#283a97|#3544b1/i.test(svg)]).toEqual([file, false])
     }
@@ -206,26 +206,26 @@ describe('the logos', () => {
   test('set the wordmark in cocoa, which reads on the orange header and on white alike', async () => {
     for (const file of ['logo-header.svg', 'logo-surface.svg']) {
       const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-      expect([file, svg.includes('fill="#3b2412"')]).toEqual([file, true])
-      expect([file, svg.includes('aria-label="bunbraco"')]).toEqual([file, true])
+      expect([file, svg.includes('fill="#54321f"')]).toEqual([file, true])
+      expect([file, svg.includes('aria-label="crombolo"')]).toEqual([file, true])
     }
   })
 
-  test('the favicon is the mark alone, on a square that fits the bun', async () => {
+  test('the favicon is the mark alone, on a square that fits the disc', async () => {
     const svg = await Bun.file(`${BRANDING_DIR}/favicon.svg`).text()
-    expect(svg).toContain('viewBox="16 21 168 168"')
+    expect(svg).toContain('viewBox="81.25 269.75 237.5 237.5"')
     expect(svg).not.toContain('<text')
   })
 
-  test('draw the letter as shapes, so no font decides what it looks like', async () => {
+  test('draw the wordmark as shapes, so no font decides what it looks like', async () => {
     // A favicon and a currentColor icon cannot rely on a webfont being there.
     for (const file of ['logo-header.svg', 'logo-surface.svg', 'favicon.svg', 'backdrop.svg']) {
       const svg = await Bun.file(`${BRANDING_DIR}/${file}`).text()
-      expect([file, />b<\/text>/.test(svg)]).toEqual([file, false])
+      expect([file, svg.includes('<text')]).toEqual([file, false])
     }
   })
 
-  test('draw the same bun and letter, the backdrop, icon and site template included', async () => {
+  test('draw the same disc and arcs, the backdrop, icon and site template included', async () => {
     // Several files draw this mark and nothing generates them, so the only thing
     // stopping the shape drifting in one of them is this comparison.
     const files = [
@@ -236,16 +236,16 @@ describe('the logos', () => {
       // The registry icon, served in place of Umbraco's roundel.
       'icon-mark.js',
     ].map((file) => `${BRANDING_DIR}/${file}`)
-    files.push('sites/bunbraco/components/shared/logo.tsx')
+    files.push('sites/crombolo/components/shared/logo.tsx')
     const marks = await Promise.all(
       files.map(async (file) => {
         const svg = await Bun.file(file).text()
-        return [file, svg.includes(BUN), LETTER.exec(svg)?.[1]] as const
+        return [file, svg.includes(DISC), ARCS.exec(svg)?.[1]] as const
       }),
     )
-    const letter = marks[0]?.[2]
-    expect(letter).toBeTruthy()
-    for (const [file, bun, d] of marks) expect([file, bun, d]).toEqual([file, true, letter])
+    const arcs = marks[0]?.[2]
+    expect(arcs).toBeTruthy()
+    for (const [file, disc, d] of marks) expect([file, disc, d]).toEqual([file, true, arcs])
   })
 })
 
@@ -254,7 +254,7 @@ describe('the section Umbraco calls Packages', () => {
 
   test('is named Bundles, because that is the artifact it builds', async () => {
     // The nav filters section manifests by `allowedSections.includes(alias)`
-    // (`backoffice.context.js`), so a replacement manifest under a bunbraco
+    // (`backoffice.context.js`), so a replacement manifest under a crombolo
     // alias would vanish from the nav rather than rename anything. The label is
     // a dictionary key, so overriding the key is the whole rename.
     expect(dictionary.sections?.packages).toBe('Bundles')
@@ -275,15 +275,15 @@ describe('the section Umbraco calls Packages', () => {
     const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
     const label = (alias: string) =>
       plugin.extensions.find((e: { alias: string }) => e.alias === alias)?.meta?.label
-    expect(label('Bunbraco.SectionView.Bundles.Marketplace')).toBe('Marketplace')
-    expect(label('Bunbraco.SectionView.Bundles.Installed')).toBe('Installed')
+    expect(label('Crombolo.SectionView.Bundles.Marketplace')).toBe('Marketplace')
+    expect(label('Crombolo.SectionView.Bundles.Installed')).toBe('Installed')
     expect(dictionary.packager?.created).toBeUndefined()
   })
 
   test('a bundle is found on npm by the keyword that names it', async () => {
     // The client shows the keyword in its empty state, so the two must agree or
     // the screen tells you to publish under a keyword nothing searches for.
-    expect(EXTENSION_KEYWORD).toBe('bunbraco-bundle')
+    expect(EXTENSION_KEYWORD).toBe('crombolo-bundle')
     const marketplace = await Bun.file(
       'packages/backoffice-host/plugin/bundles-marketplace.js',
     ).text()
@@ -293,10 +293,10 @@ describe('the section Umbraco calls Packages', () => {
 
 describe('the System information modal', () => {
   test('renames the product in the rows and the copied heading', () => {
-    expect(rebrandSysinfo('Umbraco build version: 18.2.0')).toBe('Bunbraco build version: 18.2.0')
-    expect(rebrandSysinfo('Umbraco assembly version: ')).toBe('Bunbraco assembly version: ')
-    expect(rebrandSysinfo('Umbraco client version: 18.2.0')).toBe('Bunbraco client version: 18.2.0')
-    expect(rebrandSysinfo('Umbraco system information')).toBe('Bunbraco system information')
+    expect(rebrandSysinfo('Umbraco build version: 18.2.0')).toBe('Crombolo build version: 18.2.0')
+    expect(rebrandSysinfo('Umbraco assembly version: ')).toBe('Crombolo assembly version: ')
+    expect(rebrandSysinfo('Umbraco client version: 18.2.0')).toBe('Crombolo client version: 18.2.0')
+    expect(rebrandSysinfo('Umbraco system information')).toBe('Crombolo system information')
   })
 
   test('is a fixed point, so re-applying it to its own output changes nothing', () => {
@@ -337,7 +337,7 @@ describe('the client credential dialog’s prefix label', () => {
     // The dialog submits the typed value whole, so this label is the only thing
     // telling an administrator what to type. If it drifts from the server's
     // prefix, the dialog cannot be completed at all.
-    expect(REQUIRED_PREFIX).toBe('bunbraco-back-office-')
+    expect(REQUIRED_PREFIX).toBe('crombolo-back-office-')
   })
 
   test('corrects the vendored label once and then leaves it be', () => {
@@ -427,14 +427,14 @@ describe('the generated language overrides', () => {
     ]) {
       expect([value, rebrand(value)]).toEqual([value, undefined])
     }
-    expect(rebrand('Log ind på Umbraco')).toBe('Log ind på Bunbraco')
+    expect(rebrand('Log ind på Umbraco')).toBe('Log ind på Crombolo')
   })
 
   test('restores an article the new name can no longer elide', () => {
-    // French elides `de` before a vowel; Bunbraco opens on a consonant, so the
-    // blunt replacement left `d'Bunbraco` where the article belongs.
+    // French elides `de` before a vowel; Crombolo opens on a consonant, so the
+    // blunt replacement left `d'Crombolo` where the article belongs.
     expect(rebrand("Chercher dans le code source d'Umbraco sur Github")).toBe(
-      'Chercher dans le code source de Bunbraco sur Github',
+      'Chercher dans le code source de Crombolo sur Github',
     )
   })
 
@@ -501,7 +501,7 @@ describe('the client’s own sign-in screen', () => {
   test('runs from an entry point, so it is in place before a session times out', async () => {
     const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
     const entry = plugin.extensions.find(
-      (e: { alias: string }) => e.alias === 'Bunbraco.EntryPoint.SignIn',
+      (e: { alias: string }) => e.alias === 'Crombolo.EntryPoint.SignIn',
     )
     expect(entry?.type).toBe('backofficeEntryPoint')
     expect(entry?.js).toBe(`${PLUGIN_PATH_PLACEHOLDER}/branding/sign-in.js`)
@@ -512,7 +512,7 @@ describe('the Umbraco mark in the icon registry', () => {
   const paths = createBackOfficePaths()
   const VENDORED_ICON = 'packages/core/icon-registry/icons/icon-umbraco.js'
 
-  test('is served as the bun mark, on both prefixes', () => {
+  test('is served as the crombolo mark, on both prefixes', () => {
     // The registry is addressed by name and any element may ask for one, so the
     // glyph behind the name is ours and no path reaches the roundel.
     for (const prefix of [`${paths.assetsPath}/`, `${VENDORED_ASSETS_PATH}/`]) {
@@ -560,12 +560,12 @@ describe('the Umbraco mark in the icon registry', () => {
     // The root element carries no size of its own: the consumer sets it, which
     // is why a viewBox is the only geometry on it.
     const root = /^<svg[^>]*>/.exec(svg)?.[0] ?? ''
-    expect(root).toContain('viewBox="16 21 168 168"')
+    expect(root).toContain('viewBox="81.25 269.75 237.5 237.5"')
     expect(root).not.toMatch(/\s(?:width|height)="/)
     // `uui-icon` inlines this markup into the page, where the short mask ids the
     // shells' own marks use would collide with it.
     expect(svg).not.toMatch(/id="[bgm]"/)
-    expect(svg).toContain('id="bunbraco-icon-mark"')
+    expect(svg).toContain('id="crombolo-icon-mark"')
   })
 
   test('is not offered by the icon picker', async () => {
@@ -583,7 +583,7 @@ describe('the Umbraco mark in the icon registry', () => {
     // loads, and the last append of a name is the one that stands.
     const plugin = await Bun.file('packages/backoffice-host/plugin/umbraco-package.json').json()
     const context = plugin.extensions.find(
-      (e: { alias: string }) => e.alias === 'Bunbraco.GlobalContext.Icons',
+      (e: { alias: string }) => e.alias === 'Crombolo.GlobalContext.Icons',
     )
     expect(context?.type).toBe('globalContext')
     expect(context?.overwrites).toEqual(['Umb.GlobalContext.Icons'])
@@ -625,23 +625,23 @@ describe('the Log Viewer’s search menu', () => {
 
   test('drops the two that search a forum this project does not have', () => {
     expect(
-      rebrandSearchMenu(menu, term, 'Bunbraco.Core').map((item: MenuItem) => item.label),
+      rebrandSearchMenu(menu, term, 'Crombolo.Core').map((item: MenuItem) => item.label),
     ).toEqual(['searchWithGoogle', 'searchUmbracoSource', 'searchUmbracoIssues'])
   })
 
   test('aims the source and issue searches at this repository', () => {
     // By the SourceContext of the line, which is the whole point of the pair.
     expect(
-      rebrandSearchMenu(menu, term, 'Bunbraco.Core').map((item: MenuItem) => item.href()),
+      rebrandSearchMenu(menu, term, 'Crombolo.Core').map((item: MenuItem) => item.href()),
     ).toEqual([
       'https://www.google.com/search?q=boom',
-      `${REPOSITORY}/search?q=Bunbraco.Core`,
-      `${REPOSITORY}/issues?q=Bunbraco.Core`,
+      `${REPOSITORY}/search?q=Crombolo.Core`,
+      `${REPOSITORY}/issues?q=Crombolo.Core`,
     ])
   })
 
   test('leaves no item pointing at Umbraco, nor any under its mark', () => {
-    for (const item of rebrandSearchMenu(menu, term, 'Bunbraco.Core') as MenuItem[]) {
+    for (const item of rebrandSearchMenu(menu, term, 'Crombolo.Core') as MenuItem[]) {
       expect([item.label, /umbraco/i.test(item.href())]).toEqual([item.label, false])
       expect([item.label, item.icon]).not.toEqual([item.label, 'icon-umbraco'])
     }
@@ -651,17 +651,17 @@ describe('the Log Viewer’s search menu', () => {
     // Wrapping the method rather than replacing it is what keeps an upstream
     // addition in the menu instead of silently dropping it.
     const extra = { label: 'somethingNew', href: () => 'https://example.com', icon: 'icon-search' }
-    expect(rebrandSearchMenu([extra], term, 'Bunbraco.Core')).toEqual([extra])
+    expect(rebrandSearchMenu([extra], term, 'Crombolo.Core')).toEqual([extra])
   })
 
   test('names the keys it drops as the dictionary spells them', () => {
     expect(DROPPED).toEqual(['logViewer_searchOurUmbraco', 'logViewer_searchOurUmbracoWithGoogle'])
   })
 
-  test('says Bunbraco in the two labels it keeps', () => {
+  test('says Crombolo in the two labels it keeps', () => {
     const dictionary = english as Record<string, Record<string, string>>
-    expect(dictionary.logViewer?.searchUmbracoSource).toBe('Search Bunbraco source')
-    expect(dictionary.logViewer?.searchUmbracoIssues).toBe('Search Bunbraco issues')
+    expect(dictionary.logViewer?.searchUmbracoSource).toBe('Search Crombolo source')
+    expect(dictionary.logViewer?.searchUmbracoIssues).toBe('Search Crombolo issues')
   })
 })
 
@@ -785,7 +785,7 @@ describe('the extensions the plugin registers', () => {
 
   test('never share an alias, which the backoffice refuses and reports in the console', () => {
     // English has a hand-written override and a generated one; when both were
-    // `Bunbraco.Localization.EN`, every page load logged "already registered".
+    // `Crombolo.Localization.EN`, every page load logged "already registered".
     const seen = new Map<string, string>()
     const clashes: string[] = []
     for (const [alias, file] of aliases) {
@@ -797,7 +797,7 @@ describe('the extensions the plugin registers', () => {
   })
 
   test('keep the generated overrides apart from the hand-written English one', () => {
-    expect(aliasOf('en')).not.toBe('Bunbraco.Localization.EN')
-    expect(aliasOf('en-us')).toBe('Bunbraco.Localization.Overrides.EN_US')
+    expect(aliasOf('en')).not.toBe('Crombolo.Localization.EN')
+    expect(aliasOf('en-us')).toBe('Crombolo.Localization.Overrides.EN_US')
   })
 })

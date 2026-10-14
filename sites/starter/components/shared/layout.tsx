@@ -1,4 +1,4 @@
-import { type Child, type PageProps, SeoHead } from 'bunbraco'
+import { type Child, type PageProps, SeoHead } from '@crombolo/crombolo'
 import { SiteFooter } from './site-footer.tsx'
 import { SiteHeader } from './site-header.tsx'
 

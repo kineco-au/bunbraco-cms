@@ -28,7 +28,7 @@
  * Idempotence falls out of (2): the repository appends only what differs, so
  * importing the same bundle twice writes no values the second time.
  */
-import type { DocumentValue } from '@bunbraco/core'
+import type { DocumentValue } from '@crombolo/core'
 import {
   appendCacheInstruction,
   ComponentRepository,
@@ -41,7 +41,7 @@ import {
   PublishBlockedError,
   type TransferAction,
   TransferRunRepository,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { type CheckOptions, checkBundle, type NodePlan, type TransferCheck } from './check.ts'
 import type { BundleKind, BundleNode, ContentSet } from './model.ts'
 

@@ -1,10 +1,10 @@
 /**
  * Reads and drives the Forms endpoints the server keeps at
- * <backoffice>/bunbraco/api/forms/*. The session cookie carries the auth.
+ * <backoffice>/crombolo/api/forms/*. The session cookie carries the auth.
  */
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/forms`
+  return `${href.replace(/\/$/, '')}/crombolo/api/forms`
 }
 
 const call = async (path, init) => {

@@ -23,14 +23,14 @@ import type {
   MemberResponse,
   Principal,
   SaveMember,
-} from '@bunbraco/api-management'
-import { hashPassword, passwordConfigJson, verifyPassword } from '@bunbraco/auth'
+} from '@crombolo/api-management'
+import { hashPassword, passwordConfigJson, verifyPassword } from '@crombolo/auth'
 import {
   type ContentTypeAggregate,
   hasAccessToSensitiveData,
   normaliseUuid,
   type Page,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import {
   ContentTypeRepository,
   type Db,
@@ -39,7 +39,7 @@ import {
   MemberRepository,
   type ValueIntake,
   WriteRejectedError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 
 export interface MemberPortOptions extends DocumentRepositoryOptions {
   valueIntake?: ValueIntake

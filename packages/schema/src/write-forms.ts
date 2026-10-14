@@ -12,7 +12,7 @@ import type {
   SchemaFormGroup,
   SchemaFormPage,
   SchemaFormWorkflow,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 
 function str(value: string): string {
   return JSON.stringify(value)

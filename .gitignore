@@ -25,6 +25,6 @@ logs/
 packages/*/LICENSE
 packages/*/NOTICE
 # View snapshots: cache, rebuilt from Views/ at boot, per node.
-apps/site/.bunbraco/
+apps/site/.crombolo/
 
-.bunbraco/
+.crombolo/

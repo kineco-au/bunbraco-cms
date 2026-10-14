@@ -1,6 +1,6 @@
 /**
  * Sets one version across every published package, and the VERSION constant the
- * server reports. `@bunbraco/backoffice-dist` is excluded: it tracks the Umbraco
+ * server reports. `@crombolo/backoffice-dist` is excluded: it tracks the Umbraco
  * release it vendors, and is bumped with --backoffice-dist.
  *
  *   bun run scripts/version.ts 0.2.0
@@ -110,7 +110,7 @@ if (version) {
   const umbrella = readFileSync(UMBRELLA_MANIFEST, 'utf8')
   const compatibility = expectedCompatibility(version)
   writeFileSync(UMBRELLA_MANIFEST, writeDeclaration(umbrella, compatibility))
-  console.log(`migrations in packages/bunbraco/package.json -> ${compatibility}`)
+  console.log(`migrations in packages/crombolo/package.json -> ${compatibility}`)
 
   const config = readFileSync(CONFIG, 'utf8')
   if (!VERSION_LINE.test(config)) throw new Error(`No VERSION constant in ${CONFIG}`)

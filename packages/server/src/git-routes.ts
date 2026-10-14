@@ -9,7 +9,7 @@
 import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
-import type { Principal } from '@bunbraco/api-management'
+import type { Principal } from '@crombolo/api-management'
 import { diffFiles, type GitProvider, type RepositoryFile } from './git.ts'
 import { logger } from './logging.ts'
 

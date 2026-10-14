@@ -5,7 +5,7 @@
  * that announces nothing leaves every open editor, including the one that made
  * it, showing the old copy.
  */
-import type { OperationInfo } from '@bunbraco/contracts'
+import type { OperationInfo } from '@crombolo/contracts'
 
 export type ServerEventType = 'Created' | 'Updated' | 'Deleted' | 'Trashed'
 

@@ -1,7 +1,7 @@
 /** Data types: the property editor behind each property, plus its configuration. */
-import type { ResponseOf } from '@bunbraco/contracts'
-import type { DataTypeModel, TreeItem } from '@bunbraco/core'
-import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import type { ResponseOf } from '@crombolo/contracts'
+import type { DataTypeModel, TreeItem } from '@crombolo/core'
+import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { DataTypePort } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import {

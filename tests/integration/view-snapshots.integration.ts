@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync 
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 interface Run {
   code: number
   out: string
@@ -47,26 +47,26 @@ describe('view snapshots, across processes', () => {
   ): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_SCHEMA_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_CSS_DIR',
-      'BUNBRACO_SCRIPTS_DIR',
-      'BUNBRACO_SITE_NAME',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_SCHEMA_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_CSS_DIR',
+      'CROMBOLO_SCRIPTS_DIR',
+      'CROMBOLO_SITE_NAME',
     ])
       delete inherited[name]
     return {
       ...inherited,
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_SQLITE_FILE: join(dir, 'shared.sqlite'),
-      BUNBRACO_LOGS_DIR: join(dir, 'logs', role ?? 'all'),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_SQLITE_FILE: join(dir, 'shared.sqlite'),
+      CROMBOLO_LOGS_DIR: join(dir, 'logs', role ?? 'all'),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
       // A short gate, so a change nobody announced is noticed inside a test
       // rather than after the production interval.
-      BUNBRACO_COMPONENTS_GATE_MS: '100',
-      ...(cacheDir ? { BUNBRACO_COMPONENTS_CACHE_DIR: cacheDir } : {}),
-      ...(role ? { BUNBRACO_ROLE: role } : {}),
+      CROMBOLO_COMPONENTS_GATE_MS: '100',
+      ...(cacheDir ? { CROMBOLO_COMPONENTS_CACHE_DIR: cacheDir } : {}),
+      ...(role ? { CROMBOLO_ROLE: role } : {}),
       ...extra,
     }
   }
@@ -224,11 +224,11 @@ export default function Home({ model }) {
     const listed = await cli('api', 'components', 'list')
     expect(listed.code, listed.out).toBe(0)
     expect(listed.out).toContain('homePage')
-    expect(listed.out).not.toContain('.bunbraco')
+    expect(listed.out).not.toContain('.crombolo')
 
     const checked = await cli('api', 'components', 'check')
     expect(checked.code, checked.out).toBe(0)
-    expect(checked.out).not.toContain('.bunbraco')
+    expect(checked.out).not.toContain('.crombolo')
 
     // `status` names both, because which directory a node snapshots into is
     // something a deploy may need to set.
@@ -272,12 +272,12 @@ export default function Home({ model }) {
       // rather than after 250 generations.
       bounded = await serve('web', {
         env: {
-          BUNBRACO_COMPONENTS_GENERATION_LIMIT: String(limit),
-          BUNBRACO_COMPONENTS_KEEP: '2',
+          CROMBOLO_COMPONENTS_GENERATION_LIMIT: String(limit),
+          CROMBOLO_COMPONENTS_KEEP: '2',
           // No coalescing floor, so each distinct tree counts: the floor is what
           // would otherwise absorb this churn, and the budget is what has to
           // hold when it does not.
-          BUNBRACO_COMPONENTS_SWAP_MS: '0',
+          CROMBOLO_COMPONENTS_SWAP_MS: '0',
         },
       })
     }, 180_000)

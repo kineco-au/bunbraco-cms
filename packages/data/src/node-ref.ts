@@ -16,7 +16,7 @@
  * - a path matching nothing, or more than one node, is an error that names the
  *   candidates. Guessing here would place content somewhere nobody chose.
  */
-import { SystemNodes } from '@bunbraco/core'
+import { SystemNodes } from '@crombolo/core'
 import type { Db } from './database.ts'
 import { NodeRepository, type NodeRow } from './repositories/nodes.ts'
 

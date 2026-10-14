@@ -1,4 +1,4 @@
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import { Layout } from '../shared/layout.tsx'
 
 /** A main column and a sidebar; with nothing in the sidebar, the main column takes the width. */

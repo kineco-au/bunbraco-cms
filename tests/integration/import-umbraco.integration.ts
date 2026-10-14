@@ -1,6 +1,6 @@
 /**
  * Importing an Umbraco site, through the real CLI, the way somebody does it:
- * `import umbraco report`, then `import umbraco apply`, then `bunbraco start`
+ * `import umbraco report`, then `import umbraco apply`, then `crombolo start`
  * in the directory it wrote.
  *
  * The site that boots is checked against the source: every URL the Umbraco site
@@ -16,7 +16,7 @@ import { join, resolve } from 'node:path'
 import { DEMO_STORE } from '../support/umbraco-import.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 const PIXEL = join(ROOT, 'tests/fixtures/pixel.png')
 
 interface Run {
@@ -33,21 +33,21 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
   function environment(): Record<string, string> {
     const inherited = { ...(process.env as Record<string, string>) }
     for (const name of [
-      'BUNBRACO_SQLITE_FILE',
-      'BUNBRACO_COMPONENTS_DIR',
-      'BUNBRACO_SCHEMA_DIR',
-      'BUNBRACO_MEDIA_DIR',
-      'BUNBRACO_CSS_DIR',
-      'BUNBRACO_SCRIPTS_DIR',
-      'BUNBRACO_SITE_NAME',
+      'CROMBOLO_SQLITE_FILE',
+      'CROMBOLO_COMPONENTS_DIR',
+      'CROMBOLO_SCHEMA_DIR',
+      'CROMBOLO_MEDIA_DIR',
+      'CROMBOLO_CSS_DIR',
+      'CROMBOLO_SCRIPTS_DIR',
+      'CROMBOLO_SITE_NAME',
     ])
       delete inherited[name]
     return {
       ...inherited,
-      BUNBRACO_DB: 'sqlite',
-      BUNBRACO_LOGS_DIR: join(dir, 'logs'),
-      BUNBRACO_LOG_TO_CONSOLE: 'false',
-      BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_DB: 'sqlite',
+      CROMBOLO_LOGS_DIR: join(dir, 'logs'),
+      CROMBOLO_LOG_TO_CONSOLE: 'false',
+      CROMBOLO_ADMIN_PASSWORD: 'integration-password',
     }
   }
 
@@ -176,10 +176,10 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
   test('apply writes a whole site, and says what to do next', () => {
     expect(applied.code, applied.out).toBe(0)
     expect(applied.out).toContain('bun start')
-    expect(applied.out).toContain('bunbraco dictionary import import/dictionary.udt')
+    expect(applied.out).toContain('crombolo dictionary import import/dictionary.udt')
     for (const file of [
       'package.json',
-      'bunbraco.config.ts',
+      'crombolo.config.ts',
       'server.ts',
       'schema/schema.toml',
       'schema/content-types/home-page.toml',
@@ -196,7 +196,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
     ])
       expect(existsSync(join(site, file)), file).toBe(true)
 
-    expect(readFileSync(join(site, 'bunbraco.config.ts'), 'utf8')).toContain("siteName: 'Tea Shop'")
+    expect(readFileSync(join(site, 'crombolo.config.ts'), 'utf8')).toContain("siteName: 'Tea Shop'")
     // 192 of the 193 media files were not in the backup, so the import is told to allow that.
     expect(
       (
@@ -204,7 +204,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
           scripts: { start: string }
         }
       ).scripts.start,
-    ).toBe('bunbraco start --bundle bundles/umbraco-import --publish --allow-missing-blobs')
+    ).toBe('crombolo start --bundle bundles/umbraco-import --publish --allow-missing-blobs')
   })
 
   test('apply refuses to write into a directory that already holds something', async () => {

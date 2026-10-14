@@ -10,7 +10,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { LogLevelName, LogRange, LogViewerPort } from '../ports-logs.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 

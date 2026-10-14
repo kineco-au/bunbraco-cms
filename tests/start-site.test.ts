@@ -31,7 +31,7 @@ function run(args: string[]) {
 function runWith(args: string[], env: Record<string, string>) {
   const proc = Bun.spawnSync(['bun', SCRIPT, ...args], {
     cwd: ROOT,
-    env: { ...process.env, BUNBRACO_SCAFFOLDS_DIR: SANDBOX, BUNBRACO_SITES_DIR: SITES, ...env },
+    env: { ...process.env, CROMBOLO_SCAFFOLDS_DIR: SANDBOX, CROMBOLO_SITES_DIR: SITES, ...env },
   })
   return {
     code: proc.exitCode,
@@ -50,7 +50,7 @@ function repoSite(): string {
     JSON.stringify({ id: 'demo/example', name: 'Example', description: 'an example site' }),
   )
   writeFileSync(join(dir, 'components', 'home.tsx'), '')
-  const db = new Database(join(dir, 'bunbraco.sqlite'))
+  const db = new Database(join(dir, 'crombolo.sqlite'))
   db.run('CREATE TABLE node (id INTEGER PRIMARY KEY)')
   db.run('INSERT INTO node (id) VALUES (1)')
   db.close()
@@ -60,11 +60,11 @@ function repoSite(): string {
 describe('choosing a site or a template', () => {
   test('lists the catalogue when none is named', () => {
     // The real sites, so the catalogue is what someone in this checkout sees.
-    const { code, out } = runWith([], { BUNBRACO_SITES_DIR: join(ROOT, 'sites') })
+    const { code, out } = runWith([], { CROMBOLO_SITES_DIR: join(ROOT, 'sites') })
     expect(code).toBe(0)
     expect(out).toContain('Sites:')
     expect(out).toContain('demo/harbourstone')
-    expect(out).toContain('demo/bunbraco')
+    expect(out).toContain('demo/crombolo')
     expect(out).toContain('Templates:')
     expect(out).toContain('basic')
   })
@@ -86,7 +86,7 @@ describe('a site in sites/', () => {
       const { code, out } = run([name, '--dry-run'])
       expect(code).toBe(0)
       expect(out).toContain('in place')
-      expect(out).toContain(join(dir, 'bunbraco.sqlite'))
+      expect(out).toContain(join(dir, 'crombolo.sqlite'))
       expect(out).toContain('--bundle bundles/demo-example --publish')
     }
     expect(existsSync(join(SANDBOX, 'demo-example'))).toBe(false)
@@ -105,7 +105,7 @@ describe('a site in sites/', () => {
     const { code, out } = run(['demo/example', '--fresh', '--dry-run'])
     expect(code).toBe(0)
     expect(out).toContain('would remove')
-    expect(existsSync(join(dir, 'bunbraco.sqlite'))).toBe(true)
+    expect(existsSync(join(dir, 'crombolo.sqlite'))).toBe(true)
     expect(existsSync(join(dir, 'media'))).toBe(true)
   })
 })
@@ -123,7 +123,7 @@ describe('the database a demo is allowed to touch', () => {
   }
 
   test('stops rather than starting against one that holds content', () => {
-    populate(join(siteDir, 'bunbraco.sqlite'))
+    populate(join(siteDir, 'crombolo.sqlite'))
     const { code, out } = run(['basic'])
     expect(code).toBe(1)
     expect(out).toContain('already holds 1 node(s)')
@@ -146,14 +146,14 @@ describe('the database a demo is allowed to touch', () => {
       cwd: ROOT,
       env: {
         ...process.env,
-        BUNBRACO_SCAFFOLDS_DIR: SANDBOX,
-        BUNBRACO_DB: 'postgres',
-        BUNBRACO_POSTGRES_URL: 'postgres://nope@127.0.0.1:1/live',
-        BUNBRACO_SQLITE_FILE: '/tmp/somewhere-else.sqlite',
+        CROMBOLO_SCAFFOLDS_DIR: SANDBOX,
+        CROMBOLO_DB: 'postgres',
+        CROMBOLO_POSTGRES_URL: 'postgres://nope@127.0.0.1:1/live',
+        CROMBOLO_SQLITE_FILE: '/tmp/somewhere-else.sqlite',
       },
     })
     const out = `${proc.stdout.toString()}${proc.stderr.toString()}`
-    expect(out).toContain(join(SANDBOX, 'basic', 'bunbraco.sqlite'))
+    expect(out).toContain(join(SANDBOX, 'basic', 'crombolo.sqlite'))
     expect(out).not.toContain('somewhere-else')
     expect(out).not.toContain('postgres://')
   })
@@ -201,14 +201,14 @@ describe('the compose invocation', () => {
   test('invokes the CLI by absolute path, so the working directory may move', () => {
     // A relative `../../packages/...` breaks the moment the site is not two
     // levels down, which is the whole point of this script.
-    expect(script).toContain('/packages/cli/bin/bunbraco.ts')
+    expect(script).toContain('/packages/cli/bin/crombolo.ts')
     expect(script).toContain('CONTAINER_ROOT')
   })
 
   test('refuses a site outside the repository, which the container cannot see', () => {
     const proc = Bun.spawnSync(['bun', SCRIPT, 'basic', '--docker'], {
       cwd: ROOT,
-      env: { ...process.env, BUNBRACO_SCAFFOLDS_DIR: '/tmp/outside-the-repo' },
+      env: { ...process.env, CROMBOLO_SCAFFOLDS_DIR: '/tmp/outside-the-repo' },
     })
     const out = `${proc.stdout.toString()}${proc.stderr.toString()}`
     expect(proc.exitCode).toBe(1)
@@ -267,7 +267,7 @@ describe('the container --docker leaves behind', () => {
     // nothing here can predict and so nothing here can clean up.
     expect(script).toContain("'--name',")
     // Split so this assertion is not itself a template placeholder.
-    expect(script).toContain('const containerName = `bunbraco-site-')
+    expect(script).toContain('const containerName = `crombolo-site-')
     expect(script).toContain('slug}`')
   })
 
@@ -288,18 +288,18 @@ describe('the container --docker leaves behind', () => {
     const { code, out } = run(['basic', '--docker', '--dry-run'])
     expect(code).toBe(0)
     expect(out).toContain('--name')
-    expect(out).toContain('bunbraco-site-basic')
+    expect(out).toContain('crombolo-site-basic')
   })
 
   test('a dry run reports a port already in use, without failing on it', () => {
     const holder = Bun.listen({ hostname: '0.0.0.0', port: 0, socket: { data() {} } })
     try {
       const { code, out } = runWith(['basic', '--docker', '--dry-run'], {
-        BUNBRACO_PORT: String(holder.port),
+        CROMBOLO_PORT: String(holder.port),
       })
       expect(code).toBe(0)
       expect(out).toContain(`Port ${holder.port} is already in use`)
-      expect(out).toContain('bunbraco-site-basic')
+      expect(out).toContain('crombolo-site-basic')
     } finally {
       holder.stop(true)
     }
@@ -315,11 +315,11 @@ describe('the container --docker leaves behind', () => {
 describe('what it runs', () => {
   test('uses the working tree rather than the published packages', () => {
     // No `bun install` in the site: resolution walks up to the repository's own
-    // node_modules, where every @bunbraco name is a workspace symlink. A demo
+    // node_modules, where every @crombolo name is a workspace symlink. A demo
     // that installed from npm would not show you your own changes.
     const script = readFileSync(SCRIPT, 'utf8')
     expect(script).not.toContain("'install'")
-    expect(script).toContain("join(ROOT, 'packages/cli/bin/bunbraco.ts')")
+    expect(script).toContain("join(ROOT, 'packages/cli/bin/crombolo.ts')")
   })
 
   test('imports the site’s bundle, once', () => {

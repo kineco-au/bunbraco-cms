@@ -13,10 +13,10 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ObjectTypes } from '@bunbraco/core'
+import { ObjectTypes } from '@crombolo/core'
 import {
-  bunbracoPlan,
   connect,
+  cromboloPlan,
   currentSchemaState,
   type Db,
   INITIAL_STATE,
@@ -25,9 +25,9 @@ import {
   readReport,
   readState,
   TransferRunRepository,
-} from '@bunbraco/data'
-import { loadSchemaDirectory } from '@bunbraco/schema'
-import { type BunbracoConfig, describeDatabase, VERSION } from './config.ts'
+} from '@crombolo/data'
+import { loadSchemaDirectory } from '@crombolo/schema'
+import { type CromboloConfig, describeDatabase, VERSION } from './config.ts'
 import { type EmailAvailability, emailAvailability, resolveEmailPort } from './email.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 
@@ -66,7 +66,7 @@ export interface SiteStatus {
    * site: "this page is new here" is a note, not a thing to fix.
    */
   findings: { blocking: number; person: number; auto: number; resolved: number }
-  versions: { bunbraco: string; backoffice?: string; bun: string }
+  versions: { crombolo: string; backoffice?: string; bun: string }
   /**
    * Whether e-mail can leave this site, and what is unavailable when it cannot.
    * Not a problem — no e-mail is a valid configuration — so it is reported
@@ -117,7 +117,7 @@ function backofficeVersion(): string | undefined {
   return undefined
 }
 
-export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
+export async function siteStatus(config: CromboloConfig): Promise<SiteStatus> {
   const loaded = existsSync(config.schemaDir) ? loadSchemaDirectory(config.schemaDir) : undefined
   const status: SiteStatus = {
     site: {
@@ -142,7 +142,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
     framework: { pending: [] },
     content: { documents: 0, media: 0, elements: 0 },
     findings: { blocking: 0, person: 0, auto: 0, resolved: 0 },
-    versions: { bunbraco: VERSION, backoffice: backofficeVersion(), bun: Bun.version },
+    versions: { crombolo: VERSION, backoffice: backofficeVersion(), bun: Bun.version },
     email: emailAvailability(resolveEmailPort(config)),
     problems: [],
   }
@@ -163,7 +163,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
     !existsSync(config.sqliteFile)
   ) {
     status.database.reachable = true
-    status.problems.push('there is no database yet; `bunbraco start` will create one')
+    status.problems.push('there is no database yet; `crombolo start` will create one')
     return status
   }
 
@@ -179,14 +179,14 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
       status.database.installed = false
     }
 
-    status.framework.pending = (await pendingMigrations(db, bunbracoPlan)).map((m) => m.name)
+    status.framework.pending = (await pendingMigrations(db, cromboloPlan)).map((m) => m.name)
     if (!status.database.installed) {
-      status.problems.push('the database is not installed yet; `bunbraco start` will install it')
+      status.problems.push('the database is not installed yet; `crombolo start` will install it')
       return status
     }
     if (status.framework.pending.length > 0 && !config.development)
       status.problems.push(
-        `${status.framework.pending.length} framework migration(s) pending: run \`bunbraco upgrade\``,
+        `${status.framework.pending.length} framework migration(s) pending: run \`crombolo upgrade\``,
       )
 
     const state = await currentSchemaState(db)
@@ -202,7 +202,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
         )
       if (status.schema.pending)
         status.problems.push(
-          'schema/ is ahead of the database: run `bunbraco upgrade check` to see what it would do',
+          'schema/ is ahead of the database: run `crombolo upgrade check` to see what it would do',
         )
       for (const problem of loaded.problems)
         status.problems.push(`${problem.file}: ${problem.message}`)
@@ -224,7 +224,7 @@ export async function siteStatus(config: BunbracoConfig): Promise<SiteStatus> {
     const wanting = status.findings.blocking + status.findings.person
     if (wanting > 0)
       status.problems.push(
-        `${wanting} finding(s) need somebody: \`bunbraco upgrade check\` or the Changes dashboard`,
+        `${wanting} finding(s) need somebody: \`crombolo upgrade check\` or the Changes dashboard`,
       )
     // Read so that a database whose ledger cannot be read is noticed here
     // rather than at the next upgrade.

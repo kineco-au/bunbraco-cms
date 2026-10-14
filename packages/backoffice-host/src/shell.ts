@@ -6,7 +6,7 @@
  * and .../UmbracoLogin/Index.cshtml.
  */
 
-import { MANAGEMENT_API_PATH } from '@bunbraco/core'
+import { MANAGEMENT_API_PATH } from '@crombolo/core'
 import type { PackageManifestImportmap } from './manifests.ts'
 import type { BackOfficePaths } from './paths.ts'
 
@@ -21,7 +21,7 @@ export interface ShellSettings {
 export const DEFAULT_SHELL_SETTINGS: ShellSettings = {
   defaultUiLanguage: 'en-US',
   keepUserLoggedIn: false,
-  title: 'Bunbraco',
+  title: 'Crombolo',
 }
 
 export interface LoginShellSettings {
@@ -52,7 +52,7 @@ const noscript = (logoUrl: string): string => `<noscript>
     <h1 aria-hidden="true" class="uui-h3" style="display: inline-flex; align-items: center; gap: 10px">
       <img alt="logo" src="${logoUrl}" style="width: 100%" />
     </h1>
-    <p>For full functionality of Bunbraco it is necessary to enable JavaScript.</p>
+    <p>For full functionality of Crombolo it is necessary to enable JavaScript.</p>
   </div>
 </noscript>`
 
@@ -115,7 +115,7 @@ export function renderLoginShell(
   <title>${escapeHtml(settings.title)}</title>
   <link rel="stylesheet" href="${assets}/css/light.css" />
   <link rel="stylesheet" href="${paths.pluginPath}/branding/theme.css" />
-  <style>body { margin: 0; padding: 0; background-color: #fdf6ef; }</style>
+  <style>body { margin: 0; padding: 0; background-color: #fff7ea; }</style>
   <script type="importmap">
 ${JSON.stringify(importmap, null, 2)}
   </script>
@@ -123,7 +123,7 @@ ${JSON.stringify(importmap, null, 2)}
 </head>
 <body class="uui-font uui-text" style="margin: 0; padding: 0; overflow: hidden">
 ${noscript(`${graphics}/login-logo-alternative`)}
-<bunbraco-login
+<crombolo-login
   lang="${escapeHtml(settings.defaultUiLanguage)}"
   return-url="${escapeHtml(settings.returnUrl ?? paths.backOfficePath)}"
   logo-image="${graphics}/login-logo"
@@ -132,7 +132,7 @@ ${noscript(`${graphics}/login-logo-alternative`)}
   ${settings.allowUserInvite ? 'allow-user-invite' : ''}
   ${settings.allowPasswordReset ? 'allow-password-reset' : ''}
   ${settings.disableLocalLogin ? 'disable-local-login' : ''}>
-</bunbraco-login>
+</crombolo-login>
 </body>
 </html>
 `

@@ -13,7 +13,7 @@ import {
   problemResponse,
   toEditorValue,
   toPublishedValue,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 
 describe('problem details', () => {
   test('uses the literal string "Error" as type, not a URI', () => {

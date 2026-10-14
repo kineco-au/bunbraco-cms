@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_DATA_TYPES } from '@bunbraco/data'
+import { DEFAULT_DATA_TYPES } from '@crombolo/data'
 import { checkModuleGraph } from '../scripts/check-module-graph.ts'
 import { BACKOFFICE_BASE_PATH, createImportMap } from '../scripts/vendor-backoffice.ts'
 
@@ -24,7 +24,7 @@ const SHELL_REFERENCES = [
 /**
  * Referenced by the shells, and deliberately absent from the vendored tree: these
  * are Umbraco's own marks, which MIT does not license, so `BRANDED_ASSETS` serves
- * bunbraco's at these paths and the vendored originals are not redistributed.
+ * crombolo's at these paths and the vendored originals are not redistributed.
  * `tests/backoffice-host.test.ts` is where the substitution itself is asserted.
  */
 const BRANDED_REFERENCES = [
@@ -140,7 +140,7 @@ describe.skipIf(!vendored)('vendored backoffice', () => {
     expect(missing).toEqual([])
   })
 
-  test("carries none of Umbraco's marks, which are served as bunbraco's instead", () => {
+  test("carries none of Umbraco's marks, which are served as crombolo's instead", () => {
     // Not an oversight in the vendor step: the request for each of these is
     // intercepted before it reaches the vendored tree, so shipping the original
     // would redistribute a trademark for nothing.

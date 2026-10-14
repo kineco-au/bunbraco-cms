@@ -5,7 +5,7 @@ import {
   ObjectTypes,
   type Page,
   SystemNodes,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { NodeRepository } from './nodes.ts'
 

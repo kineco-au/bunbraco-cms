@@ -28,7 +28,7 @@ deploy a new one" — not a live-sync one.
 
 ## The shared schema store
 
-`schemaStore` on `BunbracoConfig`, following `mediaStore`: absent means `schema/`
+`schemaStore` on `CromboloConfig`, following `mediaStore`: absent means `schema/`
 is a directory, which is what a repository checkout wants. Present — from
 `s3SchemaStore` or `azureSchemaStore` — the store is the truth.
 
@@ -166,8 +166,8 @@ Files are the source of truth, so a TOML changed by a commit, published by anoth
 node, or written by the backoffice has to reach the database without a restart:
 
 ```
-GET  <backoffice>/bunbraco/api/schema-import    what it would do, changing nothing
-POST <backoffice>/bunbraco/api/schema-import    do it
+GET  <backoffice>/crombolo/api/schema-import    what it would do, changing nothing
+POST <backoffice>/crombolo/api/schema-import    do it
 ```
 
 Both re-materialise the store first. The GET runs the same check that gates an

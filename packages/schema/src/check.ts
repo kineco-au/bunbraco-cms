@@ -1,13 +1,13 @@
 /**
  * The pre-upgrade check: what would this change do to the data, and what does
- * it need? One function behind `bunbraco upgrade check` and `bunbraco schema
+ * it need? One function behind `crombolo upgrade check` and `crombolo schema
  * check`. Read-only. docs/10-packaging-and-upgrades.md, "Three kinds of finding".
  */
-import type { ContentTypeAggregate, PropertyTypeModel } from '@bunbraco/core'
-import { DEFAULT_BACKOFFICE_PATH } from '@bunbraco/core'
+import type { ContentTypeAggregate, PropertyTypeModel } from '@crombolo/core'
+import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
 import {
-  bunbracoPlan,
   ContentTypeRepository,
+  cromboloPlan,
   currentSchemaState,
   DataTypeRepository,
   type Db,
@@ -17,7 +17,7 @@ import {
   latestPreparedState,
   pendingMigrations,
   readLedger,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
 import { allProperties, type SchemaContentType, type SchemaProperty } from './model.ts'
@@ -150,7 +150,7 @@ export async function runCheck(
   const migrations = options.migrations ?? []
 
   // ---- the framework's own steps
-  const frameworkPending = (await pendingMigrations(db, bunbracoPlan)).map((m) => m.name)
+  const frameworkPending = (await pendingMigrations(db, cromboloPlan)).map((m) => m.name)
   for (const name of frameworkPending)
     findings.push({
       kind: 'auto',

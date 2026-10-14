@@ -3,8 +3,8 @@
  * generated contract, so an implementation that drifts from the wire shape is a
  * compile error rather than a broken editor.
  */
-import type { ResponseOf } from '@bunbraco/contracts'
-import type { DocumentValidationError, DocumentValue, Page, SkipTake } from '@bunbraco/core'
+import type { ResponseOf } from '@crombolo/contracts'
+import type { DocumentValidationError, DocumentValue, Page, SkipTake } from '@crombolo/core'
 import type { PortFailure } from './ports-content.ts'
 import type { Principal } from './router.ts'
 
@@ -20,7 +20,7 @@ export type MemberItem = ResponseOf<'GetItemMember'>[number]
 
 /**
  * What a create or a save carries. `password` is plaintext here and hashed by
- * the adapter: hashing belongs to `@bunbraco/auth`, and a handler should not be
+ * the adapter: hashing belongs to `@crombolo/auth`, and a handler should not be
  * able to store one by accident.
  */
 export interface SaveMember {

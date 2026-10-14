@@ -1,12 +1,12 @@
 /**
- * Reads and saves search and sharing at `<backoffice>/bunbraco/api/seo/*`. The
+ * Reads and saves search and sharing at `<backoffice>/crombolo/api/seo/*`. The
  * session cookie carries the auth, as it does for the framework's other plugin
  * endpoints; the base comes from `<base href>` because the backoffice path is
  * configurable.
  */
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/seo`
+  return `${href.replace(/\/$/, '')}/crombolo/api/seo`
 }
 
 const json = async (path, init) => {

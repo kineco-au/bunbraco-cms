@@ -16,9 +16,9 @@ import {
   timingSafeEqual,
   verifyChallenge,
   verifyPassword,
-} from '@bunbraco/auth'
-import { DEFAULT_BACKOFFICE_PATH as BACKOFFICE } from '@bunbraco/core'
-import { createServer } from '@bunbraco/server'
+} from '@crombolo/auth'
+import { DEFAULT_BACKOFFICE_PATH as BACKOFFICE } from '@crombolo/core'
+import { createServer } from '@crombolo/server'
 import { resetPostgresSchema } from './support/db.ts'
 
 const V1 = '/umbraco/management/api/v1'
@@ -26,9 +26,9 @@ const SECURITY = `${V1}/security/back-office`
 const ORIGIN = 'http://localhost'
 const REDIRECT_URI = `${ORIGIN}${BACKOFFICE}/oauth_complete`
 const CLIENT_ID = 'umbraco-back-office'
-const ADMIN = { username: 'admin@bunbraco.local', password: 'test-password' }
+const ADMIN = { username: 'admin@crombolo.local', password: 'test-password' }
 
-const names = cookieNames({ siteName: 'Bunbraco', securePrefix: true })
+const names = cookieNames({ siteName: 'Crombolo', securePrefix: true })
 
 /** A minimal cookie jar, since the flow depends on cookies being carried. */
 class Jar {

@@ -23,7 +23,7 @@ import {
   toEditorValue,
   type ValueStorageTypeName,
   type VariantState,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import { appendCacheInstruction } from '../cluster.ts'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'

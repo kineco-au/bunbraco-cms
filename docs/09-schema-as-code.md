@@ -13,7 +13,7 @@ paper over it.
 
 Three placements, decided by one question — what changes it?
 
-- **Files** (`schema/`, `components/`, `bunbraco.config.ts`): changes with a deploy.
+- **Files** (`schema/`, `components/`, `crombolo.config.ts`): changes with a deploy.
 - **Database**: changes with editing, or is per-person, per-page or per-environment.
 - **Derived**: rebuildable from one of the above; authoritative nowhere.
 
@@ -39,7 +39,7 @@ and where it sits here:
 | Metadata | Umbraco today | Here | Notes |
 | --- | --- | --- | --- |
 | Languages | DB: `umbracoLanguage` | **Files** `schema/languages.toml` | 5b |
-| Dictionary | DB: `cmsDictionary`, `cmsLanguageText` | DB | translators work in production, where files are read-only; `bunbraco dictionary export/import` seeds environments — built, `13-content-transfer.md` |
+| Dictionary | DB: `cmsDictionary`, `cmsLanguageText` | DB | translators work in production, where files are read-only; `crombolo dictionary export/import` seeds environments — built, `13-content-transfer.md` |
 | Domains and hostnames | DB: `umbracoDomain`, per node | DB | environment-specific — dev and prod differ — so not part of the deploy unit |
 | Backoffice UI strings | Files: the client\'s `assets/lang/*.js`; sites add theirs in an npm extension | Files | client-side only |
 
@@ -51,9 +51,9 @@ and where it sits here:
 | Start nodes per group | DB: columns on `umbracoUserGroup` | Files, by content key | optional |
 | Start nodes per user | DB: `umbracoUserStartNode` | DB | per-person |
 | Users, sessions, tokens, 2FA secrets | DB | DB | data, not metadata |
-| External login provider configuration | Files and code: `appsettings.json`, `AddBackOfficeExternalLogins()` | **Files** `bunbraco.config.ts` | |
+| External login provider configuration | Files and code: `appsettings.json`, `AddBackOfficeExternalLogins()` | **Files** `crombolo.config.ts` | |
 | External login links | DB: `umbracoExternalLogin` | DB | per-person |
-| API keys, Delivery API access | Files: `appsettings.json` | Files `bunbraco.config.ts` | |
+| API keys, Delivery API access | Files: `appsettings.json` | Files `crombolo.config.ts` | |
 | Member groups | DB: nodes of the member-group object type | **Files** `schema/member-groups.toml` | roles, referenced by public-access rules |
 | Public access rules | DB: `umbracoAccess`, `umbracoAccessRule`, per node | DB | a per-page editorial decision |
 
@@ -64,10 +64,10 @@ and where it sits here:
 | Relation types | DB: `umbracoRelationType` | **Files** `schema/relation-types.toml` | |
 | Relations, tags, redirect URLs | DB | DB | generated from content |
 | Webhooks | DB: `umbracoWebhook` plus events, headers, content-type keys | **Files** `schema/webhooks/` | integration is deploy-bound; edited through write-back |
-| Package manifests and extensions | Files: a `bunbraco` field in each dependency's `package.json` | Files | already how they are discovered |
+| Package manifests and extensions | Files: a `crombolo` field in each dependency's `package.json` | Files | already how they are discovered |
 | Created packages | Both: `umbracoCreatedPackageSchema` and an exported zip | DB, exporting to a file | out of scope |
 | Log viewer saved searches | DB: `umbracoLogViewerQuery` | DB | user-created |
-| Health check, imaging, request-handler and content settings | Files: `appsettings.json` | Files `bunbraco.config.ts` | |
+| Health check, imaging, request-handler and content settings | Files: `appsettings.json` | Files `crombolo.config.ts` | |
 | Notification subscriptions | DB: `umbracoUser2NodeNotify` | DB | per-person, per-page |
 | Content schedules | DB: `umbracoContentSchedule` | DB | editorial |
 | Migration state | DB: `umbracoKeyValue` | DB, plus the ledger | |
@@ -80,7 +80,7 @@ and where it sits here:
 | Published cache | Both: `cmsContentNu` and NuCache files | memory |
 | Search index | Files: Examine on disk | FTS5 / `tsvector`, rebuildable |
 | Media files | Files `wwwroot/media/` plus `umbracoMediaVersion.path` | files plus the DB path, as Umbraco |
-| The built backoffice | a NuGet static-assets package | `@bunbraco/backoffice-dist` |
+| The built backoffice | a NuGet static-assets package | `@crombolo/backoffice-dist` |
 
 Three placements differ from Umbraco\'s and deserve a word. **Member groups and
 webhooks** move to files because they are structure — roles and integrations —
@@ -156,8 +156,8 @@ The files are the source, so somebody has to write the first one. Two commands
 do it rather than leaving a new site to copy a type out of the documentation:
 
 ```bash
-bunbraco schema new content-type article --at-root
-bunbraco schema add-property article summary --type textarea --mandatory
+crombolo schema new content-type article --at-root
+crombolo schema add-property article summary --type textarea --mandatory
 ```
 
 `schema new` writes the type with its keys already in it — so the file passes
@@ -271,7 +271,7 @@ than the deployment that introduces it. Nothing is written back into files for
 this, and nothing is committed by a pipeline.
 
 As built in 5c: the row carries `since_state_id` (the state that created it)
-and `since_version` (the file's `since`); `pendingUntil` in `@bunbraco/data`
+and `since_version` (the file's `since`); `pendingUntil` in `@crombolo/data`
 is the one comparison. A pending property's name arrives in the editor as
 `Title (goes live in 2.1)` with the rule in its description — no client code
 — and publish validation, the published model and the create menu all consult
@@ -304,7 +304,7 @@ shipped with the framework, always present, not deletable, alias fixed. A
 site needs no file for them; a file with the same alias *and key* overrides
 one, and export writes that file only once the type differs from what ships.
 **Video, Audio, Article and Vector Graphics** are ordinary site files —
-`bunbraco init` writes them — which a site may change or delete.
+`crombolo init` writes them — which a site may change or delete.
 
 **Search & sharing** (`seoFields`) is the one system *document* type, a
 composition a site opts into with `compositions = ["seoFields"]`. A site may
@@ -410,7 +410,7 @@ wrong in a multi-node deployment, so the design is version-gated and locked.
 | Boot | every node, after framework migrations | yes — under a distributed lock, version-gated |
 | File change | development only, single node | yes |
 | Backoffice write-back | development only | writes the file; the watcher syncs it |
-| `bunbraco schema sync` | a deploy pipeline step | yes; with `BUNBRACO_SYNC_SCHEMA_AT_BOOT=false`, nodes then only record their state |
+| `crombolo schema sync` | a deploy pipeline step | yes; with `CROMBOLO_SYNC_SCHEMA_AT_BOOT=false`, nodes then only record their state |
 | Production | — | files are read-only; schema changes arrive by deploying files |
 
 The last row keeps multi-node coherent: in production the only way schema
@@ -455,7 +455,7 @@ node allowed to write is one whose files are at least as new as the database.
 **Production requires a version bump for any schema change.** Same version,
 different hash, in production: refuse to boot, naming the files that differ.
 In development it simply applies. This makes the first rule airtight and gives
-`bunbraco schema check` something concrete to enforce in CI — files parse, keys
+`crombolo schema check` something concrete to enforce in CI — files parse, keys
 present, version bumped when content changed.
 
 **Keys are written in development and required in production.** Writing a
@@ -492,13 +492,13 @@ Removing a property from a file does **not** delete anything:
   writes its key back — so "I deleted it; put it back" simply works. If it
   returns with a different data type, `check` flags a data-requiring change,
   and the old values are still there, in the old storage column, to migrate.
-- **Purge is separate, explicit and rare**: `bunbraco schema purge
+- **Purge is separate, explicit and rare**: `crombolo schema purge
   --older-than 90d` deletes retired property types and their data. It is a
   contract step — ledgered, shown by `upgrade --plan`, never automatic.
 
 Types are stricter, because hiding whole pages is a content decision rather than
 a schema one: a type file disappearing while content of that type exists still
-refuses to boot, as above, unless `bunbraco schema sync --force-retire-types`
+refuses to boot, as above, unless `crombolo schema sync --force-retire-types`
 retires it deliberately. Its documents stay where they are and still load —
 moving them to the recycle bin is a content decision, made in the backoffice.
 
@@ -538,7 +538,7 @@ Postgres database through exactly this.
 
 ### The other direction
 
-`bunbraco schema export` writes the database's current definitions as canonical
+`crombolo schema export` writes the database's current definitions as canonical
 files. It is how an existing site adopts schema-as-code, and how the Phase 4
 fixtures moved to files in 5b. Built-in data types are exported only when the
 site changed their editor or configuration; a data type created in the
@@ -557,7 +557,7 @@ output is a diffable text file that developers review like any other change.
   churn of general-purpose TOML writers). Comments are stripped; `notes` is not.
 - Writing is enabled in development. In production the schema directory is read
   only and the editor shows "defined in `schema/content-types/home-page.toml` —
-  change it in source control", unless `BUNBRACO_SCHEMA_WRITABLE=true`.
+  change it in source control", unless `CROMBOLO_SCHEMA_WRITABLE=true`.
 - A save validates the whole schema set before writing, so a change that would
   break another file is refused in the UI with the same messages boot would give.
 - As built: content types, data types and languages are all written by
@@ -580,11 +580,11 @@ output is a diffable text file that developers review like any other change.
   leaves its stored values in place until a cleanup job runs, so it can be
   reverted.
 - **Generated TypeScript types fall out for free.** The files are already the
-  definition; `bunbraco generate` emits `schema/content-types.d.ts` so a template
+  definition; `crombolo generate` emits `schema/content-types.d.ts` so a template
   can be typed as `PageProps<HomePage>` (see "Typed pages" in `05-rendering.md`).
   This replaces the ModelsBuilder idea from `06-features.md`.
 - **A framework upgrade that changes the vocabulary rewrites the files.** Because
-  we own the canonical writer, `bunbraco upgrade schema` can migrate every file
+  we own the canonical writer, `crombolo upgrade schema` can migrate every file
   to the new vocabulary, and the result is a reviewable commit.
 
 ## Schema as code
@@ -601,18 +601,18 @@ database under a distributed lock, version-gated (`docs/09-schema-as-code.md`):
   backoffice writes its file; removing a property retires it and its values
   survive; removing a type with content refuses to boot.
 - **production** — every element must carry a key, a change needs a version
-  bump (or a newer `BUNBRACO_SCHEMA_REVISION`), and the backoffice editor
+  bump (or a newer `CROMBOLO_SCHEMA_REVISION`), and the backoffice editor
   answers 409 pointing at the file. A node whose files are older than the
   database runs in compatibility mode: reads only, writes refused with 409.
 
 ```bash
-bunx bunbraco schema new content-type article --at-root   # the file, with keys, and its view
-bunx bunbraco schema add-property article summary --type textarea --mandatory
-bunx bunbraco schema check --static   # parse and validate, no database
-bunx bunbraco schema check            # …and report what a sync would do
-bunx bunbraco schema sync             # apply (a deploy step, or leave it to boot)
-bunx bunbraco schema export           # database → canonical files (adopting an existing site)
-bunx bunbraco generate                # schema/content-types.d.ts for typed views
+bunx crombolo schema new content-type article --at-root   # the file, with keys, and its view
+bunx crombolo schema add-property article summary --type textarea --mandatory
+bunx crombolo schema check --static   # parse and validate, no database
+bunx crombolo schema check            # …and report what a sync would do
+bunx crombolo schema sync             # apply (a deploy step, or leave it to boot)
+bunx crombolo schema export           # database → canonical files (adopting an existing site)
+bunx crombolo generate                # schema/content-types.d.ts for typed views
 ```
 
 `schema new` writes the type file — keys filled in, so it passes the production

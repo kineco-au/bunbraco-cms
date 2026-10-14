@@ -52,7 +52,7 @@ Closes every gap with Bun alone, writing `packages/backoffice-dist/dist/` (commi
 | 1. copy `node_modules/@umbraco-cms/backoffice/dist-cms/{apps,packages,libs,assets}` | the app itself |
 | 2. `bun build dist-cms/external/<m>/index.js --target=browser --format=esm` for each of the 10 externals | self-contained `external/*` bundles |
 | 3. copy `node_modules/@umbraco-ui/uui/dist/themes/{light,dark,high-contrast}.css` | 3 of the 4 stylesheets |
-| 4. copy 3 files from `packages/backoffice-dist/upstream-static/` — `css/{umb-css,rte-content,umbraco-blockgridlayout}.css`. Umbraco's three SVG marks are deliberately not seeded; `BRANDED_ASSETS` serves bunbraco's at those paths | the rest |
+| 4. copy 3 files from `packages/backoffice-dist/upstream-static/` — `css/{umb-css,rte-content,umbraco-blockgridlayout}.css`. Umbraco's three SVG marks are deliberately not seeded; `BRANDED_ASSETS` serves crombolo's at those paths | the rest |
 | 5. bundle every remaining bare specifier the tree imports (27 of them: all `@tiptap/*`, `diff`, `uuid`) into `deps/<specifier>/`, each from a generated shim entry | third-party code the client imports directly rather than through `external/*` |
 | 6. generate `umbraco-package.json` from the package's `exports`, extended with the `deps/` entries | the import map |
 | 7. `bun build` the client's own modules — every import-map target under `apps/`, `packages/`, `libs/`, plus the shell's `app.element.js` — with `splitting` on | 132 entry points and ~1,870 shared chunks, in place of one file per source module |
@@ -81,7 +81,7 @@ reproduce.
 
 npm ships `tsc` output: one file per source module, 7,557 of them. Served verbatim,
 a single sign-in fetched **4,583 distinct modules**, and because the login flow is
-three full-page navigations — `/bunbraco` links the whole graph to discover there
+three full-page navigations — `/crombolo` links the whole graph to discover there
 is no session, then `/authorize`, then `/oauth_complete` — each one re-linked the
 graph, for **12,964 requests**. Only the first pass touches the network; the rest
 are browser cache hits, but every one still costs a request through Chrome's
@@ -230,7 +230,7 @@ prefix with `no-cache`. ETag/304 on all of it.
   <link rel="icon" type="image/svg+xml" href="/umbraco/backoffice/<hash>/assets/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Bunbraco</title>
+  <title>Crombolo</title>
   <link rel="stylesheet" href="/umbraco/backoffice/<hash>/css/umb-css.css" />
   <link rel="stylesheet" href="/umbraco/backoffice/<hash>/css/light.css" />
   <script type="importmap">{ "imports": { … } }</script>
@@ -262,7 +262,7 @@ Merged from every discovered `umbraco-package.json`:
 1. `packages/backoffice-dist/dist/umbraco-package.json` — the core manifest, ~143 entries
    generated from the client's `package.json` `exports`
    (`@umbraco-cms/backoffice/auth` → `/umbraco/backoffice/packages/core/auth/index.js`)
-2. each installed npm extension's `bunbraco` field, from the site's own
+2. each installed npm extension's `crombolo` field, from the site's own
    dependencies ([`17-bundles.md`](17-bundles.md)); asset paths are rewritten
    to `/packages/<name>/…`
 
@@ -274,17 +274,17 @@ allowCacheBusting?, extensions: unknown[], importmap?: { imports, scopes? } }`.
 
 ### What moves with `backOfficePath`, and what does not
 
-The editor is mounted at `/bunbraco` (`BUNBRACO_BACKOFFICE_PATH`, defaulting to
-`DEFAULT_BACKOFFICE_PATH` in `@bunbraco/core`, the single place the default is
+The editor is mounted at `/crombolo` (`CROMBOLO_BACKOFFICE_PATH`, defaulting to
+`DEFAULT_BACKOFFICE_PATH` in `@crombolo/core`, the single place the default is
 written). Moving it does **not** move the API, exactly as in Umbraco, where
 `UmbracoPath` does not affect `VersionedApiBackOfficeRoute`.
 
 | Moves with `backOfficePath` | Fixed, because the vendored client hard-codes it |
 | --- | --- |
-| the SPA shell and its routes (`/bunbraco/section/…`) | `/umbraco/management/api/v1/**` — the contract, and the generated SDK |
+| the SPA shell and its routes (`/crombolo/section/…`) | `/umbraco/management/api/v1/**` — the contract, and the generated SDK |
 | the login page and its assets | `/umbraco/serverEventHub` — `server-event.context.js` |
-| static assets, `/bunbraco/backoffice/<hash>/…` | `/umbraco/PreviewHub` — `preview.context.js` |
-| our own plugin, `/bunbraco/bunbraco/…` | the security endpoints, which are Management API operations |
+| static assets, `/crombolo/backoffice/<hash>/…` | `/umbraco/PreviewHub` — `preview.context.js` |
+| our own plugin, `/crombolo/crombolo/…` | the security endpoints, which are Management API operations |
 | `oauth_complete` and `logout`, the SPA's own routes | the back-office graphics, served under the API path |
 
 The constants for the fixed paths live in `packages/core/src/api-paths.ts`, so
@@ -297,8 +297,8 @@ moves.
 ### Replacing a core extension
 
 `packages/backoffice-host/plugin/umbraco-package.json` is our own manifest. Its
-entries name their modules under the `/bunbraco-plugin/*` placeholder, which
-`collectManifests` rewrites to `pluginPath` — `/bunbraco/bunbraco/*` by default —
+entries name their modules under the `/crombolo-plugin/*` placeholder, which
+`collectManifests` rewrites to `pluginPath` — `/crombolo/crombolo/*` by default —
 so the manifest on disk need not know where the editor is mounted. To put
 something of ours where one of Umbraco's
 extensions was, the manifest entry names it in `overwrites`: the Welcome
@@ -340,17 +340,17 @@ than registering one, in three parts:
   disk so that a view's `../schema/content-types.d.ts` resolves in the editor the
   way it resolves for `tsc`.
 - **The types are served, not guessed.** `GET
-  <backoffice>/bunbraco/api/editor-types` (signed in) returns
-  `@bunbraco/render`'s own sources — the package ships them, and they are what
-  `bunbraco` re-exports to a view, so they cannot drift from it — plus the
+  <backoffice>/crombolo/api/editor-types` (signed in) returns
+  `@crombolo/render`'s own sources — the package ships them, and they are what
+  `@crombolo/crombolo` re-exports to a view, so they cannot drift from it — plus the
   schema's generated `content-types.d.ts`, read fresh on every request. monaco
-  holds them as extra libs under `file:///node_modules/bunbraco/`, which is where
+  holds them as extra libs under `file:///node_modules/crombolo/`, which is where
   TypeScript's own directory-index lookup arrives from a bare
-  `import … from 'bunbraco'`: no import map, and no `paths` entry, because the
+  `import … from '@crombolo/crombolo'`: no import map, and no `paths` entry, because the
   editor has neither a base URL nor a working directory to resolve one against.
 
 The compiler options are `apps/site/tsconfig.json`'s — `jsx: react-jsx`,
-`jsxImportSource: 'bunbraco'`, `strict`, `allowImportingTsExtensions`,
+`jsxImportSource: '@crombolo/crombolo'`, `strict`, `allowImportingTsExtensions`,
 `moduleResolution: bundler` — so that what the editor underlines is what `tsc`
 would report. `bundler` is passed as its number, `100`: monaco's editor-side
 `ModuleResolutionKind` names only Classic and NodeJs, because the enum predates
@@ -438,7 +438,7 @@ Non-obvious requirements, all of which the client depends on:
 - API users authenticate with `grant_type=client_credentials`, their own
   `client_id` and secret, and receive a real bearer token with no refresh token
   — a machine client, not the SPA. Umbraco requires the prefix
-  `umbraco-back-office-` here; bunbraco requires `bunbraco-back-office-`, since
+  `umbraco-back-office-` here; crombolo requires `crombolo-back-office-`, since
   this one is a name an administrator types rather than anything the client
   sends. Migration 020 renamed existing credentials in place, keeping their
   secrets. The `client_id` above is a different thing and stays as it is: the
@@ -488,7 +488,7 @@ Umbraco's statuses (`401` for the editor rules, `403` for the resource ones).
   It is not optional: while connected, the client serves entity details from a
   cache that only these events clear, so a save that announces nothing leaves
   the editor redrawing the old copy. The router announces every successful
-  `Post`/`Put`/`Delete` on an entity (`serverEventFor` in `@bunbraco/api-management`):
+  `Post`/`Put`/`Delete` on an entity (`serverEventFor` in `@crombolo/api-management`):
   `Created` with the generated key, `Deleted`, `Trashed` for a move to the
   recycle bin, otherwise `Updated`. Validation and folder operations announce
   nothing. As in Umbraco, the event reaches every connected user, including the

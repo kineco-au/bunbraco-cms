@@ -1,7 +1,7 @@
 /**
  * The whole transfer, through the real CLI, between two real databases.
  *
- * Everything else tests the functions. This spawns `bunbraco` as a pipeline
+ * Everything else tests the functions. This spawns `crombolo` as a pipeline
  * would: separate processes, separate SQLite files, a bundle written to disk and
  * read back, and assertions on exit codes and on what the command printed. That
  * covers the parts unit tests cannot — argument parsing, exit status, the output
@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
-const CLI = join(ROOT, 'packages/cli/bin/bunbraco.ts')
+const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
 
 const PAGE_TOML = `[content-type]
 alias = "page"
@@ -40,8 +40,8 @@ const VIEW = `export default function Page({ model }) {
 
 /** Seeds content through the repositories, which is the one thing the CLI cannot do. */
 const SEED = `
-import { ContentTypeRepository, DocumentRepository, currentSchemaState } from '@bunbraco/data'
-import { bootstrapDatabase, loadConfig } from '@bunbraco/server'
+import { ContentTypeRepository, DocumentRepository, currentSchemaState } from '@crombolo/data'
+import { bootstrapDatabase, loadConfig } from '@crombolo/server'
 
 const [, , ...args] = Bun.argv
 const config = loadConfig({}, process.cwd())
@@ -93,7 +93,7 @@ if (args[0] === 'tree') {
 } else if (args[0] === 'media') {
   // A media item with real bytes in this environment's store, which is what
   // --with-blobs has to carry.
-  const { mediaStoreFor } = await import('@bunbraco/server')
+  const { mediaStoreFor } = await import('@crombolo/server')
   const media = new DocumentRepository(db, {
     kind: 'media',
     nodeState: { version: state.version, revision: state.revision },
@@ -117,7 +117,7 @@ if (args[0] === 'tree') {
   })
   console.log(JSON.stringify({ key, blob }))
 } else if (args[0] === 'blob') {
-  const { mediaStoreFor } = await import('@bunbraco/server')
+  const { mediaStoreFor } = await import('@crombolo/server')
   const store = await mediaStoreFor(config)
   const file = await store.get(args[1])
   console.log(JSON.stringify({ exists: Boolean(file), size: file ? (await file.bytes()).length : 0 }))
@@ -152,14 +152,14 @@ describe('content transfer, end to end through the CLI', () => {
       cwd: site,
       env: {
         ...process.env,
-        BUNBRACO_DB: 'sqlite',
-        BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
-        BUNBRACO_SCHEMA_DIR: join(site, 'schema'),
-        BUNBRACO_COMPONENTS_DIR: join(site, 'components'),
-        BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
-        BUNBRACO_LOGS_DIR: join(dir, 'logs'),
-        BUNBRACO_LOG_TO_CONSOLE: 'false',
-        BUNBRACO_ADMIN_PASSWORD: 'integration-password',
+        CROMBOLO_DB: 'sqlite',
+        CROMBOLO_SQLITE_FILE: join(dir, `${database}.sqlite`),
+        CROMBOLO_SCHEMA_DIR: join(site, 'schema'),
+        CROMBOLO_COMPONENTS_DIR: join(site, 'components'),
+        CROMBOLO_MEDIA_DIR: join(dir, `${database}-media`),
+        CROMBOLO_LOGS_DIR: join(dir, 'logs'),
+        CROMBOLO_LOG_TO_CONSOLE: 'false',
+        CROMBOLO_ADMIN_PASSWORD: 'integration-password',
       },
       stdout: 'pipe',
       stderr: 'pipe',
@@ -176,15 +176,15 @@ describe('content transfer, end to end through the CLI', () => {
       cwd: site,
       env: {
         ...process.env,
-        BUNBRACO_DB: 'sqlite',
-        BUNBRACO_SQLITE_FILE: join(dir, `${database}.sqlite`),
-        BUNBRACO_SCHEMA_DIR: join(site, 'schema'),
-        BUNBRACO_COMPONENTS_DIR: join(site, 'components'),
+        CROMBOLO_DB: 'sqlite',
+        CROMBOLO_SQLITE_FILE: join(dir, `${database}.sqlite`),
+        CROMBOLO_SCHEMA_DIR: join(site, 'schema'),
+        CROMBOLO_COMPONENTS_DIR: join(site, 'components'),
         // The same store the CLI uses, or a media file seeded here is one the
         // export cannot find.
-        BUNBRACO_MEDIA_DIR: join(dir, `${database}-media`),
-        BUNBRACO_LOGS_DIR: join(dir, 'logs'),
-        BUNBRACO_LOG_TO_CONSOLE: 'false',
+        CROMBOLO_MEDIA_DIR: join(dir, `${database}-media`),
+        CROMBOLO_LOGS_DIR: join(dir, 'logs'),
+        CROMBOLO_LOG_TO_CONSOLE: 'false',
       },
       stdout: 'pipe',
       stderr: 'pipe',

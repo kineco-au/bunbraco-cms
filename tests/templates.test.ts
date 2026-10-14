@@ -1,5 +1,5 @@
 /**
- * The starter templates and what `bunbraco init` writes.
+ * The starter templates and what `crombolo init` writes.
  *
  * `tests/integration/new-site.integration.ts` boots a scaffolded site; this
  * holds the shipped templates to the rules a site is held to — valid schema, a
@@ -19,11 +19,11 @@ import {
   packageNameFor,
   type SiteTemplate,
   scaffoldFiles,
-} from '@bunbraco/cli'
-import { allFormFields, type SchemaForm } from '@bunbraco/core'
-import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@bunbraco/schema'
-import { listComponents } from '@bunbraco/server'
-import { loadBundle } from '@bunbraco/transfer'
+} from '@crombolo/cli'
+import { allFormFields, type SchemaForm } from '@crombolo/core'
+import { allProperties, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
+import { listComponents } from '@crombolo/server'
+import { loadBundle } from '@crombolo/transfer'
 import { ROOT } from '../scripts/packages.ts'
 import { listSites, stageTemplates } from '../scripts/sites.ts'
 
@@ -47,7 +47,7 @@ describe('the starter templates', () => {
   test('are listed with what they contain, and an unknown one is not invented', () => {
     expect(templates.map((t) => t.id)).toEqual([
       'basic',
-      'demo/bunbraco',
+      'demo/crombolo',
       'demo/harbourstone',
       'starter',
     ])
@@ -142,7 +142,7 @@ describe('the demo’s form', () => {
     const set = loadBundle(join(template.dir, 'bundle')).set
     const picked = (set?.nodes ?? []).flatMap((node) =>
       (node.values ?? [])
-        .filter((value) => value.editor === 'Bunbraco.FormPicker')
+        .filter((value) => value.editor === 'Crombolo.FormPicker')
         .map((value) => String(value.value)),
     )
     expect(picked).not.toBeEmpty()
@@ -186,10 +186,10 @@ describe('a template that wires a server bundle', () => {
     const manifest = JSON.parse(
       files.find((file) => file.path === 'package.json')?.text as string,
     ) as { dependencies: Record<string, string> }
-    expect(Object.keys(manifest.dependencies)).toContain('@bunbraco/simple-redirects')
+    expect(Object.keys(manifest.dependencies)).toContain('@crombolo/simple-redirects')
 
-    const config = files.find((file) => file.path === 'bunbraco.config.ts')?.text as string
-    expect(config).toContain("import { redirects } from '@bunbraco/simple-redirects'")
+    const config = files.find((file) => file.path === 'crombolo.config.ts')?.text as string
+    expect(config).toContain("import { redirects } from '@crombolo/simple-redirects'")
     expect(config).toContain('bundles: [redirects()]')
     // The site is still named what was asked for, which a template shipping its
     // own config file would have thrown away.
@@ -198,16 +198,16 @@ describe('a template that wires a server bundle', () => {
 
   test('leaves the config alone for a template that wires none', () => {
     const config = scaffoldFiles({ template: byId('basic') }).find(
-      (file) => file.path === 'bunbraco.config.ts',
+      (file) => file.path === 'crombolo.config.ts',
     )?.text as string
     expect(config).not.toContain('bundles:')
-    expect(config).toContain("import { defineConfig } from 'bunbraco'")
+    expect(config).toContain("import { defineConfig } from '@crombolo/crombolo'")
   })
 
   test('ignores a malformed entry rather than scaffolding a broken import', () => {
     expect(byId('basic').serverBundles).toEqual([])
     expect(byId('demo/harbourstone').serverBundles).toEqual([
-      { package: '@bunbraco/simple-redirects', import: 'redirects' },
+      { package: '@crombolo/simple-redirects', import: 'redirects' },
     ])
   })
 })
@@ -216,7 +216,7 @@ describe('what init writes', () => {
   test('is a package, a config, a server and a schema directory', () => {
     const paths = scaffoldFiles().map((f) => f.path)
     expect(paths).toContain('package.json')
-    expect(paths).toContain('bunbraco.config.ts')
+    expect(paths).toContain('crombolo.config.ts')
     expect(paths).toContain('server.ts')
     expect(paths).toContain('tsconfig.json')
     expect(paths).toContain('schema/schema.toml')
@@ -230,7 +230,7 @@ describe('what init writes', () => {
       files.find((f) => f.path === 'package.json')?.text ?? '{}',
     ) as Record<string, unknown>
     expect(manifest.name).toBe('harbourstone-distillery')
-    expect(files.find((f) => f.path === 'bunbraco.config.ts')?.text).toContain(
+    expect(files.find((f) => f.path === 'crombolo.config.ts')?.text).toContain(
       "siteName: 'Harbourstone Distillery'",
     )
     // A name npm will take, whatever was typed.
@@ -238,16 +238,16 @@ describe('what init writes', () => {
     expect(packageNameFor('***')).toBe('my-site')
     // A quote in the name must not end the string it is written into.
     expect(
-      scaffoldFiles({ siteName: "Mac's" }).find((f) => f.path === 'bunbraco.config.ts')?.text,
+      scaffoldFiles({ siteName: "Mac's" }).find((f) => f.path === 'crombolo.config.ts')?.text,
     ).toContain("siteName: 'Mac\\'s'")
   })
 
   test('adds the Postgres environment only when asked, and gitignores it', () => {
     const files = scaffoldFiles({ siteName: 'Site', postgres: true })
     const env = files.find((f) => f.path === '.env')?.text ?? ''
-    expect(env).toContain('BUNBRACO_DB=postgres')
-    expect(env).toContain('BUNBRACO_POSTGRES_URL=')
-    expect(env).toContain('BUNBRACO_PG_DUMP')
+    expect(env).toContain('CROMBOLO_DB=postgres')
+    expect(env).toContain('CROMBOLO_POSTGRES_URL=')
+    expect(env).toContain('CROMBOLO_PG_DUMP')
     expect(files.find((f) => f.path === '.gitignore')?.text).toContain('.env')
   })
 
@@ -272,7 +272,7 @@ describe('what init writes', () => {
       scripts: Record<string, string>
     }
     expect(manifest.scripts.start).toBe(
-      'bunbraco start --bundle bundles/demo-harbourstone --publish',
+      'crombolo start --bundle bundles/demo-harbourstone --publish',
     )
   })
 
@@ -380,8 +380,8 @@ describe('the demo’s typography', () => {
   })
 })
 
-describe('the Bunbraco product site', () => {
-  const template = byId('demo/bunbraco')
+describe('the Crombolo product site', () => {
+  const template = byId('demo/crombolo')
   const components = join(template.dir, 'files', 'components')
   const nodes = loadBundle(join(template.dir, 'bundle')).set?.nodes ?? []
   const storedValue = (type: string, alias: string) =>
@@ -390,7 +390,7 @@ describe('the Bunbraco product site', () => {
       ?.values.find((value) => value.property === alias)?.value
 
   test('points its GitHub links at the project’s repository', () => {
-    const repository = 'https://github.com/kineco-au/bunbraco-cms'
+    const repository = 'https://github.com/kineco-au/crombolo-cms'
     expect(storedValue('homePage', 'repositoryUrl')).toBe(repository)
     // The fallback for a home page that leaves the setting empty.
     expect(readFileSync(join(components, 'shared', 'site.tsx'), 'utf8')).toContain(
@@ -400,7 +400,7 @@ describe('the Bunbraco product site', () => {
 
   test('ships a TSX sample that is complete, and renders it as text', () => {
     const sample = String(storedValue('developerPage', 'codeSample'))
-    expect(sample).toContain("import type { PageProps } from 'bunbraco'")
+    expect(sample).toContain("import type { PageProps } from '@crombolo/crombolo'")
     expect(sample).toContain("import { Layout } from '../shared/layout.tsx'")
     // Every tag it opens, it closes.
     expect(sample.match(/<Layout\b/g)?.length).toBe(sample.match(/<\/Layout>/g)?.length)

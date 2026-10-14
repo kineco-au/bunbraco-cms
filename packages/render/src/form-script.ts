@@ -7,15 +7,15 @@
  * *sees* between keystrokes. A visitor without JavaScript gets the server's
  * answer when they submit, which is the same answer.
  *
- * Mirrors `isShown`/`evaluateRule` in `@bunbraco/core`. The two are kept in
+ * Mirrors `isShown`/`evaluateRule` in `@crombolo/core`. The two are kept in
  * step by `tests/forms-conditions.test.ts`, which runs the same cases through
  * both.
  */
-export const FORM_SCRIPT_PATH = '/bunbraco/forms.js'
+export const FORM_SCRIPT_PATH = '/crombolo/forms.js'
 
-export const FORM_SCRIPT = `/* bunbraco form conditions */
+export const FORM_SCRIPT = `/* crombolo form conditions */
 (function () {
-  if (window.__bunbracoForms) return
+  if (window.__cromboloForms) return
 
   function valuesOf(form, alias) {
     var out = []
@@ -86,9 +86,9 @@ export const FORM_SCRIPT = `/* bunbraco form conditions */
       for (var j = 0; j < inputs.length; j++) {
         var input = inputs[j]
         if (visible) {
-          if (input.dataset.bunbracoRequired === 'true' || wasRequired) input.required = true
+          if (input.dataset.cromboloRequired === 'true' || wasRequired) input.required = true
         } else {
-          if (input.required) input.dataset.bunbracoRequired = 'true'
+          if (input.required) input.dataset.cromboloRequired = 'true'
           input.required = false
         }
       }
@@ -104,9 +104,9 @@ export const FORM_SCRIPT = `/* bunbraco form conditions */
   // Also the guard against running twice, which two forms on a page would
   // otherwise do. Exposed rather than a bare flag so the suite can hold these
   // two functions against the server's own -- see tests/forms-conditions.
-  window.__bunbracoForms = { rule: rule, shown: shown, apply: apply }
+  window.__cromboloForms = { rule: rule, shown: shown, apply: apply }
 
-  var forms = document.querySelectorAll('form.bunbraco-form')
+  var forms = document.querySelectorAll('form.crombolo-form')
   for (var i = 0; i < forms.length; i++) attach(forms[i])
 })();
 `

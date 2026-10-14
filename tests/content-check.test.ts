@@ -8,7 +8,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@bunbraco/data'
+import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@crombolo/data'
 import {
   type BundleNode,
   type ContentSet,
@@ -17,7 +17,7 @@ import {
   loadResolutions,
   resolutionsFor,
   writeResolutions,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -46,7 +46,7 @@ const VIEW = `export default function Page({ model }) {
 `
 
 function pageSite() {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-check-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-check-'))
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
@@ -379,7 +379,7 @@ describe('resolutions.json', () => {
   })
 
   test('answers to a different bundle are ignored rather than applied', () => {
-    const dir = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-res-'))
+    const dir = mkdtempSync(join(process.cwd(), 'output', 'crombolo-res-'))
     try {
       writeFileSync(
         join(dir, 'resolutions.json'),
@@ -394,7 +394,7 @@ describe('resolutions.json', () => {
   })
 
   test('a resolution that is not one of the three is reported, not guessed', () => {
-    const dir = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-res-'))
+    const dir = mkdtempSync(join(process.cwd(), 'output', 'crombolo-res-'))
     try {
       writeFileSync(
         join(dir, 'resolutions.json'),

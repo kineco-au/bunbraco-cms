@@ -6,7 +6,7 @@
  * the published cache cheap. `value()` carries the ergonomics: culture is
  * ambient, so `model.value('title')` returns the current request's culture.
  */
-import type { FormSubmissionState } from '@bunbraco/core'
+import type { FormSubmissionState } from '@crombolo/core'
 import { RawHtml } from './html.ts'
 import { MediaWithCrops } from './media.ts'
 import type { SeoSiteDefaults } from './seo.ts'
@@ -62,7 +62,7 @@ export interface PublishedContentInit {
 }
 
 /**
- * A published page. `Properties` is the page's interface from `bunbraco generate`;
+ * A published page. `Properties` is the page's interface from `crombolo generate`;
  * given one, `value()` and its siblings accept only that type's aliases and
  * `value()` returns the property's type. Without one, any alias is accepted and
  * `value()` returns `unknown`.
@@ -242,7 +242,7 @@ export interface RequestMember {
 
 /** What a template receives. */
 /**
- * What a template receives. Name the page's interface from `bunbraco generate`
+ * What a template receives. Name the page's interface from `crombolo generate`
  * to have its properties checked: `PageProps<HomePage>`.
  */
 // biome-ignore lint/suspicious/noExplicitAny: an untyped page, as `PublishedContent` defaults to.

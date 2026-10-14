@@ -31,6 +31,6 @@ export async function assertPortAvailable(port: number): Promise<void> {
   throw new Error(
     `Port ${port} is already in use, so this server cannot start.\n` +
       `  The container stack publishes the same port — "bun run docker:down" stops it.\n` +
-      `  Otherwise set PORT (or BUNBRACO_PORT for the stack) to something else.`,
+      `  Otherwise set PORT (or CROMBOLO_PORT for the stack) to something else.`,
   )
 }

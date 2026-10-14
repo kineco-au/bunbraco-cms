@@ -1,5 +1,5 @@
 /**
- * Starter templates: what `bunbraco init` writes, and the catalogue
+ * Starter templates: what `crombolo init` writes, and the catalogue
  * `--template list` prints.
  *
  * A template is a directory under `templates/`, one or two levels deep so a
@@ -16,15 +16,15 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { siteMediaTypeFiles } from '@bunbraco/schema'
-import { VERSION } from '@bunbraco/server'
+import { siteMediaTypeFiles } from '@crombolo/schema'
+import { VERSION } from '@crombolo/server'
 
 /** `templates/`, beside `src/` and `bin/` in the published package. */
 export const TEMPLATES_DIR = join(import.meta.dir, '..', 'templates')
 
 /**
  * A bundle whose server half a template wires into the site it scaffolds: the
- * dependency, plus the import and the `bundles` entry in `bunbraco.config.ts`.
+ * dependency, plus the import and the `bundles` entry in `crombolo.config.ts`.
  *
  * Written into the site's own files rather than hidden anywhere, because that
  * import is the whole of what lets a bundle answer a request — so it has to be
@@ -161,7 +161,7 @@ function tsconfig(): string {
         module: 'ESNext',
         moduleResolution: 'bundler',
         jsx: 'react-jsx',
-        jsxImportSource: 'bunbraco',
+        jsxImportSource: '@crombolo/crombolo',
         strict: true,
         allowImportingTsExtensions: true,
         noEmit: true,
@@ -179,7 +179,7 @@ const SEO_EXAMPLE = `  // Search & sharing defaults; each can also be set in Set
 `
 
 /**
- * `bunbraco.config.ts`. A template's server bundles are imported by name and
+ * `crombolo.config.ts`. A template's server bundles are imported by name and
  * listed in `bundles`, which is the only thing that lets their endpoints
  * answer — so the scaffolded file carries a note saying so, and deleting the
  * line is how a site declines one.
@@ -189,13 +189,13 @@ function config(siteName: string, bundles: readonly TemplateServerBundle[]): str
     .map((bundle) => `import { ${bundle.import} } from ${quote(bundle.package)}\n`)
     .join('')
   if (bundles.length === 0)
-    return `import { defineConfig } from 'bunbraco'
+    return `import { defineConfig } from '@crombolo/crombolo'
 
 export default defineConfig({
   siteName: ${quote(siteName)},
 ${SEO_EXAMPLE}})
 `
-  return `${imports}import { defineConfig } from 'bunbraco'
+  return `${imports}import { defineConfig } from '@crombolo/crombolo'
 
 export default defineConfig({
   siteName: ${quote(siteName)},
@@ -218,14 +218,14 @@ function packageJson(options: {
       type: 'module',
       scripts: { start: options.start, dev: 'bun --watch server.ts' },
       dependencies: {
-        bunbraco: `^${VERSION}`,
+        '@crombolo/crombolo': `^${VERSION}`,
         ...Object.fromEntries(
           options.bundles.map((bundle) => [bundle.package, bundle.version ?? `^${VERSION}`]),
         ),
       },
       // So the tsconfig written beside this has something to run it, and
-      // `bunbraco views check` checks types as well as compiling. The version
-      // is the one bunbraco itself is checked with.
+      // `crombolo views check` checks types as well as compiling. The version
+      // is the one crombolo itself is checked with.
       devDependencies: { typescript: TYPESCRIPT_VERSION },
     },
     null,
@@ -246,16 +246,16 @@ export function scaffoldFiles(options: ScaffoldOptions = {}): ScaffoldFile[] {
         name: packageNameFor(siteName),
         // The import is a boot step rather than a config setting so that it is
         // visible here, and so that dropping it is editing one line.
-        start: bundle ? `bunbraco start --bundle ${bundle} ${bundleFlags}` : 'bunbraco start',
+        start: bundle ? `crombolo start --bundle ${bundle} ${bundleFlags}` : 'crombolo start',
         bundles: serverBundles,
       }),
     },
-    { path: 'bunbraco.config.ts', text: config(siteName, serverBundles) },
+    { path: 'crombolo.config.ts', text: config(siteName, serverBundles) },
     {
       path: 'server.ts',
-      text: `import { bunbraco } from 'bunbraco'
+      text: `import { crombolo } from '@crombolo/crombolo'
 
-export default await bunbraco()
+export default await crombolo()
 `,
     },
     { path: 'tsconfig.json', text: tsconfig() },
@@ -265,21 +265,21 @@ export default await bunbraco()
     { path: 'components/.gitkeep', text: '' },
     {
       path: '.gitignore',
-      // `.bunbraco/` holds the view snapshots: pure cache, rebuilt from `components/`
+      // `.crombolo/` holds the view snapshots: pure cache, rebuilt from `components/`
       // at every boot, and per node.
-      text: '*.sqlite\n*.sqlite-*\nnode_modules/\n.env\n.bunbraco/\nmedia/\nlogs/\n',
+      text: '*.sqlite\n*.sqlite-*\nnode_modules/\n.env\n.crombolo/\nmedia/\nlogs/\n',
     },
   ]
 
   if (options.postgres)
     files.push({
       path: '.env',
-      text: `BUNBRACO_DB=postgres
-BUNBRACO_POSTGRES_URL=postgres://bunbraco:bunbraco@localhost:5432/${packageNameFor(siteName)}
+      text: `CROMBOLO_DB=postgres
+CROMBOLO_POSTGRES_URL=postgres://crombolo:crombolo@localhost:5432/${packageNameFor(siteName)}
 
 # Postgres has no file to copy, so anything that writes needs a backup first:
 # a command that takes one, or --backup-taken to vouch that you have.
-# BUNBRACO_PG_DUMP=pg_dump "$BUNBRACO_POSTGRES_URL" -f "backup-$BUNBRACO_BACKUP_STAMP.sql"
+# CROMBOLO_PG_DUMP=pg_dump "$CROMBOLO_POSTGRES_URL" -f "backup-$CROMBOLO_BACKUP_STAMP.sql"
 `,
     })
 

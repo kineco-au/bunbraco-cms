@@ -1,4 +1,4 @@
-import type { Navigation, PublishedContent } from 'bunbraco'
+import type { Navigation, PublishedContent } from '@crombolo/crombolo'
 
 /**
  * The masthead and the primary nav.

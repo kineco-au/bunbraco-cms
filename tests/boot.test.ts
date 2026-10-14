@@ -6,8 +6,8 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_BACKOFFICE_PATH as BACKOFFICE } from '@bunbraco/core'
-import { createServer } from '@bunbraco/server'
+import { DEFAULT_BACKOFFICE_PATH as BACKOFFICE } from '@crombolo/core'
+import { createServer } from '@crombolo/server'
 import { ROOT } from '../scripts/packages.ts'
 
 const server = await createServer()
@@ -189,7 +189,7 @@ describe.skipIf(!vendored)('vendored assets over HTTP', () => {
  * the handlers exist at all, which outside a container no behaviour reveals.
  */
 describe('shutting down', () => {
-  const cli = readFileSync(join(ROOT, 'packages/cli/bin/bunbraco.ts'), 'utf8')
+  const cli = readFileSync(join(ROOT, 'packages/cli/bin/crombolo.ts'), 'utf8')
 
   test('handles both signals, because as PID 1 nothing else will', () => {
     // `bun` is PID 1 under `docker compose run`, and an unhandled SIGINT or

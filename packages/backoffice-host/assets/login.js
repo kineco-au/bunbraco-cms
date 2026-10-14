@@ -1,5 +1,5 @@
 /**
- * Bunbraco login page.
+ * Crombolo login page.
  *
  * Umbraco's own login screen ships as a separate, unpublished npm package, so
  * this is our equivalent, built from the component library that IS published
@@ -33,7 +33,7 @@ function localTarget(value, fallback) {
   }
 }
 
-class BunbracoLoginElement extends LitElement {
+class CromboloLoginElement extends LitElement {
   static properties = {
     returnUrl: { type: String, attribute: 'return-url' },
     logoImage: { type: String, attribute: 'logo-image-alternative' },
@@ -249,7 +249,7 @@ class BunbracoLoginElement extends LitElement {
     return html`
       <div id="layout">
         <uui-box id="card">
-          ${this.logoImage ? html`<img id="logo" src=${this.logoImage} alt="bunbraco" />` : nothing}
+          ${this.logoImage ? html`<img id="logo" src=${this.logoImage} alt="crombolo" />` : nothing}
           ${body}
         </uui-box>
       </div>
@@ -349,4 +349,4 @@ class BunbracoLoginElement extends LitElement {
   `
 }
 
-customElements.define('bunbraco-login', BunbracoLoginElement)
+customElements.define('crombolo-login', CromboloLoginElement)

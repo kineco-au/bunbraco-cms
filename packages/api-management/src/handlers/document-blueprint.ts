@@ -2,8 +2,8 @@
  * Document blueprints: their tree and folders in Settings, the editor, "Create
  * Document Blueprint" from a page, and the scaffold a new page starts from.
  */
-import type { DocumentAggregate, TreeItem } from '@bunbraco/core'
-import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import type { DocumentAggregate, TreeItem } from '@crombolo/core'
+import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { BlueprintPort, PortFailure } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging, registerFolderHandlers } from './content-type.ts'

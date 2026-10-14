@@ -13,7 +13,7 @@
  */
 
 /** Must match `CLIENT_ID_PREFIX` in packages/server/src/adapters/users.ts. */
-export const REQUIRED_PREFIX = 'bunbraco-back-office-'
+export const REQUIRED_PREFIX = 'crombolo-back-office-'
 
 /** True for the vendored label, and false for anything a correction produced. */
 export function needsCorrection(text) {

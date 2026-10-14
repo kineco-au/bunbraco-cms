@@ -1,14 +1,14 @@
 /**
  * The commands an operator runs against an environment, as functions: they take
- * options and return what happened, and never print or exit. The `bunbraco`
+ * options and return what happened, and never print or exit. The `crombolo`
  * binary renders their results for a terminal; anything else that runs them —
  * a platform's own tooling — gets the same results as data. One implementation,
  * so the two can never disagree about what an import or an upgrade does.
  */
-import { ObjectTypes, ROOT_ACCESS } from '@bunbraco/core'
+import { ObjectTypes, ROOT_ACCESS } from '@crombolo/core'
 import {
-  bunbracoPlan,
   connect,
+  cromboloPlan,
   type Db,
   describeRefFailure,
   type NodeRow,
@@ -20,14 +20,14 @@ import {
   resumeWrites,
   type WritesPaused,
   writeReport,
-} from '@bunbraco/data'
-import { loadSchemaDirectory, loadValueMigrations, runFix, runUpgrade } from '@bunbraco/schema'
+} from '@crombolo/data'
+import { loadSchemaDirectory, loadValueMigrations, runFix, runUpgrade } from '@crombolo/schema'
 import {
   type BackupResult,
-  type BunbracoConfig,
   backupBefore,
   bootSchema,
   bootstrapDatabase,
+  type CromboloConfig,
   checkSchemaDirectory,
   componentAliasesIn,
   createFileIntake,
@@ -38,7 +38,7 @@ import {
   placeBlobs,
   readBlobs,
   syncOptionsFor,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import {
   type CheckOptions,
   type ContentSet,
@@ -50,7 +50,7 @@ import {
   type Resolution,
   type TransferCheck,
   writeBundle,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 import {
   applySections,
   type CarriedSections,
@@ -71,7 +71,7 @@ export {
   RESOLUTIONS,
   type Resolution,
   type TransferCheck,
-} from '@bunbraco/transfer'
+} from '@crombolo/transfer'
 // The section half of an install, exported for the same reason the commands
 // are: tooling that applies a bundle without a terminal needs the plan too.
 export {
@@ -178,7 +178,7 @@ export interface TransferInput extends SectionOptions {
 /** The options `check` and `import` share: saved decisions, then the caller's, then placement. */
 export async function transferOptions(
   db: Db,
-  config: BunbracoConfig,
+  config: CromboloConfig,
   set: ContentSet,
   input: TransferInput,
 ): Promise<{ options: CheckOptions; under: NodeRow | undefined; problems: string[] }> {
@@ -225,7 +225,7 @@ export interface ContentCheckResult {
 
 /** Read-only: what importing a bundle here would do. Its findings go to the Changes dashboard. */
 export async function contentCheck(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: TransferInput,
 ): Promise<ContentCheckResult> {
   const { set, carried } = readBundle(input.dir)
@@ -285,7 +285,7 @@ export interface ContentImportResult {
 
 /** Re-check, back up, then apply in one transaction and record the run. */
 export async function contentImport(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: ContentImportInput,
 ): Promise<ContentImportResult> {
   const { set, blobs, carried } = readBundle(input.dir)
@@ -410,7 +410,7 @@ export interface ContentExportResult {
 
 /** Writes nothing: returns the bundle's files for the caller to place. */
 export async function contentExport(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: ContentExportInput,
 ): Promise<ContentExportResult> {
   if (input.roots.length === 0) throw new CommandError('An export needs at least one root.')
@@ -435,7 +435,7 @@ export async function contentExport(
       nodeId: config.nodeId,
     })
     // The bytes are read here rather than in the exporter: where media lives is
-    // the store's business, and `@bunbraco/transfer` knows nothing about it.
+    // the store's business, and `@crombolo/transfer` knows nothing about it.
     let carried = new Map<string, Uint8Array>()
     let missing: string[] = []
     if (input.withBlobs && blobKeys.length > 0) {
@@ -465,7 +465,7 @@ export async function contentExport(
   }
 }
 
-async function upgradeContext(config: BunbracoConfig, set: Record<string, unknown>) {
+async function upgradeContext(config: CromboloConfig, set: Record<string, unknown>) {
   const db = await connect({ file: config.sqliteFile })
   const node = { nodeId: config.nodeId, revision: config.schemaRevision }
   const loaded = () => loadSchemaDirectory(config.schemaDir)
@@ -491,10 +491,10 @@ export interface UpgradePlanResult {
 }
 
 /** The DDL every pending framework step would run, and what the site's schema would do. Writes nothing. */
-export async function upgradePlan(config: BunbracoConfig): Promise<UpgradePlanResult> {
+export async function upgradePlan(config: CromboloConfig): Promise<UpgradePlanResult> {
   const { db, node } = await upgradeContext(config, {})
   try {
-    const steps = await planUpgrade(db, bunbracoPlan)
+    const steps = await planUpgrade(db, cromboloPlan)
     const check = await checkSchemaDirectory(db, config, node)
     return {
       steps: steps.map((step) => ({
@@ -517,7 +517,7 @@ export async function upgradePlan(config: BunbracoConfig): Promise<UpgradePlanRe
 
 /** The pre-upgrade report. Its findings go to the Changes dashboard once the site is checkable. */
 export async function upgradeCheck(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: { set?: Record<string, unknown> } = {},
 ) {
   const { db, node } = await upgradeContext(config, input.set ?? {})
@@ -538,7 +538,7 @@ export async function upgradeCheck(
 
 /** Back up, then apply the additive part of an upgrade and every conversion, early. */
 export async function upgradeFix(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: { set?: Record<string, unknown>; backupTaken?: boolean } = {},
 ) {
   const backup = await backupBefore(config, { reason: 'fix', backupTaken: input.backupTaken })
@@ -579,7 +579,7 @@ export type UpgradeRunResult =
 
 /** Re-check, back up, apply framework steps, cut over, ledger. */
 export async function upgradeRun(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: { force?: string; set?: Record<string, unknown>; backupTaken?: boolean } = {},
 ): Promise<UpgradeRunResult> {
   const backup = await backupBefore(config, { reason: 'upgrade', backupTaken: input.backupTaken })
@@ -645,7 +645,7 @@ export interface MediaAddResult {
  * caller, which is what keeps the store free of files nothing knows about.
  */
 export async function mediaAdd(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: MediaAddInput,
 ): Promise<MediaAddResult> {
   const name = (input.name ?? input.key.split('/').at(-1) ?? '').trim()
@@ -735,9 +735,9 @@ export async function mediaAdd(
   return { key: created.key, name, mediaType: type.name }
 }
 
-/** Takes the backup a write would take first: a copy of SQLite, or `BUNBRACO_PG_DUMP` on Postgres. */
+/** Takes the backup a write would take first: a copy of SQLite, or `CROMBOLO_PG_DUMP` on Postgres. */
 export async function backup(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: { reason?: string; backupTaken?: boolean } = {},
 ): Promise<BackupResult> {
   return backupBefore(config, {
@@ -746,7 +746,7 @@ export async function backup(
   })
 }
 
-async function withDatabase<T>(config: BunbracoConfig, use: (db: Db) => Promise<T>): Promise<T> {
+async function withDatabase<T>(config: CromboloConfig, use: (db: Db) => Promise<T>): Promise<T> {
   const db = await connect({ file: config.sqliteFile })
   try {
     return await use(db)
@@ -757,7 +757,7 @@ async function withDatabase<T>(config: BunbracoConfig, use: (db: Db) => Promise<
 
 /** Refuses every editor's save, on every node, until resumed; readers are unaffected. */
 export function pauseEditing(
-  config: BunbracoConfig,
+  config: CromboloConfig,
   input: { reason?: string; by?: string } = {},
 ): Promise<WritesPaused> {
   return withDatabase(config, (db) =>
@@ -765,11 +765,11 @@ export function pauseEditing(
   )
 }
 
-export function resumeEditing(config: BunbracoConfig): Promise<void> {
+export function resumeEditing(config: CromboloConfig): Promise<void> {
   return withDatabase(config, resumeWrites)
 }
 
 /** Whether editing is paused, by whom and why; undefined when it is not. */
-export function editingPaused(config: BunbracoConfig): Promise<WritesPaused | undefined> {
+export function editingPaused(config: CromboloConfig): Promise<WritesPaused | undefined> {
   return withDatabase(config, readWritesPaused)
 }

@@ -1,5 +1,5 @@
 /**
- * Boots bunbraco for the browser suite on a throwaway copy of apps/site: its
+ * Boots crombolo for the browser suite on a throwaway copy of apps/site: its
  * schema and views, a fresh SQLite file, a known admin password.
  */
 import {
@@ -12,8 +12,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_DATA_TYPES } from '@bunbraco/data'
-import { createServer, loadConfig } from '@bunbraco/server'
+import { DEFAULT_DATA_TYPES } from '@crombolo/data'
+import { createServer, loadConfig } from '@crombolo/server'
 import { BLOCK_ONLY_ELEMENT_TYPE, BROWSER_ADMIN } from './fixtures.ts'
 
 const repo = join(import.meta.dir, '../..')
@@ -104,7 +104,7 @@ type = "textstring"
 const LINKS = join(repo, 'output', 'browser-links.jsonl')
 writeFileSync(LINKS, '')
 
-const port = Number(Bun.env.BUNBRACO_BROWSER_PORT ?? 3210)
+const port = Number(Bun.env.CROMBOLO_BROWSER_PORT ?? 3210)
 const server = await createServer(
   loadConfig(
     {

@@ -22,7 +22,7 @@ import {
   variationFlags,
   variesByCulture,
   variesBySegment,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
 import { pendingUntil } from '../pending.ts'

@@ -1,6 +1,6 @@
 # Adding a page
 
-A page on a Bunbraco site is three things: a **content type** that says what an
+A page on a Crombolo site is three things: a **content type** that says what an
 editor fills in, a **component** that turns it into HTML, and the **content** an
 editor creates from that type. The first two are files in the site and go through
 source control; the third lives in the database.
@@ -20,9 +20,9 @@ components/shared/layout.tsx             the layout it renders inside
 component it points at:
 
 ```bash
-bunx bunbraco schema new content-type eventsPage --name "Events Page" --icon icon-calendar
-bunx bunbraco schema add-property eventsPage intro --name "Introduction" --type richtext
-bunx bunbraco schema add-property eventsPage feedUrl --name "Events feed URL" --type textstring --mandatory
+bunx crombolo schema new content-type eventsPage --name "Events Page" --icon icon-calendar
+bunx crombolo schema add-property eventsPage intro --name "Introduction" --type richtext
+bunx crombolo schema add-property eventsPage feedUrl --name "Events feed URL" --type textstring --mandatory
 ```
 
 A new type starts with a mandatory `title` on a Content tab. `--type` names a data
@@ -96,7 +96,7 @@ First generate the types, so the component can name the page's properties and
 have the compiler check them:
 
 ```bash
-bunx bunbraco generate   # schema/content-types.d.ts: an interface per content type
+bunx crombolo generate   # schema/content-types.d.ts: an interface per content type
 ```
 
 Then replace the starter with one that renders inside a shared layout and
@@ -104,7 +104,7 @@ fetches the events:
 
 ```tsx
 // components/eventsPage.tsx
-import type { PageProps } from 'bunbraco'
+import type { PageProps } from '@crombolo/crombolo'
 import type { EventsPage as Page } from '../schema/content-types'
 import { Layout } from './shared/layout.tsx'
 
@@ -164,7 +164,7 @@ export default function EventsPage(props: PageProps<Page>) {
 
 ```tsx
 // components/shared/layout.tsx
-import type { Child, PageProps } from 'bunbraco'
+import type { Child, PageProps } from '@crombolo/crombolo'
 
 export function Layout({ model, children }: PageProps & { children?: Child }) {
   return (
@@ -188,14 +188,14 @@ Some things to know:
   after changing the type.
 - **Only a component a type names is a page.** Anything else under
   `components/`, like `shared/layout.tsx`, is reached only by an `import`. Create
-  one with `bunx bunbraco components new shared/layout`. A component may import
+  one with `bunx crombolo components new shared/layout`. A component may import
   code only from inside `components/`; a type-only import such as the generated
   types is the exception, because it is gone once the component is compiled.
 - **A component may be `async`.** `EventsPage` itself is synchronous: `EventList`
   is async, and the page waits for it before it is sent. Async components side
   by side start together.
 - **Pass `signal` to anything a component waits on.** It aborts when the render
-  runs out of time (10 seconds by default, `BUNBRACO_RENDER_TIMEOUT_MS`) or the
+  runs out of time (10 seconds by default, `CROMBOLO_RENDER_TIMEOUT_MS`) or the
   visitor disconnects. A render past its time fails like any template error: it is
   logged, naming the component, and the visitor gets a server error.
 - **Decide what a failure looks like.** An error a component throws fails the
@@ -210,8 +210,8 @@ Some things to know:
 ## 3. Check it
 
 ```bash
-bunx bunbraco schema check --static   # the files parse and agree with each other
-bunx bunbraco components check        # every component compiles and imports; every named one exists
+bunx crombolo schema check --static   # the files parse and agree with each other
+bunx crombolo components check        # every component compiles and imports; every named one exists
 ```
 
 `components check` imports every component, so a broken import shows up here
@@ -247,6 +247,6 @@ in each environment, or moved with a content bundle
 
 A production node only applies schema files carrying a newer version, so bump
 `schema/schema.toml` with the change, or deploy with a newer
-`BUNBRACO_SCHEMA_REVISION`. In production the backoffice cannot change a
+`CROMBOLO_SCHEMA_REVISION`. In production the backoffice cannot change a
 content type: it says the type lives in `schema/` and must be changed there.
 [`10-packaging-and-upgrades.md`](10-packaging-and-upgrades.md) has the details.

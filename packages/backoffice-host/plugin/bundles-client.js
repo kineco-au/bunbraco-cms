@@ -1,10 +1,10 @@
 /**
  * Reads and drives the Bundles endpoints the server keeps at
- * <backoffice>/bunbraco/api/bundles/*. The session cookie carries the auth.
+ * <backoffice>/crombolo/api/bundles/*. The session cookie carries the auth.
  */
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
-  return `${href.replace(/\/$/, '')}/bunbraco/api/bundles`
+  return `${href.replace(/\/$/, '')}/crombolo/api/bundles`
 }
 
 const json = async (path, init) => {

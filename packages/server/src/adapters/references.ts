@@ -3,9 +3,9 @@
  * `$type`, so a referencing node becomes a document, a media item, or the
  * default shape when it is neither.
  */
-import type { ReferencePort } from '@bunbraco/api-management'
-import { ObjectTypes } from '@bunbraco/core'
-import { type Db, ReferenceRepository, type ReferencingNode } from '@bunbraco/data'
+import type { ReferencePort } from '@crombolo/api-management'
+import { ObjectTypes } from '@crombolo/core'
+import { type Db, ReferenceRepository, type ReferencingNode } from '@crombolo/data'
 
 function toReference(node: ReferencingNode): unknown {
   const type = {

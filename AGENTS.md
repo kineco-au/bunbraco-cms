@@ -28,7 +28,7 @@
   someone's `migration_history` as a release that was never cut
 - These two numbers drifted badly before 0.3.0 — the migrations ran to 0.9.0 while
   the packages sat at 0.2.0 — which is why they are now checked rather than trusted
-- `@bunbraco/backoffice-dist` is the one exception to one-version-across-the-set:
+- `@crombolo/backoffice-dist` is the one exception to one-version-across-the-set:
   it tracks the Umbraco release it vendors and moves only with
   `release:version --backoffice-dist`
 

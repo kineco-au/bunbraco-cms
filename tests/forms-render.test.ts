@@ -19,8 +19,8 @@ import {
   type SubmittedValues,
   validateSubmission,
   visibleFields,
-} from '@bunbraco/core'
-import { Form, formAction, renderToString, setFormTokenSigner } from '@bunbraco/render'
+} from '@crombolo/core'
+import { Form, formAction, renderToString, setFormTokenSigner } from '@crombolo/render'
 
 const field = (overrides: Partial<SchemaFormField> & { alias: string }): SchemaFormField => ({
   type: 'shortAnswer',
@@ -289,7 +289,7 @@ describe('rendering a form', () => {
     expect(markup).toContain(`action="${formAction(subject)}"`)
     expect(markup).toContain('<input type="text" id="form-contactUs-name" name="name"')
     expect(markup).toContain('required')
-    expect(markup).toContain('<label class="bunbraco-form__label" for="form-contactUs-name"')
+    expect(markup).toContain('<label class="crombolo-form__label" for="form-contactUs-name"')
     expect(markup).toContain('Your name')
     expect(markup).toContain('<button type="submit"')
   })
@@ -373,7 +373,7 @@ describe('rendering a form', () => {
           }),
         ]),
       )
-      expect(markup, `${type} renders something`).toContain('bunbraco-form')
+      expect(markup, `${type} renders something`).toContain('crombolo-form')
       if (type === 'longAnswer') expect(markup).toContain('<textarea')
       if (type === 'dropdown') expect(markup).toContain('<select')
       if (needsChoices && type !== 'dropdown') expect(markup).toContain('value="a"')
@@ -393,8 +393,8 @@ describe('rendering a form', () => {
     const markup = html(form([field({ alias: 'name' })]), {
       errors: [{ field: 'name', message: 'name is required' }],
     })
-    expect(markup).toContain('bunbraco-form__summary')
-    expect(markup).toContain('bunbraco-form__field--invalid')
+    expect(markup).toContain('crombolo-form__summary')
+    expect(markup).toContain('crombolo-form__field--invalid')
     expect(markup).toContain('aria-invalid="true"')
     expect(markup).toContain('name is required')
   })
@@ -412,7 +412,7 @@ describe('rendering a form', () => {
 
   test('an accepted submission shows its message in place of the form', () => {
     const markup = html(form([field({ alias: 'name' })]), { message: 'Thanks.' })
-    expect(markup).toContain('bunbraco-form--submitted')
+    expect(markup).toContain('crombolo-form--submitted')
     expect(markup).toContain('Thanks.')
     expect(markup).not.toContain('<input')
   })
@@ -453,7 +453,7 @@ describe('rendering a form', () => {
 
   test('a theme becomes a class, which is all a stylesheet needs', () => {
     expect(html(form([field({ alias: 'name' })], { theme: 'compact' }))).toContain(
-      'bunbraco-form bunbraco-form--compact',
+      'crombolo-form crombolo-form--compact',
     )
   })
 

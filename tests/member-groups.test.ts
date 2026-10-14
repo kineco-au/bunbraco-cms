@@ -23,7 +23,7 @@ async function harness(): Promise<Harness> {
 
 const keyOf = (response: Response) => response.headers.get('umb-generated-resource') as string
 
-describe(`member groups (${process.env.BUNBRACO_DB ?? 'sqlite'})`, () => {
+describe(`member groups (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
   test('are created, read back, renamed and deleted', async () => {
     const h = await harness()
 

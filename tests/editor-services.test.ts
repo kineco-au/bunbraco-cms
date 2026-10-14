@@ -5,8 +5,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository } from '@bunbraco/data'
-import { createOEmbedService } from '@bunbraco/server'
+import { ContentTypeRepository } from '@crombolo/data'
+import { createOEmbedService } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []

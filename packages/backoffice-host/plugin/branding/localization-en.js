@@ -1,5 +1,5 @@
 /**
- * The strings that name the product, in the flows bunbraco actually has.
+ * The strings that name the product, in the flows crombolo actually has.
  *
  * A `localization` extension rather than a patched `assets/lang/en.js`: the
  * vendored client is served unmodified, and `vendor:backoffice` would overwrite
@@ -24,58 +24,58 @@
  */
 export default {
   login: {
-    instruction: 'Sign in to Bunbraco',
+    instruction: 'Sign in to Crombolo',
     userInviteWelcomeMessage:
-      "Hello there and welcome to Bunbraco! In just 1 minute you'll be good to go, we just need you to setup a password.",
+      "Hello there and welcome to Crombolo! In just 1 minute you'll be good to go, we just need you to setup a password.",
     userInviteExpiredMessage:
-      'Welcome to Bunbraco! Unfortunately your invite has expired. Please contact your administrator to get a new one.',
+      'Welcome to Crombolo! Unfortunately your invite has expired. Please contact your administrator to get a new one.',
   },
   user: {
     changePasswordDescription:
-      "You can change your password for accessing the Bunbraco backoffice by filling out the form below and click the 'Change Password' button",
+      "You can change your password for accessing the Crombolo backoffice by filling out the form below and click the 'Change Password' button",
     createUserHelp:
-      'Create new users to give them access to Bunbraco. When a new user is created a password will be generated that you can share with them.',
+      'Create new users to give them access to Crombolo. When a new user is created a password will be generated that you can share with them.',
     inviteUserHelp:
-      'Invite new users to give them access to Bunbraco. An invite email will be sent to the user with information on how to log in.',
-    noConsole: 'Disable Bunbraco Access',
+      'Invite new users to give them access to Crombolo. An invite email will be sent to the user with information on how to log in.',
+    noConsole: 'Disable Crombolo Access',
     userCreatedSuccessHelp:
-      'The new user has successfully been created. To log in to Bunbraco use the password below.',
+      'The new user has successfully been created. To log in to Crombolo use the password below.',
     userInvitedSuccessHelp:
-      'An invitation has been sent to the new user with details about how to log in to Bunbraco.',
+      'An invitation has been sent to the new user with details about how to log in to Crombolo.',
     userinviteWelcomeMessage:
-      "Hello there and welcome to Bunbraco! In just 1 minute you'll be good to go, we just need you to setup a password and add a picture for your avatar.",
+      "Hello there and welcome to Crombolo! In just 1 minute you'll be good to go, we just need you to setup a password and add a picture for your avatar.",
     userinviteExpiredMessage:
-      'Welcome to Bunbraco! Unfortunately your invite has expired. Please contact your administrator to get a new one.',
+      'Welcome to Crombolo! Unfortunately your invite has expired. Please contact your administrator to get a new one.',
   },
   general: {
-    umbracoInfo: 'Bunbraco info',
+    umbracoInfo: 'Crombolo info',
   },
   buttons: {
     // The accessible name of the header logo button, on every page of the editor.
     // Nothing renders it as visible text, which is why the first sweep through
     // these dictionaries missed it; it surfaced in the accessibility snapshot
     // attached to an unrelated Playwright failure.
-    viewSystemDetails: 'View Bunbraco system information and version number',
+    viewSystemDetails: 'View Crombolo system information and version number',
   },
   visuallyHiddenTexts: {
-    searchOverlayTitle: 'Search the Bunbraco backoffice',
+    searchOverlayTitle: 'Search the Crombolo backoffice',
   },
   dashboardTabs: {
-    contentIntro: 'Welcome to Bunbraco',
+    contentIntro: 'Welcome to Crombolo',
   },
   languages: {
-    defaultLanguageHelp: 'A Bunbraco site can only have one default language set.',
+    defaultLanguageHelp: 'A Crombolo site can only have one default language set.',
   },
   member: {
     externalMemberDescription:
-      'This member is managed by an external authentication provider. Identity data such as email and username is maintained by the provider, not Bunbraco.',
+      'This member is managed by an external authentication provider. Identity data such as email and username is maintained by the provider, not Crombolo.',
   },
   paste: {
     errorMessage:
-      "The text you're trying to paste contains special characters or formatting. This could be caused by copying text from Microsoft Word. Bunbraco can remove special characters or formatting automatically, so the pasted content will be more suitable for the web.",
+      "The text you're trying to paste contains special characters or formatting. This could be caused by copying text from Microsoft Word. Crombolo can remove special characters or formatting automatically, so the pasted content will be more suitable for the web.",
   },
   dashboard: {
-    nothinghappens: "If Bunbraco isn't opening, you might need to allow popups from this site",
+    nothinghappens: "If Crombolo isn't opening, you might need to allow popups from this site",
   },
   sections: {
     packages: 'Bundles',
@@ -101,15 +101,15 @@ export default {
     // repository. The keys stay Umbraco's, as every key here does; only what a
     // person reads changes, so the generated languages rename the product in
     // their own wording and keep pointing at the same two items.
-    searchUmbracoSource: 'Search Bunbraco source',
-    searchWithinUmbracoSourceCodeOnGithub: 'Search within Bunbraco source code on GitHub',
-    searchUmbracoIssues: 'Search Bunbraco issues',
-    searchUmbracoIssuesOnGithub: 'Search Bunbraco issues on GitHub',
+    searchUmbracoSource: 'Search Crombolo source',
+    searchWithinUmbracoSourceCodeOnGithub: 'Search within Crombolo source code on GitHub',
+    searchUmbracoIssues: 'Search Crombolo issues',
+    searchUmbracoIssuesOnGithub: 'Search Crombolo issues on GitHub',
   },
   defaultdialogs: {
     linkYourConfirm:
-      'You are about to link your Bunbraco and {0} accounts and you will be redirected to {0} to complete the process.',
+      'You are about to link your Crombolo and {0} accounts and you will be redirected to {0} to complete the process.',
     unLinkYourConfirm:
-      'You are about to un-link your Bunbraco and {0} accounts and you will be logged out.',
+      'You are about to un-link your Crombolo and {0} accounts and you will be logged out.',
   },
 }

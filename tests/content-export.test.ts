@@ -8,8 +8,8 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@bunbraco/data'
-import { exportBundle } from '@bunbraco/transfer'
+import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@crombolo/data'
+import { exportBundle } from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -38,7 +38,7 @@ const VIEW = `export default function Page({ model }) {
 `
 
 function pageSite() {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-export-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-export-'))
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
@@ -238,7 +238,7 @@ describe(`what a bundle must never carry (${dialectUnderTest})`, () => {
       // A bundle is a file that gets copied about and committed. None of this
       // belongs in one: some of it is personal, and the rest is true of exactly
       // one environment.
-      expect(text).not.toContain('admin@bunbraco.local')
+      expect(text).not.toContain('admin@crombolo.local')
       for (const marker of [
         'schema_state',
         'migration_history',

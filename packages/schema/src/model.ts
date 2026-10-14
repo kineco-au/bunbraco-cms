@@ -1,4 +1,4 @@
-import type { SchemaForm } from '@bunbraco/core'
+import type { SchemaForm } from '@crombolo/core'
 
 /**
  * The schema-as-code model: what a site's `schema/*.toml` files describe.

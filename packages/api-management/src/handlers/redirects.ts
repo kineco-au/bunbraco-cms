@@ -17,7 +17,7 @@ import {
   parseSkipTake,
   problemDetails,
   problemResponse,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import type { RedirectListing, RedirectPort } from '../ports-content.ts'
 import type { ManagementApiRouter } from '../router.ts'
 

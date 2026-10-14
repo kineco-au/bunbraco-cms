@@ -157,7 +157,7 @@ export function viewScaffold(type: SchemaContentType): string {
         : `        <p>{model.text('${property.alias}')}</p>`,
     )
     .join('\n')
-  return `import type { PageProps } from 'bunbraco'
+  return `import type { PageProps } from '@crombolo/crombolo'
 
 export default function ${nameFor(type.alias).replace(/\s+/g, '')}({ model }: PageProps) {
   return (

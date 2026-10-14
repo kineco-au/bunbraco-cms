@@ -9,13 +9,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { SchemaForm } from '@bunbraco/core'
+import type { SchemaForm } from '@crombolo/core'
 import {
   ComponentRepository,
   ContentTypeRepository,
   FormEntryRepository,
   FormWorkflowRepository,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import {
   createWorkflowRunner,
   type EmailMessage,
@@ -25,10 +25,10 @@ import {
   retryAfter,
   runWorkflow,
   substitute,
-} from '@bunbraco/server'
+} from '@crombolo/server'
 import { BACKOFFICE, type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
-const BACKOFFICE_FORMS = `${BACKOFFICE}/bunbraco/api/forms`
+const BACKOFFICE_FORMS = `${BACKOFFICE}/crombolo/api/forms`
 
 const open: Harness[] = []
 const dirs: string[] = []
@@ -100,7 +100,7 @@ name = "From"
 type = "textstring"
 `
 
-const VIEW = `import { Form } from 'bunbraco'
+const VIEW = `import { Form } from '@crombolo/crombolo'
 export default function Page({ model, submission }) {
   return <Form form={model.value('contactForm')} submission={submission} />
 }
@@ -167,14 +167,14 @@ async function site(options: { form?: string; extraTypes?: Record<string, string
   const post = async (values: Record<string, string>) => {
     const page = await h.server.fetch(new Request(`${ORIGIN}/`))
     const markup = await page.text()
-    const token = /name="_bunbraco_token" value="([^"]+)"/.exec(markup)?.[1] as string
-    const at = /name="_bunbraco_at" value="([^"]+)"/.exec(markup)?.[1] as string
+    const token = /name="_crombolo_token" value="([^"]+)"/.exec(markup)?.[1] as string
+    const at = /name="_crombolo_at" value="([^"]+)"/.exec(markup)?.[1] as string
     const body = new FormData()
     for (const [name, value] of Object.entries(values)) body.set(name, value)
-    body.set('_bunbraco_token', token)
-    body.set('_bunbraco_at', at)
+    body.set('_crombolo_token', token)
+    body.set('_crombolo_at', at)
     return h.server.fetch(
-      new Request(`${ORIGIN}/bunbraco/forms/${FORM_KEY}`, {
+      new Request(`${ORIGIN}/crombolo/forms/${FORM_KEY}`, {
         method: 'POST',
         body,
         headers: { referer: `${ORIGIN}/`, accept: 'application/json' },
@@ -186,7 +186,7 @@ async function site(options: { form?: string; extraTypes?: Record<string, string
   const current = (): SchemaForm | undefined => {
     // Read through the same loader the server uses, so a test that rewrites the
     // file sees what the runner would.
-    const { loadSchemaDirectory } = require('@bunbraco/schema') as typeof import('@bunbraco/schema')
+    const { loadSchemaDirectory } = require('@crombolo/schema') as typeof import('@crombolo/schema')
     return loadSchemaDirectory(join(root, 'schema')).set.forms?.[0]
   }
 
@@ -299,7 +299,7 @@ describe('sendEmail', () => {
     expect(await runner.runDue()).toEqual({ claimed: 1, done: 0, retrying: 0, failed: 1 })
     const [run] = await runs.forForm(FORM_KEY)
     expect(run?.state).toBe('failed')
-    expect(run?.lastError).toContain('BUNBRACO_EMAIL_PROVIDER')
+    expect(run?.lastError).toContain('CROMBOLO_EMAIL_PROVIDER')
   })
 
   test('a provider that is down is retried, and succeeds without sending twice', async () => {
@@ -494,14 +494,14 @@ describe('the queue', () => {
     const body = new FormData()
     body.set('email', 'a@example.com')
     body.set('topic', 'Sales')
-    body.set('_bunbraco_hp', 'i am a bot')
+    body.set('_crombolo_hp', 'i am a bot')
     body.set(
-      '_bunbraco_token',
-      /name="_bunbraco_token" value="([^"]+)"/.exec(markup)?.[1] as string,
+      '_crombolo_token',
+      /name="_crombolo_token" value="([^"]+)"/.exec(markup)?.[1] as string,
     )
-    body.set('_bunbraco_at', /name="_bunbraco_at" value="([^"]+)"/.exec(markup)?.[1] as string)
+    body.set('_crombolo_at', /name="_crombolo_at" value="([^"]+)"/.exec(markup)?.[1] as string)
     const response = await h.server.fetch(
-      new Request(`${ORIGIN}/bunbraco/forms/${FORM_KEY}`, {
+      new Request(`${ORIGIN}/crombolo/forms/${FORM_KEY}`, {
         method: 'POST',
         body,
         headers: { referer: `${ORIGIN}/`, accept: 'application/json' },

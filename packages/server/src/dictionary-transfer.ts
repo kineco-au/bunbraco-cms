@@ -11,7 +11,7 @@
  * the same `.udt` format Umbraco uses, the same upsert by key, and the same rule
  * that translations for languages this site does not have are skipped.
  */
-import { type Db, DictionaryRepository } from '@bunbraco/data'
+import { type Db, DictionaryRepository } from '@crombolo/data'
 import { readUdt, type UdtItem, writeUdtAll } from './udt.ts'
 
 export interface DictionaryImportOutcome {

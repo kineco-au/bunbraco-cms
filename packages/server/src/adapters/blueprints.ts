@@ -3,8 +3,8 @@
  * Blueprint" on a page): stored as documents of their own object type in their
  * own folder tree, never published.
  */
-import type { BlueprintPort, Principal } from '@bunbraco/api-management'
-import { ObjectTypes, type TreeItem } from '@bunbraco/core'
+import type { BlueprintPort, Principal } from '@crombolo/api-management'
+import { ObjectTypes, type TreeItem } from '@crombolo/core'
 import {
   type Db,
   DocumentRepository,
@@ -12,7 +12,7 @@ import {
   type NodeSchemaState,
   type ValueIntake,
   WriteRejectedError,
-} from '@bunbraco/data'
+} from '@crombolo/data'
 import { createFolderPort, createSettingsTree } from './content.ts'
 
 export function createBlueprintPort(

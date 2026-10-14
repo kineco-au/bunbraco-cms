@@ -8,14 +8,14 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SYSTEM_MEDIA_TYPE_KEYS } from '@bunbraco/core'
+import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
 import {
   ContentTypeRepository,
   DocumentRepository,
   type NodeRow,
   TransferRunRepository,
-} from '@bunbraco/data'
-import { type BundleNode, type ContentSet, exportBundle, importBundle } from '@bunbraco/transfer'
+} from '@crombolo/data'
+import { type BundleNode, type ContentSet, exportBundle, importBundle } from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -60,7 +60,7 @@ afterEach(async () => {
 })
 
 async function site(): Promise<{ h: Harness; typeKey: string }> {
-  const root = mkdtempSync(join(process.cwd(), 'output', 'bunbraco-import-'))
+  const root = mkdtempSync(join(process.cwd(), 'output', 'crombolo-import-'))
   dirs.push(root)
   mkdirSync(join(root, 'schema', 'content-types'), { recursive: true })
   mkdirSync(join(root, 'components'), { recursive: true })

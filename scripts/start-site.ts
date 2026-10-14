@@ -11,9 +11,9 @@
  * Ctrl-C ends it, including the container `--docker` runs it in: see
  * `runToCompletion` for why that needs a handler rather than bun's default.
  *
- * A site in `sites/` runs in place: it is a private workspace, so its `bunbraco`
+ * A site in `sites/` runs in place: it is a private workspace, so its `@crombolo/crombolo`
  * is a symlink to the working tree, and what it writes as it runs is gitignored.
- * A template the CLI ships (`basic`) is scaffolded first, exactly as `bunbraco
+ * A template the CLI ships (`basic`) is scaffolded first, exactly as `crombolo
  * init` would, into `.scaffolds/<slug>` — gitignored, disposable, and
  * deliberately **not** under `output/`: the compose stack mounts a named volume
  * over `/app/output`, so a site scaffolded there is invisible inside the
@@ -25,9 +25,9 @@
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
-import { findTemplate, listTemplates, type SiteTemplate, scaffoldFiles } from '@bunbraco/cli'
-import { connect } from '@bunbraco/data'
-import { portInUse } from '@bunbraco/server'
+import { findTemplate, listTemplates, type SiteTemplate, scaffoldFiles } from '@crombolo/cli'
+import { connect } from '@crombolo/data'
+import { portInUse } from '@crombolo/server'
 import { findSite, listSites, runState, SITES_DIR, slugOf } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
@@ -36,10 +36,10 @@ const ROOT = join(import.meta.dir, '..')
  * Both are overridable so the suite can work somewhere disposable; `--docker`
  * refuses an override outside the repository, because the container only sees `/app`.
  */
-const SCAFFOLDS = Bun.env.BUNBRACO_SCAFFOLDS_DIR
-  ? resolve(Bun.env.BUNBRACO_SCAFFOLDS_DIR)
+const SCAFFOLDS = Bun.env.CROMBOLO_SCAFFOLDS_DIR
+  ? resolve(Bun.env.CROMBOLO_SCAFFOLDS_DIR)
   : join(ROOT, '.scaffolds')
-const SITES = Bun.env.BUNBRACO_SITES_DIR ? resolve(Bun.env.BUNBRACO_SITES_DIR) : SITES_DIR
+const SITES = Bun.env.CROMBOLO_SITES_DIR ? resolve(Bun.env.CROMBOLO_SITES_DIR) : SITES_DIR
 const CONTAINER_ROOT = '/app'
 
 const args = Bun.argv.slice(2)
@@ -69,7 +69,7 @@ const slug = slugOf(id)
 const siteDir = site ? site.dir : join(SCAFFOLDS, slug)
 const bundle = site ? site.bundle : template?.bundle
 
-/** Writes the template out, exactly as `bunbraco init` does. */
+/** Writes the template out, exactly as `crombolo init` does. */
 function scaffold(into: string, which: SiteTemplate): void {
   for (const file of scaffoldFiles({ template: which, siteName: which.name })) {
     const target = join(into, file.path)
@@ -107,12 +107,12 @@ if (site) {
  * The database this run may touch, and no other.
  *
  * A demo must never write to a live database, and two things could make it: an
- * environment that names Postgres, or a `BUNBRACO_SQLITE_FILE` pointing outside
+ * environment that names Postgres, or a `CROMBOLO_SQLITE_FILE` pointing outside
  * the site. So the dialect and the file are **forced** here rather than resolved
  * from the environment — `bun run site` cannot be pointed at a real database
  * even by a `.env` that names one.
  */
-const sqliteFile = join(siteDir, 'bunbraco.sqlite')
+const sqliteFile = join(siteDir, 'crombolo.sqlite')
 
 /** What the file already holds. A fresh demo expects nothing. */
 async function existingContent(file: string): Promise<number | undefined> {
@@ -164,7 +164,7 @@ const GRACE_MS = 10_000
  * forward. Under `--docker`, `docker compose run` holds the terminal in raw
  * mode and nothing local is signalled at all: the keystroke goes to the
  * container as a byte, and the container's own terminal raises the SIGINT that
- * `bunbraco start` handles (see `stopOnSignal` in `packages/cli/bin`).
+ * `crombolo start` handles (see `stopOnSignal` in `packages/cli/bin`).
  *
  * Either way the job here is to wait. With no handler, bun's default took this
  * process down on the first local press and returned the prompt while
@@ -212,7 +212,7 @@ if (flags.has('--docker')) {
   if (relative(ROOT, siteDir).startsWith('..')) {
     console.error(
       `\n${siteDir} is outside the repository, and the container only mounts it at ${CONTAINER_ROOT}.\n` +
-        '  Drop BUNBRACO_SITES_DIR and BUNBRACO_SCAFFOLDS_DIR, or run without --docker.',
+        '  Drop CROMBOLO_SITES_DIR and CROMBOLO_SCAFFOLDS_DIR, or run without --docker.',
     )
     process.exit(1)
   }
@@ -223,7 +223,7 @@ if (flags.has('--docker')) {
    * the way in: a leftover from a run that was killed outright is cleared here,
    * instead of surfacing as the port clash below for someone else to explain.
    */
-  const containerName = `bunbraco-site-${slug}`
+  const containerName = `crombolo-site-${slug}`
   const removeContainer = () =>
     Bun.spawnSync(['docker', 'rm', '--force', containerName], {
       stdio: ['ignore', 'ignore', 'ignore'],
@@ -234,12 +234,12 @@ if (flags.has('--docker')) {
   // The stack publishes one fixed port, so a clash is reported here with the way
   // out rather than as a daemon error about endpoint programming. Our own
   // leftover is already gone, so what is left is something else holding it.
-  const port = Number(Bun.env.BUNBRACO_PORT ?? 8080)
+  const port = Number(Bun.env.CROMBOLO_PORT ?? 8080)
   if (await portInUse(port)) {
     console.error(
       `\nPort ${port} is already in use, so the stack cannot publish it.\n` +
         '  "bun run docker:down" stops the stack, if that is what has it.\n' +
-        '  Otherwise set BUNBRACO_PORT to something else.',
+        '  Otherwise set CROMBOLO_PORT to something else.',
     )
     // A dry run reports the clash a real run would hit, without failing on it
     if (!flags.has('--dry-run')) process.exit(1)
@@ -264,12 +264,12 @@ if (flags.has('--docker')) {
     '-w',
     containerSite,
     '-e',
-    'BUNBRACO_DB=sqlite',
+    'CROMBOLO_DB=sqlite',
     '-e',
-    `BUNBRACO_SQLITE_FILE=${containerSite}/bunbraco.sqlite`,
+    `CROMBOLO_SQLITE_FILE=${containerSite}/crombolo.sqlite`,
     'cms',
     'bun',
-    `${CONTAINER_ROOT}/packages/cli/bin/bunbraco.ts`,
+    `${CONTAINER_ROOT}/packages/cli/bin/crombolo.ts`,
     'start',
     ...startArgs,
     ...passThrough,
@@ -282,7 +282,7 @@ if (flags.has('--docker')) {
 
 const command = [
   'bun',
-  join(ROOT, 'packages/cli/bin/bunbraco.ts'),
+  join(ROOT, 'packages/cli/bin/crombolo.ts'),
   'start',
   ...startArgs,
   ...passThrough,
@@ -296,11 +296,11 @@ const proc = Bun.spawn(command, {
   env: {
     ...process.env,
     // Forced, not defaulted: see above.
-    BUNBRACO_DB: 'sqlite',
-    BUNBRACO_SQLITE_FILE: sqliteFile,
-    BUNBRACO_POSTGRES_URL: '',
-    BUNBRACO_MEDIA_DIR: join(siteDir, 'media'),
-    BUNBRACO_LOGS_DIR: join(siteDir, 'logs'),
+    CROMBOLO_DB: 'sqlite',
+    CROMBOLO_SQLITE_FILE: sqliteFile,
+    CROMBOLO_POSTGRES_URL: '',
+    CROMBOLO_MEDIA_DIR: join(siteDir, 'media'),
+    CROMBOLO_LOGS_DIR: join(siteDir, 'logs'),
   },
 })
 // Nothing to clean up: the server is this child, and it holds the port only for

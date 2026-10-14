@@ -3,7 +3,7 @@
  * so a path that is not in the contract cannot be served, and an operation in
  * the contract without a handler answers 501 rather than 404.
  */
-import { type HttpMethod, listOperations, loadSpec, type OperationInfo } from '@bunbraco/contracts'
+import { type HttpMethod, listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 import {
   applyNotifications,
   type EventMessage,
@@ -13,7 +13,7 @@ import {
   problemResponse,
   type StartNodes,
   unauthorized,
-} from '@bunbraco/core'
+} from '@crombolo/core'
 import { authorize, LOCAL_LOGIN_OPERATIONS, type NodeLookup } from './authorization.ts'
 import { type ServerEvent, serverEventFor } from './server-events.ts'
 

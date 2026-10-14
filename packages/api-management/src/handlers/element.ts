@@ -12,8 +12,8 @@
  * single `NotCreated` variant, which is the contract's way of saying there is no
  * content at that row.
  */
-import type { DocumentAggregate, ElementTreeItem } from '@bunbraco/core'
-import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import type { DocumentAggregate, ElementTreeItem } from '@crombolo/core'
+import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { ElementPort, PortFailure, ReferencePort } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging, registerFolderHandlers } from './content-type.ts'

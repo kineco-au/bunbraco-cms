@@ -18,7 +18,7 @@ import { UMB_DOCUMENT_TYPE_WORKSPACE_CONTEXT } from '@umbraco-cms/backoffice/doc
 import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api'
 import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external/lit'
 
-export default class BunbracoElementTypeHintElement extends UmbElementMixin(LitElement) {
+export default class CromboloElementTypeHintElement extends UmbElementMixin(LitElement) {
   static properties = { _isElement: { state: true }, _allowedInLibrary: { state: true } }
 
   constructor() {
@@ -55,4 +55,4 @@ export default class BunbracoElementTypeHintElement extends UmbElementMixin(LitE
   `
 }
 
-customElements.define('bunbraco-element-type-hint', BunbracoElementTypeHintElement)
+customElements.define('crombolo-element-type-hint', CromboloElementTypeHintElement)

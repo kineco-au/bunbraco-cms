@@ -10,8 +10,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { FORM_HONEYPOT_FIELD, FORM_RENDERED_FIELD, FORM_TOKEN_FIELD } from '@bunbraco/core'
-import { ComponentRepository, ContentTypeRepository, FormEntryRepository } from '@bunbraco/data'
+import { FORM_HONEYPOT_FIELD, FORM_RENDERED_FIELD, FORM_TOKEN_FIELD } from '@crombolo/core'
+import { ComponentRepository, ContentTypeRepository, FormEntryRepository } from '@crombolo/data'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -40,7 +40,7 @@ name = "Contact form"
 type = "formPicker"
 `
 
-const VIEW = `import { Form } from 'bunbraco'
+const VIEW = `import { Form } from '@crombolo/crombolo'
 export default function Page({ model, submission }) {
   return (
     <main>
@@ -127,8 +127,8 @@ async function site(definition = CONTACT) {
     const response = await visit('/')
     expect(response.status).toBe(200)
     const markup = await response.text()
-    const token = /name="_bunbraco_token" value="([^"]+)"/.exec(markup)?.[1] as string
-    const at = /name="_bunbraco_at" value="([^"]+)"/.exec(markup)?.[1] as string
+    const token = /name="_crombolo_token" value="([^"]+)"/.exec(markup)?.[1] as string
+    const at = /name="_crombolo_at" value="([^"]+)"/.exec(markup)?.[1] as string
     return { markup, token, at }
   }
 
@@ -146,7 +146,7 @@ async function site(definition = CONTACT) {
     if (options.token !== '') body.set(FORM_TOKEN_FIELD, options.token ?? page.token)
     body.set(FORM_RENDERED_FIELD, options.at ?? page.at)
     return h.server.fetch(
-      new Request(`${ORIGIN}/bunbraco/forms/${options.key ?? FORM_KEY}`, {
+      new Request(`${ORIGIN}/crombolo/forms/${options.key ?? FORM_KEY}`, {
         method: 'POST',
         body,
         headers: {
@@ -165,7 +165,7 @@ describe('a form on a page', () => {
   test('a picked form renders as a real form, with its fields', async () => {
     const { rendered } = await site()
     const { markup, token, at } = await rendered()
-    expect(markup).toContain('<form method="post" action="/bunbraco/forms/')
+    expect(markup).toContain('<form method="post" action="/crombolo/forms/')
     expect(markup).toContain('name="email"')
     expect(markup).toContain('<select')
     expect(token).toBeTruthy()
@@ -201,7 +201,7 @@ describe('submitting a form', () => {
 
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe('/')
-    expect(response.headers.get('set-cookie')).toContain('bunbraco-form=')
+    expect(response.headers.get('set-cookie')).toContain('crombolo-form=')
 
     const stored = await entries.list({ formKey: FORM_KEY })
     expect(stored.total).toBe(1)
@@ -232,7 +232,7 @@ describe('submitting a form', () => {
     expect(markup).not.toContain('<input type="text"')
     // Cleared on the way out, so a reload shows the form again rather than the
     // thank-you for ever.
-    expect(after.headers.get('set-cookie')).toContain('bunbraco-form=;')
+    expect(after.headers.get('set-cookie')).toContain('crombolo-form=;')
   })
 
   test('a refused submission comes back on the page with its errors and what was typed', async () => {
@@ -243,7 +243,7 @@ describe('submitting a form', () => {
 
     const markup = await (await visit('/', value)).text()
     expect(markup).toContain('must be an email address')
-    expect(markup).toContain('bunbraco-form__field--invalid')
+    expect(markup).toContain('crombolo-form__field--invalid')
     // Not retyped: the value the visitor gave is still in the field.
     expect(markup).toContain('value="not-an-address"')
   })
@@ -335,7 +335,7 @@ describe('the guards', () => {
 
   test('a GET on the submission path is not allowed', async () => {
     const { h } = await site()
-    const response = await h.server.fetch(new Request(`${ORIGIN}/bunbraco/forms/${FORM_KEY}`))
+    const response = await h.server.fetch(new Request(`${ORIGIN}/crombolo/forms/${FORM_KEY}`))
     expect(response.status).toBe(405)
     expect(response.headers.get('allow')).toBe('POST')
   })

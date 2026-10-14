@@ -5,7 +5,7 @@
  * calls the mixture ambiguous and refuses it, and so do we, because the two are
  * different intentions and the editor offers them as a choice.
  */
-import { notFound, problemDetails, problemResponse } from '@bunbraco/core'
+import { notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { PublicAccessPort, PublicAccessStatus } from '../ports-members.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { readBody } from './document.ts'

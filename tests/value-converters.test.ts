@@ -6,10 +6,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { keyFromReference } from '@bunbraco/core'
-import { ComponentRepository, ContentTypeRepository } from '@bunbraco/data'
-import { type BlockGridItem, convertValue, PublishedElement } from '@bunbraco/render'
-import { generateTypes, loadSchemaDirectory } from '@bunbraco/schema'
+import { keyFromReference } from '@crombolo/core'
+import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { type BlockGridItem, convertValue, PublishedElement } from '@crombolo/render'
+import { generateTypes, loadSchemaDirectory } from '@crombolo/schema'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -338,7 +338,7 @@ describe('value converters', () => {
     expect(blocks.contentData).toHaveLength(2)
   })
 
-  test('`bunbraco generate` types pickers, links and block elements', () => {
+  test('`crombolo generate` types pickers, links and block elements', () => {
     const root = mkdtempSync(join(process.cwd(), 'output', 'converters-gen-'))
     dirs.push(root)
     for (const [path, content] of Object.entries(files)) {
@@ -346,7 +346,7 @@ describe('value converters', () => {
       writeFileSync(join(root, path), content)
     }
     const types = generateTypes(loadSchemaDirectory(join(root, 'schema')).set)
-    expect(types).toContain("from 'bunbraco'")
+    expect(types).toContain("from '@crombolo/crombolo'")
     expect(types).toContain('"pick"?: PublishedContent | null')
     expect(types).toContain('"related"?: PublishedContent[]')
     expect(types).toContain('"links"?: Link[]')

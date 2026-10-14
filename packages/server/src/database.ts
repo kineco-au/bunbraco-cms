@@ -4,10 +4,10 @@
  * Migration and seeding run at startup rather than through the install wizard;
  * the wizard is Phase 6. Both are idempotent, so restarting is safe.
  */
-import { hashPassword, passwordConfigJson } from '@bunbraco/auth'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
-  bunbracoPlan,
   connect,
+  cromboloPlan,
   type Db,
   ensureBuiltInDataTypes,
   ensureSystemContentTypes,
@@ -19,15 +19,15 @@ import {
   readState,
   seedContent,
   seedIdentity,
-} from '@bunbraco/data'
-import type { BunbracoConfig } from './config.ts'
+} from '@crombolo/data'
+import type { CromboloConfig } from './config.ts'
 
 /** Production never auto-upgrades: an existing database with steps pending refuses to boot. */
 export class UpgradePendingError extends Error {
   constructor(readonly steps: string[]) {
     super(
       `${steps.length} framework migration(s) pending on this database: ${steps.join(', ')}. ` +
-        'Production does not upgrade at boot; run `bunbraco upgrade check`, then `bunbraco upgrade`.',
+        'Production does not upgrade at boot; run `crombolo upgrade check`, then `crombolo upgrade`.',
     )
   }
 }
@@ -43,7 +43,7 @@ export class DatabaseNotReadyError extends Error {
   constructor(readonly steps: string[]) {
     super(
       `This node runs as 'web' and does not migrate, but the database has ${steps.length} ` +
-        'migration(s) pending. Start the `api` node first, or run `bunbraco upgrade`.',
+        'migration(s) pending. Start the `api` node first, or run `crombolo upgrade`.',
     )
   }
 }
@@ -55,9 +55,9 @@ export class DatabaseNotReadyError extends Error {
  * migrated would race the node that owns the schema, and one that quietly
  * served an unmigrated database would answer queries against missing tables.
  */
-export async function attachDatabase(config: BunbracoConfig): Promise<Bootstrap> {
+export async function attachDatabase(config: CromboloConfig): Promise<Bootstrap> {
   const db = await connect({ file: config.sqliteFile })
-  const pending = await pendingMigrations(db, bunbracoPlan)
+  const pending = await pendingMigrations(db, cromboloPlan)
   if (pending.length > 0) {
     await db.close()
     throw new DatabaseNotReadyError(pending.map((m) => m.name))
@@ -65,10 +65,10 @@ export async function attachDatabase(config: BunbracoConfig): Promise<Bootstrap>
   return { db, seededAdminPassword: undefined }
 }
 
-export async function bootstrapDatabase(config: BunbracoConfig): Promise<Bootstrap> {
+export async function bootstrapDatabase(config: CromboloConfig): Promise<Bootstrap> {
   const db = await connect({ file: config.sqliteFile })
   // pendingMigrations throws when the database is newer than this code.
-  const pending = await pendingMigrations(db, bunbracoPlan)
+  const pending = await pendingMigrations(db, cromboloPlan)
   const fresh = (await readState(db)) === INITIAL_STATE
   if (pending.length > 0 && !fresh && !config.development) {
     await db.close()
@@ -83,8 +83,8 @@ export async function bootstrapDatabase(config: BunbracoConfig): Promise<Bootstr
  * steps is exactly its job. Returns the admin password when this run created
  * the account and none was configured.
  */
-export async function installDatabase(db: Db, config: BunbracoConfig): Promise<string | undefined> {
-  await migrate(db, bunbracoPlan, { by: config.nodeId })
+export async function installDatabase(db: Db, config: CromboloConfig): Promise<string | undefined> {
+  await migrate(db, cromboloPlan, { by: config.nodeId })
 
   const password = config.adminPassword ?? crypto.randomUUID().replaceAll('-', '').slice(0, 20)
   const seeded = await seedIdentity(db, {

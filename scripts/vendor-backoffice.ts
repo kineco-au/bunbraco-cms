@@ -31,7 +31,7 @@ const STATIC_SEED = join(ROOT, 'packages/backoffice-dist/upstream-static')
  * The three SVGs that used to be here — `favicon.svg`, `umbraco-logo.svg` and
  * `installer-illustration.svg` — are Umbraco's own marks and artwork. MIT grants
  * no trademark rights, so they are not redistributed: `BRANDED_ASSETS` in
- * `@bunbraco/backoffice-host` serves bunbraco's own at those paths instead. Do
+ * `@crombolo/backoffice-host` serves crombolo's own at those paths instead. Do
  * not add them back; `vendor:refresh-static` would re-seed them from
  * `$UMBRACO_SRC` and the repository would carry them again.
  */

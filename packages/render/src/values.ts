@@ -4,7 +4,7 @@
  * links with their URLs resolved, and block editors yield element models with
  * the same `value()` API as a page.
  */
-import { keyFromReference, type SchemaForm } from '@bunbraco/core'
+import { keyFromReference, type SchemaForm } from '@crombolo/core'
 import { RawHtml } from './html.ts'
 import { ImageCropperValue, MediaWithCrops, PublishedMedia } from './media.ts'
 import type { PublishedProperty } from './model.ts'
@@ -103,7 +103,7 @@ export class PublishedElement {
   }
 }
 
-/** An element whose `value()` knows its properties, as `bunbraco generate` types block content. */
+/** An element whose `value()` knows its properties, as `crombolo generate` types block content. */
 export interface TypedElement<Properties> extends PublishedElement {
   value<Alias extends keyof Properties & string>(alias: Alias): Properties[Alias]
 }
@@ -246,7 +246,7 @@ export function convertValue(
     // A form definition is a file, so there is nothing in the content cache to
     // resolve against: the lookup reads `schema/forms/`. Without one the raw key
     // comes back, which is what a unit test sees.
-    case 'Bunbraco.FormPicker': {
+    case 'Crombolo.FormPicker': {
       const key = typeof value === 'string' ? value.trim() : ''
       if (!key) return null
       return context?.form?.(key) ?? null

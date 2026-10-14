@@ -2,7 +2,7 @@
  * The OAuth 2.0 authorization server, shaped to what the Umbraco backoffice
  * actually sends. See docs/04-backoffice-hosting.md for the wire contract.
  */
-import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@bunbraco/core'
+import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@crombolo/core'
 import { hashPassword, passwordConfigJson, verifyPassword } from './password.ts'
 import { type CodeChallengeMethod, generateToken, verifyChallenge } from './pkce.ts'
 import type { AuthStore, UserRow } from './store.ts'
@@ -17,7 +17,7 @@ import type { AuthStore, UserRow } from './store.ts'
  * Renaming the value therefore does not rebrand anything — it makes the server
  * reject the only client that calls it, and every sign-in fails with
  * `invalid_client`. The API-user prefix in `adapters/users.ts` is the one that
- * was genuinely ours, and it moved to bunbraco in migration 020.
+ * was genuinely ours, and it moved to crombolo in migration 020.
  */
 export const BACKOFFICE_CLIENT_ID = 'umbraco-back-office'
 export const DEFAULT_SCOPE = 'offline_access'

@@ -32,18 +32,18 @@ const STEPS = [
   {
     title: 'Keep the schema in the repository',
     body: html`Content types, data types and templates are also files:
-      <code>schema/*.toml</code>. <code>bunbraco schema sync</code> writes changes made in
-      the backoffice back out, and <code>bunbraco schema check</code> tells you whether a
+      <code>schema/*.toml</code>. <code>crombolo schema sync</code> writes changes made in
+      the backoffice back out, and <code>crombolo schema check</code> tells you whether a
       database matches. Schema travels through Git, not a database export.`,
   },
 ]
 
-export default class BunbracoWelcomeDashboardElement extends UmbLitElement {
+export default class CromboloWelcomeDashboardElement extends UmbLitElement {
   render() {
     return html`
-      <uui-box headline="Welcome to Bunbraco">
+      <uui-box headline="Welcome to Crombolo">
         <p class="lede">
-          Bunbraco is a content management system that runs on
+          Crombolo is a content management system that runs on
           <strong>Bun and TypeScript</strong>. It serves the real Umbraco backoffice you
           are looking at now and follows Umbraco's API contract, so the editing
           experience is Umbraco's — while the server, the templates and the schema are
@@ -103,4 +103,4 @@ export default class BunbracoWelcomeDashboardElement extends UmbLitElement {
   `
 }
 
-customElements.define('bunbraco-welcome-dashboard', BunbracoWelcomeDashboardElement)
+customElements.define('crombolo-welcome-dashboard', CromboloWelcomeDashboardElement)
