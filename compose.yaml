@@ -126,8 +126,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      # Covers the first boot, which installs into the empty node_modules volume
-      # before the server starts.
+      # Covers a boot that installs into the node_modules volume first: the
+      # first one, and any after bun.lock has changed.
       start_period: 180s
 
   # No test service is started by `up`; the `docker:test:*` scripts run them on

@@ -45,6 +45,7 @@ import {
   rebrandSysinfo,
 } from '../packages/backoffice-host/plugin/branding/sysinfo.js'
 import {
+  aliasOf,
   brandDictionary,
   curatedKeys,
   DOCUMENT_TYPE,
@@ -769,5 +770,34 @@ describe('the labels Umbraco hard-codes as Document Types', () => {
     const manifests: Record<string, Record<string, unknown>> = {}
     relabel(registry(manifests), 'Umb.MenuItem.DocumentTypes', '#treeHeaders_documentTypes')
     expect(manifests).toEqual({})
+  })
+})
+
+describe('the extensions the plugin registers', () => {
+  const manifests = ['', 'assistant', 'localizations', 'seo'].map((dir) =>
+    join('packages/backoffice-host/plugin', dir, 'umbraco-package.json'),
+  )
+  const aliases = manifests.flatMap((file) =>
+    (JSON.parse(readFileSync(file, 'utf8')) as { extensions: { alias: string }[] }).extensions.map(
+      (extension) => [extension.alias, file] as const,
+    ),
+  )
+
+  test('never share an alias, which the backoffice refuses and reports in the console', () => {
+    // English has a hand-written override and a generated one; when both were
+    // `Bunbraco.Localization.EN`, every page load logged "already registered".
+    const seen = new Map<string, string>()
+    const clashes: string[] = []
+    for (const [alias, file] of aliases) {
+      const first = seen.get(alias)
+      if (first) clashes.push(`${alias}: ${first} and ${file}`)
+      else seen.set(alias, file)
+    }
+    expect(clashes).toEqual([])
+  })
+
+  test('keep the generated overrides apart from the hand-written English one', () => {
+    expect(aliasOf('en')).not.toBe('Bunbraco.Localization.EN')
+    expect(aliasOf('en-us')).toBe('Bunbraco.Localization.Overrides.EN_US')
   })
 })

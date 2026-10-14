@@ -277,8 +277,12 @@ export function localizeDictionary(
   return Object.keys(out).length > 0 ? out : undefined
 }
 
-const aliasOf = (culture: string) =>
-  `Bunbraco.Localization.${culture.toUpperCase().replaceAll('-', '_')}`
+/**
+ * Its own namespace: English also has the hand-written `Bunbraco.Localization.EN`,
+ * and the backoffice refuses a second extension with the same alias.
+ */
+export const aliasOf = (culture: string) =>
+  `Bunbraco.Localization.Overrides.${culture.toUpperCase().replaceAll('-', '_')}`
 
 export async function buildLocalizations(): Promise<number> {
   const handWritten = english as Record<string, Record<string, string>>

@@ -885,7 +885,11 @@ is rebuilt only when `docker/Dockerfile.cms` or the entrypoint changes.
 
 `node_modules` is the exception: it is a named volume, not part of the mount,
 because the host's install holds macOS binaries that cannot run in the container.
-The first boot populates it with `bun install --frozen-lockfile`.
+The entrypoint runs `bun install --frozen-lockfile` into it whenever `bun.lock`
+differs from the one it was last installed from (a hash kept in the volume), not
+only on the first boot. A volume left behind the lockfile still starts, but the
+workspace links that come through the mount (`packages/*/node_modules`) then point
+at packages it never installed, and fail only when something imports one.
 
 The browser suite has an image of its own, because it needs browsers and because
 that image is Debian where the CMS image is Alpine — one install cannot serve

@@ -7,7 +7,7 @@
   "extensions": [
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.AR",
+      "alias": "Bunbraco.Localization.Overrides.AR",
       "name": "Bunbraco Localization Overrides (ar)",
       "weight": 0,
       "meta": {
@@ -17,7 +17,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.BS",
+      "alias": "Bunbraco.Localization.Overrides.BS",
       "name": "Bunbraco Localization Overrides (bs)",
       "weight": 0,
       "meta": {
@@ -27,7 +27,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.CS",
+      "alias": "Bunbraco.Localization.Overrides.CS",
       "name": "Bunbraco Localization Overrides (cs)",
       "weight": 0,
       "meta": {
@@ -37,7 +37,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.CY",
+      "alias": "Bunbraco.Localization.Overrides.CY",
       "name": "Bunbraco Localization Overrides (cy)",
       "weight": 0,
       "meta": {
@@ -47,7 +47,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.DA",
+      "alias": "Bunbraco.Localization.Overrides.DA",
       "name": "Bunbraco Localization Overrides (da)",
       "weight": 0,
       "meta": {
@@ -57,7 +57,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.DE",
+      "alias": "Bunbraco.Localization.Overrides.DE",
       "name": "Bunbraco Localization Overrides (de)",
       "weight": 0,
       "meta": {
@@ -67,7 +67,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.EN",
+      "alias": "Bunbraco.Localization.Overrides.EN",
       "name": "Bunbraco Localization Overrides (en)",
       "weight": 0,
       "meta": {
@@ -77,7 +77,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.ES",
+      "alias": "Bunbraco.Localization.Overrides.ES",
       "name": "Bunbraco Localization Overrides (es)",
       "weight": 0,
       "meta": {
@@ -87,7 +87,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.FR",
+      "alias": "Bunbraco.Localization.Overrides.FR",
       "name": "Bunbraco Localization Overrides (fr)",
       "weight": 0,
       "meta": {
@@ -97,7 +97,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.HE",
+      "alias": "Bunbraco.Localization.Overrides.HE",
       "name": "Bunbraco Localization Overrides (he)",
       "weight": 0,
       "meta": {
@@ -107,7 +107,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.HR",
+      "alias": "Bunbraco.Localization.Overrides.HR",
       "name": "Bunbraco Localization Overrides (hr)",
       "weight": 0,
       "meta": {
@@ -117,7 +117,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.IT",
+      "alias": "Bunbraco.Localization.Overrides.IT",
       "name": "Bunbraco Localization Overrides (it)",
       "weight": 0,
       "meta": {
@@ -127,7 +127,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.JA",
+      "alias": "Bunbraco.Localization.Overrides.JA",
       "name": "Bunbraco Localization Overrides (ja)",
       "weight": 0,
       "meta": {
@@ -137,7 +137,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.KO",
+      "alias": "Bunbraco.Localization.Overrides.KO",
       "name": "Bunbraco Localization Overrides (ko)",
       "weight": 0,
       "meta": {
@@ -147,7 +147,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.NB",
+      "alias": "Bunbraco.Localization.Overrides.NB",
       "name": "Bunbraco Localization Overrides (nb)",
       "weight": 0,
       "meta": {
@@ -157,7 +157,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.NL",
+      "alias": "Bunbraco.Localization.Overrides.NL",
       "name": "Bunbraco Localization Overrides (nl)",
       "weight": 0,
       "meta": {
@@ -167,7 +167,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.PL",
+      "alias": "Bunbraco.Localization.Overrides.PL",
       "name": "Bunbraco Localization Overrides (pl)",
       "weight": 0,
       "meta": {
@@ -177,7 +177,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.PT",
+      "alias": "Bunbraco.Localization.Overrides.PT",
       "name": "Bunbraco Localization Overrides (pt)",
       "weight": 0,
       "meta": {
@@ -187,7 +187,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.PT_BR",
+      "alias": "Bunbraco.Localization.Overrides.PT_BR",
       "name": "Bunbraco Localization Overrides (pt-br)",
       "weight": 0,
       "meta": {
@@ -197,7 +197,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.RO",
+      "alias": "Bunbraco.Localization.Overrides.RO",
       "name": "Bunbraco Localization Overrides (ro)",
       "weight": 0,
       "meta": {
@@ -207,7 +207,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.RU",
+      "alias": "Bunbraco.Localization.Overrides.RU",
       "name": "Bunbraco Localization Overrides (ru)",
       "weight": 0,
       "meta": {
@@ -217,7 +217,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.SV",
+      "alias": "Bunbraco.Localization.Overrides.SV",
       "name": "Bunbraco Localization Overrides (sv)",
       "weight": 0,
       "meta": {
@@ -227,7 +227,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.TR",
+      "alias": "Bunbraco.Localization.Overrides.TR",
       "name": "Bunbraco Localization Overrides (tr)",
       "weight": 0,
       "meta": {
@@ -237,7 +237,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.UK",
+      "alias": "Bunbraco.Localization.Overrides.UK",
       "name": "Bunbraco Localization Overrides (uk)",
       "weight": 0,
       "meta": {
@@ -247,7 +247,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.ZH",
+      "alias": "Bunbraco.Localization.Overrides.ZH",
       "name": "Bunbraco Localization Overrides (zh)",
       "weight": 0,
       "meta": {
@@ -257,7 +257,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.ZH_TW",
+      "alias": "Bunbraco.Localization.Overrides.ZH_TW",
       "name": "Bunbraco Localization Overrides (zh-tw)",
       "weight": 0,
       "meta": {
@@ -267,7 +267,7 @@
     },
     {
       "type": "localization",
-      "alias": "Bunbraco.Localization.VI",
+      "alias": "Bunbraco.Localization.Overrides.VI",
       "name": "Bunbraco Localization Overrides (vi)",
       "weight": 0,
       "meta": {

@@ -152,6 +152,22 @@ describe('the test containers', () => {
     expect(browser).toContain("BUNBRACO_BROWSER_CHANNEL: ''")
   })
 
+  test('every image reinstalls its node_modules volume when bun.lock changes', () => {
+    // Installing only into an empty volume left the browser one without packages
+    // added since, while the workspace links through the mount still named them.
+    const entrypoint = readFileSync(
+      join(import.meta.dir, '..', 'docker', 'cms-entrypoint.sh'),
+      'utf8',
+    )
+    expect(entrypoint).toContain('sha256sum /app/bun.lock')
+    expect(entrypoint).toContain('STAMP=/app/node_modules/')
+    expect(entrypoint).toMatch(/!= "\$LOCK"[\s\S]*bun install --frozen-lockfile[\s\S]*> "\$STAMP"/)
+    for (const file of ['Dockerfile.cms', 'Dockerfile.browser'])
+      expect(readFileSync(join(import.meta.dir, '..', 'docker', file), 'utf8')).toContain(
+        'ENTRYPOINT ["cms-entrypoint"]',
+      )
+  })
+
   test('the SQLite test service declares no database, so it starts no Postgres', () => {
     const sqlite = compose.slice(
       compose.indexOf('cms-test-sqlite:'),
