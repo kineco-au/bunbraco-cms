@@ -460,7 +460,7 @@ Design documents, in reading order; planned work is in the stories:
 | [schema-at-runtime](docs/schema-at-runtime.md) | the shared schema store, and importing at runtime |
 | [content-transfer](docs/content-transfer.md) | the bundle format, and moving content between environments |
 | [configuration](docs/configuration.md) | every environment variable, and every script |
-| [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions |
+| [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions; the backoffice's health checks and troubleshooting in [diagnostics](docs/diagnostics.md) |
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |

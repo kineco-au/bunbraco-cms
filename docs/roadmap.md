@@ -58,7 +58,15 @@ Listed so they are not mistaken for gaps:
   purpose; `crombolo init`, schema-as-code and `crombolo upgrade` replace them.
   The real consequence is that there is no first-run browser experience, so a
   non-developer cannot stand a site up.
-- The **template query builder** (3 ops) stays 501: it is Razor-specific.
+- The **template query builder** writes TypeScript against the render model rather
+  than Razor (story `021`).
+- **Telemetry** is fixed at Minimal and cannot be raised: nothing is collected or
+  sent. **Profiling** is off and cannot be switched on: there is no profiler.
+  **Help** pages are an empty list: Umbraco relays them from our.umbraco.com.
+  [`diagnostics.md`](diagnostics.md).
+- `coverage:api` lists each operation still answering 501 as a deliberate
+  divergence, with its reason, or by the story that builds it
+  ([`api-coverage.md`](api-coverage.md)).
 - **Segments** round-trip but no provider ships, so personalisation is inert —
   exactly Umbraco's behaviour without a package.
 - **snake_case** rules out importing an existing Umbraco database, **every save is

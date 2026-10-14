@@ -8,6 +8,7 @@
  */
 import {
   allFormFields,
+  CHOICE_SOURCE_KINDS,
   type FormCondition,
   formFieldType,
   type SchemaForm,
@@ -15,6 +16,8 @@ import {
   VALUELESS_OPERATORS,
 } from '@crombolo/core'
 import type { SchemaProblem } from './model.ts'
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const VERSION = /^\d+(\.\d+)*$/
 const ALIAS = /^[a-zA-Z][a-zA-Z0-9]*$/
@@ -148,13 +151,40 @@ function validateFields(form: SchemaForm, file: string, add: Add): void {
                 `a ${field.type} field collects nothing, so it cannot be sensitive`,
               )
           }
-          if (info.choices && field.values.length === 0)
+          const { source } = field
+          if (source && field.values.length > 0)
+            add(
+              file,
+              `${path}.source`,
+              'a field takes its choices from values or from a source, not both',
+            )
+          if (source && !info.choices)
+            add(file, `${path}.source`, `a ${field.type} field has nothing to choose from`)
+          if (source && info.choices) {
+            if (!CHOICE_SOURCE_KINDS.includes(source.kind))
+              add(
+                file,
+                `${path}.source.kind`,
+                `"${source.kind}" is not a kind of source; expected one of ${CHOICE_SOURCE_KINDS.join(', ')}`,
+              )
+            if (source.kind === 'content' && !UUID.test(source.parent))
+              add(file, `${path}.source.parent`, 'a content source names its parent page by key')
+            if (source.kind === 'dictionary' && source.parent.trim() === '')
+              add(
+                file,
+                `${path}.source.parent`,
+                'a dictionary source names its parent dictionary item',
+              )
+          }
+          if (info.choices && !source && field.values.length === 0)
             add(file, `${path}.values`, `a ${field.type} field needs values to choose from`)
           if (!info.choices && field.values.length > 0)
             add(file, `${path}.values`, `a ${field.type} field has nothing to choose from`)
-          // A default has to be one of the choices, or the form opens invalid.
+          // A default has to be one of the choices, or the form opens invalid. A
+          // source's choices are only known once it is resolved, so not checked here.
           if (
             info.choices &&
+            !source &&
             field.defaultValue !== undefined &&
             !field.values.includes(field.defaultValue)
           )

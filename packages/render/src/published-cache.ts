@@ -12,7 +12,12 @@
  * navigation resolve within the culture of the page that asks.
  */
 
-import type { SchemaForm } from '@crombolo/core'
+import {
+  type ChoiceOption,
+  type ChoiceSource,
+  type SchemaForm,
+  withResolvedChoices,
+} from '@crombolo/core'
 import { PublishedMedia } from './media.ts'
 import { type Navigation, PublishedContent, type PublishedProperty } from './model.ts'
 import { matchRedirect, type RedirectRule } from './redirects.ts'
@@ -71,6 +76,8 @@ export interface PublishedContentSource {
   loadLanguages?(): Promise<PublishedLanguage[]>
   /** Dictionary translations, by item key then culture; none when omitted. */
   loadDictionary?(): Promise<Map<string, Map<string, string>>>
+  /** Every dictionary item with its parent's name, for choice lists; none when omitted. */
+  loadDictionaryOutline?(): Promise<DictionaryOutlineItem[]>
   /** Redirect rules, configured ones first; none when omitted. */
   loadRedirects?(): Promise<RedirectRule[]>
   /** Published library elements, for the pickers that point at them; none when omitted. */
@@ -113,6 +120,12 @@ export interface CultureView {
   parentIdOf: Map<number, number>
 }
 
+export interface DictionaryOutlineItem {
+  key: string
+  name: string
+  parentName: string | null
+}
+
 export interface CacheSnapshot {
   /** Keyed by lowercase culture; `''` holds an invariant site's single view. */
   views: Map<string, CultureView>
@@ -132,6 +145,8 @@ export interface CacheSnapshot {
   media: Map<string, PublishedMedia>
   /** Item key (lowercase) → culture (lowercase) → translation. */
   dictionary: Map<string, Map<string, string>>
+  /** Every dictionary item, for a choice list drawn from one item's children. */
+  dictionaryOutline: DictionaryOutlineItem[]
   /** Content type key (lowercase) → alias. */
   contentTypeAliases: Map<string, string>
 }
@@ -177,6 +192,7 @@ const EMPTY: CacheSnapshot = {
   languages: [],
   media: new Map(),
   dictionary: new Map(),
+  dictionaryOutline: [],
   contentTypeAliases: new Map(),
 }
 
@@ -405,7 +421,7 @@ export class PublishedCache {
     return {
       content: (key) => view?.byKey.get(key.toLowerCase()),
       media: (key) => snapshot.media.get(key.toLowerCase()),
-      form: this.#options.form,
+      form: this.#formsIn(snapshot, view, culture ?? null),
       contentTypeAlias: (key) => snapshot.contentTypeAliases.get(key.toLowerCase()),
       urlOf: (content) => content.url,
       mediaUrlOf: (item) => (item as PublishedMedia).url,
@@ -472,6 +488,7 @@ export class PublishedCache {
     const domains = (await this.#source.loadDomains?.()) ?? []
     const languages = (await this.#source.loadLanguages?.()) ?? []
     const dictionary = new Map<string, Map<string, string>>()
+    const dictionaryOutline = (await this.#source.loadDictionaryOutline?.()) ?? []
     for (const [key, translations] of (await this.#source.loadDictionary?.()) ?? new Map())
       dictionary.set(
         key.toLowerCase(),
@@ -686,7 +703,11 @@ export class PublishedCache {
         // Read lazily: the map is filled just below, with this very context, so an
         // element picking another element resolves too.
         element: (key) => view.elements.get(key.toLowerCase()),
-        form: this.#options.form,
+        form: this.#formsIn(
+          { dictionary, dictionaryOutline, languages, defaultCulture },
+          view,
+          culture,
+        ),
         contentTypeAlias: (key) => contentTypeAliases.get(key.toLowerCase()),
         urlOf: (content) => content.url,
         mediaUrlOf: (item) => item.url,
@@ -745,9 +766,76 @@ export class PublishedCache {
       languages,
       media,
       dictionary,
+      dictionaryOutline,
       contentTypeAliases,
     }
   }
+
+  /** Form lookups whose source-backed choices resolve against this view and culture. */
+  #formsIn(
+    snapshot: ChoiceSnapshot,
+    view: CultureView | undefined,
+    culture: string | null,
+  ): ((key: string) => SchemaForm | undefined) | undefined {
+    const lookup = this.#options.form
+    if (!lookup) return undefined
+    return (key) => {
+      const form = lookup(key)
+      return form
+        ? withResolvedChoices(form, (source) => resolveChoices(snapshot, view, culture, source))
+        : undefined
+    }
+  }
+
+  /** What a choice source offers now, in `culture`: for the designer, and for a submission. */
+  async choiceOptions(source: ChoiceSource, culture?: string | null): Promise<ChoiceOption[]> {
+    const snapshot = await this.snapshot()
+    return resolveChoices(snapshot, this.#view(snapshot, culture), culture ?? null, source)
+  }
+
+  /** The form with its source-backed choices resolved, as a page in `culture` would render it. */
+  async resolveForm(form: SchemaForm, culture?: string | null): Promise<SchemaForm> {
+    const snapshot = await this.snapshot()
+    const view = this.#view(snapshot, culture)
+    return withResolvedChoices(form, (source) =>
+      resolveChoices(snapshot, view, culture ?? null, source),
+    )
+  }
+}
+
+type ChoiceSnapshot = Pick<
+  CacheSnapshot,
+  'dictionary' | 'dictionaryOutline' | 'languages' | 'defaultCulture'
+>
+
+/**
+ * A choice source's options: a published page's children by key and name, or a
+ * dictionary item's children by key and translation. Nothing when the parent is gone.
+ */
+export function resolveChoices(
+  snapshot: ChoiceSnapshot,
+  view: CultureView | undefined,
+  culture: string | null,
+  source: ChoiceSource,
+): ChoiceOption[] {
+  if (source.kind === 'content') {
+    const parent = view?.byKey.get(source.parent.toLowerCase())
+    if (!parent || !view) return []
+    return (view.childrenOf.get(parent.id) ?? []).map((child) => ({
+      value: child.key,
+      label: child.name,
+    }))
+  }
+  if (source.kind === 'dictionary') {
+    const parent = source.parent.toLowerCase()
+    return snapshot.dictionaryOutline
+      .filter((item) => item.parentName?.toLowerCase() === parent)
+      .map((item) => ({
+        value: item.key,
+        label: translate(snapshot, item.name, culture) || item.name,
+      }))
+  }
+  return []
 }
 
 /**
@@ -813,7 +901,11 @@ function descendantsOf(view: CultureView, content: PublishedContent): PublishedC
 }
 
 /** A dictionary item's translation in `culture`, then its fallback languages; '' when none. */
-export function translate(snapshot: CacheSnapshot, key: string, culture: string | null): string {
+export function translate(
+  snapshot: Pick<CacheSnapshot, 'dictionary' | 'languages' | 'defaultCulture'>,
+  key: string,
+  culture: string | null,
+): string {
   const item = snapshot.dictionary.get(key.toLowerCase())
   if (!item) return ''
   const wanted = culture ?? snapshot.defaultCulture

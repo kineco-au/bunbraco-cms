@@ -1487,6 +1487,15 @@ export class DocumentRepository {
     }))
   }
 
+  /** The property aliases a document's type has, compositions included; undefined when there is no document. */
+  async propertyAliases(key: string): Promise<string[] | undefined> {
+    const node = await this.#nodes.byKey(key)
+    if (!node) return undefined
+    const contentTypeNodeId = await this.#contentTypeNodeId(node.id)
+    if (!contentTypeNodeId) return undefined
+    return (await this.#propertyTypes(contentTypeNodeId)).map((p) => p.alias)
+  }
+
   /** Property types of a content type, including everything it composes; retired ones excluded. */
   async #propertyTypes(contentTypeNodeId: number): Promise<PropertyTypeRow[]> {
     const rows = await this.#db.query(

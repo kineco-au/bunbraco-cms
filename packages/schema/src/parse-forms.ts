@@ -6,6 +6,8 @@
  * type and the two share nothing but the reader.
  */
 import {
+  type ChoiceSource,
+  type ChoiceSourceKind,
   FORM_CONDITION_OPERATORS,
   FORM_FIELD_TYPE_NAMES,
   FORM_WORKFLOW_TYPES,
@@ -59,6 +61,7 @@ const FIELD_KEYS = [
   'css-class',
   'autocomplete',
   'values',
+  'source',
   'placeholder',
   'default-value',
   'content',
@@ -74,6 +77,7 @@ const FIELD_KEYS = [
 ] as const
 const CONDITION_KEYS = ['action', 'match', 'rule'] as const
 const RULE_KEYS = ['field', 'operator', 'value'] as const
+const SOURCE_KEYS = ['kind', 'parent'] as const
 const WORKFLOW_KEYS = ['key', 'type', 'name', 'on', 'settings'] as const
 
 function condition(r: Reader, value: unknown, path: string): FormCondition | undefined {
@@ -112,6 +116,18 @@ function condition(r: Reader, value: unknown, path: string): FormCondition | und
   }
 }
 
+/** Kept as written: the validator names an unknown kind, as it does an unknown type. */
+function source(r: Reader, value: unknown, path: string): ChoiceSource | undefined {
+  if (value === undefined) return undefined
+  const t = r.table(value, path)
+  if (!t) return undefined
+  r.unknown(t, SOURCE_KEYS, path)
+  return {
+    kind: (r.str(t, 'kind', path, true) ?? '') as ChoiceSourceKind,
+    parent: r.str(t, 'parent', path, true) ?? '',
+  }
+}
+
 function field(r: Reader, t: Toml, path: string): SchemaFormField {
   r.unknown(t, FIELD_KEYS, path)
   const type = r.str(t, 'type', path, true) ?? ''
@@ -137,6 +153,7 @@ function field(r: Reader, t: Toml, path: string): SchemaFormField {
     cssClass: r.str(t, 'css-class', path),
     autocomplete: r.str(t, 'autocomplete', path),
     values: r.strs(t, 'values', path),
+    ...(t.source !== undefined ? { source: source(r, t.source, `${path}.source`) } : {}),
     placeholder: r.str(t, 'placeholder', path),
     defaultValue: r.str(t, 'default-value', path),
     content: r.str(t, 'content', path),

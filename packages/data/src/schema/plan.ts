@@ -22,6 +22,7 @@ import { clientIdPrefixMigration } from './client-id-prefix.ts'
 import { contentMigration } from './content.ts'
 import { contentEditingMigration } from './content-editing.ts'
 import { createdPackagesMigration } from './created-packages.ts'
+import { diagnosticsMigration } from './diagnostics.ts'
 import { elementsMigration } from './elements.ts'
 import { formPermissionPrefixMigration } from './form-permission-prefix.ts'
 import { formPermissionsMigration } from './form-permissions.ts'
@@ -80,4 +81,5 @@ export const cromboloPlan = new MigrationPlan([
   searchIndexMigration,
   propertySearchableMigration,
   auditLogMigration,
+  diagnosticsMigration,
 ])

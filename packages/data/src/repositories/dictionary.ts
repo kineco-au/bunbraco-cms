@@ -240,6 +240,24 @@ export class DictionaryRepository {
     })
   }
 
+  /** Every item's key, name and parent's name, for a choice list drawn from the dictionary. */
+  async outline(): Promise<Array<{ key: string; name: string; parentName: string | null }>> {
+    const rows = await this.#db.query<{
+      key: string
+      item_key: string
+      parent_name: string | null
+    }>(
+      `SELECT d.key, d.item_key, p.item_key AS parent_name FROM dictionary_item d
+       LEFT JOIN dictionary_item p ON p.key = d.parent_key
+       ORDER BY d.item_key`,
+    )
+    return rows.map((row) => ({
+      key: normaliseUuid(String(row.key)),
+      name: String(row.item_key),
+      parentName: row.parent_name === null ? null : String(row.parent_name),
+    }))
+  }
+
   /** Every translation, keyed by item name then iso code, for rendering. */
   async translations(): Promise<Map<string, Map<string, string>>> {
     const rows = await this.#db.query<{ item_key: string; iso_code: string; value: string }>(

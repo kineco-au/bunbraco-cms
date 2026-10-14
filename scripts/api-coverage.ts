@@ -5,7 +5,13 @@
  */
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createManagementApiRouter, EMPTY_SETTINGS_OPERATIONS } from '@crombolo/api-management'
+import {
+  createManagementApiRouter,
+  DELIBERATE_DIVERGENCES,
+  EMPTY_SETTINGS_OPERATIONS,
+  PLANNED_AREAS,
+  PLANNED_OPERATIONS,
+} from '@crombolo/api-management'
 import { createBackOfficePaths, createExtensionRegistry } from '@crombolo/backoffice-host'
 import { connect, cromboloPlan, migrate } from '@crombolo/data'
 import { PublishedCache } from '@crombolo/render'
@@ -51,6 +57,11 @@ const total = router.operations.length
 const implemented = router.implementedCount
 const stubbed = EMPTY_SETTINGS_OPERATIONS.filter((op) => router.has(op)).length
 const pct = ((implemented / total) * 100).toFixed(1)
+const unbuilt = router.operations.filter((op) => !router.has(op.operationId))
+const divergent = unbuilt.filter((op) => DELIBERATE_DIVERGENCES[op.operationId])
+const missing = unbuilt.filter((op) => !DELIBERATE_DIVERGENCES[op.operationId])
+const row = (op: (typeof unbuilt)[number], note: string) =>
+  `| \`${op.operationId}\` | \`${op.method.toUpperCase()} ${op.path.replace('/umbraco/management/api/v1', '')}\` | ${note} |`
 
 const lines = [
   '# API coverage',
@@ -63,10 +74,34 @@ const lines = [
   '| --- | --- | --- |',
   ...areas.map((a) => `| ${a.area} | ${a.implemented} | ${a.total} |`),
   '',
+  '## Deliberate divergences',
+  '',
+  'These answer 501 on purpose (`packages/api-management/src/divergences.ts`).',
+  '',
+  '| Operation | Route | Why |',
+  '| --- | --- | --- |',
+  ...divergent.map((op) => row(op, DELIBERATE_DIVERGENCES[op.operationId] as string)),
+  '',
+  '## Not built yet',
+  '',
+  ...(missing.length === 0
+    ? ['Nothing: every other operation is implemented.']
+    : [
+        '| Operation | Route | Planned in |',
+        '| --- | --- | --- |',
+        ...missing.map((op) =>
+          row(
+            op,
+            PLANNED_OPERATIONS[op.operationId] ?? PLANNED_AREAS[op.area ?? ''] ?? 'no story yet',
+          ),
+        ),
+      ]),
+  '',
 ]
 writeFileSync(OUT, lines.join('\n'))
 
 console.log(`${implemented}/${total} operations implemented (${pct}%)`)
+console.log(`${divergent.length} deliberate divergences, ${missing.length} not built yet`)
 console.log(`wrote ${OUT.replace(`${ROOT}/`, '')}`)
 
 await db.close()

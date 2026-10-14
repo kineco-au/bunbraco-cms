@@ -109,6 +109,7 @@ export function createDocumentPort(
 
   return {
     byKey: (key) => repo.byKey(key),
+    propertyAliases: (key) => repo.propertyAliases(key),
     byKeyPublished: (key) => repo.byKeyPublished(key),
     validate: (input, cultures) => repo.validate(input, cultures),
 
@@ -529,6 +530,7 @@ export function createPublishedContentSource(
       }))
     },
     loadDictionary: () => new DictionaryRepository(db).translations(),
+    loadDictionaryOutline: () => new DictionaryRepository(db).outline(),
     async loadDomains() {
       return (await new DomainRepository(db).all()).map((row) => ({
         nodeId: row.nodeId,

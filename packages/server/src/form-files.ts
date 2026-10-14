@@ -140,6 +140,7 @@ function coerceField(value: unknown): Field {
     cssClass: text('cssClass'),
     autocomplete: text('autocomplete'),
     values: strings(body.values),
+    ...coerceSource(body.source),
     placeholder: text('placeholder'),
     defaultValue: text('defaultValue'),
     content: text('content'),
@@ -152,6 +153,18 @@ function coerceField(value: unknown): Field {
     maxSizeKb: count('maxSizeKb'),
     ...(typeof body.multiple === 'boolean' ? { multiple: body.multiple } : {}),
     condition: coerceCondition(body.condition),
+  }
+}
+
+/** Kept as sent: the validator names a kind it does not know. */
+function coerceSource(value: unknown): { source?: Field['source'] } {
+  if (!value || typeof value !== 'object') return {}
+  const body = value as Record<string, unknown>
+  return {
+    source: {
+      kind: String(body.kind ?? '') as NonNullable<Field['source']>['kind'],
+      parent: typeof body.parent === 'string' ? body.parent : '',
+    },
   }
 }
 

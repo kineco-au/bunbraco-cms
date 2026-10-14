@@ -205,6 +205,31 @@ export function registerDataTypeHandlers(router: ManagementApiRouter, port: Data
     return Response.json({ total: result.total, items: result.items.map(toItem) })
   })
 
+  const isUsed = port.isUsed
+  if (isUsed)
+    router.handle('GetDataTypeByIdIsUsed', async (ctx) => {
+      const used = await isUsed(ctx.params.id as string)
+      if (used === undefined)
+        return problemResponse(notFound('Data type not found', 'The data type could not be found.'))
+      return Response.json(used)
+    })
+  const propertyIsUsed = port.propertyIsUsed
+  if (propertyIsUsed)
+    router.handle('GetPropertyTypeIsUsed', async (ctx) => {
+      const contentTypeId = ctx.url.searchParams.get('contentTypeId')
+      const alias = ctx.url.searchParams.get('propertyAlias')
+      const used = contentTypeId && alias ? await propertyIsUsed(contentTypeId, alias) : undefined
+      if (used === undefined)
+        return problemResponse(
+          problemDetails({
+            title: 'Property type not found',
+            detail: 'There is no property with that alias on that content type.',
+            status: 400,
+          }),
+        )
+      return Response.json(used)
+    })
+
   router.handle('GetDataTypeByIdReferencedBy', async (ctx) => {
     const page = paging(ctx)
     if (!page) return problemResponse(invalidSkipTake())

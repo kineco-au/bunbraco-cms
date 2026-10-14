@@ -7,8 +7,10 @@ import type {
   DocumentTreeItem,
   DocumentValidationError,
   DocumentValue,
+  PatchOperation,
 } from '@crombolo/core'
 import {
+  applyJsonPatch,
   DocumentPermissions,
   invalidSkipTake,
   notFound,
@@ -471,11 +473,12 @@ export function registerDocumentHandlers(
     return created(`${ctx.url.origin}/umbraco/management/api/v1/document/${result.key}`, result.key)
   })
 
-  router.handle('PutDocumentById', async (ctx) => {
-    const key = ctx.params.id as string
-    const existing = await port.byKey(key)
-    if (!existing) return problemResponse(notFound('The document could not be found'))
-    const body = await readBody(ctx)
+  const saveUpdate = async (
+    ctx: RequestContext,
+    key: string,
+    existing: DocumentAggregate,
+    body: Record<string, unknown>,
+  ) => {
     const result = await port.update(
       key,
       {
@@ -496,6 +499,48 @@ export function registerDocumentHandlers(
     }
     ctx.notifications.push({ message: 'Document saved', category: 'Content', type: 'Success' })
     return new Response(null, { status: 200 })
+  }
+
+  router.handle('PutDocumentById', async (ctx) => {
+    const key = ctx.params.id as string
+    const existing = await port.byKey(key)
+    if (!existing) return problemResponse(notFound('The document could not be found'))
+    return saveUpdate(ctx, key, existing, await readBody(ctx))
+  })
+
+  // JSON Patch over the update model, Umbraco's filter segments included; the
+  // patched model then saves exactly as a PUT would.
+  router.handle('PatchDocumentByIdPatch', async (ctx) => {
+    const key = ctx.params.id as string
+    const existing = await port.byKey(key)
+    if (!existing) return problemResponse(notFound('The document could not be found'))
+    const invalid = (detail: string, status = 400) =>
+      problemResponse(problemDetails({ title: 'Could not patch the document', status, detail }))
+    const { operations } = await readBody(ctx)
+    if (!Array.isArray(operations) || operations.length === 0)
+      return invalid('A patch needs at least one operation.')
+    const current = {
+      template: existing.componentKey ? { id: existing.componentKey } : null,
+      values: existing.values.map(({ alias, culture, segment, value }) => ({
+        alias,
+        culture,
+        segment,
+        value,
+      })),
+      variants: existing.variants.map(({ culture, segment, name }) => ({ culture, segment, name })),
+    }
+    const patched = applyJsonPatch(current, operations as PatchOperation[])
+    if (!patched.ok) return invalid(patched.reason)
+    const body = patched.value as Record<string, unknown>
+    if (!Array.isArray(body.values) || !Array.isArray(body.variants))
+      return invalid('A patch may change values and variants, but not remove them.')
+    const aliases = new Set((await port.propertyAliases?.(key)) ?? [])
+    const unknown = (body.values as Array<{ alias?: unknown }>).find(
+      (value) => !aliases.has(String(value?.alias)),
+    )
+    if (unknown)
+      return invalid(`This document's type has no property "${String(unknown.alias)}".`, 422)
+    return saveUpdate(ctx, key, existing, body)
   })
 
   router.handle('PutDocumentByIdPublish', async (ctx) => {

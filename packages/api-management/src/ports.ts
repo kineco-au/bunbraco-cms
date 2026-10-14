@@ -21,6 +21,7 @@ import type {
   TemplatePort,
   TemplateQueryPort,
 } from './ports-content.ts'
+import type { DiagnosticsPort } from './ports-diagnostics.ts'
 import type { FileSystemPort, Snippet } from './ports-files.ts'
 import type { LogViewerPort } from './ports-logs.ts'
 import type { MemberGroupPort, MemberPort, PublicAccessPort } from './ports-members.ts'
@@ -170,6 +171,16 @@ export interface OEmbedPort {
   >
 }
 
+/** A content picker's start node, found from the document being edited. */
+export interface DynamicRootPort {
+  resolve(query: {
+    currentKey: string | null
+    parentKey: string | null
+    origin: { alias: string; key: string | null }
+    steps: Array<{ alias: string; documentTypeKeys: string[] }>
+  }): Promise<string[]>
+}
+
 /** Preview mode is a cookie; the server owns its name and attributes. */
 export interface PreviewPort {
   /** `Set-Cookie` values that enter preview for the signed-in editor. */
@@ -233,11 +244,14 @@ export interface AuthPort {
 
 export interface ManagementApiDeps {
   server: ServerPort
+  /** Health checks, troubleshooting and the upgrade check; needs the database. */
+  diagnostics?: DiagnosticsPort
   manifests: ManifestPort
   localization: LocalizationPort
   currentUser: CurrentUserPort
   users?: UserItemPort
   preview?: PreviewPort
+  dynamicRoots?: DynamicRootPort
   temporaryFiles?: TemporaryFilePort
   media?: MediaPort
   tags?: TagPort

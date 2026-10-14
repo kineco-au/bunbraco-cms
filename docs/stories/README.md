@@ -116,8 +116,8 @@ not cover.
 | `044` | Webhooks | should | M | ready | — |
 | `045` | E-mail delivery | must | M | ready | — |
 | `046` | Relations and relation types | could | S | ready | 041 |
-| `047` | Diagnostics: health checks, telemetry, profiling and troubleshooting | could | M | ready | — |
-| `048` | The rest of the contract | could | M | ready | — |
+| `047` | Diagnostics: health checks, telemetry, profiling and troubleshooting | could | M | done | — |
+| `048` | The rest of the contract | could | M | done | — |
 
 ### Epic F — Headless
 
@@ -158,7 +158,7 @@ not cover.
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `090` | Choices from a prevalue source | should | M | ready | — |
+| `090` | Choices from a prevalue source | should | M | done | — |
 | `091` | An e-mail template for the send-e-mail workflow | should | S | ready | — |
 | `092` | Form entries are deleted on a schedule | should | S | ready | — |
 | `093` | A multi-page form steps a page at a time | could | M | ready | — |

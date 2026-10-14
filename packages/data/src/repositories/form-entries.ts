@@ -23,6 +23,11 @@ export interface FormEntryValue {
   fieldAlias: string
   /** One row per selection for a multi-value field, in the order submitted. */
   values: string[]
+  /**
+   * What the visitor saw for each value, when the choice came from a source and
+   * the value is a key; present only then.
+   */
+  labels?: string[]
 }
 
 export interface FormEntry {
@@ -83,6 +88,7 @@ interface ValueRow {
   field_alias: string
   sort_order: number
   value: string | null
+  label: string | null
 }
 
 const SELECT = `SELECT id, form_key, form_alias, state, culture, page_key, ip_hash,
@@ -109,19 +115,24 @@ const hydrate = (row: EntryRow, values: FormEntryValue[]): FormEntry => ({
 
 /** Value rows into one entry per id, each field's selections in order. */
 function group(rows: readonly ValueRow[]): Map<string, FormEntryValue[]> {
-  const byEntry = new Map<string, Map<string, string[]>>()
+  const byEntry = new Map<string, Map<string, ValueRow[]>>()
   for (const row of rows) {
-    const fields = byEntry.get(row.entry_id) ?? new Map<string, string[]>()
+    const fields = byEntry.get(row.entry_id) ?? new Map<string, ValueRow[]>()
     byEntry.set(row.entry_id, fields)
     const values = fields.get(row.field_alias) ?? []
     fields.set(row.field_alias, values)
-    values.push(row.value ?? '')
+    values.push(row)
   }
   const out = new Map<string, FormEntryValue[]>()
   for (const [id, fields] of byEntry)
     out.set(
       id,
-      [...fields].map(([fieldAlias, values]) => ({ fieldAlias, values })),
+      [...fields].map(([fieldAlias, list]) => {
+        const values = list.map((row) => row.value ?? '')
+        return list.some((row) => row.label !== null)
+          ? { fieldAlias, values, labels: list.map((row, i) => row.label ?? (values[i] as string)) }
+          : { fieldAlias, values }
+      }),
     )
   return out
 }
@@ -137,7 +148,7 @@ export class FormEntryRepository {
     if (ids.length === 0) return new Map()
     const placeholders = ids.map(() => '?').join(', ')
     const rows = await this.#db.query<ValueRow>(
-      `SELECT entry_id, field_alias, sort_order, value
+      `SELECT entry_id, field_alias, sort_order, value, label
          FROM form_entry_value
         WHERE entry_id IN (${placeholders})
         ORDER BY field_alias, sort_order`,
@@ -176,8 +187,10 @@ export class FormEntryRepository {
       params.push(this.#db.dialect.boolValue(false))
     }
     if (query.search) {
-      where.push(`id IN (SELECT entry_id FROM form_entry_value WHERE LOWER(value) LIKE ?)`)
-      params.push(`%${query.search.toLowerCase()}%`)
+      where.push(
+        `id IN (SELECT entry_id FROM form_entry_value WHERE LOWER(value) LIKE ? OR LOWER(label) LIKE ?)`,
+      )
+      params.push(`%${query.search.toLowerCase()}%`, `%${query.search.toLowerCase()}%`)
     }
     const clause = `WHERE ${where.join(' AND ')}`
 
@@ -242,9 +255,9 @@ export class FormEntryRepository {
       const list = value.values.length === 0 ? [''] : value.values
       for (const [sort, text] of list.entries())
         await this.#db.exec(
-          `INSERT INTO form_entry_value (entry_id, field_alias, sort_order, value)
-           VALUES (?, ?, ?, ?)`,
-          [id, value.fieldAlias, sort, text],
+          `INSERT INTO form_entry_value (entry_id, field_alias, sort_order, value, label)
+           VALUES (?, ?, ?, ?, ?)`,
+          [id, value.fieldAlias, sort, text, value.labels?.[sort] ?? null],
         )
     }
   }
@@ -280,8 +293,16 @@ export class FormEntryRepository {
   async setValues(id: string, values: readonly FormEntryValue[]): Promise<FormEntry | undefined> {
     const existing = await this.byId(id)
     if (!existing) return undefined
+    // An edit sends values only; a label still describes a value left as it was.
+    const before = new Map(existing.values.map((value) => [value.fieldAlias, value]))
+    const kept = values.map((value) => {
+      const old = before.get(value.fieldAlias)
+      if (value.labels || !old?.labels) return value
+      const labels = value.values.map((v) => old.labels?.[old.values.indexOf(v)] ?? v)
+      return { ...value, labels }
+    })
     await this.#db.exec('DELETE FROM form_entry_value WHERE entry_id = ?', [id])
-    await this.#writeValues(id, values)
+    await this.#writeValues(id, kept)
     await this.#db.exec('UPDATE form_entry SET update_date = ? WHERE id = ?', [
       DbDate.toDb(new Date()),
       id,

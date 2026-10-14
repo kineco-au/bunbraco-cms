@@ -254,13 +254,13 @@ describe('the log viewer API', () => {
     expect((await query(`startDate=${since}&endDate=${until}`)).total).toBe(8)
 
     // An operation the backoffice asks for that is not built is logged, and the saved search finds it
-    await h.call(`${V1}/health-check-group?skip=0&take=10`)
+    await h.call(`${V1}/webhook/events?skip=0&take=10`)
     const search = DEFAULT_LOG_SEARCHES.find((d) =>
       d.name.includes('specific log message template'),
     )
     const unbuilt = await query(`filterExpression=${encodeURIComponent(search?.query ?? '')}`)
     expect(unbuilt.items.map((i) => i.renderedMessage)).toEqual([
-      'Operation "GetHealthCheckGroup" ("GET" "/umbraco/management/api/v1/health-check-group") is not implemented',
+      'Operation "GetWebhookEvents" ("GET" "/umbraco/management/api/v1/webhook/events") is not implemented',
     ])
 
     expect(await h.json<unknown>(`${V1}/log-viewer/level?skip=0&take=10`)).toEqual<unknown>({

@@ -5,12 +5,13 @@ import type {
   ManagementApiDeps,
   ManifestPort,
   NodeLookup,
+  PreviewPort,
   Principal,
   ServerPort,
   TemporaryFilePort,
   UserItemPort,
 } from '@crombolo/api-management'
-import { AuthStore } from '@crombolo/auth'
+import { AuthStore, expireCookie, serializeCookie } from '@crombolo/auth'
 import {
   ASSISTANT_MANIFEST_ID,
   type BackOfficePaths,
@@ -28,6 +29,7 @@ import {
 import {
   ContentTypeRepository,
   type Db,
+  DynamicRootRepository,
   LanguageRepository,
   RedirectRepository,
   TagRepository,
@@ -48,6 +50,7 @@ import { createDictionaryPort } from './adapters/dictionary.ts'
 import { createDocumentPort } from './adapters/documents.ts'
 import { createElementPort } from './adapters/elements.ts'
 import { createFileSystemPort } from './adapters/file-system.ts'
+import { createDiagnosticsPort } from './adapters/health.ts'
 import { createMediaPort } from './adapters/media.ts'
 import { createMemberGroupPort } from './adapters/member-groups.ts'
 import { createMemberPort } from './adapters/members.ts'
@@ -108,6 +111,18 @@ function createServerPort(config: CromboloConfig, canSendUserLinks: boolean): Se
       baseUtcOffset: '00:00:00',
       runtimeMode: config.development ? 'BackofficeDevelopment' : 'Production',
     }),
+  }
+}
+
+/** Umbraco's preview cookie; with a signed-in editor it turns on draft rendering. */
+export const PREVIEW_COOKIE = 'UMB_PREVIEW'
+
+function createPreviewPort(config: CromboloConfig): PreviewPort {
+  return {
+    enter: () => [
+      serializeCookie({ name: PREVIEW_COOKIE, value: 'preview', secure: config.secureCookies }),
+    ],
+    exit: () => [expireCookie(PREVIEW_COOKIE, config.secureCookies)],
   }
 }
 
@@ -406,6 +421,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
   const sendUserLink = resolveUserLinkSender(options.config, email)
   const deps: ManagementApiDeps = {
     server: createServerPort(options.config, Boolean(sendUserLink)),
+    preview: createPreviewPort(options.config),
     // An unconfigured assistant contributes no extension, so the backoffice has
     // no drawer, no button and nothing to load.
     manifests: createManifestPort(
@@ -441,6 +457,16 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
   deps.stylesheets = createFileSystemPort(options.config.stylesheetsDir, { extension: '.css' })
   deps.scripts = createFileSystemPort(options.config.scriptsDir, { extension: '.js' })
   if (options.db) {
+    const dynamicRoots = new DynamicRootRepository(options.db)
+    deps.dynamicRoots = { resolve: (query) => dynamicRoots.resolve(query) }
+    deps.diagnostics = createDiagnosticsPort({
+      config: options.config,
+      db: options.db,
+      media: mediaFiles.store,
+      email,
+      nodeState: options.schema?.nodeState,
+      fetch: options.fetch,
+    })
     const tags = new TagRepository(options.db)
     deps.tags = { list: (filter) => tags.all(filter) }
     deps.users = createUserItemPort(options.db)

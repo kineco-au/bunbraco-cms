@@ -176,6 +176,26 @@ PATCH …/{id}/patch     { "operations": [...] }   // application/json-patch+jso
 | GET | `/document/{id}/audit-log` · `/referenced-by` · `/referenced-descendants` · `/are-referenced` | |
 | GET | `/document/configuration` · `/{id}/available-segment-options` | |
 
+**The patch** (story `048`) is Umbraco's JSON Patch over the update model —
+`replace`, `add` and `remove`, with filter segments such as
+`/values[alias=title,culture=null,segment=null]/value` and
+`/variants[culture=en-US,segment=null]/name`, indexes and `/-` — applied in order
+to a copy (`applyJsonPatch` in `@crombolo/core`), so any failure fails the lot.
+The patched model then saves exactly as a PUT would. 400 for a bad path, an
+unmatched filter or a missing value; 422 for an alias the type does not have;
+404 for no document.
+
+**Around the editor** (story `048`): `POST /dynamic-root/query` resolves a
+picker's start node from an origin (`Root`, `Parent`, `Current`, `Site` — the
+nearest ancestor with a hostname, else `Root` — `ContentRoot`, `ByKey`) and the
+four ancestor/descendant steps, over trashed-free documents
+(`DynamicRootRepository`). `data-type/{id}/is-used` and `property-type/is-used`
+answer from current saved values, as references do; an empty string is not a
+use. The static-file picker's tree is the two folders the site serves, `/css/`
+and `/scripts/`, by their URLs, so a picked path loads as it stands.
+`object-types` lists the node object types; `help` is an empty list (Umbraco
+relays our.umbraco.com); `template/configuration` says templates are on.
+
 Versions (`/document-version`, mirrored by `/element-version`):
 `GET ?documentId=&culture=&skip=&take=`, `GET /{id}`,
 `PUT /{id}/prevent-cleanup`, `POST /{id}/rollback`.

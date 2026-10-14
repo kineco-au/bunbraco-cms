@@ -129,9 +129,9 @@ later is additive — the npm extension mechanism in
 | `number` | one number | `min`, `max`, `step` |
 | `date` | one ISO date | `min`, `max` |
 | `checkbox` | one boolean | |
-| `dropdown` | one string | `values`; prevalue sources are story `090` |
-| `singleChoice` | one string | radios over `values` |
-| `multipleChoice` | string array | checkboxes over `values` |
+| `dropdown` | one string | `values`, or a `source` |
+| `singleChoice` | one string | radios over `values` or a `source` |
+| `multipleChoice` | string array | checkboxes over `values` or a `source` |
 | `fileUpload` | blob keys | `accept`, `max-size`; goes through the same value intake as media |
 | `dataConsent` | one boolean | mandatory by default, and the text is the label |
 | `titleAndDescription` | nothing | presentational |
@@ -140,6 +140,43 @@ later is additive — the npm extension mechanism in
 
 Password is deliberately absent: a form that collects a password is a form that
 should not exist, and Umbraco only has it for legacy reasons.
+
+### Choices from a source
+
+A choice field can take its options from a list kept once, instead of carrying
+its own `values` (Umbraco Forms calls this a prevalue source):
+
+```toml
+[[page.group.field]]
+alias = "department"
+type = "dropdown"
+source = { kind = "content", parent = "6f1d4a8e-…" }    # a page's published children
+
+[[page.group.field]]
+alias = "region"
+type = "singleChoice"
+source = { kind = "dictionary", parent = "Regions" }    # a dictionary item's children
+```
+
+- **Each option has a key and a label.** The key is what is stored when it is
+  chosen: the child page's key, or the dictionary item's key. The label is what
+  a visitor sees: the page's name in the page's language, or the item's
+  translation (its name when it has none). A rename therefore changes what new
+  visitors read and not what earlier entries hold.
+- **One resolution, three readers.** The published cache resolves a source
+  (`resolveChoices`) into the field's `options`, so `<Form>`, the submission
+  check and the designer's preview all read the same list. A form picked on a
+  page resolves against that page's language; a submission resolves against the
+  page it was sent from. A key that is not in the list *now* is refused.
+- **An entry keeps the label.** `form_entry_value.label` (migration 034) stores
+  what the visitor saw beside the key, so an entry still reads after the page or
+  item is renamed or removed. Entry views, the CSV export and e-mail text show
+  labels; `sendToUrl` and `saveAsContent` receive the keys.
+- **The file stays the file.** `options` is never written; `parseForm(writeForm(x))`
+  equals `x` with a source present.
+- Only published children are offered, in their sort order. A parent that does
+  not exist offers nothing rather than failing the page. Sources that call a URL
+  are out of scope.
 
 ## Validation
 
@@ -197,8 +234,11 @@ itself and against the rest of the set. The rules worth knowing:
 - **Settings belong to their type.** `rows` on a `shortAnswer`, `accept` on a
   `dropdown`: each is refused by name rather than ignored, because a setting
   that does nothing looks like one that works.
-- **Choices and defaults agree.** A choice field needs values, a plain field
-  cannot have them, and a default must be one of them or the form opens invalid.
+- **Choices and defaults agree.** A choice field needs values or a source, never
+  both, and a plain field can have neither. A source's `kind` is `content` or
+  `dictionary`, refused by name otherwise; a content source names its parent by
+  key. A default must be one of the values or the form opens invalid — a source's
+  options are only known when it resolves, so its default is not checked here.
 - **A form must have an effect.** `store-entries = false` with no workflow means
   a submission does nothing; approval without stored entries has nothing to
   approve.
@@ -437,6 +477,10 @@ Here there is no contract to match, so the API is designed for this CMS.
   refusal in the designer is the same refusal a hand-written file would get, and
   a rejected save never touches the file on disk. Reordering, multi-page layout
   and the richer per-type settings are refinements on top
+- A choice field's options come from **typed values, a page's child pages
+  (picked with the document picker) or a dictionary item's children**, and the
+  designer shows what a source offers right now, from
+  `POST <backoffice>/crombolo/api/forms/choices` (the Manage permission)
 - An **entries view** per form with state filtering, search, a spam toggle,
   approve/reject/delete, and CSV export
 
@@ -507,13 +551,13 @@ script puts the attribute back when it reveals the field.
 Built: definitions as files, the closed field-type set, whole-set validation,
 entries with states and sensitive-data redaction, `<Form>` and the submission
 endpoint, server-side validation and conditions, the honeypot and timing
-guards, uploads, and the three workflows on a retrying queue.
+guards, uploads, choices from a source, and the three workflows on a retrying
+queue.
 
 Not built yet:
 
 | What | Story |
 | --- | --- |
-| Prevalue sources (manual `values` only today) | `090` |
 | A TSX email template (the setting is refused by name rather than ignored) | `091` |
 | Entry retention and automatic deletion | `092` |
 | True page-at-a-time stepping, a round trip per page | `093` |

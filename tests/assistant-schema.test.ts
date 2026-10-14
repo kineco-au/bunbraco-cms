@@ -141,7 +141,12 @@ describe('proposing a type as TOML', () => {
     expect(existsSync(join(schemaDir, 'content-types', 'article.toml'))).toBe(false)
     expect(await new ContentTypeRepository(h.server.db).byAlias('article')).toBeUndefined()
 
-    expect((await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})).status).toBe(200)
+    // Status and body together, so a refused import says why when it fails.
+    const approved = await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})
+    expect({ status: approved.status, body: await approved.json() }).toMatchObject({
+      status: 200,
+      body: { status: 'applied' },
+    })
 
     const written = readFileSync(join(schemaDir, 'content-types', 'article.toml'), 'utf8')
     expect(written).toContain('alias = "article"')
@@ -159,7 +164,12 @@ describe('proposing a type as TOML', () => {
     )
     await chat(h, 'add it')
     const change = (await review(h))[0]?.changes[0]
-    expect((await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})).status).toBe(200)
+    // Status and body together, so a refused import says why when it fails.
+    const approved = await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})
+    expect({ status: approved.status, body: await approved.json() }).toMatchObject({
+      status: 200,
+      body: { status: 'applied' },
+    })
 
     const written = readFileSync(join(schemaDir, 'content-types', 'article.toml'), 'utf8')
     // One layout, one key order: what the backoffice itself would write.

@@ -10,9 +10,11 @@
  * back with the strict parser before keeping it, so a refusal here is the same
  * refusal a hand-written file would get.
  */
+// For its side effect: registers `umb-input-document`, which the shell loads lazily.
+import '@umbraco-cms/backoffice/document'
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
-import { deleteForm, listForms, readForm, saveForm } from './forms-client.js'
+import { deleteForm, listForms, previewChoices, readForm, saveForm } from './forms-client.js'
 
 const FIELD_TYPES = [
   'shortAnswer',
@@ -31,6 +33,12 @@ const FIELD_TYPES = [
   'hidden',
 ]
 const CHOICE_TYPES = new Set(['dropdown', 'singleChoice', 'multipleChoice'])
+/** Where a choice field's options come from, as an editor would put it. */
+const CHOICE_FROM = [
+  { kind: '', label: 'Options typed here' },
+  { kind: 'content', label: "A page's child pages" },
+  { kind: 'dictionary', label: "A dictionary item's children" },
+]
 
 export default class CromboloFormsOverviewElement extends UmbLitElement {
   static properties = {
@@ -39,6 +47,7 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     _problems: { state: true },
     _notice: { state: true },
     _busy: { state: true },
+    _choices: { state: true },
   }
 
   constructor() {
@@ -48,6 +57,8 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     this._problems = []
     this._notice = ''
     this._busy = false
+    /** What each source currently offers, by field; shown under the field. */
+    this._choices = new WeakMap()
   }
 
   connectedCallback() {
@@ -69,6 +80,93 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     this._notice = ''
     const detail = await readForm(key)
     this._editing = structuredClone(detail.definition)
+    this._choices = new WeakMap()
+    for (const field of this.#fields) if (field.source) this.#preview(field)
+  }
+
+  async #preview(field) {
+    const source = field.source
+    if (!source?.parent) {
+      this._choices.delete(field)
+      this.#touch()
+      return
+    }
+    try {
+      const result = await previewChoices(source)
+      this._choices.set(field, result.ok ? result.body.options : [])
+    } catch {
+      this._choices.set(field, [])
+    }
+    this.#touch()
+  }
+
+  #choicesCell(field) {
+    const kind = field.source?.kind ?? ''
+    const offered = this._choices.get(field)
+    const list =
+      kind === ''
+        ? html`<uui-input
+            label="Options"
+            placeholder="One, Two, Three"
+            .value=${(field.values ?? []).join(', ')}
+            @change=${(event) => {
+              field.values = event.target.value
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean)
+              this.#touch()
+            }}
+          ></uui-input>`
+        : kind === 'content'
+          ? html`<umb-input-document
+              max="1"
+              .selection=${field.source.parent ? [field.source.parent] : []}
+              @change=${(event) => {
+                field.source = { kind, parent: event.target.selection?.[0] ?? '' }
+                this.#preview(field)
+              }}
+            ></umb-input-document>`
+          : html`<uui-input
+              label="Dictionary item"
+              placeholder="The name of the parent item"
+              .value=${field.source.parent ?? ''}
+              @change=${(event) => {
+                field.source = { kind, parent: event.target.value.trim() }
+                this.#preview(field)
+              }}
+            ></uui-input>`
+    return html`
+      <select
+        aria-label="Where the options come from"
+        @change=${(event) => {
+          const chosen = event.target.value
+          if (chosen === '') delete field.source
+          else {
+            field.source = { kind: chosen, parent: '' }
+            field.values = []
+          }
+          this._choices.delete(field)
+          this.#touch()
+        }}
+      >
+        ${CHOICE_FROM.map(
+          (from) =>
+            html`<option value=${from.kind} ?selected=${from.kind === kind}>${from.label}</option>`,
+        )}
+      </select>
+      ${list}
+      ${
+        kind && offered
+          ? html`<p class="offered">
+              ${
+                offered.length > 0
+                  ? `Offers now: ${offered.map((option) => option.label).join(', ')}`
+                  : 'Offers nothing yet.'
+              }
+            </p>`
+          : nothing
+      }
+    `
   }
 
   #new() {
@@ -261,7 +359,10 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
                   <select
                     @change=${(event) => {
                       field.type = event.target.value
-                      if (!CHOICE_TYPES.has(field.type)) field.values = []
+                      if (!CHOICE_TYPES.has(field.type)) {
+                        field.values = []
+                        delete field.source
+                      }
                       this.#touch()
                     }}
                   >
@@ -272,21 +373,7 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
                   </select>
                 </uui-table-cell>
                 <uui-table-cell>
-                  ${
-                    CHOICE_TYPES.has(field.type)
-                      ? html`<uui-input
-                          placeholder="One, Two, Three"
-                          .value=${(field.values ?? []).join(', ')}
-                          @change=${(event) => {
-                            field.values = event.target.value
-                              .split(',')
-                              .map((value) => value.trim())
-                              .filter(Boolean)
-                            this.#touch()
-                          }}
-                        ></uui-input>`
-                      : nothing
-                  }
+                  ${CHOICE_TYPES.has(field.type) ? this.#choicesCell(field) : nothing}
                 </uui-table-cell>
                 <uui-table-cell>
                   <uui-toggle
@@ -349,6 +436,11 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
   }
 
   static styles = css`
+    .offered {
+      margin: var(--uui-size-space-2, 6px) 0 0;
+      color: var(--uui-color-text-alt, #555);
+      font-size: 0.9em;
+    }
     :host {
       display: block;
       padding: var(--uui-size-layout-1, 24px);

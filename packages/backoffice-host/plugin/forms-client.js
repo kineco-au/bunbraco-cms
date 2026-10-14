@@ -30,6 +30,10 @@ export const readForm = async (key) => (await call(`/${encodeURIComponent(key)}`
 export const saveForm = (definition) =>
   call('', { method: 'PUT', body: JSON.stringify(definition) })
 
+/** The options a choice source offers right now, as a visitor would see them. */
+export const previewChoices = (source) =>
+  call('/choices', { method: 'POST', body: JSON.stringify({ source }) })
+
 export const deleteForm = (key) => call(`/${encodeURIComponent(key)}`, { method: 'DELETE' })
 
 export const listEntries = async (key, query = {}) => {

@@ -60,25 +60,28 @@ export interface ServerIdentity {
   revision: string
   /** `all`, `api` or `web`: what this node serves, so the cluster can be read back by role. */
   role?: string
+  /** The Crombolo release this node runs; `version` is the schema set's. */
+  cromboloVersion?: string
 }
 
 /** Records this node in `server`; called at boot and on each poll. */
 export async function touchServer(db: Db, identity: ServerIdentity): Promise<void> {
   const now = DbDate.toDb(new Date())
   const role = identity.role ?? null
+  const crombolo = identity.cromboloVersion ?? null
   const existing = await db.query<{ node_id: string }>(
     'SELECT node_id FROM server WHERE node_id = ?',
     [identity.nodeId],
   )
   if (existing[0]) {
     await db.exec(
-      'UPDATE server SET version = ?, revision = ?, role = ?, last_seen = ? WHERE node_id = ?',
-      [identity.version, identity.revision, role, now, identity.nodeId],
+      'UPDATE server SET version = ?, revision = ?, role = ?, crombolo_version = ?, last_seen = ? WHERE node_id = ?',
+      [identity.version, identity.revision, role, crombolo, now, identity.nodeId],
     )
   } else {
     await db.exec(
-      'INSERT INTO server (node_id, version, revision, role, last_seen) VALUES (?, ?, ?, ?, ?)',
-      [identity.nodeId, identity.version, identity.revision, role, now],
+      'INSERT INTO server (node_id, version, revision, role, crombolo_version, last_seen) VALUES (?, ?, ?, ?, ?, ?)',
+      [identity.nodeId, identity.version, identity.revision, role, crombolo, now],
     )
   }
 }
@@ -89,13 +92,15 @@ export interface LiveNode {
   role: string | null
   version: string | null
   revision: string | null
+  /** Null for a row written before node releases were recorded. */
+  cromboloVersion: string | null
   lastSeen: Date
 }
 
 /** The nodes that have polled within `seenWithinMs`: the cluster as it stands. */
 export async function liveNodes(db: Db, options: { seenWithinMs: number }): Promise<LiveNode[]> {
   const rows = await db.query(
-    'SELECT node_id, role, version, revision, last_seen FROM server WHERE last_seen >= ? ORDER BY node_id',
+    'SELECT node_id, role, version, revision, crombolo_version, last_seen FROM server WHERE last_seen >= ? ORDER BY node_id',
     [DbDate.toDb(new Date(Date.now() - options.seenWithinMs))],
   )
   return rows.map((row) => ({
@@ -103,6 +108,7 @@ export async function liveNodes(db: Db, options: { seenWithinMs: number }): Prom
     role: (row.role as string | null) ?? null,
     version: (row.version as string | null) ?? null,
     revision: (row.revision as string | null) ?? null,
+    cromboloVersion: (row.crombolo_version as string | null) ?? null,
     lastSeen: DbDate.fromDb(row.last_seen) as Date,
   }))
 }

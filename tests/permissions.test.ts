@@ -86,21 +86,21 @@ describe('the development 501 log', () => {
     const h = await signedInServer({ config: { development: true } })
     open.push(h)
     expect(h.server.notImplemented.entries()).toEqual([])
-    await h.call(`${V1}/health-check-group?skip=0&take=10`)
-    await h.call(`${V1}/health-check-group?skip=0&take=10`)
-    await h.call(`${V1}/telemetry?skip=0&take=10`)
+    await h.call(`${V1}/webhook/events?skip=0&take=10`)
+    await h.call(`${V1}/webhook/events?skip=0&take=10`)
+    await h.call(`${V1}/upgrade/settings`)
     await h.call(`${V1}/document-type/configuration`)
     const entries = h.server.notImplemented.entries()
     expect(entries.map((e) => [e.operationId, e.method, e.path, e.count])).toEqual([
-      ['GetHealthCheckGroup', 'GET', '/umbraco/management/api/v1/health-check-group', 2],
-      ['GetTelemetry', 'GET', '/umbraco/management/api/v1/telemetry', 1],
+      ['GetWebhookEvents', 'GET', '/umbraco/management/api/v1/webhook/events', 2],
+      ['GetUpgradeSettings', 'GET', '/umbraco/management/api/v1/upgrade/settings', 1],
     ])
   })
 
   test('is not wired up in production', async () => {
     const h = await signedInServer({ config: { development: false } })
     open.push(h)
-    expect((await h.call(`${V1}/health-check-group?skip=0&take=10`)).status).toBe(501)
+    expect((await h.call(`${V1}/webhook/events?skip=0&take=10`)).status).toBe(501)
     expect(h.server.notImplemented.entries()).toEqual([])
   })
 })

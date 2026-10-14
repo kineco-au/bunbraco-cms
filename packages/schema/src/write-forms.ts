@@ -73,6 +73,8 @@ function writeField(out: string[], header: string, field: SchemaFormField): void
   line(out, 'css-class', field.cssClass)
   line(out, 'autocomplete', field.autocomplete)
   line(out, 'values', field.values, field.values.length > 0)
+  if (field.source)
+    out.push(`source = { kind = ${str(field.source.kind)}, parent = ${str(field.source.parent)} }`)
   line(out, 'placeholder', field.placeholder)
   line(out, 'default-value', field.defaultValue)
   line(out, 'content', field.content)

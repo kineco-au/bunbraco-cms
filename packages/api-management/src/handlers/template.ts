@@ -22,6 +22,8 @@ function toResponse(model: ComponentModel): ResponseOf<'GetTemplateById'> {
 }
 
 export function registerTemplateHandlers(router: ManagementApiRouter, port: TemplatePort): void {
+  // Templates are the site's components and are always on.
+  router.handle('GetTemplateConfiguration', () => Response.json({ disabled: false }))
   router.handle('GetTemplateById', async ({ params }) => {
     const model = await port.byKey(params.id as string)
     if (!model) return problemResponse(notFound('The template could not be found'))

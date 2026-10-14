@@ -589,6 +589,8 @@ export function createDataTypePort(db: Db, schemaFiles?: SchemaFiles): DataTypeP
       filter: (criteria, paging) => repo.filter(criteria, paging),
       search: (query, paging) => repo.filter({ name: query }, paging),
       referencedBy: (key) => repo.referencedBy(key),
+      isUsed: (key) => repo.isUsed(key),
+      propertyIsUsed: (contentTypeKey, alias) => repo.isPropertyUsed(contentTypeKey, alias),
       async move(key, parentKey) {
         const moved = await repo.move(key, parentKey)
         if (moved) await rewrite()

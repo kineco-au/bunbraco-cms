@@ -231,6 +231,10 @@ export interface DataTypePort extends TreePort {
     paging: SkipTake,
   ): Promise<Page<DataTypeModel>>
   search(query: string, paging: SkipTake): Promise<Page<DataTypeModel>>
+  /** Whether any current value is saved through it; undefined when it does not exist. */
+  isUsed?(key: string): Promise<boolean | undefined>
+  /** Whether any current value is saved for a property; undefined when there is no such property. */
+  propertyIsUsed?(contentTypeKey: string, alias: string): Promise<boolean | undefined>
   referencedBy(key: string): Promise<
     Array<{
       propertyKey: string
@@ -262,6 +266,8 @@ export interface TemplatePort extends TreePort {
 
 export interface DocumentPort extends TreePort {
   byKey(key: string): Promise<DocumentAggregate | undefined>
+  /** Every property alias its type has, compositions included. */
+  propertyAliases?(key: string): Promise<string[] | undefined>
   /** The published version's values; undefined when nothing is published. */
   byKeyPublished(key: string): Promise<DocumentAggregate | undefined>
   /** What the editor asks before a save: the rules the server would enforce. */

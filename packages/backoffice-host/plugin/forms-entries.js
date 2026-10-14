@@ -167,7 +167,8 @@ export default class CromboloFormsEntriesElement extends UmbLitElement {
                             ${
                               value.redacted
                                 ? html`<em>withheld — needs sensitive-data access</em>`
-                                : value.values.join(', ') || html`<em>not answered</em>`
+                                : (value.labels ?? value.values).join(', ') ||
+                                  html`<em>not answered</em>`
                             }
                           </dd>
                         `,

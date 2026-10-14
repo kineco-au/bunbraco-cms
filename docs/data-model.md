@@ -475,3 +475,9 @@ three is `(node_id, property_type_id, language_id, segment, id DESC)`.
   entry outlives both. No foreign keys, for the same reason. It starts empty;
   an item's versions answer for the time before it. See
   [`audit-log.md`](audit-log.md).
+- **Migration 034, stories `047` and `090`:** `server.crombolo_version`, the
+  Crombolo release each node runs beside the schema set version `server.version`
+  holds, so the Servers health check can say when nodes disagree
+  ([`diagnostics.md`](diagnostics.md)); and `form_entry_value.label`, what a
+  visitor saw for a choice drawn from a source, so an entry still reads after the
+  page or dictionary item behind it changes ([`forms.md`](forms.md)).

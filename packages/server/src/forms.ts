@@ -59,6 +59,7 @@ export function formDetail(form: SchemaForm): Record<string, unknown> {
       mandatory: field.mandatory,
       sensitive: field.sensitive,
       values: field.values,
+      source: field.source ?? null,
     })),
     workflows: form.workflows.map((workflow) => ({
       type: workflow.type,
@@ -82,10 +83,10 @@ export function formsByKey(forms: readonly SchemaForm[]): Map<string, SchemaForm
  * not allowed them, so the redaction is on the way out of the server.
  */
 export function redactSensitive(
-  entry: { values: { fieldAlias: string; values: string[] }[] },
+  entry: { values: { fieldAlias: string; values: string[]; labels?: string[] }[] },
   form: SchemaForm | undefined,
   maySeeSensitive: boolean,
-): { fieldAlias: string; values: string[]; redacted: boolean }[] {
+): { fieldAlias: string; values: string[]; labels?: string[]; redacted: boolean }[] {
   const sensitive = new Set(
     (form ? allFormFields(form) : [])
       .filter((field) => field.sensitive)
@@ -96,6 +97,7 @@ export function redactSensitive(
     return {
       fieldAlias: value.fieldAlias,
       values: hide ? [] : value.values,
+      ...(value.labels && !hide ? { labels: value.labels } : {}),
       redacted: hide,
     }
   })
@@ -138,7 +140,7 @@ export function entriesCsv(
     createDate: Date
     state: string
     spam: boolean
-    values: { fieldAlias: string; values: string[] }[]
+    values: { fieldAlias: string; values: string[]; labels?: string[] }[]
   }[],
   options: EntriesCsvOptions,
 ): EntriesCsvResult {
@@ -158,7 +160,10 @@ export function entriesCsv(
     entry.state,
     String(entry.spam),
     ...fields.map((field) =>
-      (entry.values.find((value) => value.fieldAlias === field.alias)?.values ?? []).join('; '),
+      (() => {
+        const value = entry.values.find((candidate) => candidate.fieldAlias === field.alias)
+        return (value?.labels ?? value?.values ?? []).join('; ')
+      })(),
     ),
   ])
   return {

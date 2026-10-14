@@ -21,7 +21,7 @@ export interface FormWorkflowRun {
   /** The entry this came from; absent for a form that stores none. */
   entryId: string | null
   /** The submitted values, as the workflow needs them. */
-  payload: { fieldAlias: string; values: string[] }[]
+  payload: { fieldAlias: string; values: string[]; labels?: string[] }[]
   state: FormWorkflowState
   attempts: number
   lastError: string | null

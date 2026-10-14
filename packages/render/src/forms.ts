@@ -17,6 +17,7 @@
  * `docs/forms.md` says why this diverges from Umbraco's theme folders.
  */
 import {
+  choiceOptions,
   FORM_HONEYPOT_FIELD,
   FORM_RENDERED_FIELD,
   FORM_TOKEN_FIELD,
@@ -229,13 +230,13 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
           field.mandatory || first(values) === ''
             ? element('option', { value: '', children: field.placeholder ?? '' })
             : null,
-          ...field.values.map((option) =>
+          ...choiceOptions(field).map((option) =>
             element(
               'option',
               attrs({
-                value: option,
-                selected: option === first(values) || undefined,
-                children: option,
+                value: option.value,
+                selected: option.value === first(values) || undefined,
+                children: option.label,
               }),
             ),
           ),
@@ -247,7 +248,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
     element('div', {
       class: 'crombolo-form__choices',
       role: 'radiogroup',
-      children: field.values.map((option, index) =>
+      children: choiceOptions(field).map((option, index) =>
         element('label', {
           class: 'crombolo-form__choice',
           children: [
@@ -257,12 +258,12 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
                 type: 'radio',
                 id: `${id}-${index}`,
                 name,
-                value: option,
-                checked: option === first(values) || undefined,
+                value: option.value,
+                checked: option.value === first(values) || undefined,
                 required: (field.mandatory && shown) || undefined,
               }),
             ),
-            element('span', { children: option }),
+            element('span', { children: option.label }),
           ],
         }),
       ),
@@ -271,7 +272,7 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
   multipleChoice: ({ field, values, id, name }) =>
     element('div', {
       class: 'crombolo-form__choices',
-      children: field.values.map((option, index) =>
+      children: choiceOptions(field).map((option, index) =>
         element('label', {
           class: 'crombolo-form__choice',
           children: [
@@ -281,11 +282,11 @@ const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
                 type: 'checkbox',
                 id: `${id}-${index}`,
                 name,
-                value: option,
-                checked: values.includes(option) || undefined,
+                value: option.value,
+                checked: values.includes(option.value) || undefined,
               }),
             ),
-            element('span', { children: option }),
+            element('span', { children: option.label }),
           ],
         }),
       ),

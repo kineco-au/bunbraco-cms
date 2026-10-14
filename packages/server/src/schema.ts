@@ -39,7 +39,7 @@ import {
   writeKeysBack,
 } from '@crombolo/schema'
 import { listComponents } from './components.ts'
-import type { CromboloConfig } from './config.ts'
+import { type CromboloConfig, VERSION } from './config.ts'
 import { logger } from './logging.ts'
 import { materialiseSchema } from './schema-store.ts'
 
@@ -145,7 +145,7 @@ export async function bootSchema(db: Db, config: CromboloConfig): Promise<Schema
   const nodeId = config.nodeId
   if (!existsSync(config.schemaDir)) {
     const nodeState = { version: '0', revision: config.schemaRevision }
-    await touchServer(db, { nodeId, ...nodeState, role: config.role })
+    await touchServer(db, { nodeId, ...nodeState, role: config.role, cromboloVersion: VERSION })
     await ensureSystemMediaTypes(db, { linkFolderChildren: true })
     await ensureSystemMemberTypes(db)
     await ensureSystemContentTypes(db)
@@ -153,7 +153,7 @@ export async function bootSchema(db: Db, config: CromboloConfig): Promise<Schema
   }
   const loaded = loadSchemaDirectory(config.schemaDir)
   const nodeState = { version: loaded.set.version, revision: config.schemaRevision }
-  await touchServer(db, { nodeId, ...nodeState, role: config.role })
+  await touchServer(db, { nodeId, ...nodeState, role: config.role, cromboloVersion: VERSION })
   if (!config.syncSchemaAtBoot)
     return { nodeState, nodeId, report: undefined, compatibilityMode: false }
 
@@ -301,7 +301,12 @@ export class CacheInstructionPoller {
       onInstruction(instruction.kind, instruction.payload)
       applied += 1
     }
-    await touchServer(db, { nodeId, ...nodeState, role: this.#options.role })
+    await touchServer(db, {
+      nodeId,
+      ...nodeState,
+      role: this.#options.role,
+      cromboloVersion: VERSION,
+    })
     const current = await currentSchemaState(db)
     const behind = compareStates(nodeState, current) < 0
     if (behind && !this.#behind) onInstruction('schema', { stateId: current.id })

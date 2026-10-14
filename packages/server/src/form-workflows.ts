@@ -61,10 +61,13 @@ export type WorkflowResult =
 
 // ------------------------------------------------------------------ substitution
 
-const firstValue = (values: readonly FormValueToStore[], alias: string): string =>
-  values
-    .find((value) => value.fieldAlias.toLowerCase() === alias.toLowerCase())
-    ?.values.join(', ') ?? ''
+/** What a person reads for a value: the label a visitor chose, for a choice from a source. */
+const shown = (value: FormValueToStore): string[] => value.labels ?? value.values
+
+const firstValue = (values: readonly FormValueToStore[], alias: string): string => {
+  const found = values.find((value) => value.fieldAlias.toLowerCase() === alias.toLowerCase())
+  return found ? shown(found).join(', ') : ''
+}
 
 /**
  * `{fieldAlias}` in a workflow setting becomes what was submitted for it.
@@ -79,7 +82,7 @@ export function substitute(text: string, values: readonly FormValueToStore[]): s
     const found = values.find((value) => value.fieldAlias.toLowerCase() === alias.toLowerCase())
     // An unknown alias is left as it was written, so a stray brace in a subject
     // line reads as itself rather than vanishing.
-    return found ? found.values.join(', ') : whole
+    return found ? shown(found).join(', ') : whole
   })
 }
 
@@ -102,7 +105,7 @@ export function plainSummary(context: WorkflowContext): string {
   const lines = context.values.map(
     (value) =>
       `${captions.get(value.fieldAlias) ?? value.fieldAlias}: ${
-        value.values.length > 0 ? value.values.join(', ') : '(not answered)'
+        value.values.length > 0 ? shown(value).join(', ') : '(not answered)'
       }`,
   )
   return [`${context.form.name}`, '', ...lines].join('\n')

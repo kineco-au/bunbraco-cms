@@ -243,6 +243,13 @@ export interface SchemaFormField {
   autocomplete?: string
   /** A choice list, for the types that take one. */
   values: string[]
+  /** Where the choice list comes from instead, kept once rather than in every form. */
+  source?: ChoiceSource
+  /**
+   * The options a source resolved to, filled in at render and at submit; never
+   * read from or written to the file.
+   */
+  options?: ChoiceOption[]
   placeholder?: string
   defaultValue?: string
   content?: string
@@ -255,6 +262,53 @@ export interface SchemaFormField {
   maxSizeKb?: number
   multiple?: boolean
   condition?: FormCondition
+}
+
+/** The kinds of list a choice field can draw its options from. */
+export const CHOICE_SOURCE_KINDS = ['content', 'dictionary'] as const
+
+export type ChoiceSourceKind = (typeof CHOICE_SOURCE_KINDS)[number]
+
+/**
+ * A choice list kept somewhere else: the children of a content node (by key), or
+ * the children of a dictionary item (by name). docs/forms.md, "Choices from a source".
+ */
+export interface ChoiceSource {
+  kind: ChoiceSourceKind
+  parent: string
+}
+
+/** One option: what is stored when it is chosen, and what a visitor sees. */
+export interface ChoiceOption {
+  value: string
+  label: string
+}
+
+/** The options a choice field offers: its source's, once resolved, or its own values. */
+export function choiceOptions(field: SchemaFormField): ChoiceOption[] {
+  if (field.options) return field.options
+  if (field.source) return []
+  return field.values.map((value) => ({ value, label: value }))
+}
+
+/** The form with every source-backed field's options filled in by `resolve`. */
+export function withResolvedChoices(
+  form: SchemaForm,
+  resolve: (source: ChoiceSource) => ChoiceOption[],
+): SchemaForm {
+  if (!allFormFields(form).some((field) => field.source)) return form
+  return {
+    ...form,
+    pages: form.pages.map((page) => ({
+      ...page,
+      groups: page.groups.map((group) => ({
+        ...group,
+        fields: group.fields.map((field) =>
+          field.source ? { ...field, options: resolve(field.source) } : field,
+        ),
+      })),
+    })),
+  }
 }
 
 export interface SchemaFormGroup {

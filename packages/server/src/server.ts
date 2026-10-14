@@ -36,6 +36,8 @@ import {
   serveStaticFile,
 } from '@crombolo/backoffice-host'
 import {
+  CHOICE_SOURCE_KINDS,
+  type ChoiceSourceKind,
   DEFAULT_UPLOAD_SETTINGS,
   FormPermissions,
   hasAccessToSensitiveData,
@@ -114,7 +116,10 @@ import { mediaStoreFromEnvironment } from './media-store.ts'
 import { createMemberAuth, MEMBER_ROUTE_PREFIX } from './member-auth.ts'
 import { noNodesPage } from './no-nodes.ts'
 import { NotImplementedLog } from './not-implemented.ts'
-import { createDeps, resolveUserLinkSender } from './ports.ts'
+import { createDeps, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
+
+export { PREVIEW_COOKIE }
+
 import { syncConfiguredRedirects } from './redirects.ts'
 import {
   bootSchema,
@@ -182,9 +187,6 @@ export interface ServerHandle {
   /** Stops the watcher and the poll, then closes the database. */
   close(): Promise<void>
 }
-
-/** Umbraco's preview cookie; with a signed-in editor it turns on draft rendering. */
-export const PREVIEW_COOKIE = 'UMB_PREVIEW'
 
 export async function createServer(config: CromboloConfig = loadConfig()): Promise<ServerHandle> {
   configureLogging({
@@ -531,12 +533,6 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       ...entry,
     })
   })
-  const previewPort = {
-    enter: () => [
-      serializeCookie({ name: PREVIEW_COOKIE, value: 'preview', secure: config.secureCookies }),
-    ],
-    exit: () => [expireCookie(PREVIEW_COOKIE, config.secureCookies)],
-  }
   // The site's config may name a store; without one the environment decides,
   // and that falls back to the media directory on this disk.
   const mediaStore = config.mediaStore ?? (await mediaStoreFromEnvironment(config.mediaDir))
@@ -579,7 +575,6 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           })
         },
       }),
-      preview: previewPort,
     },
     authenticate,
     nodes: createNodeLookup(db),
@@ -1171,6 +1166,25 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         return Response.json({ ...formDetail(form), definition: form })
       }
 
+      // What a choice source offers now, in the default language, for the
+      // designer to show beside the source it is editing.
+      if (action === 'choices' && request.method === 'POST') {
+        if (!may(FormPermissions.Manage)) return new Response('Forbidden', { status: 403 })
+        const body = (await request.json().catch(() => ({}))) as { source?: unknown }
+        const source = body.source as { kind?: unknown; parent?: unknown } | undefined
+        if (
+          !source ||
+          !CHOICE_SOURCE_KINDS.includes(source.kind as ChoiceSourceKind) ||
+          typeof source.parent !== 'string'
+        )
+          return new Response('Bad Request', { status: 400 })
+        const options = await cache.choiceOptions({
+          kind: source.kind as ChoiceSourceKind,
+          parent: source.parent,
+        })
+        return Response.json({ options })
+      }
+
       // Designing a form is a developer's job, so it is its own verb rather
       // than something an entry reader can do.
       if (request.method === 'POST' || request.method === 'PUT') {
@@ -1471,6 +1485,21 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         mediaFiles,
         uploads: DEFAULT_UPLOAD_SETTINGS,
         urlOf: async (contentKey) => (await cache.byKey(contentKey))?.url,
+        // The page it was sent from names the culture; the keys a source offers
+        // are the same in every culture, so only the stored labels depend on it.
+        resolveForm: async (form) => {
+          const referer = request.headers.get('referer')
+          let culture: string | null = null
+          try {
+            if (referer) {
+              const url = new URL(referer)
+              culture = await cache.cultureFor(url.host, url.pathname)
+            }
+          } catch {
+            culture = null
+          }
+          return cache.resolveForm(form, culture)
+        },
       },
       request,
       key,

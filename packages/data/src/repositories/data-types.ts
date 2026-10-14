@@ -121,6 +121,44 @@ export class DataTypeRepository {
     return { total: items.length, items: items.slice(paging.skip, paging.skip + paging.take) }
   }
 
+  /** Whether any current value is saved through this data type; undefined when there is no such type. */
+  async isUsed(key: string): Promise<boolean | undefined> {
+    const node = await this.#nodes.byKey(key)
+    if (!node || node.objectType !== ObjectTypes.DataType) return undefined
+    return this.#hasValues('p.data_type_id = ?', [node.id])
+  }
+
+  /**
+   * Whether any current value is saved for the property `alias` of a content type;
+   * undefined when the type or the property does not exist.
+   */
+  async isPropertyUsed(contentTypeKey: string, alias: string): Promise<boolean | undefined> {
+    const rows = await this.#db.query<{ id: number }>(
+      `SELECT p.id FROM property_type p
+       JOIN node ctn ON ctn.id = p.content_type_id
+       WHERE ctn.unique_id = ? AND p.alias = ? AND p.retired_at IS NULL`,
+      [normaliseUuid(contentTypeKey), alias],
+    )
+    const property = rows[0]
+    if (!property) return undefined
+    return this.#hasValues('p.id = ?', [Number(property.id)])
+  }
+
+  /** A current value that holds something: an empty string or an all-null row is not a use. */
+  async #hasValues(where: string, params: unknown[]): Promise<boolean> {
+    const rows = await this.#db.query(
+      `SELECT 1 AS used FROM property_value v
+       JOIN property_type p ON p.id = v.property_type_id
+       WHERE ${where} AND v.is_current = ? AND p.retired_at IS NULL
+         AND (v.int_value IS NOT NULL OR v.decimal_value IS NOT NULL OR v.date_value IS NOT NULL
+           OR (v.varchar_value IS NOT NULL AND v.varchar_value <> '')
+           OR (v.text_value IS NOT NULL AND v.text_value <> ''))
+       LIMIT 1`,
+      [...params, this.#db.dialect.boolValue(true)],
+    )
+    return rows.length > 0
+  }
+
   /** Property types using this data type, with the type each belongs to. */
   async referencedBy(key: string): Promise<
     Array<{

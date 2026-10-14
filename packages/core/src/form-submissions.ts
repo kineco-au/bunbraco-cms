@@ -11,6 +11,7 @@
  * is a client-side concern tied to CSS classes.
  */
 import {
+  choiceOptions,
   type FormCondition,
   type FormConditionRule,
   formFieldType,
@@ -30,6 +31,11 @@ export interface FormFieldError {
 export interface FormValueToStore {
   fieldAlias: string
   values: string[]
+  /**
+   * What the visitor saw for each value, for a choice drawn from a source: the
+   * value is a key, and the label keeps the entry readable once that key is gone.
+   */
+  labels?: string[]
 }
 
 export interface SubmissionResult {
@@ -222,6 +228,7 @@ export function validateSubmission(
     }
 
     let accepted = present
+    const allowed = new Map(choiceOptions(field).map((option) => [option.value, option.label]))
     switch (info.stores) {
       case 'string': {
         const value = first(present)
@@ -239,7 +246,7 @@ export function validateSubmission(
               fail(field, `${label(field)} cannot be after ${field.max}`)
           }
         }
-        if (info.choices && !field.values.includes(value))
+        if (info.choices && !allowed.has(value))
           fail(field, `${label(field)} is not one of the choices`)
         if (field.pattern) {
           let matches = true
@@ -256,9 +263,9 @@ export function validateSubmission(
         break
       }
       case 'strings': {
-        const unknown = present.filter((value) => !field.values.includes(value))
+        const unknown = present.filter((value) => !allowed.has(value))
         if (unknown.length > 0) fail(field, `${label(field)} is not one of the choices`)
-        accepted = present.filter((value) => field.values.includes(value))
+        accepted = present.filter((value) => allowed.has(value))
         break
       }
       case 'number': {
@@ -285,7 +292,15 @@ export function validateSubmission(
         break
       }
     }
-    values.push({ fieldAlias: field.alias, values: accepted })
+    values.push(
+      field.source
+        ? {
+            fieldAlias: field.alias,
+            values: accepted,
+            labels: accepted.map((value) => allowed.get(value) ?? value),
+          }
+        : { fieldAlias: field.alias, values: accepted },
+    )
   }
 
   return { ok: errors.length === 0, errors, values }

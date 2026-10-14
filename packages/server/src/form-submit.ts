@@ -206,6 +206,8 @@ export interface FormSubmitDeps {
   uploads?: UploadSettings
   /** Resolves a document key to the URL to send the visitor to. */
   urlOf?: (key: string) => Promise<string | undefined>
+  /** Fills in the options of choices drawn from a source, as the page rendered them. */
+  resolveForm?: (form: SchemaForm) => Promise<SchemaForm>
 }
 
 export type FormSubmitOutcome =
@@ -255,8 +257,9 @@ export async function submitForm(
   formKey: string,
   options: { ip?: string; now?: number } = {},
 ): Promise<FormSubmitOutcome> {
-  const form = deps.forms.byKey(formKey)
-  if (!form) return { status: 'notFound' }
+  const definition = deps.forms.byKey(formKey)
+  if (!definition) return { status: 'notFound' }
+  const form = deps.resolveForm ? await deps.resolveForm(definition) : definition
 
   const secret = await formSigningSecret(deps.db)
   const data = await request.formData()

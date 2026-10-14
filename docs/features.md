@@ -110,12 +110,15 @@ tail of 1–3 each.
   `@microsoft/signalr`) for live tree refresh and user notifications — built:
   `/umbraco/serverEventHub` speaks enough of the hub protocol to hold the connection and
   broadcast content events
-- Log viewer (story `040`, built); health checks, telemetry, profiling,
-  published-cache admin endpoints — story `047`
+- Log viewer (story `040`, built); health checks, honest telemetry and profiling
+  answers, troubleshooting and the upgrade check — built, story `047`
+  ([`diagnostics.md`](diagnostics.md))
 - Webhooks (events → HTTP) with a delivery log — story `044`
 - Content segments (A/B, personalisation) — a deliberate divergence, see
-  [`roadmap.md`](roadmap.md); dynamic root pickers — story `048`
-- oEmbed proxy — built; `help` and `news-dashboard` dashboards — story `048`
+  [`roadmap.md`](roadmap.md); dynamic root pickers — built, story `048`
+- oEmbed proxy — built; `help` and `news-dashboard` answer an honest empty list —
+  built, story `048`; document JSON Patch, `is-used`, object types and the
+  static-file picker — built, story `048` ([`api-coverage.md`](api-coverage.md))
 - Email sending (invites, resets, notifications) — story `045`
 - Bulk actions, tree drag-and-drop refinements
 - Multi-server operation — built: roles and polled cache instructions
@@ -132,7 +135,7 @@ tail of 1–3 each.
 - ModelsBuilder DLLs, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Commerce
 - Umbraco Forms as an add-on: form building is in core instead, with definitions
-  as files ([`forms.md`](forms.md)); what is left is stories `090`–`095`
+  as files ([`forms.md`](forms.md)), choices from a source included (story `090`); what is left is stories `091`–`095`
 - SQL Server
 - Opening an existing Umbraco database in place — a one-way importer does that
   instead, see [`umbraco-import.md`](umbraco-import.md)

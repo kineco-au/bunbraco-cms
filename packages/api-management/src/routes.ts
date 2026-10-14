@@ -5,9 +5,14 @@
 import { registerAuditLogHandlers } from './handlers/audit-log.ts'
 import { registerContentTypeHandlers } from './handlers/content-type.ts'
 import { registerDataTypeHandlers } from './handlers/data-type.ts'
+import {
+  registerDiagnosticsHandlers,
+  registerTelemetryAndProfilingHandlers,
+} from './handlers/diagnostics.ts'
 import { registerDictionaryHandlers } from './handlers/dictionary.ts'
 import { registerDocumentHandlers } from './handlers/document.ts'
 import { registerDocumentBlueprintHandlers } from './handlers/document-blueprint.ts'
+import { registerDynamicRootHandlers } from './handlers/dynamic-root.ts'
 import { registerEditorServiceHandlers } from './handlers/editor-services.ts'
 import { registerElementHandlers } from './handlers/element.ts'
 import { registerFileSystemHandlers } from './handlers/file-systems.ts'
@@ -23,10 +28,12 @@ import { registerPackageHandlers } from './handlers/package.ts'
 import { registerPublicAccessHandlers } from './handlers/public-access.ts'
 import { registerPublishedCacheHandlers } from './handlers/published-cache.ts'
 import { registerRedirectHandlers } from './handlers/redirects.ts'
+import { registerReferenceDataHandlers } from './handlers/reference-data.ts'
 import { registerReferenceHandlers } from './handlers/references.ts'
 import { registerSearchIndexHandlers } from './handlers/search-index.ts'
 import { registerServerHandlers } from './handlers/server.ts'
 import { registerSettingsStubHandlers } from './handlers/settings-stubs.ts'
+import { createStaticFiles, registerStaticFileHandlers } from './handlers/static-files.ts'
 import { registerTemplateHandlers } from './handlers/template.ts'
 import { registerTemplateQueryHandlers } from './handlers/template-query.ts'
 import { registerTemporaryFileHandlers } from './handlers/temporary-file.ts'
@@ -67,6 +74,10 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     userData: deps.userData,
   })
   registerSettingsStubHandlers(router)
+  registerTelemetryAndProfilingHandlers(router)
+  registerReferenceDataHandlers(router)
+  if (deps.dynamicRoots) registerDynamicRootHandlers(router, deps.dynamicRoots)
+  if (deps.diagnostics) registerDiagnosticsHandlers(router, deps.diagnostics)
   if (deps.contentTypes)
     registerContentTypeHandlers(router, deps.contentTypes, 'document', deps.temporaryFiles)
   if (deps.mediaTypes)
@@ -87,6 +98,11 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     registerFileSystemHandlers(router, 'PartialView', deps.components, deps.componentSnippets)
   if (deps.stylesheets) registerFileSystemHandlers(router, 'Stylesheet', deps.stylesheets)
   if (deps.scripts) registerFileSystemHandlers(router, 'Script', deps.scripts)
+  if (deps.stylesheets && deps.scripts)
+    registerStaticFileHandlers(
+      router,
+      createStaticFiles({ css: deps.stylesheets, scripts: deps.scripts }),
+    )
   if (deps.logViewer) registerLogViewerHandlers(router, deps.logViewer)
   if (deps.modelsBuilder) registerModelsBuilderHandlers(router, deps.modelsBuilder)
   if (deps.publishedCache) registerPublishedCacheHandlers(router, deps.publishedCache)

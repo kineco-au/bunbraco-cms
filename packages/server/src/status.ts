@@ -111,7 +111,7 @@ async function contentCounts(db: Db): Promise<SiteStatus['content']> {
 }
 
 /** The vendored client's version, which is a fact about this deployment too. */
-function backofficeVersion(): string | undefined {
+export function backofficeVersion(): string | undefined {
   for (const base of [join(import.meta.dir, '..', '..'), process.cwd()]) {
     const file = join(base, 'backoffice-dist', 'package.json')
     if (!existsSync(file)) continue
