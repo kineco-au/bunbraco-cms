@@ -74,7 +74,7 @@ payload a package's content half is written in, and is never a bundle on its own
           "id": "acme-tasks",
           "name": "Tasks",
           "extensions": [],
-          "content": "bundle",
+          "content": "content",
           "server": "tasks"
         }
       }
@@ -125,10 +125,10 @@ payload a package's content half is written in, and is never a bundle on its own
 
 - [x] The Created view's download is a package: a `package.json` with the
       manifest, the `crombolo-bundle` keyword and a peer range on the running
-      core, and the payload under `bundle/`. A definition gains the package name
+      core, and the payload under `content/`. A definition gains the package name
       and version to write.
 - [x] `crombolo content export` writes a package directory, with the payload under
-      `bundle/` and the package marked `private`.
+      `content/` and the package marked `private`.
 - [x] A template's `bundle/` becomes a package, and `init` scaffolds the site's
       starter content as one.
 - [x] `sites/*/bundles/*` and `packages/cli/templates/*/bundle` are converted.
@@ -215,6 +215,11 @@ Taken before starting, 2026-10-14:
 
 ## What was built
 
+The payload directory inside a package is `content/` (`PAYLOAD_DIR`), matching
+the manifest field that names it. It was `bundle/` at first, which doubled up
+inside a template's own `bundle/` directory (`…/bundle/bundle/blobs`).
+
+
 - **The manifest** — `backoffice-host/src/bundle-package.ts`: `readBundlePackage`,
   `validateBundlePackage`, `discoverBundles`, `peerRangeProblem` and
   `isSemverRange` (Bun's own matcher accepts a nonsense range and matches it).
@@ -254,7 +259,7 @@ Taken before starting, 2026-10-14:
   `server` and a peer range, and its factory reads its id from its manifest.
 - **The product site's platform upload** (`scripts/publish-brochureware.ts`)
   still sends a zip, which is the platform's contract, but the zip now holds the
-  package — `package.json` and `bundle/` — rather than a bare payload.
+  package — `package.json` and `content/` — rather than a bare payload.
 - **Tests** — `bundle-package.test.ts` and `tar.test.ts` are new; the installer,
   download, marketplace, server bundle, template and importer suites cover the
   rest.

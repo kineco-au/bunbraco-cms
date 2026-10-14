@@ -324,7 +324,7 @@ describe('installing', () => {
 
   /** Stands in for `bun add` leaving a bundle that carries content behind. */
   const withContent = (root: string) => () => {
-    addPackage(root, '@acme/kit', true, '1.0.0', { content: 'bundle' })
+    addPackage(root, '@acme/kit', true, '1.0.0', { content: 'content' })
     writeFileSync(
       join(root, 'package.json'),
       JSON.stringify({ name: 'a-site', dependencies: { '@acme/kit': '^1.0.0' } }),

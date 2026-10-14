@@ -628,8 +628,8 @@ describe('an environment’s export', () => {
     const json = JSON.parse(readFileSync(join(out, 'package.json'), 'utf8'))
     expect(json.private).toBe(true)
     expect(json.keywords).toBeUndefined()
-    expect(json.crombolo.content).toBe('bundle')
-    expect(existsSync(join(out, 'bundle', 'bundle.json'))).toBe(true)
+    expect(json.crombolo.content).toBe('content')
+    expect(existsSync(join(out, 'content', 'bundle.json'))).toBe(true)
 
     const destination = await site()
     // The destination has the type already, as a deploy would have given it.

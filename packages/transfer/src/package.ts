@@ -1,6 +1,6 @@
 /**
  * A written bundle as the npm package every bundle is: a `package.json` whose
- * `crombolo` field declares the payload, and the payload under `bundle/`.
+ * `crombolo` field declares the payload, and the payload under `content/`.
  * `docs/bundles.md`.
  *
  * The payload is `writeBundle`'s output unchanged, so its manifest, integrity
@@ -10,7 +10,7 @@
 import type { BundleFile } from './write.ts'
 
 /** The directory inside a package that holds the `bundle.json` payload. */
-export const PAYLOAD_DIR = 'bundle'
+export const PAYLOAD_DIR = 'content'
 
 /** The npm keyword a bundle publishes so the marketplace can find it. */
 export const BUNDLE_KEYWORD = 'crombolo-bundle'
@@ -71,7 +71,7 @@ export function bundlePackageJson(info: BundlePackageInfo): Record<string, unkno
   }
 }
 
-/** A payload's files, placed into a package under `bundle/` beside its `package.json`. */
+/** A payload's files, placed into a package under `content/` beside its `package.json`. */
 export function writeBundlePackage(
   payload: readonly BundleFile[],
   info: BundlePackageInfo,

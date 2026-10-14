@@ -42,8 +42,8 @@ everything below.
 
 ```
 bundles/campaign-x/
-├── package.json             "private": true, and "crombolo": { "id", "name", "content": "bundle" }
-└── bundle/
+├── package.json             "private": true, and "crombolo": { "id", "name", "content": "content" }
+└── content/
     ├── bundle.json          manifest, including an integrity hash over everything
     ├── nodes/<uuid>.json    one file per node, every kind
     ├── blobs/<key>          the media bytes, with --with-blobs

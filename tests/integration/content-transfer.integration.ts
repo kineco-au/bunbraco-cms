@@ -247,10 +247,13 @@ describe('content transfer, end to end through the CLI', () => {
     )
     expect(result.code, result.out).toBe(0)
     expect(result.out).toContain('3 document')
-    expect(existsSync(join(bundle(), 'bundle.json'))).toBe(true)
-    for (const key of keys) expect(existsSync(join(bundle(), 'nodes', `${key}.json`))).toBe(true)
+    // The export is a private package: its package.json, and the payload under content/.
+    expect(existsSync(join(bundle(), 'package.json'))).toBe(true)
+    expect(existsSync(join(bundle(), 'content', 'bundle.json'))).toBe(true)
+    for (const key of keys)
+      expect(existsSync(join(bundle(), 'content', 'nodes', `${key}.json`))).toBe(true)
     // Keys and aliases only: an integer id would not survive the trip.
-    const manifest = JSON.parse(readFileSync(join(bundle(), 'bundle.json'), 'utf8'))
+    const manifest = JSON.parse(readFileSync(join(bundle(), 'content', 'bundle.json'), 'utf8'))
     expect(manifest.snapshot).toBe('published')
     expect(manifest.dependencies.expected).toEqual([])
   })
@@ -307,7 +310,7 @@ describe('content transfer, end to end through the CLI', () => {
       '--save',
     )
     expect(saved.code, saved.out).toBe(0)
-    expect(existsSync(join(bundle(), 'resolutions.json'))).toBe(true)
+    expect(existsSync(join(bundle(), 'content', 'resolutions.json'))).toBe(true)
 
     // No flag this time: the answer is in the bundle.
     const imported = await cli('target', 'content', 'import', bundle())
@@ -354,7 +357,7 @@ describe('content transfer, end to end through the CLI', () => {
     const broken = join(dir, 'broken')
     const copied = await cli('source', 'content', 'export', '--root', '/Campaigns', '--out', broken)
     expect(copied.code, copied.out).toBe(0)
-    rmSync(join(broken, 'nodes', `${keys[2]}.json`))
+    rmSync(join(broken, 'content', 'nodes', `${keys[2]}.json`))
     // Checking must refuse rather than report-and-continue: otherwise a bundle
     // that was copied half-way passes the gate and then gets imported.
     const result = await cli('target', 'content', 'check', broken)
@@ -400,7 +403,7 @@ describe('content transfer, end to end through the CLI', () => {
     )
     expect(exported.code, exported.out).toBe(0)
     expect(exported.out, exported.out).toContain('1 media file(s),')
-    expect(existsSync(join(out, 'blobs', media.blob)), exported.out).toBe(true)
+    expect(existsSync(join(out, 'content', 'blobs', media.blob)), exported.out).toBe(true)
 
     // The destination has the node nowhere and the file nowhere.
     const before = await seed('target', 'blob', media.blob)
@@ -432,7 +435,7 @@ describe('content transfer, end to end through the CLI', () => {
     const exported = await cli('source', 'content', 'export', '--root', media.key, '--out', out)
     expect(exported.code, exported.out).toBe(0)
     expect(exported.out).toContain('pass --with-blobs')
-    expect(existsSync(join(out, 'blobs'))).toBe(false)
+    expect(existsSync(join(out, 'content', 'blobs'))).toBe(false)
 
     const checked = await cli('target', 'content', 'check', out)
     // A person has to decide: the metadata can land without the file, but

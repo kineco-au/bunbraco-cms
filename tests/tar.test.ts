@@ -21,23 +21,23 @@ describe('an npm tarball', () => {
   test('puts every entry under package/, and reads back whole', () => {
     const packed = writeNpmTarball([
       { path: 'package.json', bytes: bytes('{"name":"a"}') },
-      { path: 'bundle/bundle.json', bytes: bytes('{}') },
-      { path: 'bundle/empty.txt', bytes: new Uint8Array() },
-      { path: 'bundle/blobs/κλειδί', bytes: new Uint8Array(1500).fill(7) },
+      { path: 'content/bundle.json', bytes: bytes('{}') },
+      { path: 'content/empty.txt', bytes: new Uint8Array() },
+      { path: 'content/blobs/κλειδί', bytes: new Uint8Array(1500).fill(7) },
     ])
     const entries = untar(packed)
     expect([...entries.keys()]).toEqual([
       'package.json',
-      'bundle/bundle.json',
-      'bundle/empty.txt',
-      'bundle/blobs/κλειδί',
+      'content/bundle.json',
+      'content/empty.txt',
+      'content/blobs/κλειδί',
     ])
     expect(new TextDecoder().decode(entries.get('package.json'))).toBe('{"name":"a"}')
-    expect(entries.get('bundle/blobs/κλειδί')).toEqual(new Uint8Array(1500).fill(7))
+    expect(entries.get('content/blobs/κλειδί')).toEqual(new Uint8Array(1500).fill(7))
   })
 
   test('the system tar unpacks it, a path longer than a header holds included', async () => {
-    const long = `bundle/components/${'deep/'.repeat(20)}view.tsx`
+    const long = `content/components/${'deep/'.repeat(20)}view.tsx`
     expect(long.length).toBeGreaterThan(100)
     const dir = mkdtempSync(join(tmpdir(), 'crombolo-tar-'))
     dirs.push(dir)
@@ -61,7 +61,7 @@ describe('an npm tarball', () => {
   })
 
   test('refuses a path that would land outside the package', () => {
-    for (const path of ['/etc/passwd', '../escape', 'bundle/../../escape'])
+    for (const path of ['/etc/passwd', '../escape', 'content/../../escape'])
       expect(() => writeNpmTarball([{ path, bytes: bytes('x') }]), path).toThrow(
         /not a path inside the package/,
       )

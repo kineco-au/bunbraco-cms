@@ -129,7 +129,7 @@ export function readBundle(target: string, siteDir: string): ResolvedBundle {
     if (existsSync(join(directory, PAYLOAD_MANIFEST)))
       throw new CommandError(
         `${target} is a bare ${PAYLOAD_MANIFEST} with no package.json. Every bundle is an npm package: ` +
-          `a package.json whose "crombolo" field names the payload directory, with the payload under bundle/.`,
+          `a package.json whose "crombolo" field names the payload directory, with the payload under content/.`,
       )
     throw new CommandError(`${target} has no package.json, so it is not a bundle.`)
   }

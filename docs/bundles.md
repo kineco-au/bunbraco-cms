@@ -29,7 +29,7 @@ possible halves:
     "id": "acme-tasks",
     "name": "Tasks",
     "extensions": [],
-    "content": "bundle",
+    "content": "content",
     "server": "tasks"
   }
 }
@@ -162,7 +162,7 @@ that already exist and are already tested.
 acme-tasks-1.0.0.tgz
 └── package/
     ├── package.json           name, version, keyword, peer range, and the crombolo manifest
-    └── bundle/
+    └── content/
         ├── bundle.json        the payload's manifest: what it is, and which sections it carries
         ├── nodes/<uuid>.json  picked content, media and element nodes   ┐
         ├── blobs/<key>        the media bytes                          │

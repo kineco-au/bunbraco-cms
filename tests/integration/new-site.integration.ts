@@ -368,7 +368,7 @@ describe('creating a site, end to end through the CLI', () => {
     // The bundle carried the bytes and the boot placed them in this site's
     // store, so what it serves is the file the template shipped.
     const file = '180cc8ef/distillery-from-the-cliff-path.jpg'
-    const shipped = join(TEMPLATES, 'demo/harbourstone/bundle/blobs', file)
+    const shipped = join(TEMPLATES, 'demo/harbourstone/bundle/content/blobs', file)
     const landed = join(siteDir('demo'), 'media', file)
     expect(readFileSync(landed)).toEqual(readFileSync(shipped))
 

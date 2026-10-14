@@ -71,11 +71,11 @@ describe('the manifest', () => {
 
   test('refuses content that holds no payload', () => {
     const root = siteDeclaring('bundle-package', {
-      '@acme/tasks': { json: valid({}, { content: 'bundle' }) },
+      '@acme/tasks': { json: valid({}, { content: 'content' }) },
     })
     dirs.push(root)
     const dir = join(root, 'node_modules', '@acme/tasks')
-    expect(problemsOf(valid({}, { content: 'bundle' }), dir)).toContain('holds no bundle.json')
+    expect(problemsOf(valid({}, { content: 'content' }), dir)).toContain('holds no bundle.json')
   })
 
   test('reports every problem at once', () => {
@@ -96,15 +96,15 @@ describe('reading one', () => {
   test('a package with content carries it, at a path inside the package', () => {
     const root = siteDeclaring('bundle-package', {
       '@acme/tasks': {
-        json: valid({}, { content: 'bundle', server: undefined }),
-        files: { 'bundle/bundle.json': '{}' },
+        json: valid({}, { content: 'content', server: undefined }),
+        files: { 'content/bundle.json': '{}' },
       },
     })
     dirs.push(root)
     const { bundle, problems } = readBundlePackage(join(root, 'node_modules', '@acme/tasks'))
     expect(problems).toEqual([])
     expect(bundle?.carries).toEqual({ extensions: false, content: true, server: false })
-    expect(bundle?.contentDir).toBe(join(root, 'node_modules', '@acme/tasks', 'bundle'))
+    expect(bundle?.contentDir).toBe(join(root, 'node_modules', '@acme/tasks', 'content'))
     expect(bundle?.name).toBe('Tasks')
   })
 

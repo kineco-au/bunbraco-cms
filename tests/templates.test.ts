@@ -269,10 +269,10 @@ describe('what init writes', () => {
     expect(paths).toContain('css/site.css')
     // The content arrives as the private package every bundle is.
     expect(paths).toContain('bundles/demo-harbourstone/package.json')
-    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/bundle/nodes/'))).toBe(true)
-    expect(paths).toContain('bundles/demo-harbourstone/bundle/bundle.json')
+    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/content/nodes/'))).toBe(true)
+    expect(paths).toContain('bundles/demo-harbourstone/content/bundle.json')
     // The images travel inside the bundle, not as a directory of their own.
-    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/bundle/blobs/'))).toBe(true)
+    expect(paths.some((p) => p.startsWith('bundles/demo-harbourstone/content/blobs/'))).toBe(true)
     expect(paths.some((p) => p.startsWith('media/'))).toBe(false)
     // Everything from the template is copied, not rewritten.
     for (const file of files.filter((f) => f.path.startsWith('bundles/')))
@@ -339,7 +339,7 @@ describe('the demo’s photographs', () => {
     // `build:template` copies the bytes through rather than re-encoding them:
     // re-encoding an already-compressed JPEG would churn the committed bundle
     // on every build and lose a little more of the image each time.
-    const blobs = join(template.dir, 'bundle', 'bundle', 'blobs')
+    const blobs = join(template.dir, 'bundle', 'content', 'blobs')
     const shipped = readdirSync(blobs, { recursive: true, encoding: 'utf8' }).filter((file) =>
       file.endsWith('.jpg'),
     )

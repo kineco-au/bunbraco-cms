@@ -154,7 +154,7 @@ export interface ContentExportResult {
   snapshot: string
   counts: Record<string, number>
   expected: { key: string; name: string; why: string }[]
-  /** The package's files — `package.json` and the payload under `bundle/` — for the caller to place. */
+  /** The package's files — `package.json` and the payload under `content/` — for the caller to place. */
   files: { path: string; bytes?: Uint8Array; text?: string }[]
   blobs: { carried: number; bytes: number; missing: string[]; notCarried: number }
 }
