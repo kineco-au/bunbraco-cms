@@ -2122,7 +2122,10 @@ try {
   process.exit(1)
 }
 
-const capital = (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+// A declaration, not a const: the top-level dispatch above runs before this line.
+function capital(word: string): string {
+  return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+}
 
 /** The audit log entry for a command that changes the environment; undefined for one that only reads. */
 function commandAudit(): ops.CommandAudit | undefined {
