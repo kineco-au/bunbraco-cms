@@ -268,6 +268,21 @@ describe('documents', () => {
     expect((await h.call('/')).status).toBe(404)
   })
 
+  test('refuses to publish a page while it is in the recycle bin', async () => {
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
+    await h.call(`${V1}/document/${key}/move-to-recycle-bin`, { method: 'PUT' })
+    // Trashed directly, its only ancestor is the bin, which is not a page to be unpublished.
+    expect((await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })).status).toBe(
+      400,
+    )
+    const documents = new DocumentRepository(h.server.db, {
+      nodeState: { version: '1.0.0', revision: '0' },
+    })
+    expect(await documents.publishBlockers(key, null)).toEqual(['it is in the recycle bin'])
+    expect((await h.call('/')).status).toBe(404)
+  })
+
   test('deletes one outright', async () => {
     const { h, typeKey, componentKey } = await scaffold()
     const key = await createPage(h, typeKey, componentKey, 'Home')

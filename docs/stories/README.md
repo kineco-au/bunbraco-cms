@@ -95,6 +95,7 @@ not cover.
 | `025` | Variants and localisation | must | M | done | 024 |
 | `026` | Users and user groups | must | L | done | 020 |
 | `027` | The Library section (elements) | should | M | done | 024 |
+| `028` | Approval before publishing | should | M | ready | — |
 
 ### Epic D — Members and identity
 
@@ -133,13 +134,14 @@ not cover.
 | `062` | Tables a bundle owns | should | L | done | 063 |
 | `063` | A bundle is an npm package | should | L | done | — |
 
-### Epic H — Importing an Umbraco site
+### Epic H — Importing a site
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `070` | Import schema, content and views | should | L | done | — |
 | `071` | Import members, users, redirects, protected pages and schedules | should | L | done | 070 |
 | `072` | Proven on real exports from Umbraco 15, 16 and 18 | should | M | ready | 070 |
+| `073` | Import a WordPress site | should | L | backlog | 141, 142 |
 
 ### Epic I — Hardening
 
@@ -192,3 +194,13 @@ not cover.
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `130` | The assistant converts Razor views | could | M | ready | 070 |
+
+### Epic O — Building a site
+
+| # | Story | Priority | Size | State | Depends on |
+|---|---|---|---|---|---|
+| `140` | Site search for visitors | should | M | ready | — |
+| `141` | Navigation menus | should | M | ready | — |
+| `142` | Blogging basics: taxonomies, archives and feeds | should | M | ready | — |
+| `143` | Comments with moderation | could | M | ready | — |
+| `144` | Themes configured without code | could | L | ready | — |

@@ -817,6 +817,9 @@ export class DocumentRepository {
         await assertNodeMayWrite(tx, this.#nodeState)
         const node = await repo.nodes.byKey(key)
         if (!node) return undefined
+        // The bin is not a document, so the ancestor check below passes for a
+        // node trashed directly; Umbraco refuses it as FailedPublishIsTrashed.
+        if (node.trashed) throw new PublishBlockedError('The document is in the recycle bin.')
         // An unpublished ancestor makes a published descendant unreachable, so
         // Umbraco refuses the publish rather than creating a dead route.
         if (!(await repo.#ancestorsPublished(node)))
@@ -893,6 +896,7 @@ export class DocumentRepository {
   ): Promise<string[]> {
     const node = await this.#nodes.byKey(key)
     if (!node) return ['there is no such document here']
+    if (node.trashed) return ['it is in the recycle bin']
     const reasons: string[] = []
     if (!(await this.#ancestorsPublished(node, alsoPublishing)))
       reasons.push('an ancestor is not published')
