@@ -101,7 +101,7 @@ export default class CromboloBundlesCreatedOverviewElement extends UmbLitElement
           version 1.0.0.
         </p>
         <uui-input
-          label="Package name"
+          label="Name"
           placeholder=${pkg?.name ?? ''}
           .value=${this._draft.name}
           @input=${(event) => (this._draft = { ...this._draft, name: event.target.value })}></uui-input>
@@ -166,38 +166,47 @@ export default class CromboloBundlesCreatedOverviewElement extends UmbLitElement
     // look empty on every page change.
     return html`
       <uui-button
-        look="primary"
+        color="default"
+        look="outline"
         href=${`${BUILDER_PATH}/create`}
-        label=${this.localize.term('packager_createPackage')}></uui-button>
+        label="Create"></uui-button>
       ${
         this._loading
           ? html`<div id="loader"><uui-loader></uui-loader></div>`
           : this._items.length === 0
             ? html`<h2 id="empty">${this.localize.term('packager_noPackagesCreated')}</h2>`
             : html`
-            <uui-box headline="Created bundles" style="--uui-box-default-padding:0;">
-              <uui-ref-list>
+            <uui-box headline="Created bundles">
+              <uui-table>
+                <uui-table-head>
+                  <uui-table-head-cell>Name</uui-table-head-cell>
+                  <uui-table-head-cell>Downloads as</uui-table-head-cell>
+                  <uui-table-head-cell></uui-table-head-cell>
+                </uui-table-head>
                 ${repeat(
                   this._items,
                   (item) => item.unique,
                   (item) => html`
-                    <uui-ref-node
-                      name=${item.name}
-                      detail=${this.#detail(item)}
-                      @open=${() => this.#open(item)}>
-                      <uui-action-bar slot="actions">
+                    <uui-table-row>
+                      <uui-table-cell>${item.name}</uui-table-cell>
+                      <uui-table-cell><code>${this.#detail(item)}</code></uui-table-cell>
+                      <uui-table-cell class="buttons">
+                        <uui-button look="secondary" label="Edit" @click=${() => this.#open(item)}></uui-button>
                         <uui-button
-                          @click=${() => this.#edit(item)}
-                          label="Package details"></uui-button>
+                          look="secondary"
+                          label="Name and version"
+                          @click=${() => this.#edit(item)}></uui-button>
                         <uui-button
-                          @click=${() => this.#remove(item)}
-                          label=${this.localize.term('general_delete')}></uui-button>
-                      </uui-action-bar>
-                    </uui-ref-node>
-                    ${this.#renderEditor(item)}
+                          look="secondary"
+                          color="danger"
+                          label=${this.localize.term('general_delete')}
+                          @click=${() => this.#remove(item)}></uui-button>
+                      </uui-table-cell>
+                    </uui-table-row>
                   `,
                 )}
-              </uui-ref-list>
+              </uui-table>
+              ${this._items.map((item) => this.#renderEditor(item))}
             </uui-box>
           `
       }
@@ -237,6 +246,10 @@ export default class CromboloBundlesCreatedOverviewElement extends UmbLitElement
     }
     .problem {
       color: var(--uui-color-danger);
+    }
+    .buttons {
+      white-space: nowrap;
+      text-align: right;
     }
   `
 }

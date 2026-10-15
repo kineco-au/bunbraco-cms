@@ -31,13 +31,17 @@ describe(`member groups (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
     expect(created.status).toBe(201)
     const key = keyOf(created)
     expect(created.headers.get('location')).toContain(`/member-group/${key}`)
+    // The backoffice turns this header into the green toast.
+    expect(created.headers.get('umb-notifications')).toContain('Member group created')
 
     expect(await h.json<unknown>(`${V1}/member-group/${key}`)).toEqual<unknown>({
       id: key,
       name: 'Subscribers',
     })
 
-    expect((await h.put(`${V1}/member-group/${key}`, { name: 'Members' })).status).toBe(200)
+    const renamed = await h.put(`${V1}/member-group/${key}`, { name: 'Members' })
+    expect(renamed.status).toBe(200)
+    expect(renamed.headers.get('umb-notifications')).toContain('Member group saved')
     expect(await h.json<{ id: string; name: string }>(`${V1}/member-group/${key}`)).toEqual({
       id: key,
       name: 'Members',

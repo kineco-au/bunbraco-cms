@@ -1,5 +1,5 @@
 /**
- * The Workflow section's lists (story 028): what waits for the reader's
+ * The Workflows section's lists (story 028): what waits for the reader's
  * approval, every request in flight, and those decided. Each row links to the
  * page, whose Workflow tab is where a request is acted on.
  */
@@ -14,12 +14,24 @@ const STATE = {
   withdrawn: ['default', 'Withdrawn'],
 }
 
-const pageLink = (key) => {
+/** The page's Workflow tab: the editor's route is `edit/<key>/<variant>/view/<tab>`. */
+const pageLink = (item) => {
   const base = (document.querySelector('base')?.getAttribute('href') ?? '/umbraco/').replace(
     /\/$/,
     '',
   )
-  return `${base}/section/content/workspace/document/edit/${key}/view/workflow`
+  return `${base}/section/content/workspace/document/edit/${item.nodeKey}/${encodeURIComponent(item.variant ?? 'invariant')}/view/workflow`
+}
+
+/**
+ * Navigates within the backoffice, as Umbraco's own code does, so the page
+ * opens on its Workflow tab without reloading the app. A modified click still
+ * opens a new tab.
+ */
+function openInBackoffice(event, href) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+  event.preventDefault()
+  history.pushState(null, '', href)
 }
 
 class CromboloWorkflowListElement extends UmbLitElement {
@@ -77,7 +89,7 @@ class CromboloWorkflowListElement extends UmbLitElement {
                 const [color, label] = STATE[item.state] ?? ['default', item.state]
                 const waiting = item.stages.filter((s) => s.state === 'waiting').map((s) => s.alias)
                 return html`<uui-table-row>
-                  <uui-table-cell><a href=${pageLink(item.nodeKey)}>${item.nodeName}</a></uui-table-cell>
+                  <uui-table-cell><a href=${pageLink(item)} @click=${(e) => openInBackoffice(e, pageLink(item))}>${item.nodeName}</a></uui-table-cell>
                   <uui-table-cell>${item.workflow.name}</uui-table-cell>
                   <uui-table-cell>${item.action === 'unpublish' ? 'Taking it down' : 'Publishing'}</uui-table-cell>
                   <uui-table-cell>

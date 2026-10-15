@@ -1467,7 +1467,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     }
 
     // Non-contract: approval workflows (story 028) — the page's Workflow tab, the
-    // Workflow section and its designer. Content or Workflow, as either screen is.
+    // Workflows section and its designer. Content or Workflows, as either screen is.
     if (pathname.startsWith(`${paths.pluginPath}/api/approvals/`)) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })

@@ -15,6 +15,7 @@
  * kind allows, and the import runs once nothing is outstanding.
  */
 import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external/lit'
+import { downloadFile } from './download.js'
 import { answersUrl, fetchReport, transferAction } from './report-client.js'
 
 const KIND_LABEL = { blocking: 'Blocking', person: 'Needs a person', auto: 'Automatic' }
@@ -351,7 +352,13 @@ export default class CromboloChangesDashboardElement extends LitElement {
             })}
         >Import</uui-button>
         <uui-button look="secondary" ?disabled=${busy} label="Check again" @click=${() => this.#act(pending.bundleId, 'check')}>Check again</uui-button>
-        <uui-button look="secondary" href=${answersUrl(pending.bundleId)} label="Download answers">Download answers</uui-button>
+        <uui-button look="secondary" label="Download answers" @click=${() =>
+          downloadFile(answersUrl(pending.bundleId), 'resolutions.json').catch((error) => {
+            this._outcome = {
+              ...this._outcome,
+              [pending.bundleId]: { ok: false, message: error.message },
+            }
+          })}>Download answers</uui-button>
       </div>
       ${outcome ? this.#renderOutcome(pending, outcome) : nothing}
     </div>`

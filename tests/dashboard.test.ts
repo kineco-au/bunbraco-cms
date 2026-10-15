@@ -355,4 +355,14 @@ describe('the plugin views', () => {
     // A plain LitElement fails as `provideContext is not a function` when the view opens.
     expect(plain).toEqual([])
   })
+
+  test('no view uses a link to nowhere for an action', () => {
+    // The backoffice router follows any href, a cancelled click included, so
+    // `href="#"` sends the editor to the home page.
+    const dir = join(import.meta.dir, '..', 'packages', 'backoffice-host', 'plugin')
+    const offenders = [...new Bun.Glob('**/*.js').scanSync({ cwd: dir })].filter((file) =>
+      readFileSync(join(dir, file), 'utf8').includes('href="#"'),
+    )
+    expect(offenders).toEqual([])
+  })
 })

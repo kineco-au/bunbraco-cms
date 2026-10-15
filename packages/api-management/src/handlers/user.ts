@@ -527,11 +527,24 @@ function registerGroups(router: ManagementApiRouter, groups: UserGroupPort): voi
   router.handle('PostUserGroup', async (ctx) => {
     const result = await groups.create(me(ctx), readGroup(await body(ctx)))
     if (result.status !== 'Success' || !result.key) return status(result.status)
+    // The toast the backoffice shows, as for every other type it saves.
+    ctx.notifications.push({
+      message: 'User group created',
+      category: 'User Group',
+      type: 'Success',
+    })
     return created(`${ctx.url.origin}${V1}/user-group/${result.key}`, result.key)
   })
-  router.handle('PutUserGroupById', async (ctx) =>
-    status(await groups.update(me(ctx), ctx.params.id as string, readGroup(await body(ctx)))),
-  )
+  router.handle('PutUserGroupById', async (ctx) => {
+    const result = await groups.update(me(ctx), ctx.params.id as string, readGroup(await body(ctx)))
+    if (result === 'Success')
+      ctx.notifications.push({
+        message: 'User group saved',
+        category: 'User Group',
+        type: 'Success',
+      })
+    return status(result)
+  })
   router.handle('DeleteUserGroupById', async (ctx) =>
     status(await groups.delete(me(ctx), [ctx.params.id as string])),
   )

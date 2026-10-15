@@ -7,7 +7,7 @@ core. Story `028`.
 
 ## What a workflow is
 
-An acyclic graph of **stages**, drawn on a canvas in the Workflow section and
+An acyclic graph of **stages**, drawn on a canvas in the Workflows section and
 kept as a file in `schema/workflows/`.
 
 - **A stage** is approved by named **user groups**: ordinary user groups, so
@@ -87,7 +87,7 @@ reason, rather than sitting approved and unpublished.
 
 ## In the backoffice
 
-- **The Workflow section** — *Waiting for me* (stages the reader may decide),
+- **The Workflows section** — *Waiting for me* (stages the reader may decide),
   *In flight*, *Decided*, and, for administrators, *Workflows*: the list and the
   designer. Admin, Editors and Writers have the section; any group can be given it.
 - **The designer** — stages as boxes on a canvas, dragged into place; *Connect

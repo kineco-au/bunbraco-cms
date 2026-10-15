@@ -14,6 +14,7 @@
 import '@umbraco-cms/backoffice/document'
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
+import { UMB_NOTIFICATION_CONTEXT } from '@umbraco-cms/backoffice/notification'
 import {
   deleteForm,
   listForms,
@@ -61,8 +62,13 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     _types: { state: true },
   }
 
+  #notifications
+
   constructor() {
     super()
+    this.consumeContext(UMB_NOTIFICATION_CONTEXT, (context) => {
+      this.#notifications = context
+    })
     this._forms = undefined
     this._editing = undefined
     this._problems = []
@@ -490,16 +496,19 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     try {
       const result = await saveForm(this._editing)
       if (result.ok) {
-        this._notice = 'Saved.'
+        // The green toast every workspace shows on a save.
+        this.#notifications?.peek('positive', { data: { message: 'Form saved' } })
         this._editing = undefined
         await this.#load()
       } else {
         this._problems = result.body.problems ?? []
-        if (result.body.status === 'readOnly')
-          this._notice = 'The schema directory is read-only on this node.'
+        if (result.body.status === 'readOnly' && this._problems.length === 0)
+          this._problems = [
+            { path: '', message: 'The schema directory is read-only on this node.' },
+          ]
       }
     } catch (error) {
-      this._notice = error.message
+      this._problems = [{ path: '', message: error.message }]
     } finally {
       this._busy = false
     }
@@ -517,20 +526,19 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
   }
 
   render() {
-    if (this._forms === undefined) return html`<uui-loader></uui-loader>`
-    return html`
+    if (this._forms === undefined) return html`<div class="list"><uui-loader></uui-loader></div>`
+    if (this._editing) return this.#editor()
+    return html`<div class="list">
       ${this._notice ? html`<uui-box><p>${this._notice}</p></uui-box>` : nothing}
-      ${this._editing ? this.#editor() : this.#list()}
-    `
+      ${this.#list()}
+    </div>`
   }
 
   #list() {
+    // The create button above the list, as the workflows list has it.
     return html`
+      <uui-button class="create" color="default" look="outline" label="Create" @click=${() => this.#new()}></uui-button>
       <uui-box headline="Forms">
-        <p>
-          A form is a file in <code>schema/forms/</code>. Editing one here writes that
-          file, so the change can be reviewed in a pull request like any other type.
-        </p>
         ${
           this._forms.length === 0
             ? html`<p>There are no forms yet.</p>`
@@ -562,9 +570,6 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
                 </uui-table>
               `
         }
-        <div class="actions">
-          <uui-button look="primary" label="Add a form" @click=${() => this.#new()}></uui-button>
-        </div>
       </uui-box>
     `
   }
@@ -584,18 +589,14 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
         ></uui-input>
       </uui-form-layout-item>
     `
-    return html`
-      <uui-box headline=${form.alias ? `Form: ${form.name || form.alias}` : 'A new form'}>
-        ${
-          this._problems.length > 0
-            ? html`<div class="problems" role="alert">
-                <p>This form was not saved:</p>
-                <ul>
-                  ${this._problems.map((problem) => html`<li><code>${problem.path}</code> ${problem.message}</li>`)}
-                </ul>
-              </div>`
-            : nothing
-        }
+    const leave = () => {
+      this._editing = undefined
+      this._problems = []
+    }
+    // Umbraco's own layout, as the workflow designer has it: Save bottom right,
+    // and what stopped a save listed just above it.
+    return html`<umb-body-layout headline=${form.alias ? `Form: ${form.name || form.alias}` : 'A new form'}>
+      <uui-box>
         ${text('name', 'Name')}
         ${text('alias', 'Alias', 'Letters and numbers, starting with a letter. The file is named after it.')}
         ${text('messageOnSubmit', 'Message on submit')}
@@ -633,14 +634,26 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
         ${this._editing.pages.map((page, p) => this.#page(page, p))}
         <div class="actions">
           <uui-button look="secondary" label="Add a page" @click=${() => this.#apply(addPage)}></uui-button>
-          <uui-button look="primary" label="Save" ?disabled=${this._busy} @click=${() => this.#save()}></uui-button>
-          <uui-button look="secondary" label="Cancel" @click=${() => {
-            this._editing = undefined
-            this._problems = []
-          }}></uui-button>
         </div>
       </uui-box>
-    `
+      ${
+        this._problems.length > 0
+          ? html`<div class="problems" role="alert">
+              <p>This form was not saved:</p>
+              <ul>
+                ${this._problems.map((problem) => html`<li>${problem.path ? html`<code>${problem.path}</code> ` : nothing}${problem.message}</li>`)}
+              </ul>
+            </div>`
+          : nothing
+      }
+      ${
+        this._problems.length > 0
+          ? html`<span slot="footer-info" class="not-saved">Not saved: ${this._problems.length} problem(s), listed above</span>`
+          : nothing
+      }
+      <uui-button slot="actions" look="secondary" label="Back to the list" @click=${leave}>Back to the list</uui-button>
+      <uui-button slot="actions" look="primary" color="positive" label="Save" ?disabled=${this._busy} @click=${() => this.#save()}>Save</uui-button>
+    </umb-body-layout>`
   }
 
   static styles = css`
@@ -701,7 +714,16 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     }
     :host {
       display: block;
+      height: 100%;
+    }
+    .list {
       padding: var(--uui-size-layout-1, 24px);
+    }
+    .create {
+      margin-bottom: var(--uui-size-space-5, 18px);
+    }
+    .not-saved {
+      color: var(--uui-color-danger, #d42054);
     }
     p,
     ul {

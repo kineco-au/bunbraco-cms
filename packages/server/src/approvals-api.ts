@@ -1,5 +1,5 @@
 /**
- * The Workflow section's and the page tab's reads and actions (story 028),
+ * The Workflows section's and the page tab's reads and actions (story 028),
  * under `<backoffice>/crombolo/api/approvals/`, and saving a workflow drawn in
  * the designer back to `schema/workflows/`. docs/workflows.md.
  *

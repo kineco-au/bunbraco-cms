@@ -29,7 +29,7 @@ move, not only parity.
       stages, each naming its approver groups and where a send-back goes; the
       workflow names the branches and content types it covers, whether
       publishers may skip it and what an edit does while a page waits.
-- [x] Admins draw a workflow on a canvas in the Workflow section — stages as boxes, arrows
+- [x] Admins draw a workflow on a canvas in the Workflows section — stages as boxes, arrows
       between them — and the canvas refuses a loop; it writes the file.
 - [x] Stages with several arrows out run in parallel; a stage with several
       arrows in waits for all of them; the last approval publishes.
@@ -46,7 +46,7 @@ move, not only parity.
       does what the workflow says (withdraw, approve the latest, lock from
       sending, or lock from the first approval). Administrators may always
       edit; their edit is recorded in the request's history.
-- [x] A Workflow section lists what waits for the current user, the requests in
+- [x] A Workflows section lists what waits for the current user, the requests in
       flight, history and the workflows; a Workflow tab on a page shows which
       workflow applies, where the page stands in it, and its history.
 - [x] What a request in flight does when its workflow is changed — finish under
@@ -107,7 +107,7 @@ move, not only parity.
   the request continues, the approvers see the latest, and the edit is in its
   history.
 - **Where it shows** — as Umbraco Workflow arranges it, so people moving from
-  it find their way: a top-level **Workflow** section (waiting for me, in
+  it find their way: a top-level **Workflows** section (waiting for me, in
   flight, history, and the workflows, drawn on the canvas), and a **Workflow**
   tab on each page (which workflow applies, where the page stands in the
   graph, its history). Approvers are ordinary user groups, not a kind of
@@ -194,8 +194,8 @@ position = { x = 480, y = 0 }
    approval" and "Request unpublish" workspace actions where publishing or
    unpublishing directly would be refused; "Approve" and "Send back" for the
    approvers of a waiting stage; a Workflow tab on the page; a top-level
-   Workflow section — waiting for me, in flight, history.
-5. **The designer**: the workflows, in the Workflow section, on a canvas (an SVG
+   Workflows section — waiting for me, in flight, history.
+5. **The designer**: the workflows, in the Workflows section, on a canvas (an SVG
    editor with no new dependency, or a vendored graph library if one fits the
    backoffice's Lit elements) — add, move and connect stages, set each one's
    approvers, required count and send-back, and the workflow's settings;
@@ -239,7 +239,7 @@ as run and would never get the tables. Its `release` must be the next version
 - **Record** — migration 038 (`release: 0.13.1`; 0.13.0 was tagged and never published): `approval_request` (with the
   workflow copied onto it), `approval_step` (one row per stage visit),
   `approval_history` (each decision, edit, restart and outcome, with its
-  comment); it gives Admin, Editors and Writers the Workflow section.
+  comment); it gives Admin, Editors and Writers the Workflows section.
   `ApprovalRepository`.
 - **Engine** — `packages/server/src/approvals.ts`: the gate (publish, branch,
   create-and-publish, unpublish, save before and after), sending, approving,
@@ -254,7 +254,7 @@ as run and would never get the tables. Its `release` must be the next version
   `<backoffice>/crombolo/api/approvals/`: the page, send, approve, send back,
   withdraw, waiting, in flight, decided; the workflows, their preview (which
   requests a change affects) and save, writing the file and syncing at once.
-- **Backoffice** — a Workflow section (Waiting for me, In flight, Decided, and
+- **Backoffice** — a Workflows section (Waiting for me, In flight, Decided, and
   Workflows for administrators: the list and the canvas designer), and a
   Workflow tab on every page; `packages/backoffice-host/plugin/workflow-*.js`.
   Sending, approving and sending back are buttons on the tab rather than in the

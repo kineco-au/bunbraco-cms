@@ -246,7 +246,7 @@
       "alias": "Crombolo.SectionView.Forms.Overview",
       "name": "Crombolo Forms Overview",
       "element": "/crombolo-plugin/forms-overview.js",
-      "weight": 200,
+      "weight": 100,
       "meta": {
         "label": "Forms",
         "pathname": "forms",
@@ -264,7 +264,7 @@
       "alias": "Crombolo.SectionView.Forms.Entries",
       "name": "Crombolo Forms Entries",
       "element": "/crombolo-plugin/forms-entries.js",
-      "weight": 100,
+      "weight": 200,
       "meta": {
         "label": "Entries",
         "pathname": "entries",
@@ -352,7 +352,7 @@
       "name": "Crombolo Workflow Section",
       "weight": 40,
       "meta": {
-        "label": "Workflow",
+        "label": "Workflows",
         "pathname": "workflow"
       }
     },

@@ -10,6 +10,9 @@
  * What it lists instead is the site's bundle dependencies, which is what
  * "installed" means here: what each one adds, whether its content has been
  * added to this site, and whether its server features are switched on.
+ *
+ * Two columns: the bundles on the left, filtered as you type; the one chosen
+ * on the right, with its details and the button that uninstalls it.
  */
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
@@ -41,6 +44,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     _busy: { state: true },
     _notice: { state: true },
     _installs: { state: true },
+    _filter: { state: true },
+    _selected: { state: true },
   }
 
   constructor() {
@@ -50,6 +55,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     this._busy = ''
     this._notice = ''
     this._installs = true
+    this._filter = ''
+    this._selected = ''
   }
 
   connectedCallback() {
@@ -63,6 +70,8 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
       const result = await listInstalled()
       this._items = result.items ?? []
       this._installs = result.installs !== false
+      if (!this._items.some((item) => item.packageName === this._selected))
+        this._selected = this._items[0]?.packageName ?? ''
     } catch (error) {
       this._notice = error instanceof Error ? error.message : String(error)
     } finally {
@@ -83,72 +92,98 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     }
   }
 
+  #pick(item) {
+    this._selected = item.packageName
+    this.requestUpdate()
+  }
+
+  get #shown() {
+    const words = this._filter.trim().toLowerCase()
+    if (!words) return this._items
+    return this._items.filter((item) =>
+      [item.name, item.packageName, item.description].some((text) =>
+        text?.toLowerCase().includes(words),
+      ),
+    )
+  }
+
   render() {
     if (this._loading) return html`<div id="loader"><uui-loader></uui-loader></div>`
-
+    if (this._items.length === 0)
+      return html`
+        ${this._notice ? html`<div id="notice">${this._notice}</div>` : nothing}
+        <uui-box headline="No bundles installed">
+          <p>Install one from the Marketplace tab, and it appears here.</p>
+        </uui-box>
+      `
+    const selected = this._items.find((item) => item.packageName === this._selected)
+    const shown = this.#shown
     return html`
       ${this._notice ? html`<div id="notice">${this._notice}</div>` : nothing}
-      ${
-        this._items.length === 0
-          ? html`
-            <uui-box headline="No bundles installed">
-              <p>
-                A bundle is one of this site's npm dependencies. Install one from the
-                Marketplace tab, or with <code>bun add</code> in the site directory, and it
-                appears here.
-              </p>
-            </uui-box>
-          `
-          : html`
-            <uui-box headline="Installed bundles">
-              <uui-table>
-                <uui-table-head>
-                  <uui-table-head-cell>Name</uui-table-head-cell>
-                  <uui-table-head-cell>npm package</uui-table-head-cell>
-                  <uui-table-head-cell>Version</uui-table-head-cell>
-                  <uui-table-head-cell>Adds</uui-table-head-cell>
-                  <uui-table-head-cell>On this site</uui-table-head-cell>
-                  <uui-table-head-cell></uui-table-head-cell>
-                </uui-table-head>
-                ${repeat(
-                  this._items,
-                  (item) => item.packageName,
-                  (item) => html`
-                    <uui-table-row>
-                      <uui-table-cell>${item.name}</uui-table-cell>
-                      <uui-table-cell><code>${item.packageName}</code></uui-table-cell>
-                      <uui-table-cell>${item.version}</uui-table-cell>
-                      <uui-table-cell class="carries">${carriesTags(item.carries)}</uui-table-cell>
-                      <uui-table-cell class="status">${status(item)}</uui-table-cell>
-                      <uui-table-cell>
-                        ${
-                          this._installs
-                            ? html`<uui-button
-                                look="secondary"
-                                color="danger"
-                                label="Uninstall"
-                                .state=${this._busy === item.packageName ? 'waiting' : undefined}
-                                @click=${() => this.#uninstall(item)}></uui-button>`
-                            : nothing
-                        }
-                      </uui-table-cell>
-                    </uui-table-row>
-                  `,
-                )}
-              </uui-table>
-              <p class="note">
-                ${
-                  this._installs
-                    ? html`An install writes this site's <code>package.json</code> and
-                        <code>bun.lock</code>. Commit both to keep it across deployments.`
-                    : html`Packages are added and removed by changing this site's
-                        <code>package.json</code> and deploying, so every server has the same ones.`
-                }
-              </p>
-            </uui-box>
-          `
-      }
+      <div id="columns">
+        <uui-box headline="Installed bundles" style="--uui-box-default-padding:0;">
+          <div id="filter">
+            <uui-input
+              label="Filter"
+              placeholder="Filter"
+              .value=${this._filter}
+              @input=${(event) => {
+                this._filter = event.target.value
+              }}>
+              <uui-icon name="icon-search" slot="prepend"></uui-icon>
+            </uui-input>
+          </div>
+          ${
+            shown.length === 0
+              ? html`<p class="empty">No bundle matches.</p>`
+              : html`<uui-ref-list>
+                  ${repeat(
+                    shown,
+                    (item) => item.packageName,
+                    (item) => html`<uui-ref-node
+                      name=${item.name}
+                      detail=${`${item.packageName} ${item.version}`}
+                      selectable
+                      select-only
+                      ?selected=${item.packageName === this._selected}
+                      @selected=${() => this.#pick(item)}
+                      @deselected=${() => this.#pick(item)}
+                      @open=${() => this.#pick(item)}></uui-ref-node>`,
+                  )}
+                </uui-ref-list>`
+          }
+        </uui-box>
+        ${selected ? this.#details(selected) : nothing}
+      </div>
     `
+  }
+
+  #details(item) {
+    return html`<uui-box headline=${item.name}>
+      ${item.description ? html`<p>${item.description}</p>` : nothing}
+      <dl>
+        <dt>npm package</dt>
+        <dd><code>${item.packageName}</code></dd>
+        <dt>Version</dt>
+        <dd>${item.version}</dd>
+        <dt>Adds</dt>
+        <dd class="carries">${carriesTags(item.carries)}</dd>
+        <dt>On this site</dt>
+        <dd class="status">${status(item)}</dd>
+        <dt>Works with</dt>
+        <dd>Crombolo ${item.peerRange}</dd>
+      </dl>
+      ${
+        this._installs
+          ? html`<uui-button
+              look="primary"
+              color="danger"
+              label="Uninstall"
+              .state=${this._busy === item.packageName ? 'waiting' : undefined}
+              @click=${() => this.#uninstall(item)}></uui-button>`
+          : html`<p class="note">This site adds and removes bundles with a deploy, so every server has the same ones.</p>`
+      }
+    </uui-box>`
   }
 
   static styles = css`
@@ -167,9 +202,41 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
       border-left: 3px solid var(--uui-color-positive, #2bc37c);
       background: var(--uui-color-surface-alt, #f3f3f5);
     }
+    #columns {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) 2fr;
+      gap: var(--uui-size-layout-1, 24px);
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      #columns {
+        grid-template-columns: 1fr;
+      }
+    }
+    #filter {
+      padding: var(--uui-size-space-4, 12px);
+    }
+    #filter uui-input {
+      width: 100%;
+    }
+    .empty {
+      padding: 0 var(--uui-size-space-4, 12px) var(--uui-size-space-4, 12px);
+    }
     p {
       max-width: 60ch;
       line-height: 1.5;
+    }
+    dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: var(--uui-size-space-3, 9px) var(--uui-size-space-5, 18px);
+      margin: 0 0 var(--uui-size-space-5, 18px);
+    }
+    dt {
+      font-weight: 700;
+    }
+    dd {
+      margin: 0;
     }
     .carries {
       display: flex;
@@ -179,7 +246,6 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
       display: block;
     }
     .note {
-      margin-top: var(--uui-size-space-5, 18px);
       opacity: 0.8;
       font-size: 0.9em;
     }

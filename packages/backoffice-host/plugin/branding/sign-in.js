@@ -66,7 +66,38 @@ class CromboloAuthProviderElement extends LitElement {
 
 if (!customElements.get(TAG)) customElements.define(TAG, CromboloAuthProviderElement)
 
+/**
+ * Signing in again after a timeout closes its modal twice.
+ *
+ * `umb-app-auth-modal` submits when the session reports itself authorised, and
+ * `umb-auth-view` calls the same submit as its `onSuccess` once
+ * `makeAuthorizationRequest` returns. Whichever runs first closes the modal and
+ * destroys its value state, so the second's `value = { success: true }` throws
+ * `_subject is undefined` — and the view shows that as a sign-in error, though
+ * the editor is signed in. The second assignment has nothing left to say, so it
+ * is dropped. Patched on the element's prototype, as `tsx-editors.js` patches
+ * upstream, rather than in the vendored bundle.
+ */
+async function guardTimedOutSignIn() {
+  const Modal = await customElements.whenDefined('umb-app-auth-modal')
+  let descriptor
+  for (let proto = Modal.prototype; proto && !descriptor; proto = Object.getPrototypeOf(proto))
+    descriptor = Object.getOwnPropertyDescriptor(proto, 'value')
+  if (!descriptor?.set) return
+  const { get, set } = descriptor
+  Object.defineProperty(Modal.prototype, 'value', {
+    configurable: true,
+    get,
+    set(value) {
+      if (this.__cromboloSubmitted) return
+      set.call(this, value)
+      this.__cromboloSubmitted = true
+    },
+  })
+}
+
 export const onInit = (_host, extensionRegistry) => {
+  void guardTimedOutSignIn()
   extensionRegistry.unregister(VENDORED)
   extensionRegistry.register({
     type: 'authProvider',

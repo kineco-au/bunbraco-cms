@@ -622,6 +622,8 @@ describe('user groups', () => {
       ],
     })
     expect(created.status).toBe(201)
+    // The backoffice turns this header into the green toast.
+    expect(created.headers.get('umb-notifications')).toContain('User group created')
     const key = created.headers.get('umb-generated-resource') as string
     const read = await h.json<Record<string, unknown>>(`${V1}/user-group/${key}`)
     expect(read).toMatchObject({
@@ -671,6 +673,7 @@ describe('user groups', () => {
       permissions: [],
     })
     expect(update.status).toBe(200)
+    expect(update.headers.get('umb-notifications')).toContain('User group saved')
     expect(await h.json(`${V1}/user-group/${key}`)).toMatchObject({
       name: 'Renamed',
       permissions: [],

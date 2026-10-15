@@ -3,7 +3,7 @@
  * approval, a row per stage it reaches, and its history. The workflow it runs
  * under is copied onto the request, so a workflow changed later does not
  * change one already in flight unless the workflow says so. Also gives the
- * groups that edit content the Workflow section. docs/workflows.md.
+ * groups that edit content the Workflows section. docs/workflows.md.
  */
 import type { Db } from '../database.ts'
 import type { Migration } from '../migrations.ts'

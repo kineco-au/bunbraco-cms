@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { formPermissionPrefixMigration, RENAMED_FORM_VERBS } from '@crombolo/data'
 import {
   BUILDER_LABELS,
+  BUILDER_TOASTS,
   correctionFor,
 } from '../packages/backoffice-host/plugin/branding/bundle-builder-labels.js'
 import { type Harness, signedInServer } from './support/harness.ts'
@@ -82,10 +83,12 @@ describe("the builder's two hard-coded labels", () => {
     const builder = await Bun.file(
       `${VENDOR}/package-builder/workspace/workspace-package-builder.element.js`,
     ).text()
-    for (const pair of BUILDER_LABELS) {
+    for (const pair of [...BUILDER_LABELS, ...BUILDER_TOASTS]) {
       const before = pair[0] as string
       expect([before, builder.includes(before)]).toEqual([before, true])
     }
+    // The toasts say bundle, as the rest of the screen does.
+    expect(BUILDER_TOASTS.map((pair) => pair[1])).toEqual(['Bundle saved', 'Bundle saved'])
   })
 
   test('map to bundle wording, and nothing else does', () => {

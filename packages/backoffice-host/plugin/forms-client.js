@@ -2,6 +2,8 @@
  * Reads and drives the Forms endpoints the server keeps at
  * <backoffice>/crombolo/api/forms/*. The session cookie carries the auth.
  */
+import { downloadFile } from './download.js'
+
 const base = () => {
   const href = document.querySelector('base')?.getAttribute('href') ?? '/umbraco/'
   return `${href.replace(/\/$/, '')}/crombolo/api/forms`
@@ -57,3 +59,6 @@ export const deleteEntry = (id) => call(`/entries/${encodeURIComponent(id)}`, { 
 
 /** The CSV is a download, so it is a link rather than a fetch. */
 export const entriesCsvUrl = (key) => `${base()}/${encodeURIComponent(key)}/entries.csv`
+
+/** Downloads a form's entries as CSV. */
+export const downloadEntriesCsv = (key) => downloadFile(entriesCsvUrl(key), 'entries.csv')

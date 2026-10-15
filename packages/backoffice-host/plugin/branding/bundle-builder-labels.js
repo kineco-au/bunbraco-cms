@@ -1,5 +1,5 @@
 /**
- * The two labels Umbraco's bundle builder hard-codes.
+ * The two labels and two toasts Umbraco's bundle builder hard-codes.
  *
  * The builder workspace is vendored and its copy is English in the template
  * rather than dictionary keys, so there is no key to override: `Name of the
@@ -19,6 +19,16 @@
 export const BUILDER_LABELS = [
   ['Name of the package', 'Name of the bundle'],
   ['Package Content', 'Bundle content'],
+]
+
+/**
+ * The builder's toasts on saving a definition. Shown through the notification
+ * context, so they are corrected where every toast passes rather than in the
+ * element, whose `peek` call is its own.
+ */
+export const BUILDER_TOASTS = [
+  ['Package saved', 'Bundle saved'],
+  ['Package updated', 'Bundle saved'],
 ]
 
 /** The replacement for a vendored string, or undefined when it is not one of ours. */
@@ -55,7 +65,26 @@ function patch(element) {
   return true
 }
 
+// Loaded here rather than at the top, so the module's pure parts import
+// anywhere — the tests read `BUILDER_LABELS` and `BUILDER_TOASTS` outside a browser.
+async function correctToasts() {
+  const { UmbNotificationContext } = await import('@umbraco-cms/backoffice/notification')
+  const proto = UmbNotificationContext.prototype
+  const peek = proto.peek
+  if (typeof peek !== 'function') return
+  proto.peek = function correctedPeek(color, options) {
+    const message = options?.data?.message
+    const replacement = BUILDER_TOASTS.find(([before]) => before === message)?.[1]
+    return peek.call(
+      this,
+      color,
+      replacement ? { ...options, data: { ...options.data, message: replacement } } : options,
+    )
+  }
+}
+
 export const onInit = () => {
+  correctToasts().catch(() => {})
   customElements
     .whenDefined('umb-workspace-package-builder')
     .then(patch)

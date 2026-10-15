@@ -141,7 +141,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
       ${
         this._installs
           ? nothing
-          : html`<div id="notice">Packages are added to this site by a deploy, so that every server has them: add one to the site's <code>package.json</code> and deploy it.</div>`
+          : html`<div id="notice">Bundles are added to this site by a deploy, so that every server has them: add one to the site's <code>package.json</code> and deploy it.</div>`
       }
       ${
         this._items.length === 0 && !this._error

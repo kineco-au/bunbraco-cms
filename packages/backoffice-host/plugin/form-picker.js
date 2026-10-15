@@ -67,7 +67,7 @@ export default class CromboloFormPickerElement extends UmbLitElement {
     if (this._items.length === 0)
       return html`
         <p class="empty">
-          This site has no forms. Add one as a TOML file in <code>schema/forms/</code>.
+          This site has no forms yet. Add one in the Forms section.
         </p>
       `
     return html`

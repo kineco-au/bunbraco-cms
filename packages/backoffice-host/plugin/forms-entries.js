@@ -12,7 +12,7 @@ import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 import {
   deleteEntry,
-  entriesCsvUrl,
+  downloadEntriesCsv,
   listEntries,
   listForms,
   setEntryState,
@@ -102,28 +102,31 @@ export default class CromboloFormsEntriesElement extends UmbLitElement {
     return html`
       <uui-box headline="Entries">
         <div class="filters">
-          <select
+          <uui-select
+            label="Form"
+            .options=${this._forms.map((form) => ({
+              name: form.name,
+              value: form.key,
+              selected: form.key === this._selected,
+            }))}
             @change=${(event) => {
               this._selected = event.target.value
               this.#load()
             }}
-          >
-            ${this._forms.map(
-              (form) =>
-                html`<option value=${form.key} ?selected=${form.key === this._selected}>${form.name}</option>`,
-            )}
-          </select>
-          <select
+          ></uui-select>
+          <uui-select
+            label="State"
+            .options=${[
+              ['', 'Any state'],
+              ['submitted', 'Submitted'],
+              ['approved', 'Approved'],
+              ['rejected', 'Rejected'],
+            ].map(([value, name]) => ({ name, value, selected: value === (this._state ?? '') }))}
             @change=${(event) => {
               this._state = event.target.value
               this.#load()
             }}
-          >
-            <option value="">Any state</option>
-            <option value="submitted">Submitted</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
+          ></uui-select>
           <uui-input
             placeholder="Search the answers"
             .value=${this._search}
@@ -140,7 +143,18 @@ export default class CromboloFormsEntriesElement extends UmbLitElement {
               this.#load()
             }}
           ></uui-toggle>
-          <a class="csv" href=${entriesCsvUrl(this._selected)} download>Export CSV</a>
+          <uui-button
+            class="csv"
+            look="secondary"
+            label="Export CSV"
+            @click=${async () => {
+              try {
+                await downloadEntriesCsv(this._selected)
+              } catch (error) {
+                this._notice = error.message
+              }
+            }}
+          ></uui-button>
         </div>
 
         ${this._notice ? html`<p class="notice" role="alert">${this._notice}</p>` : nothing}

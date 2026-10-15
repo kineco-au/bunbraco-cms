@@ -11,6 +11,7 @@
 import '@umbraco-cms/backoffice/document'
 import { css, html, nothing, unsafeCSS } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
+import { UMB_NOTIFICATION_CONTEXT } from '@umbraco-cms/backoffice/notification'
 import { deleteWorkflow, listWorkflows, previewWorkflow, saveWorkflow } from './workflow-client.js'
 import { ancestors, BOX, drawGraph, GRAPH_STYLES, layout, wouldLoop } from './workflow-graph.js'
 
@@ -77,10 +78,17 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     _problems: { state: true },
     _affected: { state: true },
     _message: { state: true },
-    _saved: { state: true },
   }
 
   #drag
+  #notifications
+
+  constructor() {
+    super()
+    this.consumeContext(UMB_NOTIFICATION_CONTEXT, (context) => {
+      this.#notifications = context
+    })
+  }
 
   connectedCallback() {
     super.connectedCallback()
@@ -112,7 +120,6 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
   #touch() {
     this._editing = { ...this._editing }
     this._affected = undefined
-    this._saved = undefined
   }
 
   #stage(alias) {
@@ -230,7 +237,6 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
 
   async #save(confirmed = false) {
     this._problems = undefined
-    this._saved = undefined
     if (!confirmed) {
       const preview = await previewWorkflow(
         this._originalAlias ?? this._editing.alias,
@@ -251,19 +257,21 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
       return
     }
     this._affected = undefined
-    this._saved = 'Saved.'
+    // The green toast every workspace shows on a save.
+    this.#notifications?.peek('positive', { data: { message: 'Workflow saved' } })
     this._originalAlias = this._editing.alias
     await this.#load()
   }
 
-  async #delete() {
+  /** From the list or the editor: the workflow by its name and the alias its file has. */
+  async #delete(name, alias) {
     if (
       !window.confirm(
-        `Delete the workflow "${this._editing.name}"? Pages it covers will publish without approval.`,
+        `Delete the workflow "${name}"? Pages it covers will publish without approval.`,
       )
     )
       return
-    const result = await deleteWorkflow(this._originalAlias)
+    const result = await deleteWorkflow(alias)
     if (!result.ok) {
       this._message = result.message
       return
@@ -274,9 +282,9 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
 
   render() {
     if (this._message && !this._list)
-      return html`<umb-body-layout headline="Workflows"><uui-box>${this._message}</uui-box></umb-body-layout>`
+      return html`<div class="list"><uui-box headline="Workflows">${this._message}</uui-box></div>`
     if (!this._list)
-      return html`<umb-body-layout headline="Workflows"><uui-loader></uui-loader></umb-body-layout>`
+      return html`<div class="list"><uui-box headline="Workflows"><uui-loader></uui-loader></uui-box></div>`
     if (!this._editing) return this.#renderList()
     return this.#renderEditor()
   }
@@ -284,12 +292,13 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
   #renderList() {
     const { items, editable } = this._list
     // The create button above the list, as the Created bundles view has it.
-    return html`<umb-body-layout headline="Workflows">
+    return html`<div class="list">
       ${
         editable
-          ? html`<uui-button class="create" look="primary" label="New workflow" @click=${() => this.#edit(blank())}>New workflow</uui-button>`
+          ? html`<uui-button class="create" color="default" look="outline" label="Create" @click=${() => this.#edit(blank())}>Create</uui-button>`
           : nothing
       }
+      ${this._message ? html`<uui-box><p class="message">${this._message}</p></uui-box>` : nothing}
       <uui-box headline="Workflows">
       ${editable ? nothing : html`<p>Workflows are kept with the site's files, which cannot be changed on this server. Change them in the repository and deploy.</p>`}
       ${
@@ -300,13 +309,11 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
                 <uui-table-head-cell>Workflow</uui-table-head-cell>
                 <uui-table-head-cell>Covers</uui-table-head-cell>
                 <uui-table-head-cell>Stages</uui-table-head-cell>
+                <uui-table-head-cell></uui-table-head-cell>
               </uui-table-head>
               ${items.map(
                 (w) => html`<uui-table-row>
-                  <uui-table-cell><a href="#" @click=${(e) => {
-                    e.preventDefault()
-                    this.#edit(w)
-                  }}>${w.name}</a></uui-table-cell>
+                  <uui-table-cell>${w.name}</uui-table-cell>
                   <uui-table-cell>${[
                     w.appliesTo.branches.length ? `${w.appliesTo.branches.length} branch(es)` : '',
                     ...w.appliesTo.contentTypes,
@@ -314,12 +321,20 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
                     .filter(Boolean)
                     .join(', ')}</uui-table-cell>
                   <uui-table-cell>${w.stages.length}</uui-table-cell>
+                  <uui-table-cell>
+                    <uui-button look="secondary" label=${editable ? 'Edit' : 'View'} @click=${() => this.#edit(w)}></uui-button>
+                    ${
+                      editable
+                        ? html`<uui-button look="secondary" color="danger" label="Delete" @click=${() => this.#delete(w.name, w.alias)}></uui-button>`
+                        : nothing
+                    }
+                  </uui-table-cell>
                 </uui-table-row>`,
               )}
             </uui-table>`
       }
       </uui-box>
-    </umb-body-layout>`
+    </div>`
   }
 
   #renderEditor() {
@@ -328,6 +343,8 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     const stage = this.#stage(this._selected)
     const leave = () => {
       this._editing = undefined
+      this._message = undefined
+      this._problems = undefined
     }
     // Umbraco's own layout, so Save sits bottom right in the footer as it does
     // in every workspace, with Back beside it.
@@ -342,26 +359,10 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
                     this._connecting = this._connecting ? undefined : true
                   }}
                 >${this._connecting === true ? 'Click the stage to draw from' : this._connecting ? 'Now click the stage it leads to' : 'Connect stages'}</uui-button>
-                ${
-                  this._originalAlias &&
-                  this._list.items.some((i) => i.alias === this._originalAlias)
-                    ? html`<uui-button look="secondary" color="danger" label="Delete" @click=${() => this.#delete()}>Delete</uui-button>`
-                    : nothing
-                }
               </div>`
             : nothing
         }
         ${this._message ? html`<p class="message">${this._message}</p>` : nothing}
-        ${this._problems ? html`<ul class="problems">${this._problems.map((p) => html`<li>${p.path ? html`<code>${p.path}</code> ` : nothing}${p.message}</li>`)}</ul>` : nothing}
-        ${
-          this._affected
-            ? html`<div class="affected">
-                <p>Saving changes the rules for ${this._affected.length} page(s) waiting for approval:</p>
-                <ul>${this._affected.map((a) => html`<li>${a.page}: ${ON_CHANGE[a.outcome]}</li>`)}</ul>
-                <uui-button look="primary" label="Save anyway" @click=${() => this.#save(true)}>Save anyway</uui-button>
-              </div>`
-            : nothing
-        }
         <p class="hint">Arrows run left to right: the stages an arrow leads to wait for every stage with an arrow into them, and run side by side. Click an arrow to remove it.</p>
         <div class="canvas" @pointermove=${(e) => editable && this.#pointerMove(e)} @pointerup=${() => this.#pointerUp()} @pointerleave=${() => this.#pointerUp()}>
           ${drawGraph(w.stages, {
@@ -376,7 +377,21 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
         ${stage ? this.#renderStage(stage, editable) : nothing}
         ${this.#renderSettings(w, editable)}
       </div>
-      ${this._saved ? html`<span slot="footer-info" class="saved">${this._saved}</span>` : nothing}
+      ${this._problems ? html`<ul class="problems">${this._problems.map((p) => html`<li>${p.path ? html`<code>${p.path}</code> ` : nothing}${p.message}</li>`)}</ul>` : nothing}
+      ${
+        this._affected
+          ? html`<div class="affected">
+                <p>Saving changes the rules for ${this._affected.length} page(s) waiting for approval:</p>
+                <ul>${this._affected.map((a) => html`<li>${a.page}: ${ON_CHANGE[a.outcome]}</li>`)}</ul>
+                <uui-button look="primary" label="Save anyway" @click=${() => this.#save(true)}>Save anyway</uui-button>
+              </div>`
+          : nothing
+      }
+      ${
+        this._problems
+          ? html`<span slot="footer-info" class="not-saved">Not saved: ${this._problems.length} problem(s), listed above</span>`
+          : nothing
+      }
       <uui-button slot="actions" look="secondary" label="Back to the list" @click=${leave}>Back to the list</uui-button>
       ${
         editable
@@ -529,6 +544,7 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
 
   static styles = css`
     :host { display: block; height: 100%; }
+    .list { padding: var(--uui-size-layout-1); }
     .create { margin-bottom: var(--uui-size-space-5); }
     .toolbar { display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); margin-bottom: var(--uui-size-space-4); }
     .canvas { overflow: auto; border: 1px dashed var(--uui-color-border); border-radius: 6px; padding: var(--uui-size-space-5); min-height: 200px; touch-action: none; }
@@ -539,9 +555,9 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     .field > span { font-weight: 700; }
     .hint { opacity: 0.8; font-size: 0.9em; }
     .message { color: var(--uui-color-warning-emphasis, #9e7300); }
-    .problems { color: var(--uui-color-danger); }
-    .saved { color: var(--uui-color-positive-emphasis, #1f7a4f); }
-    .affected { border: 1px solid var(--uui-color-warning); padding: var(--uui-size-space-4); border-radius: 6px; margin-bottom: var(--uui-size-space-4); }
+    .problems { color: var(--uui-color-danger); margin-top: var(--uui-size-space-5); }
+    .not-saved { color: var(--uui-color-danger); }
+    .affected { margin-top: var(--uui-size-space-5); border: 1px solid var(--uui-color-warning); padding: var(--uui-size-space-4); border-radius: 6px; margin-bottom: var(--uui-size-space-4); }
     ${unsafeCSS(GRAPH_STYLES)}
   `
 }

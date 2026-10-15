@@ -62,6 +62,12 @@ export function registerMemberGroupHandlers(
       name,
     })
     if (result.status !== 'ok' || !result.key) return statusResponse(result.status)
+    // The toast the backoffice shows, as for every other type it saves.
+    ctx.notifications.push({
+      message: 'Member group created',
+      category: 'Member Group',
+      type: 'Success',
+    })
     return created(`${ctx.url.origin}${V1}/member-group/${result.key}`, result.key)
   })
 
@@ -69,7 +75,14 @@ export function registerMemberGroupHandlers(
     const body = ((await ctx.request.json().catch(() => ({}))) ?? {}) as Record<string, unknown>
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     if (!name) return problemResponse(problemDetails({ title: 'A name is required', status: 400 }))
-    return statusResponse(await groups.rename(ctx.params.id as string, name))
+    const status = await groups.rename(ctx.params.id as string, name)
+    if (status === 'ok')
+      ctx.notifications.push({
+        message: 'Member group saved',
+        category: 'Member Group',
+        type: 'Success',
+      })
+    return statusResponse(status)
   })
 
   router.handle('DeleteMemberGroupById', async (ctx) =>

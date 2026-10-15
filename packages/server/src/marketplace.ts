@@ -17,6 +17,7 @@
  * browser cannot reach npm, and the backoffice keeps making same-origin
  * requests only.
  */
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   type BundlePackage,
@@ -57,6 +58,10 @@ export interface InstalledListing {
   wired: boolean
   /** The version whose content was applied here, or null when none has been. */
   contentApplied: string | null
+  /** What the package says it is, from its `package.json`; empty when it says nothing. */
+  description: string
+  /** The crombolo releases it is written for. */
+  peerRange: string
 }
 
 /** What became of the content half of an install. */
@@ -308,6 +313,8 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
           carries: bundle.carries,
           wired: wired.has(bundle.id),
           contentApplied: (await options.contentApplied?.(bundle.packageName)) ?? null,
+          description: descriptionOf(bundle.directory),
+          peerRange: bundle.peerRange,
         })),
       )
     },
@@ -383,6 +390,18 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
           }
         : { ok: false, message: result.output || `Removing ${name} failed.` }
     },
+  }
+}
+
+/** A package's own description, read leniently: anything unreadable is none. */
+function descriptionOf(directory: string): string {
+  try {
+    const json = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')) as {
+      description?: unknown
+    }
+    return typeof json.description === 'string' ? json.description : ''
+  } catch {
+    return ''
   }
 }
 

@@ -245,6 +245,8 @@ describe('listing what is installed', () => {
       carries: { extensions: true, content: false, server: false },
       wired: false,
       contentApplied: null,
+      description: '',
+      peerRange: `^${VERSION}`,
     })
   })
 })

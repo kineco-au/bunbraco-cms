@@ -75,6 +75,7 @@ interface PageFacts {
   name: string
   chain: string[]
   contentTypeAlias: string | undefined
+  variesByCulture: boolean
 }
 
 export interface PageApproval {
@@ -90,6 +91,8 @@ export interface RequestView {
   key: string
   nodeKey: string
   nodeName: string
+  /** The editor's variant segment for the page: `invariant`, or the culture to open. */
+  variant: string
   action: ApprovalAction
   cultures: string[] | null
   state: ApprovalRequest['state']
@@ -181,8 +184,8 @@ export function createApprovals(options: ApprovalsOptions): Approvals {
       .filter((id) => id > 0)
     const rows = await nodes.byIds(ids)
     const keyOf = new Map(rows.map((r) => [r.id, r.key]))
-    const type = await db.query<{ alias: string }>(
-      `SELECT ct.alias FROM content c JOIN content_type ct ON ct.node_id = c.content_type_id WHERE c.node_id = ?`,
+    const type = await db.query<{ alias: string; variations: number }>(
+      `SELECT ct.alias, ct.variations FROM content c JOIN content_type ct ON ct.node_id = c.content_type_id WHERE c.node_id = ?`,
       [node.id],
     )
     return {
@@ -190,6 +193,8 @@ export function createApprovals(options: ApprovalsOptions): Approvals {
       name: node.text ?? node.key,
       chain: ids.flatMap((id) => keyOf.get(id) ?? []),
       contentTypeAlias: type[0]?.alias,
+      // Umbraco's flags: 1 is culture, 2 is segment.
+      variesByCulture: (Number(type[0]?.variations ?? 0) & 1) === 1,
     }
   }
 
@@ -470,10 +475,19 @@ export function createApprovals(options: ApprovalsOptions): Approvals {
           h.userKey === normaliseUuid(principal.id),
       )
     const ownChange = normaliseUuid(principal.id) === request.requestedBy
+    let variant = 'invariant'
+    if (facts?.variesByCulture) {
+      const fallback = await db.query<{ iso_code: string }>(
+        'SELECT iso_code FROM language WHERE is_default = ?',
+        [db.dialect.boolValue(true)],
+      )
+      variant = request.cultures?.[0] ?? fallback[0]?.iso_code ?? 'invariant'
+    }
     return {
       key: request.key,
       nodeKey: request.nodeKey,
       nodeName: facts?.name ?? request.nodeKey,
+      variant,
       action: request.action,
       cultures: request.cultures,
       state: request.state,
@@ -563,6 +577,7 @@ export function createApprovals(options: ApprovalsOptions): Approvals {
         name: 'This page',
         chain: parent?.chain ?? [],
         contentTypeAlias: type[0]?.alias,
+        variesByCulture: false,
       }
       return refusalFor(principal, facts, await covering(facts), 'publish')
     },
