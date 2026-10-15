@@ -20,7 +20,7 @@ import {
   ROOT_ACCESS,
 } from '@crombolo/core'
 import type { PreviewPort } from '../ports.ts'
-import type { DocumentPort, PortFailure, SaveDocument } from '../ports-content.ts'
+import type { ApprovalGatePort, DocumentPort, PortFailure, SaveDocument } from '../ports-content.ts'
 import type { ManagementApiRouter, RequestContext } from '../router.ts'
 import { created, paging } from './content-type.ts'
 import {
@@ -277,7 +277,14 @@ export function registerDocumentHandlers(
   router: ManagementApiRouter,
   port: DocumentPort,
   preview?: PreviewPort,
+  approvals?: ApprovalGatePort,
 ): void {
+  /** A page a workflow covers goes through it: the gate's refusal, as a problem. */
+  const needsApproval = (title: string, detail: string) =>
+    problemResponse(
+      problemDetails({ title, status: 400, detail, operationStatus: 'NeedsApproval' }),
+    )
+  const principalOf = (ctx: RequestContext) => ctx.principal as NonNullable<typeof ctx.principal>
   const trees: TreeSource = {
     treeRoot: (paging) => port.treeRoot(paging),
     treeChildren: (key, paging) => port.treeChildren(key, paging),
@@ -330,6 +337,12 @@ export function registerDocumentHandlers(
     const body = await readBody(ctx)
     const key = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID()
     const input = toSaveDocument(key, body)
+    const refusal = await approvals?.newPageRefusal(
+      principalOf(ctx),
+      input.parentKey,
+      input.contentTypeKey,
+    )
+    if (refusal) return needsApproval('The document needs approval before it is published', refusal)
     const result = await port.createAndPublish(
       input,
       readCultures(body),
@@ -346,6 +359,10 @@ export function registerDocumentHandlers(
     const body = await readBody(ctx)
     const key = ctx.params.id as string
     const input = toSaveDocument(key, body)
+    const refusal =
+      (await approvals?.beforeSave(principalOf(ctx), key)) ??
+      (await approvals?.publishRefusal(principalOf(ctx), key, 'publish'))
+    if (refusal) return needsApproval('The document needs approval before it is published', refusal)
     const result = await port.updateAndPublish(
       key,
       input,
@@ -479,6 +496,8 @@ export function registerDocumentHandlers(
     existing: DocumentAggregate,
     body: Record<string, unknown>,
   ) => {
+    const refusal = await approvals?.beforeSave(principalOf(ctx), key)
+    if (refusal) return needsApproval('The document is waiting for approval', refusal)
     const result = await port.update(
       key,
       {
@@ -497,6 +516,7 @@ export function registerDocumentHandlers(
         }),
       )
     }
+    await approvals?.afterSave(principalOf(ctx), key)
     ctx.notifications.push({ message: 'Document saved', category: 'Content', type: 'Success' })
     return new Response(null, { status: 200 })
   }
@@ -548,6 +568,8 @@ export function registerDocumentHandlers(
     if (!(await port.byKey(key)))
       return problemResponse(notFound('The document could not be found'))
     const body = await readBody(ctx)
+    const refusal = await approvals?.publishRefusal(principalOf(ctx), key, 'publish')
+    if (refusal) return needsApproval('The document needs approval before it is published', refusal)
     const schedules = readSchedules(body)
     if (schedules === 'invalid')
       return problemResponse(
@@ -592,6 +614,8 @@ export function registerDocumentHandlers(
     const key = ctx.params.id as string
     if (!(await port.byKey(key)))
       return problemResponse(notFound('The document could not be found'))
+    const refusal = await approvals?.publishRefusal(principalOf(ctx), key, 'unpublish')
+    if (refusal) return needsApproval('Taking the document down needs approval', refusal)
     const result = await port.unpublish(key, readCultures(await readBody(ctx)))
     if (!result.ok) {
       return problemResponse(
@@ -710,6 +734,9 @@ export function registerDocumentHandlers(
   const branchTasks = new Map<string, { documentKey: string }>()
   router.handle('PutDocumentByIdPublishWithDescendants', async (ctx) => {
     const key = ctx.params.id as string
+    const refusal = await approvals?.branchRefusal(principalOf(ctx), key)
+    if (refusal)
+      return needsApproval('Part of this branch needs approval before it is published', refusal)
     const body = await readBody(ctx)
     const cultures = Array.isArray(body.cultures) ? (body.cultures as unknown[]).map(String) : []
     const result = await port.publishBranch(

@@ -96,7 +96,7 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
   if (deps.dataTypes) registerDataTypeHandlers(router, deps.dataTypes)
   if (deps.templates) registerTemplateHandlers(router, deps.templates)
   if (deps.templateQuery) registerTemplateQueryHandlers(router, deps.templateQuery)
-  if (deps.documents) registerDocumentHandlers(router, deps.documents, deps.preview)
+  if (deps.documents) registerDocumentHandlers(router, deps.documents, deps.preview, deps.approvals)
   if (deps.blueprints) registerDocumentBlueprintHandlers(router, deps.blueprints)
   if (deps.temporaryFiles) registerTemporaryFileHandlers(router, deps.temporaryFiles)
   if (deps.media) registerMediaHandlers(router, deps.media)

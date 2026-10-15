@@ -145,6 +145,7 @@ function marketplace(options: {
   onSearch?: (text: string) => void
   applyContent?: (name: string) => Promise<ContentOutcome>
   applyContentOnInstall?: boolean
+  runtimeInstalls?: boolean
 }) {
   const root = options.root ?? site()
   const extensions = createExtensionRegistry(root, { cache: false })
@@ -171,6 +172,7 @@ function marketplace(options: {
       install: installer,
       applyContent: options.applyContent,
       applyContentOnInstall: options.applyContentOnInstall,
+      installs: options.runtimeInstalls,
     }),
   }
 }
@@ -277,6 +279,20 @@ describe('installing', () => {
     })
     // The install is this node's until it is committed, and says so.
     expect(outcome.message).toContain('Commit the changed package.json')
+  })
+
+  test('a site that does not install at runtime refuses both ways, and says to deploy instead', async () => {
+    const calls: Call[] = []
+    const { market } = marketplace({ calls, runtimeInstalls: false })
+    const install = await market.install('@acme/seo', '2.0.0')
+    expect(install.ok).toBe(false)
+    expect(install.message).toContain('bun add @acme/seo')
+    expect(install.message).toContain('deploy')
+    const removal = await market.uninstall('@acme/seo')
+    expect(removal.ok).toBe(false)
+    expect(removal.message).toContain('bun remove @acme/seo')
+    // Nothing reached bun on this node.
+    expect(calls).toEqual([])
   })
 
   test('installs without a version when none is given', async () => {

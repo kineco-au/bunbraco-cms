@@ -151,8 +151,10 @@ if (version) {
     const source = readFileSync(file, 'utf8')
     if (!PEER_RANGE.test(source))
       throw new Error(`${file} declares no peerDependencies["@crombolo/crombolo"]`)
-    writeFileSync(file, source.replace(PEER_RANGE, `$1"^${version}"`))
-    console.log(`${relative(ROOT, file)} peer -> ^${version}`)
+    // A starter bundle is content, which every later release reads: a site
+    // scaffolded today must still start its own bundle after it upgrades.
+    writeFileSync(file, source.replace(PEER_RANGE, `$1">=${version}"`))
+    console.log(`${relative(ROOT, file)} peer -> >=${version}`)
   }
 
   for (const file of backOfficeManifests()) {

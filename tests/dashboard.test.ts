@@ -115,6 +115,13 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Crombolo.EntryPoint.LogViewerMenu',
       // Keeps the Umbraco mark out of the icon picker.
       'globalContext:Crombolo.GlobalContext.Icons',
+      // Approval workflows: Umbraco Workflow's section, in core here (story 028).
+      'section:Crombolo.Section.Workflow',
+      'sectionView:Crombolo.SectionView.Workflow.Waiting',
+      'sectionView:Crombolo.SectionView.Workflow.InFlight',
+      'sectionView:Crombolo.SectionView.Workflow.History',
+      'sectionView:Crombolo.SectionView.Workflow.Designer',
+      'workspaceView:Crombolo.WorkspaceView.Document.Workflow',
     ])
     // The welcome dashboard takes the place of Umbraco's news dashboard through
     // the registry's own `overwrites`, rather than mutating it while rendering.
@@ -142,8 +149,9 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(moduleless.map((e) => e.alias)).toEqual([
       'Crombolo.Section.Forms',
       'Crombolo.FormPicker',
+      'Crombolo.Section.Workflow',
     ])
-    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema'])
+    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema', 'section'])
 
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {

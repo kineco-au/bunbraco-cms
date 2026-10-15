@@ -1,4 +1,4 @@
-import type { SchemaForm } from '@crombolo/core'
+import type { SchemaForm, SchemaWorkflow } from '@crombolo/core'
 
 /**
  * The schema-as-code model: what a site's `schema/*.toml` files describe.
@@ -114,6 +114,8 @@ export interface SchemaSet {
   forms?: SchemaForm[]
   /** `[urls]` in schema/schema.toml; Umbraco's defaults when absent. */
   urls?: SchemaUrls
+  /** `schema/workflows/*.toml` — approval workflows; see `docs/workflows.md`. */
+  workflows?: SchemaWorkflow[]
 }
 
 /** How URLs are built, as Umbraco's `Umbraco:CMS:Global` settings set it. */

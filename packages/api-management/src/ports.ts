@@ -10,6 +10,7 @@
 import type { ResponseOf } from '@crombolo/contracts'
 import type { UploadSettings } from '@crombolo/core'
 import type {
+  ApprovalGatePort,
   BlueprintPort,
   ContentTypePort,
   DataTypePort,
@@ -265,6 +266,8 @@ export interface ManagementApiDeps {
   dataTypes?: DataTypePort
   templates?: TemplatePort
   documents?: DocumentPort
+  /** Approval workflows: the gate on publishing and saving a page a workflow covers. */
+  approvals?: ApprovalGatePort
   dictionary?: DictionaryPort
   userManagement?: UserPort
   userGroups?: UserGroupPort

@@ -27,6 +27,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     _url: { state: true },
     _appliesContent: { state: true },
     _declined: { state: true },
+    _installs: { state: true },
   }
 
   constructor() {
@@ -41,6 +42,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
     this._query = ''
     this._appliesContent = true
     this._declined = new Set()
+    this._installs = true
   }
 
   connectedCallback() {
@@ -57,6 +59,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
       this._keyword = result.keyword ?? this._keyword
       this._url = result.url ?? ''
       this._appliesContent = result.appliesContent !== false
+      this._installs = result.installs !== false
     } catch (error) {
       this._error = error instanceof Error ? error.message : String(error)
     } finally {
@@ -97,7 +100,7 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
   }
 
   #contentChoice(item) {
-    if (!item.carries?.content || item.installedVersion) return nothing
+    if (!item.carries?.content || item.installedVersion || !this._installs) return nothing
     if (!this._appliesContent)
       return html`<p class="meta">Its content is added separately on this site.</p>`
     return html`
@@ -136,6 +139,11 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
       ${this._error ? html`<uui-box headline="The registry could not be reached"><p>${this._error}</p></uui-box>` : nothing}
       ${this._notice ? html`<div id="notice">${this._notice}</div>` : nothing}
       ${
+        this._installs
+          ? nothing
+          : html`<div id="notice">Packages are added to this site by a deploy, so that every server has them: add one to the site's <code>package.json</code> and deploy it.</div>`
+      }
+      ${
         this._items.length === 0 && !this._error
           ? this.#empty()
           : html`
@@ -161,7 +169,9 @@ export default class CromboloBundlesMarketplaceElement extends UmbLitElement {
                     ${
                       item.installedVersion
                         ? html`<uui-tag look="positive">Installed ${item.installedVersion}</uui-tag>`
-                        : html`
+                        : !this._installs
+                          ? html`<p class="meta">Add it to the site with <code>bun add ${item.name}</code>, then deploy.</p>`
+                          : html`
                           <uui-button
                             look="primary"
                             label="Install"

@@ -15,6 +15,7 @@ import {
   validateBundlePackage,
 } from '@crombolo/backoffice-host'
 import { VERSION } from '@crombolo/server'
+import { bundlePeerRange } from '@crombolo/transfer'
 import { siteDeclaring, stubBundlePackage } from './support/bundles.ts'
 
 const dirs: string[] = []
@@ -131,6 +132,15 @@ describe('the peer range', () => {
     expect(problem).toContain('@acme/tasks')
     expect(problem).toContain('^0.1.0')
     expect(problem).toContain(VERSION)
+  })
+
+  test('a bundle crombolo writes installs on its release and every later one, never an earlier', () => {
+    // An environment exported at 0.12.1 reaches a production one minor ahead.
+    const exported = stubBundlePackage('export', { peerRange: bundlePeerRange('0.12.1') })
+    expect(exported.peerRange).toBe('>=0.12.1')
+    for (const later of ['0.12.1', '0.12.9', '0.13.0', '1.2.0'])
+      expect(peerRangeProblem(exported, later), later).toBeUndefined()
+    expect(peerRangeProblem(exported, '0.12.0')).toContain('>=0.12.1')
   })
 
   test('refuses a range that is not one', () => {

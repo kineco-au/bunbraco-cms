@@ -591,3 +591,26 @@ export interface TemplateQueryPort {
   documentTypeAliases(): Promise<string[]>
   execute(request: TemplateQueryRequest): Promise<{ items: TemplateQueryItem[]; total: number }>
 }
+
+/**
+ * Approval before publishing (story 028): asked before a publish, an unpublish
+ * or a save, so a page a workflow covers goes through it. Each answer is
+ * undefined to go ahead, or what to tell the person.
+ */
+export interface ApprovalGatePort {
+  publishRefusal(
+    principal: Principal,
+    key: string,
+    action: 'publish' | 'unpublish',
+  ): Promise<string | undefined>
+  /** A branch publish: the root and every page below it. */
+  branchRefusal(principal: Principal, key: string): Promise<string | undefined>
+  /** A page created and published in one go, by where it will sit and its type. */
+  newPageRefusal(
+    principal: Principal,
+    parentKey: string | null,
+    contentTypeKey: string,
+  ): Promise<string | undefined>
+  beforeSave(principal: Principal, key: string): Promise<string | undefined>
+  afterSave(principal: Principal, key: string): Promise<void>
+}

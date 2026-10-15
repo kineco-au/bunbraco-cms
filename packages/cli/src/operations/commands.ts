@@ -62,6 +62,7 @@ import {
 } from '@crombolo/server'
 import {
   bundleIdFor,
+  bundlePeerRange,
   exportBundle,
   exportPeople,
   isPackageName,
@@ -255,7 +256,7 @@ export async function contentExport(
           id: bundleIdFor(pkg.name.replace(/^@[^/]+\//, '')),
           label: `Content from ${config.siteName}`,
           private: true,
-          peerRange: `^${VERSION}`,
+          peerRange: bundlePeerRange(VERSION),
         },
       ),
       blobs: {

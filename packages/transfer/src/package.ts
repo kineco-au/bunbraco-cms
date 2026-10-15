@@ -42,6 +42,16 @@ const slug = (text: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+/**
+ * The core versions a bundle crombolo writes can be installed on: this release
+ * or any later one. A newer node reads every older bundle format, so a later
+ * release is never a reason to refuse one; an older node is turned away here,
+ * by name, before it meets a format it cannot read. Not `^`: before 1.0 a caret
+ * pins the minor, and an environment one minor ahead would refuse its own
+ * preview's export.
+ */
+export const bundlePeerRange = (coreVersion: string): string => `>=${coreVersion}`
+
 /** A name npm would accept. */
 export function isPackageName(name: string): boolean {
   return NPM_NAME.test(name) && name.length <= 214

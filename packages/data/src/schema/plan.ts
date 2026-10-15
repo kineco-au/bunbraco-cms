@@ -11,7 +11,9 @@
  * may only ship in a major (`x.0.0`), because every minor and patch is rolled
  * under live nodes. The first contract will therefore name 1.0.0 at the earliest.
  */
+
 import { MigrationPlan } from '../migrations.ts'
+import { approvalsMigration } from './approvals.ts'
 import { assistantMigration } from './assistant.ts'
 import { auditLogMigration } from './audit-log.ts'
 import { bundleComponentsMigration } from './bundle-components.ts'
@@ -88,4 +90,5 @@ export const cromboloPlan = new MigrationPlan([
   webhooksMigration,
   transferAnswersMigration,
   deliveryMemberTokensMigration,
+  approvalsMigration,
 ])

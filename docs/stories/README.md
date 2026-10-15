@@ -95,7 +95,8 @@ not cover.
 | `025` | Variants and localisation | must | M | done | 024 |
 | `026` | Users and user groups | must | L | done | 020 |
 | `027` | The Library section (elements) | should | M | done | 024 |
-| `028` | Approval before publishing | should | M | ready | — |
+| `028` | Approval before publishing | should | L | done | — |
+| `029` | Scheduled publishing through approval | could | S | ready | 028 |
 
 ### Epic D — Members and identity
 

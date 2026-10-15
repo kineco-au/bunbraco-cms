@@ -176,7 +176,12 @@ acme-tasks-1.0.0.tgz
 The download is laid out as `npm pack` lays out a package, so `bun add
 ./acme-tasks-1.0.0.tgz` installs it and `bun publish` publishes it as it is. Its
 `package.json` names the package, carries the `crombolo-bundle` keyword, and
-declares a peer range on the release it was built by.
+declares a peer range of `>=` the release it was built by — the same range an
+environment's export, an Umbraco import and a starter template's bundle carry.
+A later release reads every earlier bundle format, so it is never a reason to
+refuse one, and an earlier release is turned away by name. Not `^`: before 1.0
+a caret pins the minor, and a production one minor ahead of its preview would
+refuse the preview's export.
 
 **The section names are logical, not the destination's directory names.** A site
 holds its components wherever `componentsDir` points, so the artifact says what a
@@ -497,7 +502,12 @@ what there is to commit.
 - **It is per-node and ephemeral.** `node_modules` lives in an image layer, so a
   redeploy loses the install until the dependency is committed, and in a
   load-balanced set only the node that served the request has the files. The UI
-  says so on success rather than implying permanence.
+  says so on success rather than implying permanence. **A site of several nodes
+  turns it off** with `runtimeInstalls: false` (`CROMBOLO_RUNTIME_INSTALLS=false`):
+  the Marketplace still lists packages, with the `bun add` line to commit and
+  deploy instead of an Install button, and Installed has no Uninstall. It is
+  off by default where a schema store is configured, which already says the
+  nodes' disks do not last.
 - **It needs a writable site directory and network egress.** Both fail cleanly:
   a read-only filesystem and an unreachable registry each get a specific error,
   not a subprocess stack trace.

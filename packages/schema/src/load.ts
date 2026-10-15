@@ -8,7 +8,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { FormTypes } from '@crombolo/core'
+import type { FormTypes, SchemaWorkflow } from '@crombolo/core'
 import type { SchemaForm } from './forms.ts'
 import type {
   SchemaContentType,
@@ -28,6 +28,7 @@ import {
   parseSchemaSettings,
 } from './parse.ts'
 import { parseForm } from './parse-forms.ts'
+import { parseWorkflow, writeWorkflow } from './workflows.ts'
 import {
   writeContentType,
   writeDataType,
@@ -124,6 +125,15 @@ export function loadSchemaDirectory(
       files.set(`form:${parsed.value.alias}`, file)
     }
   }
+  const workflows: SchemaWorkflow[] = []
+  for (const file of tomlFiles(join(schemaDir, 'workflows'))) {
+    const parsed = parseWorkflow(rel(file), readFileSync(file, 'utf8'))
+    problems.push(...parsed.problems)
+    if (parsed.value) {
+      workflows.push(parsed.value)
+      files.set(`workflow:${parsed.value.alias}`, file)
+    }
+  }
   const languagesFile = join(schemaDir, 'languages.toml')
   if (existsSync(languagesFile)) {
     const parsed = parseLanguages(rel(languagesFile), readFileSync(languagesFile, 'utf8'))
@@ -139,6 +149,7 @@ export function loadSchemaDirectory(
       dataTypes,
       languages,
       forms,
+      ...(workflows.length > 0 ? { workflows } : {}),
       ...(urls ? { urls } : {}),
     },
     problems,
@@ -158,6 +169,8 @@ export function hashSchemaSet(set: SchemaSet): string {
     ...set.dataTypes.map((d) => writeDataType(d)).sort(),
     writeLanguages([...set.languages].sort((a, b) => a.iso.localeCompare(b.iso))),
     ...(set.forms ?? []).map((f) => writeForm(f)).sort(),
+    // Absent from a set with none, so every hash taken before workflows stands.
+    ...(set.workflows ?? []).map((w) => writeWorkflow(w)).sort(),
   ]
   return createHash('sha256').update(parts.join('\n---\n')).digest('hex')
 }

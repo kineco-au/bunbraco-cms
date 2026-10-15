@@ -1,9 +1,10 @@
 /**
- * Story 080: a database as the previous release (0.11.0) left it upgrades to
+ * Story 080: a database as the previous release (0.12.1) left it upgrades to
  * this one, and the Changes dashboard says so. The ledger summary it reads is
  * pure, so its rules are tested on hand-made rows.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
+import { hashPassword, passwordConfigJson } from '@crombolo/auth'
 import {
   cromboloPlan,
   type Db,
@@ -12,8 +13,9 @@ import {
   migrate,
   readLedger,
   readState,
-  STATE_AUDIT_LOG,
+  STATE_APPROVALS,
   STATE_DELIVERY_MEMBER_TOKENS,
+  seedIdentity,
 } from '@crombolo/data'
 import { summariseUpgrades, VERSION } from '@crombolo/server'
 import { freshDb } from './support/db.ts'
@@ -77,27 +79,16 @@ describe('summarising the ledger', () => {
   })
 })
 
-/** Puts a current database back the way 0.11.0 left it, a day ago. */
+/** Puts a current database back the way 0.12.1 left it, a day ago. */
 async function asPreviousRelease(db: Db): Promise<void> {
-  for (const table of [
-    'delivery_member_token',
-    'transfer_answer',
-    'transfer_pending',
-    'webhook_log',
-    'webhook_delivery',
-    'webhook',
-  ])
+  for (const table of ['approval_history', 'approval_step', 'approval_request'])
     await db.exec(`DROP TABLE ${table}`)
-  await db.exec(
-    "DELETE FROM migration_history WHERE name IN ('AddWebhooks', 'AddTransferAnswers', 'AddDeliveryMemberTokens')",
-  )
-  await db.exec('ALTER TABLE server DROP COLUMN crombolo_version')
-  await db.exec('ALTER TABLE form_entry_value DROP COLUMN label')
+  await db.exec("DELETE FROM user_group_section WHERE app_alias = 'workflow'")
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddApprovals'")
   await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [
-    STATE_AUDIT_LOG,
+    STATE_DELIVERY_MEMBER_TOKENS,
     MIGRATION_STATE_KEY,
   ])
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddNodeVersionAndChoiceLabel'")
   const yesterday = new Date(Date.now() - 24 * 3600_000).toISOString()
   await db.exec(`UPDATE migration_history SET applied_at = ?`, [
     db.dialect.name === 'postgres' ? yesterday : yesterday.replace('T', ' ').slice(0, 19),
@@ -116,19 +107,23 @@ describe('upgrading from the previous release', () => {
     const db = await freshDb()
     dbs.push(db)
     await migrate(db, cromboloPlan)
+    await seedIdentity(db, {
+      admin: { name: 'A', login: 'a@b.c', email: 'a@b.c', password: 'x' },
+      hashPassword,
+      passwordConfig: passwordConfigJson(),
+    })
     await asPreviousRelease(db)
-    expect(await readState(db)).toBe(STATE_AUDIT_LOG)
+    expect(await readState(db)).toBe(STATE_DELIVERY_MEMBER_TOKENS)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual([
-      'AddNodeVersionAndChoiceLabel',
-      'AddWebhooks',
-      'AddTransferAnswers',
-      'AddDeliveryMemberTokens',
-    ])
-    expect(await readState(db)).toBe(STATE_DELIVERY_MEMBER_TOKENS)
+    expect(result.applied).toEqual(['AddApprovals'])
+    expect(await readState(db)).toBe(STATE_APPROVALS)
+    const sections = await db.query<{ alias: string }>(
+      "SELECT g.alias FROM user_group_section s JOIN user_group g ON g.id = s.user_group_id WHERE s.app_alias = 'workflow' ORDER BY g.alias",
+    )
+    expect(sections.map((r) => r.alias)).toEqual(['admin', 'editor', 'writer'])
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.12.0', steps: 4 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.13.0', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

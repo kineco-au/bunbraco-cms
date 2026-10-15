@@ -88,6 +88,11 @@ export interface MarketplaceOptions {
   applyContent?: (packageName: string) => Promise<ContentOutcome>
   /** The site's `applyBundleContentOnInstall`. */
   applyContentOnInstall?: boolean
+  /**
+   * False refuses installing and removing here: the dependency belongs in
+   * `package.json` and a deploy, so every node has it and it outlives a restart.
+   */
+  installs?: boolean
 }
 
 export interface InstallOutcome {
@@ -308,6 +313,7 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
     },
 
     async install(name, version, request = {}) {
+      if (options.installs === false) return refusedHere(name, 'add')
       if (!isValidPackageName(name))
         return { ok: false, message: `'${name}' is not a package name npm would accept.` }
       if (version !== undefined && !isValidVersion(version))
@@ -365,6 +371,7 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
     },
 
     async uninstall(name) {
+      if (options.installs === false) return refusedHere(name, 'remove')
       if (!isValidPackageName(name))
         return { ok: false, message: `'${name}' is not a package name npm would accept.` }
       const result = await install('remove', name, options.siteDir)
@@ -376,6 +383,17 @@ export function createMarketplace(options: MarketplaceOptions): Marketplace {
           }
         : { ok: false, message: result.output || `Removing ${name} failed.` }
     },
+  }
+}
+
+/** What a site that does not install at runtime says instead, with what to do. */
+function refusedHere(name: string, verb: 'add' | 'remove'): InstallOutcome {
+  return {
+    ok: false,
+    message:
+      verb === 'add'
+        ? `Packages are not installed from the backoffice on this site. Add ${name} to the site's package.json (bun add ${name}) and deploy, so every server has it.`
+        : `Packages are not removed from the backoffice on this site. Remove ${name} from the site's package.json (bun remove ${name}) and deploy.`,
   }
 }
 

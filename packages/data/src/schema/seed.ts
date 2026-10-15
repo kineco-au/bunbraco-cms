@@ -160,6 +160,7 @@ export const BUILT_IN_GROUPS = [
       'forms',
       'translation',
       'library',
+      'workflow',
     ],
   },
   {
@@ -169,7 +170,7 @@ export const BUILT_IN_GROUPS = [
     name: 'Writers',
     icon: 'icon-edit',
     hasAccessToAllLanguages: true,
-    sections: ['content', 'library'],
+    sections: ['content', 'library', 'workflow'],
   },
   {
     id: 3,
@@ -178,7 +179,7 @@ export const BUILT_IN_GROUPS = [
     name: 'Editors',
     icon: 'icon-tools',
     hasAccessToAllLanguages: true,
-    sections: ['content', 'media', 'forms', 'library'],
+    sections: ['content', 'media', 'forms', 'library', 'workflow'],
   },
   {
     id: 4,

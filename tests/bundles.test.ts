@@ -633,7 +633,7 @@ describe('the download is an npm package', () => {
       version: '1.0.0',
       keywords: ['crombolo-bundle'],
       files: ['content'],
-      peerDependencies: { '@crombolo/crombolo': `^${VERSION}` },
+      peerDependencies: { '@crombolo/crombolo': `>=${VERSION}` },
       crombolo: { id: 'starter-kit', name: 'Starter Kit', content: 'content' },
     })
   })

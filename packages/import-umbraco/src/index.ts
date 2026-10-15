@@ -18,7 +18,7 @@ import {
   writeMemberType,
   writeSchemaVersion,
 } from '@crombolo/schema'
-import { newSeal, writeBundle, writeBundlePackage } from '@crombolo/transfer'
+import { bundlePeerRange, newSeal, writeBundle, writeBundlePackage } from '@crombolo/transfer'
 import { convertContent } from './content.ts'
 import { Findings } from './findings.ts'
 import { type DictionaryItem, type DomainEntry, takeInventory } from './inventory.ts'
@@ -371,7 +371,7 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
         id: 'umbraco-import',
         label: `Content imported from ${siteName}`,
         private: true,
-        peerRange: `^${options.coreVersion}`,
+        peerRange: bundlePeerRange(options.coreVersion),
       },
     )
     for (const file of imported)

@@ -58,6 +58,7 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
 | `CROMBOLO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
 | `CROMBOLO_APPLY_BUNDLE_CONTENT`             | `true`                                         | whether a Marketplace install also applies the schema, components and content the bundle carries       |
+| `CROMBOLO_RUNTIME_INSTALLS`                 | `true`, `false` with a schema store            | whether the Packages section installs and removes packages on the running node; off, they go in `package.json` and a deploy |
 | `CROMBOLO_INDEXABLE`                        | `true`                                         | `false` keeps search engines out: `Disallow: /`, no sitemap, `noindex` on every page (staging)        |
 | `CROMBOLO_SITEMAP`                          | `true`                                         | whether `/sitemap.xml` is served                                                                       |
 | `CROMBOLO_DELIVERY_API`                     | `false`                                        | whether Umbraco's Delivery API answers ([`delivery-api.md`](delivery-api.md))                          |

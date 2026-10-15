@@ -2,7 +2,7 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo",
   "id": "Crombolo.Core",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "allowPublicAccess": false,
   "extensions": [
     {
@@ -345,6 +345,112 @@
       "name": "Crombolo Icons Context",
       "overwrites": ["Umb.GlobalContext.Icons"],
       "api": "/crombolo-plugin/branding/icon-registry.js"
+    },
+    {
+      "type": "section",
+      "alias": "Crombolo.Section.Workflow",
+      "name": "Crombolo Workflow Section",
+      "weight": 40,
+      "meta": {
+        "label": "Workflow",
+        "pathname": "workflow"
+      }
+    },
+    {
+      "type": "sectionView",
+      "alias": "Crombolo.SectionView.Workflow.Waiting",
+      "name": "Crombolo Workflow Waiting",
+      "element": "/crombolo-plugin/workflow-requests.js",
+      "elementName": "crombolo-workflow-waiting",
+      "weight": 400,
+      "meta": {
+        "label": "Waiting for me",
+        "pathname": "waiting",
+        "icon": "icon-inbox"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Crombolo.Section.Workflow"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "Crombolo.SectionView.Workflow.InFlight",
+      "name": "Crombolo Workflow In Flight",
+      "element": "/crombolo-plugin/workflow-requests.js",
+      "elementName": "crombolo-workflow-in-flight",
+      "weight": 300,
+      "meta": {
+        "label": "In flight",
+        "pathname": "in-flight",
+        "icon": "icon-time"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Crombolo.Section.Workflow"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "Crombolo.SectionView.Workflow.History",
+      "name": "Crombolo Workflow History",
+      "element": "/crombolo-plugin/workflow-requests.js",
+      "elementName": "crombolo-workflow-history",
+      "weight": 200,
+      "meta": {
+        "label": "Decided",
+        "pathname": "history",
+        "icon": "icon-check"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Crombolo.Section.Workflow"
+        }
+      ]
+    },
+    {
+      "type": "sectionView",
+      "alias": "Crombolo.SectionView.Workflow.Designer",
+      "name": "Crombolo Workflow Designer",
+      "element": "/crombolo-plugin/workflow-designer.js",
+      "weight": 100,
+      "meta": {
+        "label": "Workflows",
+        "pathname": "workflows",
+        "icon": "icon-mindmap"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Crombolo.Section.Workflow"
+        },
+        {
+          "alias": "Umb.Condition.CurrentUser.IsAdmin"
+        }
+      ]
+    },
+    {
+      "type": "workspaceView",
+      "alias": "Crombolo.WorkspaceView.Document.Workflow",
+      "name": "Crombolo Document Workflow",
+      "element": "/crombolo-plugin/workflow-tab.js",
+      "weight": 50,
+      "meta": {
+        "label": "Workflow",
+        "pathname": "workflow",
+        "icon": "icon-mindmap"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.WorkspaceAlias",
+          "match": "Umb.Workspace.Document"
+        }
+      ]
     }
   ]
 }

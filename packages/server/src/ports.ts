@@ -70,6 +70,7 @@ import { createTemplateFileStore } from './adapters/template-files.ts'
 import { createTemplateQueryPort } from './adapters/template-query.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
 import { createWebhookPort } from './adapters/webhooks.ts'
+import { createApprovals } from './approvals.ts'
 import { COMPONENT_SNIPPETS } from './component-snippets.ts'
 import { type CromboloConfig, type UserLinkSender, VERSION } from './config.ts'
 import { type EmailPort, resolveEmailPort } from './email.ts'
@@ -603,6 +604,20 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
         }),
         options.config.siteDir,
       )
+    if (deps.documents) {
+      const documents = deps.documents
+      deps.approvals = createApprovals({
+        db: options.db,
+        nodeState: options.schema?.nodeState,
+        email,
+        // Through the same port an editor's publish takes, so what approval
+        // publishes is cached, tracked and announced as any publish is.
+        publisher: {
+          publish: (key, cultures) => documents.publish(key, cultures),
+          unpublish: (key, cultures) => documents.unpublish(key, cultures),
+        },
+      })
+    }
   }
   return deps
 }

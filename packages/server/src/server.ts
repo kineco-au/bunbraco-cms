@@ -84,6 +84,8 @@ import { createAuditHost, createAuditSink, pluginAuditPlan, recordAudit } from '
 import { readCreatedBundlePackage, writeCreatedBundlePackage } from './adapters/bundles.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
+import type { Approvals } from './approvals.ts'
+import { handleApprovalsApi } from './approvals-api.ts'
 import { CommandError, installBundleContent } from './bundle-install.ts'
 import { bundleChains, bundleTablesReport } from './bundle-tables.ts'
 import { createBundleRedirects, createServerBundles, validateServerBundles } from './bundles.ts'
@@ -247,6 +249,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     contentApplied: async (packageName) =>
       (await new TransferRunRepository(db).appliedForPackage(packageName))?.packageVersion ?? null,
     applyContentOnInstall: config.applyBundleContentOnInstall,
+    installs: config.runtimeInstalls,
     applyContent: async (packageName) => {
       // A package from the marketplace is for anyone, so nothing in it can be
       // sealed; one that is is refused rather than half applied.
@@ -657,37 +660,36 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         }
       : undefined,
   })
-  const api = createManagementApiRouter({
-    deps: {
-      ...createDeps({
-        config,
-        paths,
-        extensions,
-        db,
-        webhooks,
-        cache,
-        schema,
-        mediaFiles,
-        email,
-        onSearchQueued: () => jobs.kickSearchIndexing(),
-        // This node looks again at once; the others are told to. The write has
-        // already landed wherever `componentsDir` points, so there is nothing to
-        // distribute — only the fact that it happened.
-        onViewsChange: async (alias) => {
-          // The snapshot first, and awaited: the hash announced is then the one
-          // this write produced rather than the generation it replaced, and the
-          // editor's next request renders what they just saved.
-          const hash = await snapshots.refresh()
-          void appendCacheInstruction(db, {
-            kind: 'components',
-            payload: hash ? { alias, hash } : { alias },
-            by: schema.nodeId,
-          }).catch((error: unknown) => {
-            renderLog.error('Could not announce the template {alias}: {error}', { alias, error })
-          })
-        },
-      }),
+  const managementDeps = createDeps({
+    config,
+    paths,
+    extensions,
+    db,
+    webhooks,
+    cache,
+    schema,
+    mediaFiles,
+    email,
+    onSearchQueued: () => jobs.kickSearchIndexing(),
+    // This node looks again at once; the others are told to. The write has
+    // already landed wherever `componentsDir` points, so there is nothing to
+    // distribute — only the fact that it happened.
+    onViewsChange: async (alias) => {
+      // The snapshot first, and awaited: the hash announced is then the one
+      // this write produced rather than the generation it replaced, and the
+      // editor's next request renders what they just saved.
+      const hash = await snapshots.refresh()
+      void appendCacheInstruction(db, {
+        kind: 'components',
+        payload: hash ? { alias, hash } : { alias },
+        by: schema.nodeId,
+      }).catch((error: unknown) => {
+        renderLog.error('Could not announce the template {alias}: {error}', { alias, error })
+      })
     },
+  })
+  const api = createManagementApiRouter({
+    deps: managementDeps,
     authenticate,
     nodes: createNodeLookup(db),
     allowLocalLogin: config.allowLocalLogin,
@@ -1089,6 +1091,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           url: marketplace.url(),
           keyword: config.packageKeyword,
           appliesContent: config.applyBundleContentOnInstall,
+          installs: config.runtimeInstalls,
           items: await marketplace.search(url.searchParams.get('q') ?? undefined),
         })
       }
@@ -1110,7 +1113,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       }
 
       if (action === 'installed' && request.method === 'GET') {
-        return Response.json({ items: await marketplace.installed() })
+        return Response.json({
+          installs: config.runtimeInstalls,
+          items: await marketplace.installed(),
+        })
       }
 
       if ((action === 'install' || action === 'uninstall') && request.method === 'POST') {
@@ -1458,6 +1464,43 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       return outcome.ok
         ? Response.json({ ok: true, ...outcome.options })
         : Response.json({ ok: false, message: outcome.message }, { status: outcome.status })
+    }
+
+    // Non-contract: approval workflows (story 028) — the page's Workflow tab, the
+    // Workflow section and its designer. Content or Workflow, as either screen is.
+    if (pathname.startsWith(`${paths.pluginPath}/api/approvals/`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'content') && !hasSection(principal, 'workflow'))
+        return new Response('Forbidden', { status: 403 })
+      const approvals = managementDeps.approvals as Approvals | undefined
+      if (!approvals) return new Response('Not Found', { status: 404 })
+      const response = await handleApprovalsApi(
+        request,
+        pathname.slice(`${paths.pluginPath}/api/approvals/`.length),
+        {
+          db,
+          approvals,
+          principal,
+          schemaDir: config.schemaDir,
+          writable: config.schemaWritable,
+          onChanged: config.schemaStore
+            ? async () => {
+                await publishSchema(config.schemaStore as SchemaStore, config.schemaDir)
+              }
+            : undefined,
+        },
+      )
+      if (response) {
+        if (request.method !== 'GET')
+          log.info('{user} {verb} on approvals: {status}', {
+            user: principal.email,
+            verb: pathname.split('/').slice(-1)[0],
+            status: response.status,
+          })
+        return response
+      }
+      return new Response('Not Found', { status: 404 })
     }
 
     // Non-contract, Packages: answering a content import's conflicts and running

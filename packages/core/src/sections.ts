@@ -25,6 +25,8 @@ export const SECTION_ALIASES = {
   // commercial add-on there. Form building is in core here, so the section is
   // real and the alias resolves (`docs/forms.md`).
   forms: 'Crombolo.Section.Forms',
+  // Approval workflows: Umbraco Workflow's section, in core here (story 028).
+  workflow: 'Crombolo.Section.Workflow',
 } as const
 
 export type AppAlias = keyof typeof SECTION_ALIASES

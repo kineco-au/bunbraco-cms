@@ -2,6 +2,7 @@
  * Whole-set validation. Every problem is reported, not just the first, because
  * a person fixing a schema wants the full list.
  */
+
 import { SYSTEM_MEDIA_TYPES, SYSTEM_MEMBER_TYPE } from '@crombolo/data'
 import {
   BUILTIN_DATA_TYPE_ALIASES,
@@ -18,6 +19,7 @@ import {
   TYPE_KIND_FILES,
 } from './model.ts'
 import { type ValidateFormsOptions, validateForms } from './validate-forms.ts'
+import { validateWorkflows } from './workflows.ts'
 
 export interface ValidateOptions extends ValidateFormsOptions {
   /** Template aliases that exist as view files; omit to skip template checks. */
@@ -219,6 +221,12 @@ export function validateSchemaSet(set: SchemaSet, options: ValidateOptions = {})
       contentTypeAliases:
         options.contentTypeAliases ?? new Set(set.contentTypes.map((t) => t.alias)),
     }),
+  )
+  problems.push(
+    ...validateWorkflows(
+      set.workflows ?? [],
+      options.contentTypeAliases ?? new Set(set.contentTypes.map((t) => t.alias)),
+    ),
   )
   return problems
 }

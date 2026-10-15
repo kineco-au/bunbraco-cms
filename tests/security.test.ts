@@ -151,6 +151,7 @@ describe('the media collection', () => {
     // stripping the prefix was never enough to match it.
     expect(sectionKey('Crombolo.Section.Forms')).toBe('forms')
     expect(sectionKey('forms')).toBe('forms')
+    expect(sectionKey('Crombolo.Section.Workflow')).toBe('workflow')
     expect(sectionKey('Umb.Section.Content')).toBe('content')
     expect(sectionKey('Acme.Section.Design')).toBe('acme.section.design')
   })

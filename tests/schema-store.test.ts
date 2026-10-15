@@ -206,6 +206,8 @@ describe('a node backed by a store', () => {
     // It booted from the store rather than from a directory in the image.
     expect(await new ContentTypeRepository(h.server.db).byAlias('homePage')).toBeDefined()
 
+    // A store says the nodes' disks do not last, so installing packages on one is off.
+    expect(h.server.config.runtimeInstalls).toBe(false)
     // A store makes writes durable, so the environment is writable without asking.
     const created = await h.post(`${V1}/document-type`, DOCUMENT_TYPE)
     expect(created.status).toBe(201)
@@ -218,6 +220,30 @@ describe('a node backed by a store', () => {
     await materialiseSchema(store, elsewhere)
     const carried = readFileSync(join(elsewhere, 'content-types', 'landing-page.toml'), 'utf8')
     expect(carried).toContain('alias = "landingPage"')
+  })
+
+  test('a webhook kept with the files goes to the store, and survives a restart', async () => {
+    const remote = temp('store')
+    writeFileSync(join(remote, 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
+    const config = { schemaStore: storeIn(remote), schemaCacheDir: temp('cache') }
+    const h = await signedInServer({ config })
+    open.push(h)
+    const created = await h.post(`${V1}/webhook`, {
+      enabled: true,
+      name: 'Search',
+      url: 'https://search.example/hook',
+      contentTypeKeys: [],
+      headers: {},
+      events: ['Umbraco.ContentPublish'],
+    })
+    expect(created.status).toBe(201)
+    const key = created.headers.get('umb-generated-resource') as string
+    expect(await storeIn(remote).list()).toContain(`webhooks/${key}.toml`)
+
+    // A new node, with a cache of its own, finds it.
+    const next = await signedInServer({ config: { ...config, schemaCacheDir: temp('cache') } })
+    open.push(next)
+    expect((await next.call(`${V1}/webhook/${key}`)).status).toBe(200)
   })
 
   test('without a store, a read-only environment still refuses schema writes', async () => {

@@ -49,6 +49,7 @@ import {
   type BundleNode,
   type BundleSection,
   bundleIdFor,
+  bundlePeerRange,
   type ContentSet,
   exportBundle,
   isPackageName,
@@ -442,7 +443,7 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
         version: pkg.version,
         id: bundleIdFor(pkg.name.replace(/^@[^/]+\//, '')),
         label: from.name,
-        peerRange: `^${VERSION}`,
+        peerRange: bundlePeerRange(VERSION),
       })
       const entries = files.map((file) => ({
         path: file.path,

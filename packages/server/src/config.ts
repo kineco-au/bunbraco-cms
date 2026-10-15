@@ -273,6 +273,16 @@ export interface CromboloConfig {
    */
   applyBundleContentOnInstall: boolean
   /**
+   * Whether the Packages section may install and remove packages on the running
+   * site (`bun add` on the node that served the request). Off, the Marketplace
+   * still lists packages and says to add them to `package.json` and deploy:
+   * what a site of several nodes, or of containers that start afresh, needs —
+   * an install there reaches one node and is lost at its next restart. On unless
+   * set, or unless a schema store is configured, which says the same thing
+   * about the nodes' disks. `CROMBOLO_RUNTIME_INSTALLS`.
+   */
+  runtimeInstalls: boolean
+  /**
    * Where the Packages section's Marketplace sends someone browsing for
    * extensions. Never framed — npm refuses to be framed — so the native view
    * uses it as the link out while listing the registry itself.
@@ -495,6 +505,8 @@ export function loadConfig(
     redirects: [],
     trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
     applyBundleContentOnInstall: Bun.env.CROMBOLO_APPLY_BUNDLE_CONTENT !== 'false',
+    // Resolved again below, once it is known whether a store was configured.
+    runtimeInstalls: Bun.env.CROMBOLO_RUNTIME_INSTALLS !== 'false',
     seo: stripUndefined({
       sitemap: envFlag(Bun.env.CROMBOLO_SITEMAP),
       indexable: envFlag(Bun.env.CROMBOLO_INDEXABLE),
@@ -532,6 +544,15 @@ export function loadConfig(
     overrides.schemaWritable === undefined
   ) {
     merged.schemaWritable = true
+  }
+  // Likewise a store says the nodes' disks do not last, so an install on one of
+  // them would not either. An explicit setting still wins.
+  if (
+    merged.schemaStore &&
+    Bun.env.CROMBOLO_RUNTIME_INSTALLS === undefined &&
+    overrides.runtimeInstalls === undefined
+  ) {
+    merged.runtimeInstalls = false
   }
   // Relative paths are relative to the site, not to wherever the process started.
   merged.siteDir = resolve(cwd, merged.siteDir)
@@ -597,4 +618,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.12.1'
+export const VERSION = '0.13.0'

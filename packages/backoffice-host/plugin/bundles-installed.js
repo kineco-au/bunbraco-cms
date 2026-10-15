@@ -40,6 +40,7 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     _loading: { state: true },
     _busy: { state: true },
     _notice: { state: true },
+    _installs: { state: true },
   }
 
   constructor() {
@@ -48,6 +49,7 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
     this._loading = true
     this._busy = ''
     this._notice = ''
+    this._installs = true
   }
 
   connectedCallback() {
@@ -58,7 +60,9 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
   async #load() {
     this._loading = true
     try {
-      this._items = (await listInstalled()).items ?? []
+      const result = await listInstalled()
+      this._items = result.items ?? []
+      this._installs = result.installs !== false
     } catch (error) {
       this._notice = error instanceof Error ? error.message : String(error)
     } finally {
@@ -117,20 +121,29 @@ export default class CromboloBundlesInstalledElement extends UmbLitElement {
                       <uui-table-cell class="carries">${carriesTags(item.carries)}</uui-table-cell>
                       <uui-table-cell class="status">${status(item)}</uui-table-cell>
                       <uui-table-cell>
-                        <uui-button
-                          look="secondary"
-                          color="danger"
-                          label="Uninstall"
-                          .state=${this._busy === item.packageName ? 'waiting' : undefined}
-                          @click=${() => this.#uninstall(item)}></uui-button>
+                        ${
+                          this._installs
+                            ? html`<uui-button
+                                look="secondary"
+                                color="danger"
+                                label="Uninstall"
+                                .state=${this._busy === item.packageName ? 'waiting' : undefined}
+                                @click=${() => this.#uninstall(item)}></uui-button>`
+                            : nothing
+                        }
                       </uui-table-cell>
                     </uui-table-row>
                   `,
                 )}
               </uui-table>
               <p class="note">
-                An install writes this site's <code>package.json</code> and
-                <code>bun.lock</code>. Commit both to keep it across deployments.
+                ${
+                  this._installs
+                    ? html`An install writes this site's <code>package.json</code> and
+                        <code>bun.lock</code>. Commit both to keep it across deployments.`
+                    : html`Packages are added and removed by changing this site's
+                        <code>package.json</code> and deploying, so every server has the same ones.`
+                }
               </p>
             </uui-box>
           `

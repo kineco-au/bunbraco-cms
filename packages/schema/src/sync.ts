@@ -28,8 +28,10 @@ import {
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
   sameUrlOptions,
+  syncWorkflows,
   type UrlOptions,
   updateSchemaStateHash,
+  type WorkflowSyncReport,
   writeUrlOptions,
 } from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor, systemPropertyKeys } from './builtin.ts'
@@ -43,6 +45,7 @@ import {
   typeFileKey,
 } from './model.ts'
 import { validateSchemaSet } from './validate.ts'
+import { workflowVersion } from './workflows.ts'
 
 export interface SyncNode extends NodeSchemaState {
   nodeId: string
@@ -97,6 +100,8 @@ export interface SyncReport {
   deferred: string[]
   /** Set when the sync changed how URLs are built, so the old ones can be redirected. */
   urls?: { before: UrlOptions; after: UrlOptions }
+  /** Set when a workflow changed, with what that did to requests in flight. */
+  workflows?: WorkflowSyncReport
 }
 
 export const emptySyncReport = (
@@ -286,6 +291,16 @@ export async function syncSchema(
           const urls = { hideTopLevel: set.urls?.hideTopLevel ?? DEFAULT_URL_OPTIONS.hideTopLevel }
           const before = await writeUrlOptions(tx, urls)
           if (!sameUrlOptions(before, urls)) report.urls = { before, after: urls }
+          // Approval workflows likewise: only a current sync changes the rules
+          // that pages are published under.
+          const workflows = await syncWorkflows(
+            tx,
+            (set.workflows ?? []).map((workflow) => ({
+              workflow,
+              version: workflowVersion(workflow),
+            })),
+          )
+          if (workflows.changed.length > 0) report.workflows = workflows
         }
 
         // ---- templates referenced by types must have a row

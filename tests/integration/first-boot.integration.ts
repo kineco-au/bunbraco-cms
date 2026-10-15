@@ -135,24 +135,14 @@ describe('the first boot of a self-hosted site', () => {
   test('a database the previous release left is upgraded by `crombolo upgrade`, and then starts', async () => {
     const file = readdirSync(site()).find((name) => name.endsWith('.sqlite')) as string
     const sqlite = new Database(join(site(), file))
-    for (const table of [
-      'delivery_member_token',
-      'transfer_answer',
-      'transfer_pending',
-      'webhook_log',
-      'webhook_delivery',
-      'webhook',
-    ])
+    // As 0.12.1 left it: before the approval tables.
+    for (const table of ['approval_history', 'approval_step', 'approval_request'])
       sqlite.exec(`DROP TABLE ${table}`)
-    sqlite.exec(
-      "DELETE FROM migration_history WHERE name IN ('AddWebhooks', 'AddTransferAnswers', 'AddDeliveryMemberTokens')",
-    )
-    sqlite.exec('ALTER TABLE server DROP COLUMN crombolo_version')
-    sqlite.exec('ALTER TABLE form_entry_value DROP COLUMN label')
+    sqlite.exec("DELETE FROM user_group_section WHERE app_alias = 'workflow'")
+    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddApprovals'")
     sqlite
       .query("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'")
-      .run('{6f1d4a8e-0033-4c1a-9e7d-3a5b8c2d4e33}')
-    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddNodeVersionAndChoiceLabel'")
+      .run('{7d3b9e2c-0037-4a51-b8f6-2c4e1a9d5b37}')
     sqlite.close()
 
     const run = async (...args: string[]) => {
@@ -176,7 +166,7 @@ describe('the first boot of a self-hosted site', () => {
     const upgraded = await run('upgrade')
     expect(upgraded.code, upgraded.out).toBe(0)
     const ledger = await run('upgrade', 'ledger')
-    expect(ledger.out).toContain('AddNodeVersionAndChoiceLabel')
+    expect(ledger.out).toContain('AddApprovals')
 
     const proc = Bun.spawn(['bun', CLI, 'start'], {
       cwd: site(),

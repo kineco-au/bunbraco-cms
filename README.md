@@ -463,7 +463,7 @@ Design documents, in reading order; planned work is in the stories:
 | [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions; the backoffice's health checks and troubleshooting in [diagnostics](docs/diagnostics.md); [webhooks](docs/webhooks.md) |
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
-| [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
+| [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port; approval before publishing, as graphs of stages, in [workflows](docs/workflows.md) |
 | [audit-log](docs/audit-log.md) | who did what, when and from where: what writes an entry, the Info tab and the dashboard, retention |
 | [search](docs/search.md) | backoffice search: the index on both dialects, the queue that keeps it current, who sees a result |
 | [seo](docs/seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
