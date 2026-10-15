@@ -63,6 +63,41 @@
       ]
     },
     {
+      "type": "workspaceView",
+      "alias": "Crombolo.WorkspaceView.Webhook.Storage",
+      "name": "Crombolo Webhook Storage View",
+      "element": "/crombolo-plugin/webhook-storage.js",
+      "weight": 100,
+      "meta": {
+        "label": "Where it's kept",
+        "pathname": "where-kept",
+        "icon": "icon-box"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.WorkspaceAlias",
+          "match": "Umb.Workspace.Webhook"
+        }
+      ]
+    },
+    {
+      "type": "dashboard",
+      "alias": "Crombolo.Dashboard.Addresses",
+      "name": "Crombolo Page Addresses Dashboard",
+      "element": "/crombolo-plugin/addresses-dashboard.js",
+      "weight": 6,
+      "meta": {
+        "label": "Page addresses",
+        "pathname": "addresses"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
       "type": "dashboard",
       "alias": "Crombolo.Dashboard.Changes",
       "name": "Crombolo Changes Dashboard",

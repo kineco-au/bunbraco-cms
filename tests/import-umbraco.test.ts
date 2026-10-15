@@ -31,9 +31,9 @@ import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer } from './support/harness.ts'
 import { DEMO_STORE, writePlan } from './support/umbraco-import.ts'
 
-/** The importer, for a site running this release. */
+/** The importer, for a site running this release, with the content in the open to read back. */
 const planImport = (options: Omit<ImportOptions, 'coreVersion'>) =>
-  planImportFor({ ...options, coreVersion: VERSION })
+  planImportFor({ content: 'open', ...options, coreVersion: VERSION })
 
 const work = mkdtempSync(join(process.cwd(), 'output', 'import-umbraco-'))
 afterAll(() => rmSync(work, { recursive: true, force: true }))
@@ -454,7 +454,7 @@ describe('the compatibility report', () => {
     )
   })
 
-  test('carries the dictionary, and counts what this version does not import', async () => {
+  test('carries the dictionary, and counts the members it was not asked to bring', async () => {
     expect(plan.dictionary.map((item) => item.name)).toEqual(['Umbraco Commerce', 'Vendr'])
     expect(finding(plan, 'dictionary')[0]?.count).toBe(2)
     const withMembers = await planImport({
@@ -470,7 +470,12 @@ describe('the compatibility report', () => {
         )
       }),
     })
-    expect(finding(withMembers, 'members')[0]).toMatchObject({ class: 'not-yet', count: 1 })
+    // Not asked for, so left behind, with the flag that brings them.
+    expect(finding(withMembers, 'members-left-out')[0]).toMatchObject({
+      class: 'dropped',
+      count: 1,
+    })
+    expect(finding(withMembers, 'members-left-out')[0]?.detail).toContain('--with-members')
     expect(withMembers.domains).toEqual([
       { node: 'a8bcc42f-88a2-427d-8fcc-2de3ed457e57', host: 'shop.example.no', culture: 'nb' },
       { node: 'a8bcc42f-88a2-427d-8fcc-2de3ed457e57', host: '', defaultCulture: 'en-US' },

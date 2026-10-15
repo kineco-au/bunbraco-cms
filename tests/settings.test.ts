@@ -688,7 +688,6 @@ describe('story 021 templates and languages', () => {
       'tree/member-group/root',
       'tree/static-file/root',
       'dictionary',
-      'relation-type',
       'webhook',
     ]
     for (const path of paged) {
@@ -697,6 +696,9 @@ describe('story 021 templates and languages', () => {
       expect([path, response.status]).toEqual([path, 200])
       expect(await response.json()).toEqual({ total: 0, items: [] })
     }
+    // Umbraco's nine relation types are built in, so that list is never empty (story 046).
+    const relationTypes = await h.json<{ total: number }>(`${V1}/relation-type?skip=0&take=10`)
+    expect(relationTypes.total).toBe(9)
     // The member-type tree is never empty: the framework's own "Member" type is there.
     const memberTypes = await h.json<{ total: number; items: Array<{ id: string; name: string }> }>(
       `${V1}/tree/member-type/root?skip=0&take=10`,

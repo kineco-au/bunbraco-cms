@@ -1,7 +1,7 @@
 {
   "name": "@crombolo/contracts",
   "version": "0.12.0",
-  "description": "The Umbraco Management API OpenAPI document and the TypeScript types generated from it.",
+  "description": "The Umbraco Management and Delivery API OpenAPI documents and the TypeScript types generated from them.",
   "license": "MIT",
   "author": "Crombolo",
   "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
@@ -19,11 +19,13 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./OpenApi.json": "./OpenApi.json"
+    "./OpenApi.json": "./OpenApi.json",
+    "./DeliveryApi.json": "./DeliveryApi.json"
   },
   "files": [
     "src",
     "OpenApi.json",
+    "DeliveryApi.json",
     "generated",
     "NOTICE"
   ],

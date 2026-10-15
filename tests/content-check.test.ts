@@ -147,7 +147,8 @@ describe(`checking a bundle (${dialectUnderTest})`, () => {
     const check = await checkBundle(h.server.db, changed)
     const conflict = check.findings.find((f) => f.code === 'local-edit')
     expect(conflict?.kind).toBe('person')
-    expect(conflict?.message).toContain('would replace title')
+    expect(conflict?.propertyAlias).toBe('title')
+    expect(conflict?.message).toContain('its title differs from the bundle')
     expect(conflict?.link).toBeNull()
     expect(check.counts.update).toBe(1)
     expect(check.outstanding.map((f) => f.code)).toEqual(['local-edit'])
@@ -164,7 +165,7 @@ describe(`checking a bundle (${dialectUnderTest})`, () => {
       ['skip', 'skip'],
     ] as const) {
       const check = await checkBundle(h.server.db, changed, {
-        resolutions: { [landing]: resolution },
+        resolutions: { [landing]: { '*': resolution } },
       })
       expect(check.outstanding, resolution).toEqual([])
       expect(check.plan.find((p) => p.key === landing)?.action, resolution).toBe(action)
@@ -373,7 +374,7 @@ describe('resolutions.json', () => {
       bundleId: 'b1',
       under: null,
       all: null,
-      byNode: { zzz: 'skip', aaa: 'take-bundle' },
+      byNode: { zzz: { '*': 'skip' }, aaa: { '*': 'take-bundle' } },
     })
     expect(Object.keys(JSON.parse(text).byNode)).toEqual(['aaa', 'zzz'])
   })
@@ -383,7 +384,12 @@ describe('resolutions.json', () => {
     try {
       writeFileSync(
         join(dir, 'resolutions.json'),
-        writeResolutions({ bundleId: 'other', under: null, all: null, byNode: { a: 'skip' } }),
+        writeResolutions({
+          bundleId: 'other',
+          under: null,
+          all: null,
+          byNode: { a: { '*': 'skip' } },
+        }),
       )
       const loaded = loadResolutions(dir, 'mine')
       expect(loaded.file).toBeUndefined()
@@ -398,11 +404,18 @@ describe('resolutions.json', () => {
     try {
       writeFileSync(
         join(dir, 'resolutions.json'),
-        JSON.stringify({ bundleId: 'mine', byNode: { a: 'whatever' } }),
+        JSON.stringify({
+          bundleId: 'mine',
+          byNode: { a: { '*': 'whatever' }, b: 'take-bundle', c: { title: 'skip' } },
+        }),
       )
       const loaded = loadResolutions(dir, 'mine')
       expect(loaded.file?.byNode).toEqual({})
-      expect(loaded.problems[0]).toContain('no usable resolution')
+      expect(loaded.problems).toEqual([
+        'resolutions.json: "a" answers * with "whatever", which is not one of take-bundle, keep-local, skip',
+        'resolutions.json: "b" must map "*" or a property to a resolution, as { "*": "take-bundle" }',
+        'resolutions.json: "c" answers title with skip, which leaves a whole node alone, not one property',
+      ])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

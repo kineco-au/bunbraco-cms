@@ -316,7 +316,8 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
       })
       expect(rejected.status).toBe(409)
 
-      // Node B edits and publishes; node A's cache is stale until it polls
+      // Node B edits and publishes; node A sees it once it polls, which on
+      // Postgres the publish's notification may already have made it do
       const updated = await b.put(`${V1}/document/${key}`, {
         template: { id: template?.key },
         values: [
@@ -330,8 +331,7 @@ describe(`schema at boot (${dialectUnderTest})`, () => {
         (await b.put(`${V1}/document/${key}/publish`, { publishSchedules: [{ culture: null }] }))
           .status,
       ).toBe(200)
-      expect(await (await a.call('/')).text()).toContain('v1')
-      expect(await a.server.poll()).toBeGreaterThan(0)
+      await a.server.poll()
       expect(await (await a.call('/')).text()).toContain('v2')
 
       // A restarted node A with the same old files runs in compatibility mode

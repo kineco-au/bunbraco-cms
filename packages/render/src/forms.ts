@@ -17,6 +17,8 @@
  * `docs/forms.md` says why this diverges from Umbraco's theme folders.
  */
 import {
+  BUILT_IN_FORM_TYPES,
+  type BuiltInFormFieldType,
   choiceOptions,
   FORM_HONEYPOT_FIELD,
   FORM_RENDERED_FIELD,
@@ -24,7 +26,9 @@ import {
   type FormFieldError,
   type FormFieldType,
   type FormSubmissionState,
+  type FormTypes,
   formFieldType,
+  isBuiltInFieldType,
   isShown,
   type SchemaForm,
   type SchemaFormField,
@@ -53,6 +57,23 @@ export function setFormTokenSigner(
   sign: ((formKey: string, renderedAt: number) => string) | undefined,
 ): void {
   signer = sign
+}
+
+/**
+ * The field types a wired bundle adds, and how each draws itself. Process-wide
+ * for the reason the signer is: bundles are wired once per process, at boot.
+ * A site's own `components` still wins over a bundle's renderer.
+ */
+let registered: { types: FormTypes; renderers: ReadonlyMap<string, FormFieldRenderer> } = {
+  types: BUILT_IN_FORM_TYPES,
+  renderers: new Map(),
+}
+
+export function setFormFieldTypes(
+  types: FormTypes,
+  renderers: ReadonlyMap<string, FormFieldRenderer>,
+): void {
+  registered = { types, renderers }
 }
 
 export const formAction = (form: SchemaForm): string =>
@@ -120,7 +141,7 @@ const checked = (values: readonly string[]): boolean =>
   values.some((value) => value === 'true' || value === 'on' || value === '1')
 
 /** The input types that are a plain `<input>` differing only by `type`. */
-const INPUT_TYPES: Partial<Record<FormFieldType, string>> = {
+const INPUT_TYPES: Partial<Record<BuiltInFormFieldType, string>> = {
   shortAnswer: 'text',
   email: 'email',
   number: 'number',
@@ -132,7 +153,7 @@ function textInput({ field, values, id, name, error, shown }: FormFieldRenderPro
   return element(
     'input',
     attrs({
-      type: INPUT_TYPES[field.type] ?? 'text',
+      type: INPUT_TYPES[field.type as BuiltInFormFieldType] ?? 'text',
       id,
       name,
       value: first(values),
@@ -160,7 +181,7 @@ const describedBy = (
   return ids.length > 0 ? ids.join(' ') : undefined
 }
 
-const DEFAULTS: Record<FormFieldType, FormFieldRenderer> = {
+const DEFAULTS: Record<BuiltInFormFieldType, FormFieldRenderer> = {
   shortAnswer: textInput,
   email: textInput,
   number: textInput,
@@ -334,7 +355,11 @@ export function rendererFor(
   type: FormFieldType,
   components: FormFieldComponents | undefined,
 ): FormFieldRenderer | undefined {
-  return components?.[type] ?? DEFAULTS[type]
+  return (
+    components?.[type] ??
+    registered.renderers.get(type) ??
+    (isBuiltInFieldType(type) ? DEFAULTS[type] : undefined)
+  )
 }
 
 function renderField(
@@ -346,7 +371,7 @@ function renderField(
     idPrefix: string
   },
 ): Child {
-  const info = formFieldType(field.type)
+  const info = formFieldType(field.type, registered.types)
   if (!info) return null
   const renderer = rendererFor(field.type, options.components)
   if (!renderer) return null
@@ -460,9 +485,9 @@ function renderPage(
 /**
  * A form, as HTML.
  *
- * Every page is rendered into one form rather than one page at a time. A
- * multi-page definition therefore submits in one go; stepping through pages with
- * a round trip each is a refinement on top of this, not a different shape.
+ * Every page is rendered into one form. With `step-pages` the script shows one
+ * at a time and checks each on the server before the next; answers stay in the
+ * form, uploads included, until the one submission at the end.
  */
 export function Form(props: FormProps): RawHtml {
   const form = props.form
@@ -496,6 +521,7 @@ export function Form(props: FormProps): RawHtml {
   if (props.className) classes.push(props.className)
 
   const key = form.key ?? form.alias
+  const stepped = form.stepPages === true && form.pages.length > 1
   const renderedAt = props.renderedAt ?? Date.now()
   const token = props.token ?? signer?.(key, renderedAt)
 
@@ -509,6 +535,7 @@ export function Form(props: FormProps): RawHtml {
       enctype: hasUpload ? 'multipart/form-data' : undefined,
       class: classes.join(' '),
       'data-form': form.alias,
+      'data-step-pages': stepped ? 'true' : undefined,
       novalidate: undefined,
       children: [
         errors.length > 0
@@ -546,11 +573,33 @@ export function Form(props: FormProps): RawHtml {
           : null,
         element('div', {
           class: 'crombolo-form__actions',
-          children: element('button', {
-            type: 'submit',
-            class: 'crombolo-form__submit',
-            children: form.submitLabel ?? 'Submit',
-          }),
+          children: [
+            // Hidden until the script takes over: without it every page shows
+            // and the form submits in one go, so these would do nothing.
+            stepped
+              ? element('button', {
+                  type: 'button',
+                  class: 'crombolo-form__back',
+                  'data-step': 'back',
+                  hidden: true,
+                  children: form.previousLabel ?? 'Back',
+                })
+              : null,
+            stepped
+              ? element('button', {
+                  type: 'button',
+                  class: 'crombolo-form__next',
+                  'data-step': 'next',
+                  hidden: true,
+                  children: form.nextLabel ?? 'Next',
+                })
+              : null,
+            element('button', {
+              type: 'submit',
+              class: 'crombolo-form__submit',
+              children: form.submitLabel ?? 'Submit',
+            }),
+          ],
         }),
       ],
     }),

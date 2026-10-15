@@ -205,7 +205,11 @@ name = "F"
       rule = [{ field = "a", operator = "resembles", value = "x" }]
 `)
     const messages = result.problems.map((p) => p.message)
-    expect(messages.some((m) => m.includes('unknown field type'))).toBe(true)
+    expect(
+      messages.some((m) =>
+        m.includes('the field type "signature" is not built in, and no wired bundle provides it'),
+      ),
+    ).toBe(true)
     expect(messages.some((m) => m.includes('unknown operator'))).toBe(true)
   })
 

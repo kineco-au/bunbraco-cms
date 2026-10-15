@@ -30,6 +30,7 @@ import { loadSchemaDirectory } from '@crombolo/schema'
 import { BundleConfigurationError, bundleChainsFor, pendingBundleSteps } from './bundle-tables.ts'
 import { type CromboloConfig, describeDatabase, VERSION } from './config.ts'
 import { type EmailAvailability, emailAvailability, resolveEmailPort } from './email.ts'
+import { formTypesFor } from './form-types.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 
 export interface SiteStatus {
@@ -125,7 +126,9 @@ export function backofficeVersion(): string | undefined {
 }
 
 export async function siteStatus(config: CromboloConfig): Promise<SiteStatus> {
-  const loaded = existsSync(config.schemaDir) ? loadSchemaDirectory(config.schemaDir) : undefined
+  const loaded = existsSync(config.schemaDir)
+    ? loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
+    : undefined
   const status: SiteStatus = {
     site: {
       name: config.siteName,

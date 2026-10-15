@@ -27,6 +27,7 @@ import {
   type TransferRun,
   TransferRunRepository,
 } from '@crombolo/data'
+import { isPersonKind, removePerson } from './people-apply.ts'
 
 /** What to do about a node whose state has moved on since the import. */
 export type RevertResolution = 'discard' | 'skip'
@@ -74,7 +75,7 @@ export interface RevertPlan {
    * run created, and `unrecycle` brings back what a *reverted* run recycled —
    * which is what makes a revert revertible in its own right.
    */
-  action: 'restore' | 'recycle' | 'unrecycle' | 'skip' | 'gone'
+  action: 'restore' | 'recycle' | 'unrecycle' | 'skip' | 'gone' | 'remove'
   resolution: RevertResolution | undefined
 }
 
@@ -91,6 +92,8 @@ export interface RevertResult {
   check: RevertCheck
   restored: string[]
   recycled: string[]
+  /** Members, users and groups the run had created, now removed. */
+  removed: string[]
 }
 
 const link = (backOfficePath: string | undefined, key: string): string | null =>
@@ -154,6 +157,30 @@ export async function checkRevert(
 
   for (const change of changes) {
     if (change.action === 'skip') continue
+    // People have no history to roll back to: what the run created goes, and
+    // what it updated keeps the bundle's details.
+    if (isPersonKind(change.kind)) {
+      if (change.action === 'create')
+        plan.push({
+          key: change.nodeKey,
+          name: change.nodeKey,
+          action: 'remove',
+          resolution: undefined,
+        })
+      else
+        findings.push({
+          kind: 'auto',
+          code: 'person-kept',
+          subjectType: change.kind,
+          subjectKey: change.nodeKey,
+          subjectName: change.nodeKey,
+          propertyAlias: null,
+          culture: null,
+          message: `${change.kind} ${change.nodeKey} was updated by the run and keeps those details`,
+          link: null,
+        })
+      continue
+    }
     const resolution = resolutions[change.nodeKey] ?? options.resolveAll
     const node = await docs.nodes.byKey(change.nodeKey)
     const name = node?.text ?? change.nodeKey
@@ -261,7 +288,7 @@ export async function revertRun(
     db.transaction(async (tx) => {
       const check = await checkRevert(tx, runId, options)
       if (check.outstanding.length > 0)
-        return { runId: undefined, check, restored: [], recycled: [] }
+        return { runId: undefined, check, restored: [], recycled: [], removed: [] }
 
       const runs = new TransferRunRepository(tx)
       const original = (await runs.byId(runId)) as TransferRun
@@ -288,7 +315,19 @@ export async function revertRun(
       const skipped = new Set(
         check.plan.filter((p) => p.action === 'skip' || p.action === 'gone').map((p) => p.key),
       )
-      const todo = changes.filter((c) => c.action !== 'skip' && !skipped.has(c.nodeKey))
+      const todo = changes.filter(
+        (c) => c.action !== 'skip' && !skipped.has(c.nodeKey) && !isPersonKind(c.kind),
+      )
+      // Members before the groups they belong to.
+      const removed: string[] = []
+      const order = ['member', 'user', 'member-group', 'user-group']
+      for (const change of changes
+        .filter((c) => isPersonKind(c.kind) && c.action === 'create')
+        .sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind)))
+        if (
+          await removePerson(tx, change.kind as Parameters<typeof removePerson>[1], change.nodeKey)
+        )
+          removed.push(change.nodeKey)
       const byKey = new Map<string, NodeRow>()
       for (const change of todo) {
         const node = await repo(change.kind).nodes.byKey(change.nodeKey)
@@ -372,7 +411,7 @@ export async function revertRun(
           eventId: markers?.head ?? null,
         })
       }
-      await runs.finish(newRunId, todo.length)
+      await runs.finish(newRunId, todo.length + removed.length)
       await runs.setStatus(runId, 'reverted')
 
       await appendCacheInstruction(tx, {
@@ -381,7 +420,7 @@ export async function revertRun(
         by: options.nodeId,
       })
 
-      return { runId: newRunId, check, restored, recycled }
+      return { runId: newRunId, check, restored, recycled, removed }
     }),
   )
 }

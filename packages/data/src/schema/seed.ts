@@ -211,7 +211,8 @@ export interface SeedAdmin {
 }
 
 export interface SeedOptions {
-  admin: SeedAdmin
+  /** Omitted, the site is left for its owner to set up from the browser. */
+  admin?: SeedAdmin
   hashPassword: (password: string) => Promise<string>
   passwordConfig: string
 }
@@ -259,6 +260,17 @@ export async function seedIdentity(db: Db, options: SeedOptions): Promise<boolea
   if (sync) await db.exec(sync)
   await grantBuiltInPermissions(db)
 
+  if (options.admin) await insertSuperUser(db, { ...options, admin: options.admin })
+  return true
+}
+
+/** Creates Umbraco's super user, in Administrators and Sensitive data. */
+export async function insertSuperUser(
+  db: Db,
+  options: SeedOptions & { admin: SeedAdmin },
+): Promise<void> {
+  const now = DbDate.toDb(new Date())
+  const bool = (value: boolean) => db.dialect.boolValue(value)
   await db.exec(
     `INSERT INTO user_account
        (key, user_name, login, email, password_hash, password_config, security_stamp, language,
@@ -294,5 +306,4 @@ export async function seedIdentity(db: Db, options: SeedOptions): Promise<boolea
       groupId,
     ])
   }
-  return true
 }

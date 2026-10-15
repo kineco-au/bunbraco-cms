@@ -46,6 +46,7 @@ import {
   checkSchemaDirectory,
   createFileIntake,
   createMediaPort,
+  formTypesFor,
   installBundleContent,
   installDatabase,
   MediaFileStore,
@@ -62,7 +63,9 @@ import {
 import {
   bundleIdFor,
   exportBundle,
+  exportPeople,
   isPackageName,
+  newSeal,
   packageNameFor,
   writeBundle,
   writeBundlePackage,
@@ -143,6 +146,12 @@ export interface ContentExportInput {
   drafts?: boolean
   withBlobs?: boolean
   withBlueprints?: boolean
+  /** Property values and media files: left out (the default), sealed, or in the open. */
+  content?: 'omitted' | 'sealed' | 'open'
+  withMembers?: boolean
+  withUsers?: boolean
+  /** Seals the content and the people; needed for either. */
+  passphrase?: string
   /**
    * The private package the export is written as. The name defaults to one
    * derived from the bundle's id, the version to `1.0.0`.
@@ -160,6 +169,8 @@ export interface ContentExportResult {
   /** The package's files — `package.json` and the payload under `content/` — for the caller to place. */
   files: { path: string; bytes?: Uint8Array; text?: string }[]
   blobs: { carried: number; bytes: number; missing: string[]; notCarried: number }
+  content: 'omitted' | 'sealed' | 'open'
+  people: { members: number; users: number }
 }
 
 /**
@@ -175,6 +186,12 @@ export async function contentExport(
   const requested = input.package?.name
   if (requested !== undefined && !isPackageName(requested))
     throw new CommandError(`"${requested}" is not a package name npm accepts.`)
+  const content = input.content ?? 'omitted'
+  const withPeople = Boolean(input.withMembers || input.withUsers)
+  if ((content === 'sealed' || withPeople) && !input.passphrase)
+    throw new CommandError('An encrypted export needs a passphrase.')
+  if (input.withBlobs && content === 'omitted')
+    throw new CommandError('Media files are content: --with-blobs goes with --include-content.')
   const { db } = await bootstrapDatabase(config)
   try {
     // A path is resolved against the tree it is exported from, and the key is
@@ -199,6 +216,12 @@ export async function contentExport(
     // the store's business, and `@crombolo/transfer` knows nothing about it.
     let carried = new Map<string, Uint8Array>()
     let missing: string[] = []
+    const people = withPeople
+      ? await exportPeople(db, {
+          members: input.withMembers ?? false,
+          users: input.withUsers ?? false,
+        })
+      : undefined
     if (input.withBlobs && blobKeys.length > 0) {
       const read = await readBlobs(await mediaStoreFor(config), blobKeys)
       carried = read.bytes
@@ -218,19 +241,31 @@ export async function contentExport(
         name: e.name,
         why: e.why,
       })),
-      files: writeBundlePackage(writeBundle(set, carried), {
-        ...pkg,
-        id: bundleIdFor(pkg.name.replace(/^@[^/]+\//, '')),
-        label: `Content from ${config.siteName}`,
-        private: true,
-        peerRange: `^${VERSION}`,
-      }),
+      files: writeBundlePackage(
+        writeBundle(set, carried, [], {
+          content,
+          seal:
+            input.passphrase && (content === 'sealed' || people)
+              ? newSeal(input.passphrase)
+              : undefined,
+          people,
+        }),
+        {
+          ...pkg,
+          id: bundleIdFor(pkg.name.replace(/^@[^/]+\//, '')),
+          label: `Content from ${config.siteName}`,
+          private: true,
+          peerRange: `^${VERSION}`,
+        },
+      ),
       blobs: {
         carried: carried.size,
         bytes: [...carried.values()].reduce((total, file) => total + file.length, 0),
         missing,
-        notCarried: input.withBlobs ? 0 : blobKeys.length,
+        notCarried: input.withBlobs || content === 'omitted' ? 0 : blobKeys.length,
       },
+      content,
+      people: { members: people?.members.length ?? 0, users: people?.users.length ?? 0 },
     }
   } finally {
     await db.close()
@@ -254,7 +289,7 @@ async function upgradeContext(config: CromboloConfig, set: Record<string, unknow
   const chains = chainsFor(config)
   const db = await connect({ file: config.sqliteFile })
   const node = { nodeId: config.nodeId, revision: config.schemaRevision }
-  const loaded = () => loadSchemaDirectory(config.schemaDir)
+  const loaded = () => loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
   const syncNode = () => ({ ...node, version: loaded().set.version })
   const checkOptions = async () => ({
     ...syncOptionsFor(config),

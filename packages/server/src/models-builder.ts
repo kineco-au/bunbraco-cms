@@ -7,6 +7,7 @@
  * "out of date" is answered by generating the types and comparing them with
  * what is on disk, which cannot drift from the question being asked.
  */
+
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -15,9 +16,11 @@ import type {
   ModelsBuilderPort,
   OutOfDateStatus,
 } from '@crombolo/api-management'
+import type { FormTypes } from '@crombolo/core'
 import { generateTypes, loadSchemaDirectory, validateSchemaSet } from '@crombolo/schema'
 import type { CromboloConfig } from './config.ts'
 import { VERSION } from './config.ts'
+import { formTypesFor } from './form-types.ts'
 import { logger } from './logging.ts'
 
 /** The file `crombolo generate` writes, inside the schema directory. */
@@ -26,10 +29,10 @@ export const GENERATED_FILE = 'content-types.d.ts'
 export type Intended = { types: string } | { problems: string[] }
 
 /** What `crombolo generate` would write now, or the problems stopping it. */
-export function intendedTypes(schemaDir: string): Intended {
+export function intendedTypes(schemaDir: string, formTypes?: FormTypes): Intended {
   if (!existsSync(schemaDir)) return { problems: [`No schema directory at ${schemaDir}`] }
-  const loaded = loadSchemaDirectory(schemaDir)
-  const problems = [...loaded.problems, ...validateSchemaSet(loaded.set)]
+  const loaded = loadSchemaDirectory(schemaDir, { formTypes })
+  const problems = [...loaded.problems, ...validateSchemaSet(loaded.set, { types: formTypes })]
   if (problems.length > 0)
     return {
       problems: problems.map((p) => `${p.file}${p.path ? ` (${p.path})` : ''}: ${p.message}`),
@@ -40,8 +43,9 @@ export function intendedTypes(schemaDir: string): Intended {
 /** Undefined when the schema does not generate, so staleness is unknowable. */
 export async function compareModels(
   schemaDir: string,
+  formTypes?: FormTypes,
 ): Promise<{ outOfDate: boolean } | undefined> {
-  const intended = intendedTypes(schemaDir)
+  const intended = intendedTypes(schemaDir, formTypes)
   if ('problems' in intended) return undefined
   const target = join(schemaDir, GENERATED_FILE)
   if (!existsSync(target)) return { outOfDate: true }
@@ -50,7 +54,7 @@ export async function compareModels(
 }
 
 export function createModelsBuilderPort(
-  config: Pick<CromboloConfig, 'schemaDir'>,
+  config: Pick<CromboloConfig, 'schemaDir'> & Partial<Pick<CromboloConfig, 'bundles'>>,
 ): ModelsBuilderPort {
   // Umbraco keeps the last generation error in memory and shows it on the
   // dashboard; a build that succeeds clears it.
@@ -58,7 +62,7 @@ export function createModelsBuilderPort(
   const log = logger('models-builder')
 
   const describe = async (): Promise<ModelsBuilderInfo> => {
-    const compared = await compareModels(config.schemaDir)
+    const compared = await compareModels(config.schemaDir, formTypesFor(config))
     return {
       // The models are TypeScript source, written on request: Umbraco's mode for
       // exactly that. The client only explains its own four mode strings.
@@ -78,13 +82,13 @@ export function createModelsBuilderPort(
     info: describe,
 
     async status(): Promise<OutOfDateStatus> {
-      const compared = await compareModels(config.schemaDir)
+      const compared = await compareModels(config.schemaDir, formTypesFor(config))
       if (!compared) return 'Unknown'
       return compared.outOfDate ? 'OutOfDate' : 'Current'
     },
 
     async build() {
-      const intended = intendedTypes(config.schemaDir)
+      const intended = intendedTypes(config.schemaDir, formTypesFor(config))
       if ('problems' in intended) {
         lastError = intended.problems.join('\n')
         log.warn('Models were not generated: {problems}', { problems: intended.problems.length })

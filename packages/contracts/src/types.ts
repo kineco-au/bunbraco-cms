@@ -35,3 +35,20 @@ export type RequestOf<K extends OperationId> = operations[K] extends {
 export type ParamsOf<K extends OperationId> = operations[K] extends { parameters: infer P }
   ? P
   : never
+
+import type {
+  components as DeliveryComponents,
+  operations as DeliveryOperationTable,
+} from '../generated/delivery-api.d.ts'
+
+/** The Delivery API's schemas: `DeliverySchemas['IApiContentResponseModel']`. */
+export type DeliverySchemas = DeliveryComponents['schemas']
+export type DeliveryOperations = DeliveryOperationTable
+export type DeliveryOperationId = keyof DeliveryOperationTable
+
+/** The 200 JSON body of a Delivery API operation. */
+export type DeliveryResponseOf<K extends DeliveryOperationId> = DeliveryOperationTable[K] extends {
+  responses: { 200: infer Ok }
+}
+  ? JsonContent<Ok>
+  : never

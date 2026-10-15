@@ -187,7 +187,9 @@ export default function Home({ model }) {
     )
     expect(await render(writer)).toContain('second: Hello')
 
-    expect(await reader.server.poll()).toBeGreaterThan(0)
+    // On Postgres the write's notification may already have delivered it, so
+    // this poll can find nothing new; either way the reader has it after.
+    await reader.server.poll()
     // A render never waits on a snapshot, so the first one after the
     // announcement starts the check and still serves the generation in use.
     expect(await render(reader)).toContain('data-layout="first"')

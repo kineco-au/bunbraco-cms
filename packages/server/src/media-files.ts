@@ -262,12 +262,14 @@ export async function readBlobs(
 export async function placeBlobs(
   store: MediaStore,
   blobs: ReadonlyMap<string, string>,
+  /** Turns a carried file's bytes into the media file's: opens a sealed one. */
+  open: (key: string, bytes: Uint8Array) => Uint8Array = (_key, bytes) => bytes,
 ): Promise<{ placed: number; bytes: number }> {
   let placed = 0
   let bytes = 0
   for (const [key, path] of blobs) {
     const file = Bun.file(path)
-    const content = new Uint8Array(await file.arrayBuffer())
+    const content = open(key, new Uint8Array(await file.arrayBuffer()))
     await store.put(key, content, { contentType: contentTypeFor(key) })
     placed += 1
     bytes += content.length

@@ -27,7 +27,7 @@ import {
 import { appendCacheInstruction } from '../cluster.ts'
 import type { Db } from '../database.ts'
 import { DbDate, fromDbBool } from '../dialect.ts'
-import { Locks } from '../locks.ts'
+import { type LockId, Locks } from '../locks.ts'
 import { isPending } from '../pending.ts'
 import {
   assertNodeMayWrite,
@@ -86,6 +86,13 @@ export interface MigratedValue {
   storage?: ValueStorageTypeName
 }
 
+interface PublishedCulture {
+  languageId: number
+  isoCode: string
+  eventId: number
+  name: string
+}
+
 interface ValueRow {
   eventId: number
   id: number
@@ -133,17 +140,24 @@ export type ContentKind = 'document' | 'media' | 'member' | 'blueprint' | 'eleme
 
 const KINDS: Record<
   ContentKind,
-  { objectType: string; recycleBin: number | undefined; container: string | undefined }
+  {
+    objectType: string
+    recycleBin: number | undefined
+    container: string | undefined
+    lock: LockId
+  }
 > = {
   document: {
     objectType: ObjectTypes.Document,
     recycleBin: SystemNodes.ContentRecycleBin,
     container: undefined,
+    lock: Locks.ContentTree,
   },
   media: {
     objectType: ObjectTypes.Media,
     recycleBin: SystemNodes.MediaRecycleBin,
     container: undefined,
+    lock: Locks.MediaTree,
   },
   // Members are a flat list at the tree root: no bin to trash them into, and
   // no folders to gather them in.
@@ -151,11 +165,13 @@ const KINDS: Record<
     objectType: ObjectTypes.Member,
     recycleBin: undefined,
     container: undefined,
+    lock: Locks.MemberTree,
   },
   blueprint: {
     objectType: ObjectTypes.DocumentBlueprint,
     recycleBin: undefined,
     container: ObjectTypes.DocumentBlueprintContainer,
+    lock: Locks.ContentTree,
   },
   // Umbraco 18's Elements: publishable content with no URL, gathered in folders
   // and trashed into a bin of its own at -22, as its Constants.System says.
@@ -163,6 +179,7 @@ const KINDS: Record<
     objectType: ObjectTypes.Element,
     recycleBin: SystemNodes.ElementRecycleBin,
     container: ObjectTypes.ElementContainer,
+    lock: Locks.ContentTree,
   },
 }
 
@@ -200,6 +217,9 @@ export interface DocumentRepositoryOptions {
 
 /** Thrown when a publish is refused by a business rule rather than failing. */
 export class PublishBlockedError extends Error {}
+
+/** The parent named for a new item is gone, or in the recycle bin. */
+export class InvalidParentError extends Error {}
 
 const isEmpty = (value: unknown) =>
   value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
@@ -250,6 +270,39 @@ function validateValues(
 const keyOf = (propertyTypeId: number, languageId: number | null, segment: string | null) =>
   `${propertyTypeId}|${languageId ?? ''}|${segment ?? ''}`
 
+/**
+ * The value rows a published node shows, from its history in id order:
+ * invariant values as of its latest publish, each culture's as of its own.
+ * A culture that is not published contributes nothing. Pure.
+ */
+export function publishedValueRows<
+  R extends {
+    eventId: number
+    propertyTypeId: number
+    languageId: number | null
+    segment: string | null
+  },
+>(
+  history: readonly R[],
+  invariantEventId: number,
+  cultures: ReadonlyArray<{ languageId: number; eventId: number }>,
+): R[] {
+  const cutoff = new Map(cultures.map((c) => [c.languageId, c.eventId]))
+  const chosen = new Map<string, R>()
+  for (const row of history) {
+    const limit = row.languageId === null ? invariantEventId : cutoff.get(row.languageId)
+    if (limit === undefined || row.eventId > limit) continue
+    chosen.set(keyOf(row.propertyTypeId, row.languageId, row.segment), row)
+  }
+  return [...chosen.values()]
+}
+
+/** Ids in slices small enough for either dialect's parameter limit. */
+const slices = <T>(items: readonly T[], size = 500): T[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, n) =>
+    items.slice(n * size, (n + 1) * size),
+  )
+
 export class DocumentRepository {
   #db: Db
   #nodes: NodeRepository
@@ -278,13 +331,13 @@ export class DocumentRepository {
   }
 
   /**
-   * The content-tree lock, unless the caller already holds it. Every write that
-   * depends on sibling order or on a branch not moving under it goes through
-   * here rather than taking the lock directly, so `inTreeLock` is honoured in
-   * one place instead of six.
+   * The tree's lock, unless the caller already holds it. Every write goes
+   * through here, as every Umbraco content service write takes its tree's write
+   * lock: two saves, or a save and a move, never interleave. The node a write
+   * acts on is read inside, so it acts on where the node is now.
    */
   #withTree<T>(fn: () => Promise<T>): Promise<T> {
-    return this.#inTreeLock ? fn() : this.#db.locks.withLock(Locks.ContentTree, fn)
+    return this.#inTreeLock ? fn() : this.#db.locks.withLock(KINDS[this.kind].lock, fn)
   }
 
   #child(tx: Db): DocumentRepository {
@@ -392,20 +445,34 @@ export class DocumentRepository {
       [t, t, f, this.objectType],
     )
     const languages = await this.#languages()
+    // Read in slices rather than per node: a large site is tens of thousands
+    // of nodes, and a query each is most of a rebuild's time.
+    const typesById = new Map<number, PropertyTypeRow[]>()
+    const culturesById = new Map<number, PublishedCulture[]>()
+    const historyById = new Map<number, ValueRow[]>()
+    for (const slice of slices(rows.map((row) => Number(row.id)))) {
+      for (const [id, cultures] of await this.#publishedCultureEventsFor(slice))
+        culturesById.set(id, cultures)
+      for (const [id, history] of await this.#valueHistoryFor(slice, asOfSchemaStateId))
+        historyById.set(id, history)
+    }
     const published: PublishedNodeRow[] = []
     for (const row of rows) {
-      // A pending property is never rendered, even if a template asks for it.
-      const propertyTypes = (await this.#propertyTypes(Number(row.content_type_id))).filter(
-        (p) => !p.pending,
-      )
-      const cultures = await this.#publishedCultureEvents(Number(row.id))
-      const values = await this.#readPublishedValues(
-        Number(row.id),
+      const typeId = Number(row.content_type_id)
+      if (!typesById.has(typeId))
+        // A pending property is never rendered, even if a template asks for it.
+        typesById.set(
+          typeId,
+          (await this.#propertyTypes(typeId)).filter((p) => !p.pending),
+        )
+      const propertyTypes = typesById.get(typeId) as PropertyTypeRow[]
+      const cultures = culturesById.get(Number(row.id)) ?? []
+      const latest = Math.max(Number(row.event_id), ...cultures.map((c) => c.eventId))
+      const history = (historyById.get(Number(row.id)) ?? []).filter((v) => v.eventId <= latest)
+      const values = this.#valuesFromRows(
+        publishedValueRows(history, Number(row.event_id), cultures),
         propertyTypes,
         languages,
-        Number(row.event_id),
-        cultures,
-        asOfSchemaStateId,
       )
       published.push({
         id: Number(row.id),
@@ -427,6 +494,87 @@ export class DocumentRepository {
     return published
   }
 
+  /**
+   * Every node of this kind that is not in the bin, with the values an editor
+   * sees now: what the published cache holds for media, which has no publish.
+   * Read in slices, like `loadPublished`.
+   */
+  async loadCurrent(): Promise<
+    Array<{
+      id: number
+      key: string
+      name: string
+      contentTypeAlias: string
+      values: DocumentValue[]
+      parentId: number
+      sortOrder: number
+      createDate: Date
+      updateDate: Date
+    }>
+  > {
+    const t = this.#db.dialect.boolValue(true)
+    const rows = await this.#db.query(
+      `SELECT n.id, n.unique_id, n.text, n.parent_id, n.sort_order, n.create_date,
+              head.text AS draft_name, head.version_date,
+              ct.alias AS content_type_alias, c.content_type_id
+       FROM node n
+       JOIN content c ON c.node_id = n.id
+       JOIN content_type ct ON ct.node_id = c.content_type_id
+       JOIN content_version head ON head.node_id = n.id AND head.current = ?
+       WHERE n.node_object_type = ? AND n.trashed = ?
+       ORDER BY n.level, n.sort_order, n.id`,
+      [t, this.objectType, this.#db.dialect.boolValue(false)],
+    )
+    const languages = await this.#languages()
+    const stateId = await visibleStateIdFor(this.#db, this.#nodeState)
+    const typesById = new Map<number, PropertyTypeRow[]>()
+    const rowsById = new Map<number, ValueRow[]>()
+    for (const slice of slices(rows.map((row) => Number(row.id)))) {
+      if (stateId === undefined) {
+        const current = await this.#db.query(
+          `SELECT id, node_id, event_id, property_type_id, language_id, segment,
+                  int_value, decimal_value, date_value, varchar_value, text_value
+           FROM property_value WHERE node_id IN (${slice.map(() => '?').join(', ')}) AND is_current = ?`,
+          [...slice, t],
+        )
+        for (const row of current) {
+          const id = Number(row.node_id)
+          rowsById.set(id, [...(rowsById.get(id) ?? []), this.#toValueRow(row)])
+        }
+      } else {
+        // As of the state this node reads: the latest value per key at or before it.
+        for (const [id, history] of await this.#valueHistoryFor(slice, stateId)) {
+          const latest = new Map<string, ValueRow>()
+          for (const row of history)
+            latest.set(keyOf(row.propertyTypeId, row.languageId, row.segment), row)
+          rowsById.set(id, [...latest.values()])
+        }
+      }
+    }
+    const out = []
+    for (const row of rows) {
+      const typeId = Number(row.content_type_id)
+      if (!typesById.has(typeId)) typesById.set(typeId, await this.#propertyTypes(typeId))
+      const propertyTypes = typesById.get(typeId) as PropertyTypeRow[]
+      out.push({
+        id: Number(row.id),
+        key: normaliseUuid(String(row.unique_id)),
+        name: String(row.draft_name ?? row.text ?? ''),
+        contentTypeAlias: String(row.content_type_alias),
+        parentId: Number(row.parent_id),
+        sortOrder: Number(row.sort_order),
+        createDate: DbDate.fromDb(row.create_date) ?? new Date(0),
+        updateDate:
+          DbDate.fromDb(row.version_date) ?? DbDate.fromDb(row.create_date) ?? new Date(0),
+        values:
+          propertyTypes.length === 0
+            ? []
+            : this.#valuesFromRows(rowsById.get(Number(row.id)) ?? [], propertyTypes, languages),
+      })
+    }
+    return out
+  }
+
   // --------------------------------------------------------------- writes
 
   /** Creates a document with its first save event. Under the content-tree lock so sibling sort orders cannot race. */
@@ -438,9 +586,11 @@ export class DocumentRepository {
         const contentTypeNode = await repo.nodes.byKey(input.contentTypeKey)
         if (!contentTypeNode) throw new Error(`Unknown content type '${input.contentTypeKey}'.`)
 
-        const parentId = input.parentKey
-          ? ((await repo.nodes.byKey(input.parentKey))?.id ?? SystemNodes.Root)
-          : SystemNodes.Root
+        const parent = input.parentKey ? await repo.nodes.byKey(input.parentKey) : undefined
+        if (input.parentKey && !parent)
+          throw new InvalidParentError('The parent could not be found.')
+        if (parent?.trashed) throw new InvalidParentError('The parent is in the recycle bin.')
+        const parentId = parent?.id ?? SystemNodes.Root
         const name = input.variants[0]?.name ?? ''
         const node = await repo.nodes.create({
           key: input.key,
@@ -557,6 +707,14 @@ export class DocumentRepository {
     values: readonly MigratedValue[],
     options: { schemaStateId: number; userId?: number },
   ): Promise<boolean> {
+    return this.#withTree(() => this.#appendUnderState(key, values, options))
+  }
+
+  async #appendUnderState(
+    key: string,
+    values: readonly MigratedValue[],
+    options: { schemaStateId: number; userId?: number },
+  ): Promise<boolean> {
     return this.#db.transaction(async (tx) => {
       const repo = this.#child(tx)
       const node = await repo.nodes.byKey(key)
@@ -609,6 +767,10 @@ export class DocumentRepository {
 
   /** Saves the draft: one save event, and a new value version for each value that changed. */
   async update(input: SaveDocumentInput): Promise<DocumentAggregate | undefined> {
+    return this.#withTree(() => this.#update(input))
+  }
+
+  async #update(input: SaveDocumentInput): Promise<DocumentAggregate | undefined> {
     return this.#db.transaction(async (tx) => {
       const repo = this.#child(tx)
       const state = await assertNodeMayWrite(tx, this.#nodeState)
@@ -769,6 +931,13 @@ export class DocumentRepository {
     key: string,
     cultures: readonly string[] | null,
   ): Promise<DocumentAggregate | undefined> {
+    return this.#withTree(() => this.#unpublish(key, cultures))
+  }
+
+  async #unpublish(
+    key: string,
+    cultures: readonly string[] | null,
+  ): Promise<DocumentAggregate | undefined> {
     return this.#db.transaction(async (tx) => {
       const repo = this.#child(tx)
       await assertNodeMayWrite(tx, this.#nodeState)
@@ -817,6 +986,10 @@ export class DocumentRepository {
 
   /** Rollback appends the target version's values under a new event. History is never rewritten. */
   async rollback(versionId: string): Promise<DocumentAggregate | undefined> {
+    return this.#withTree(() => this.#rollback(versionId))
+  }
+
+  async #rollback(versionId: string): Promise<DocumentAggregate | undefined> {
     return this.#db.transaction(async (tx) => {
       const repo = this.#child(tx)
       const state = await assertNodeMayWrite(tx, this.#nodeState)
@@ -869,35 +1042,54 @@ export class DocumentRepository {
     return true
   }
 
+  /**
+   * Re-parents the branch under the bin, as Umbraco does: paths stay true, so a
+   * later restore of an ancestor cannot reach into it. The branch root
+   * remembers where it came from for the restore.
+   */
   async moveToRecycleBin(key: string): Promise<boolean> {
-    const node = await this.#nodes.byKey(key)
-    if (!node || this.#recycleBin === undefined) return false
-    return this.#withTree(async () => {
-      const t = this.#db.dialect.boolValue(true)
-      const f = this.#db.dialect.boolValue(false)
-      // The branch root remembers where it came from; the rest keeps its parent.
-      await this.#db.exec('UPDATE document SET original_parent_id = ? WHERE node_id = ?', [
-        node.parentId === SystemNodes.Root ? null : node.parentId,
-        node.id,
-      ])
-      // The whole branch goes with it, and stays unpublished while trashed.
-      await this.#db.exec(
-        `UPDATE node SET trashed = ?, parent_id = CASE WHEN id = ? THEN ? ELSE parent_id END
-         WHERE id = ? OR path LIKE ?`,
-        [t, node.id, this.#recycleBin, node.id, `${node.path},%`],
-      )
-      await this.#db.exec(
-        `UPDATE document SET published = ?, edited = ? WHERE node_id IN (SELECT id FROM node WHERE id = ? OR path LIKE ?)`,
-        [f, t, node.id, `${node.path},%`],
-      )
-      return true
-    })
+    const bin = this.#recycleBin
+    if (bin === undefined) return false
+    return this.#withTree(() =>
+      this.#db.transaction(async (tx) => {
+        const repo = this.#child(tx)
+        const node = await repo.nodes.byKey(key)
+        if (!node) return false
+        if (node.parentId === bin) return true
+        const t = tx.dialect.boolValue(true)
+        const f = tx.dialect.boolValue(false)
+        await tx.exec('UPDATE document SET original_parent_id = ? WHERE node_id = ?', [
+          node.parentId === SystemNodes.Root ? null : node.parentId,
+          node.id,
+        ])
+        // The whole branch goes with it, and stays unpublished while trashed.
+        await tx.exec('UPDATE node SET trashed = ? WHERE id = ? OR path LIKE ?', [
+          t,
+          node.id,
+          `${node.path},%`,
+        ])
+        await tx.exec(
+          `UPDATE document SET published = ?, edited = ? WHERE node_id IN (SELECT id FROM node WHERE id = ? OR path LIKE ?)`,
+          [f, t, node.id, `${node.path},%`],
+        )
+        await repo.nodes.move(node.id, bin)
+        await tx.exec('UPDATE node SET sort_order = ? WHERE id = ?', [
+          await repo.#nextSortOrder(bin, node.id),
+          node.id,
+        ])
+        return true
+      }),
+    )
   }
 
   async delete(key: string): Promise<boolean> {
-    const node = await this.#nodes.byKey(key)
-    if (!node) return false
+    return this.#withTree(() => this.#delete(key))
+  }
+
+  async #delete(key: string): Promise<boolean> {
     return this.#db.transaction(async (tx) => {
+      const node = await new NodeRepository(tx).byKey(key)
+      if (!node) return false
       const ids = await tx.query<{ id: number }>(
         'SELECT id FROM node WHERE id = ? OR path LIKE ?',
         [node.id, `${node.path},%`],
@@ -947,6 +1139,17 @@ export class DocumentRepository {
           return 'invalid'
         if (target?.trashed) return 'invalid'
         const parentId = target?.id ?? SystemNodes.Root
+        // Out of the bin is a restore, as Umbraco's Move treats it.
+        if (node.trashed) {
+          await tx.exec('UPDATE node SET trashed = ? WHERE id = ? OR path LIKE ?', [
+            tx.dialect.boolValue(false),
+            node.id,
+            `${node.path},%`,
+          ])
+          await tx.exec('UPDATE document SET original_parent_id = NULL WHERE node_id = ?', [
+            node.id,
+          ])
+        }
         await repo.nodes.move(node.id, parentId)
         await tx.exec('UPDATE node SET sort_order = ? WHERE id = ?', [
           await repo.#nextSortOrder(parentId, node.id),
@@ -1010,11 +1213,13 @@ export class DocumentRepository {
     parentKey: string | null,
     sorting: ReadonlyArray<{ key: string; sortOrder: number }>,
   ): Promise<'sorted' | 'notFound'> {
-    const parentId = parentKey ? (await this.#nodes.byKey(parentKey))?.id : SystemNodes.Root
-    if (parentId === undefined) return 'notFound'
     return this.#withTree(async () =>
       this.#db.transaction(async (tx) => {
         await assertNodeMayWrite(tx, this.#nodeState)
+        const parentId = parentKey
+          ? (await new NodeRepository(tx).byKey(parentKey))?.id
+          : SystemNodes.Root
+        if (parentId === undefined) return 'notFound'
         const nodes = await new NodeRepository(tx).byKeys(sorting.map((s) => s.key))
         const byKey = new Map(nodes.map((n) => [n.key, n]))
         for (const item of sorting) {
@@ -1069,17 +1274,17 @@ export class DocumentRepository {
     key: string,
     targetKey: string | null | undefined,
   ): Promise<'restored' | 'notFound' | 'invalid'> {
-    const node = await this.#nodes.byKey(key)
-    if (!node || node.objectType !== this.objectType || !node.trashed) return 'notFound'
-    let parentKey: string | null
-    if (targetKey !== undefined && targetKey !== null) parentKey = targetKey
-    else if (targetKey === null) parentKey = null
-    else parentKey = (await this.originalParent(key)) ?? null
-    const parent = parentKey ? await this.#nodes.byKey(parentKey) : undefined
-    if (parentKey && (!parent || parent.trashed)) return 'invalid'
     return this.#withTree(async () =>
       this.#db.transaction(async (tx) => {
         const repo = this.#child(tx)
+        const node = await repo.nodes.byKey(key)
+        if (!node || node.objectType !== this.objectType || !node.trashed) return 'notFound'
+        let parentKey: string | null
+        if (targetKey !== undefined && targetKey !== null) parentKey = targetKey
+        else if (targetKey === null) parentKey = null
+        else parentKey = (await repo.originalParent(key)) ?? null
+        const parent = parentKey ? await repo.nodes.byKey(parentKey) : undefined
+        if (parentKey && (!parent || parent.trashed)) return 'invalid'
         await assertNodeMayWrite(tx, this.#nodeState)
         const parentId = parent?.id ?? SystemNodes.Root
         await tx.exec('UPDATE node SET trashed = ? WHERE id = ? OR path LIKE ?', [
@@ -1105,6 +1310,14 @@ export class DocumentRepository {
    * skipped, and so is its branch below.
    */
   async publishBranch(
+    key: string,
+    cultures: readonly string[] | null,
+    includeUnpublished: boolean,
+  ): Promise<{ published: string[]; failed: Array<{ key: string; reason: string }> } | undefined> {
+    return this.#withTree(() => this.#publishBranch(key, cultures, includeUnpublished))
+  }
+
+  async #publishBranch(
     key: string,
     cultures: readonly string[] | null,
     includeUnpublished: boolean,
@@ -1184,6 +1397,17 @@ export class DocumentRepository {
    * the invariant variant). A time of null clears that half of the schedule.
    */
   async setSchedule(
+    key: string,
+    entries: ReadonlyArray<{
+      culture: string | null
+      publishTime: Date | null
+      unpublishTime: Date | null
+    }>,
+  ): Promise<boolean> {
+    return this.#withTree(() => this.#setSchedule(key, entries))
+  }
+
+  async #setSchedule(
     key: string,
     entries: ReadonlyArray<{
       culture: string | null
@@ -1297,11 +1521,13 @@ export class DocumentRepository {
         type.keep_all === null ? global.keepAllVersionsNewerThanDays : Number(type.keep_all)
       const keepLatest =
         type.keep_latest === null ? global.keepLatestVersionPerDayForDays : Number(type.keep_latest)
-      const deleted = await this.#db.transaction((tx) =>
-        this.#child(tx).#cleanupNode(
-          Number(type.node_id),
-          now.getTime() - keepAll * day,
-          now.getTime() - keepLatest * day,
+      const deleted = await this.#withTree(() =>
+        this.#db.transaction((tx) =>
+          this.#child(tx).#cleanupNode(
+            Number(type.node_id),
+            now.getTime() - keepAll * day,
+            now.getTime() - keepLatest * day,
+          ),
         ),
       )
       if (deleted > 0) {
@@ -1996,33 +2222,90 @@ export class DocumentRepository {
     return { ...draft, values }
   }
 
-  /** The content tree's view of documents, one query per page for the aggregates it decorates with. */
+  /**
+   * The content tree's view of documents: four queries a page, whatever its
+   * size. Only what a tree item shows is read — not the values, nor the
+   * schedules the editor needs.
+   */
   async treeItems(rows: readonly NodeRow[]): Promise<DocumentTreeItem[]> {
-    const counts = await this.#nodes.childCounts(
-      rows.map((row) => row.id),
-      this.objectType,
+    if (rows.length === 0) return []
+    const ids = rows.map((row) => row.id)
+    const placeholders = ids.map(() => '?').join(', ')
+    const counts = await this.#nodes.childCounts(ids, this.objectType)
+    const facts = await this.#db.query(
+      `SELECT n.id, ctn.unique_id AS content_type_key, ct.icon AS content_type_icon,
+              ct.list_view AS content_type_collection, d.published, d.edited,
+              head.text AS draft_name
+       FROM node n
+       JOIN content c ON c.node_id = n.id
+       JOIN content_type ct ON ct.node_id = c.content_type_id
+       JOIN node ctn ON ctn.id = ct.node_id
+       JOIN document d ON d.node_id = n.id
+       JOIN content_version head ON head.node_id = n.id AND head.current = ?
+       WHERE n.id IN (${placeholders})`,
+      [this.#db.dialect.boolValue(true), ...ids],
     )
+    const factsById = new Map(facts.map((row) => [Number(row.id), row]))
+    const cultures = await this.#db.query(
+      `SELECT dcv.node_id, dcv.name, dcv.published, dcv.edited, dcv.available, l.iso_code
+       FROM document_culture_variation dcv JOIN language l ON l.id = dcv.language_id
+       WHERE dcv.node_id IN (${placeholders})`,
+      ids,
+    )
+    const culturesById = new Map<number, Record<string, unknown>[]>()
+    for (const row of cultures)
+      culturesById.set(Number(row.node_id), [...(culturesById.get(Number(row.node_id)) ?? []), row])
+    // Every ancestor the page's paths name, parents included, in one read.
+    const pathIds = (row: NodeRow) =>
+      row.path
+        .split(',')
+        .map(Number)
+        .filter((id) => id > 0 && id !== row.id)
+    const above = new Map(
+      (await this.#nodes.byIds([...new Set(rows.flatMap(pathIds))])).map((n) => [n.id, n]),
+    )
+
     const items: DocumentTreeItem[] = []
     for (const row of rows) {
-      const aggregate = await this.#load(row)
-      if (!aggregate) continue
-      const ancestors = await this.#nodes.ancestors(row.key)
+      const fact = factsById.get(row.id)
+      if (!fact) continue
+      const ancestors = pathIds(row)
+        .map((id) => above.get(id))
+        .filter((n): n is NodeRow => n !== undefined)
+      const parent = row.parentId > 0 ? above.get(row.parentId) : undefined
+      const own = culturesById.get(row.id) ?? []
       items.push({
         key: row.key,
         name: row.text ?? '',
         hasChildren: (counts.get(row.id) ?? 0) > 0,
-        parentKey: aggregate.parentKey,
-        contentTypeKey: aggregate.contentTypeKey,
-        contentTypeCollectionKey: aggregate.contentTypeCollectionKey ?? null,
-        icon: aggregate.contentTypeIcon,
+        parentKey: parent ? parent.key : null,
+        contentTypeKey: normaliseUuid(String(fact.content_type_key)),
+        contentTypeCollectionKey: fact.content_type_collection
+          ? normaliseUuid(String(fact.content_type_collection))
+          : null,
+        icon: String(fact.content_type_icon ?? 'icon-document'),
         isTrashed: row.trashed,
         createDate: row.createDate ?? new Date(),
         ancestorKeys: ancestors.filter((a) => a.objectType === this.objectType).map((a) => a.key),
-        variants: aggregate.variants.map((v) => ({
-          culture: v.culture,
-          name: v.name,
-          state: v.state,
-        })),
+        variants:
+          own.length === 0
+            ? [
+                {
+                  culture: null,
+                  name: String(fact.draft_name ?? row.text ?? ''),
+                  state: stateFor(fromDbBool(fact.published), fromDbBool(fact.edited), row.trashed),
+                },
+              ]
+            : own.map((c) => ({
+                culture: String(c.iso_code),
+                name: String(c.name ?? ''),
+                state: stateFor(
+                  fromDbBool(c.published),
+                  fromDbBool(c.edited),
+                  row.trashed,
+                  fromDbBool(c.available),
+                ),
+              })),
       })
     }
     return items
@@ -2289,9 +2572,61 @@ export class DocumentRepository {
   }
 
   /** Each published culture: its language, the event it was published at, and its published name. */
-  async #publishedCultureEvents(
-    nodeId: number,
-  ): Promise<Array<{ languageId: number; isoCode: string; eventId: number; name: string }>> {
+  async #publishedCultureEventsFor(
+    ids: readonly number[],
+  ): Promise<Map<number, PublishedCulture[]>> {
+    const out = new Map<number, PublishedCulture[]>()
+    if (ids.length === 0) return out
+    const rows = await this.#db.query(
+      `SELECT dcv.node_id, dcv.language_id, l.iso_code, dcv.published_event_id, dcv.published_name, dcv.name
+       FROM document_culture_variation dcv JOIN language l ON l.id = dcv.language_id
+       WHERE dcv.node_id IN (${ids.map(() => '?').join(', ')}) AND dcv.published = ?`,
+      [...ids, this.#db.dialect.boolValue(true)],
+    )
+    for (const row of rows) {
+      const id = Number(row.node_id)
+      out.set(id, [
+        ...(out.get(id) ?? []),
+        {
+          languageId: Number(row.language_id),
+          isoCode: String(row.iso_code),
+          eventId: Number(row.published_event_id ?? 0),
+          name: String(row.published_name ?? row.name ?? ''),
+        },
+      ])
+    }
+    return out
+  }
+
+  /** Each node's value history, oldest first. */
+  async #valueHistoryFor(
+    ids: readonly number[],
+    schemaStateId?: number,
+  ): Promise<Map<number, ValueRow[]>> {
+    const out = new Map<number, ValueRow[]>()
+    if (ids.length === 0) return out
+    const params: unknown[] = [...ids]
+    let where = `node_id IN (${ids.map(() => '?').join(', ')})`
+    if (schemaStateId !== undefined) {
+      where += ' AND schema_state_id <= ?'
+      params.push(schemaStateId)
+    }
+    const rows = await this.#db.query(
+      `SELECT id, node_id, event_id, property_type_id, language_id, segment,
+              int_value, decimal_value, date_value, varchar_value, text_value
+       FROM property_value WHERE ${where} ORDER BY node_id, id`,
+      params,
+    )
+    for (const row of rows) {
+      const id = Number(row.node_id)
+      const list = out.get(id)
+      if (list) list.push(this.#toValueRow(row))
+      else out.set(id, [this.#toValueRow(row)])
+    }
+    return out
+  }
+
+  async #publishedCultureEvents(nodeId: number): Promise<PublishedCulture[]> {
     const rows = await this.#db.query(
       `SELECT dcv.language_id, l.iso_code, dcv.published_event_id, dcv.published_name, dcv.name
        FROM document_culture_variation dcv JOIN language l ON l.id = dcv.language_id
@@ -2326,7 +2661,6 @@ export class DocumentRepository {
     cultures: ReadonlyArray<{ languageId: number; eventId: number }>,
     schemaStateId?: number,
   ): Promise<DocumentValue[]> {
-    const cutoff = new Map(cultures.map((c) => [c.languageId, c.eventId]))
     const latest = Math.max(invariantEventId, ...cultures.map((c) => c.eventId))
     const conditions = ['node_id = ?', 'event_id <= ?']
     const params: unknown[] = [nodeId, latest]
@@ -2342,13 +2676,11 @@ export class DocumentRepository {
         params,
       )
     ).map((row) => this.#toValueRow(row))
-    const chosen = new Map<string, ValueRow>()
-    for (const row of all) {
-      const limit = row.languageId === null ? invariantEventId : cutoff.get(row.languageId)
-      if (limit === undefined || row.eventId > limit) continue
-      chosen.set(keyOf(row.propertyTypeId, row.languageId, row.segment), row)
-    }
-    return this.#valuesFromRows([...chosen.values()], propertyTypes, languages)
+    return this.#valuesFromRows(
+      publishedValueRows(all, invariantEventId, cultures),
+      propertyTypes,
+      languages,
+    )
   }
 
   async #anyCulturePublished(nodeId: number): Promise<boolean> {

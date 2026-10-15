@@ -46,6 +46,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.5.14",
+        "@crombolo/api-delivery": "workspace:*",
         "@crombolo/api-management": "workspace:*",
         "@crombolo/assistant": "workspace:*",
         "@crombolo/auth": "workspace:*",
@@ -74,6 +75,15 @@
       "dependencies": {
         "@crombolo/crombolo": "workspace:*",
         "@crombolo/simple-redirects": "workspace:*",
+      },
+    },
+    "packages/api-delivery": {
+      "name": "@crombolo/api-delivery",
+      "version": "0.12.0",
+      "dependencies": {
+        "@crombolo/contracts": "workspace:*",
+        "@crombolo/core": "workspace:*",
+        "@crombolo/render": "workspace:*",
       },
     },
     "packages/api-management": {
@@ -147,6 +157,7 @@
         "crombolo": "./bin/crombolo.ts",
       },
       "dependencies": {
+        "@crombolo/api-delivery": "workspace:*",
         "@crombolo/api-management": "workspace:*",
         "@crombolo/assistant": "workspace:*",
         "@crombolo/auth": "workspace:*",
@@ -200,6 +211,7 @@
       "name": "@crombolo/server",
       "version": "0.12.0",
       "dependencies": {
+        "@crombolo/api-delivery": "workspace:*",
         "@crombolo/api-management": "workspace:*",
         "@crombolo/assistant": "workspace:*",
         "@crombolo/auth": "workspace:*",
@@ -218,6 +230,9 @@
       "version": "0.12.0",
       "dependencies": {
         "@crombolo/server": "workspace:*",
+      },
+      "peerDependencies": {
+        "@crombolo/crombolo": "^0.12.0",
       },
     },
     "packages/transfer": {
@@ -307,6 +322,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.5.14", "", { "os": "win32", "cpu": "arm64" }, "sha512-pHgAFffmZtaYoxavEsWEYNvcA7NwOIjLyqw2HXyLbt16xYryX0L4fMV2u0G9ag6LNYPIoqWaWqzUcnc6rLGGXg=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.14", "", { "os": "win32", "cpu": "x64" }, "sha512-oJWmBhoHsnhUKIke+0gXDX0mltJrWHA1UyHsrTlXwX0TL64ilVZAo+TYZm97baecV0esBdpzy3k96q+09JaZUQ=="],
+
+    "@crombolo/api-delivery": ["@crombolo/api-delivery@workspace:packages/api-delivery"],
 
     "@crombolo/api-management": ["@crombolo/api-management@workspace:packages/api-management"],
 

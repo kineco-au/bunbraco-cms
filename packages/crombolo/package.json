@@ -47,6 +47,7 @@
     "NOTICE"
   ],
   "dependencies": {
+    "@crombolo/api-delivery": "workspace:*",
     "@crombolo/api-management": "workspace:*",
     "@crombolo/assistant": "workspace:*",
     "@crombolo/auth": "workspace:*",
@@ -57,8 +58,8 @@
     "@crombolo/core": "workspace:*",
     "@crombolo/data": "workspace:*",
     "@crombolo/render": "workspace:*",
-    "@crombolo/server": "workspace:*",
     "@crombolo/schema": "workspace:*",
+    "@crombolo/server": "workspace:*",
     "@crombolo/transfer": "workspace:*"
   }
 }

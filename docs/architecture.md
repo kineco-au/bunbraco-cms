@@ -13,6 +13,7 @@ crombolo/
 │   ├── data/                     # dialect seam: schema, migrations, repositories
 │   ├── auth/                     # OAuth2 server, token store, cookies, providers
 │   ├── api-management/           # /umbraco/management/api/v1/** handlers
+│   ├── api-delivery/             # /umbraco/delivery/api/v2/** over the published cache
 │   ├── backoffice-host/          # SPA shell, importmap, static assets, manifests
 │   ├── schema/                   # schema-as-code: model, parser, validator, writer, sync
 │   ├── import-umbraco/           # opt-in: an Umbraco backup → a report, schema files, a bundle, view stubs
@@ -34,6 +35,9 @@ which is what makes the packages consumable outside this repo.
 - `data` implements `core`'s repository interfaces and is the only package that
   knows SQL exists
 - `api-management` depends on `core`, never on `data`
+- `api-delivery` depends on `core`, `contracts` and `render`, never on `data`: it
+  reads the published cache, and the server hands it the member and protection
+  lookups it needs
 - `assistant` depends on `contracts` for its tool surface and on nothing that can
   write: it is handed a function that issues Management API calls, so every read
   it makes is authorised as the signed-in user and it has no path of its own to
@@ -71,7 +75,7 @@ One Bun `serve()` with an ordered router:
 | 2 | `/umbraco/management/api/v1/*` | `api-management` |
 | 3 | `/umbraco/management/api/v1/security/back-office/*` | `auth` |
 | 4 | `/umbraco`, `/umbraco/login` | `backoffice-host` HTML shells |
-| 5 | `/umbraco/delivery/api/*` | `api-delivery` (later) |
+| 5 | `/umbraco/delivery/api/*` | `api-delivery`, on nodes that serve the site ([`delivery-api.md`](delivery-api.md)) |
 | 6 | `*` | `render` — front-end content routing |
 
 ## Contract-first handlers
@@ -95,7 +99,18 @@ operations per area — and fails CI if an implemented operation regresses.
   cache invalidation, indexing and webhooks all hang off this rather than calling
   each other.
 - **Lock abstraction** (`data/locks`): named write locks around content-tree
-  mutation. SQLite → WAL plus a single-writer queue; Postgres → advisory locks.
+  mutation. SQLite → WAL plus a single-writer queue; Postgres → an in-process
+  queue in front of a transaction-scoped advisory lock. Every document, media
+  and member write takes its tree's lock (content, media, member), as every
+  Umbraco content-service write does, and reads the node it acts on inside it.
+  Waiters queue in-process, so a node keeps at most one pooled connection
+  blocked on each advisory lock; without that, a pool full of waiters left the
+  holder no connection to work on. A wait is bounded by
+  `CROMBOLO_LOCK_TIMEOUT_SECONDS` (15s) both in-process and as Postgres's
+  `lock_timeout`; a deadlock outside any enclosing transaction is retried once.
+  Contention that outlasts that (`data/busy`) is answered by the Management API
+  as 503 with `Retry-After`, never a 500. Story `081`; the load test is
+  described in `testing.md`.
 - **Background jobs** (`core/jobs`): interval scheduler for version cleanup,
   scheduled publishing, temporary-file cleanup, log scrubbing, keep-alive.
 - **Problem details**: RFC 7807 responses and the `Umb-Notifications` header

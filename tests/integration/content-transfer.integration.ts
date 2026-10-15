@@ -18,6 +18,7 @@ import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
+const PASSPHRASE = 'integration passphrase, long enough'
 
 const PAGE_TOML = `[content-type]
 alias = "page"
@@ -145,6 +146,8 @@ describe('content transfer, end to end through the CLI', () => {
   let dir: string
   let site: string
   let keys: string[] = []
+  /** What the CLI is given as the bundle passphrase; empty for none. */
+  let passphrase = PASSPHRASE
 
   /** Runs a command in the site directory, against one of the two databases. */
   async function cli(database: 'source' | 'target', ...args: string[]): Promise<Run> {
@@ -160,6 +163,7 @@ describe('content transfer, end to end through the CLI', () => {
         CROMBOLO_LOGS_DIR: join(dir, 'logs'),
         CROMBOLO_LOG_TO_CONSOLE: 'false',
         CROMBOLO_ADMIN_PASSWORD: 'integration-password',
+        CROMBOLO_BUNDLE_PASSPHRASE: passphrase,
       },
       stdout: 'pipe',
       stderr: 'pipe',
@@ -240,6 +244,7 @@ describe('content transfer, end to end through the CLI', () => {
       'source',
       'content',
       'export',
+      '--include-content',
       '--root',
       '/Campaigns',
       '--out',
@@ -291,8 +296,8 @@ describe('content transfer, end to end through the CLI', () => {
     expect(refused.code).toBe(1)
     // The message a person reads, not the finding code: it has to name the node
     // and the property, and offer the three ways out.
-    expect(refused.out).toContain('"Offer A" is already here and differs')
-    expect(refused.out).toContain('would replace title')
+    expect(refused.out).toContain('"Offer A" is already here and its title differs')
+    expect(refused.out).toContain(`answer it as ${keys[1]}/title`)
     expect(refused.out).toContain('take-bundle')
     expect(refused.out).toContain('Nothing was written')
     // Their edit stands.
@@ -355,7 +360,16 @@ describe('content transfer, end to end through the CLI', () => {
 
   test('a bundle whose node file is missing is refused as incomplete', async () => {
     const broken = join(dir, 'broken')
-    const copied = await cli('source', 'content', 'export', '--root', '/Campaigns', '--out', broken)
+    const copied = await cli(
+      'source',
+      'content',
+      'export',
+      '--include-content',
+      '--root',
+      '/Campaigns',
+      '--out',
+      broken,
+    )
     expect(copied.code, copied.out).toBe(0)
     rmSync(join(broken, 'content', 'nodes', `${keys[2]}.json`))
     // Checking must refuse rather than report-and-continue: otherwise a bundle
@@ -372,6 +386,7 @@ describe('content transfer, end to end through the CLI', () => {
       'source',
       'content',
       'export',
+      '--include-content',
       '--root',
       '/Nope',
       '--out',
@@ -395,6 +410,7 @@ describe('content transfer, end to end through the CLI', () => {
       'source',
       'content',
       'export',
+      '--include-content',
       '--root',
       media.key,
       '--with-blobs',
@@ -432,7 +448,16 @@ describe('content transfer, end to end through the CLI', () => {
       blob: string
     }
     const out = join(dir, 'no-blobs')
-    const exported = await cli('source', 'content', 'export', '--root', media.key, '--out', out)
+    const exported = await cli(
+      'source',
+      'content',
+      'export',
+      '--include-content',
+      '--root',
+      media.key,
+      '--out',
+      out,
+    )
     expect(exported.code, exported.out).toBe(0)
     expect(exported.out).toContain('pass --with-blobs')
     expect(existsSync(join(out, 'content', 'blobs'))).toBe(false)
@@ -445,6 +470,72 @@ describe('content transfer, end to end through the CLI', () => {
 
     const allowed = await cli('target', 'content', 'check', out, '--allow-missing-blobs')
     expect(allowed.code, allowed.out).toBe(0)
+  }, 60_000)
+
+  test('content stays out unless asked for, is sealed when it is, and opens only with the passphrase', async () => {
+    const bare = join(dir, 'bare')
+    const left = await cli('source', 'content', 'export', '--root', '/Campaigns', '--out', bare)
+    expect(left.code, left.out).toBe(0)
+    expect(left.out).toContain('not included')
+    const node = JSON.parse(readFileSync(join(bare, 'content', 'nodes', `${keys[1]}.json`), 'utf8'))
+    expect(node.variants[0].name).toBe('Offer A')
+    expect(node.values).toEqual([])
+
+    const sealed = join(dir, 'sealed')
+    const exported = await cli(
+      'source',
+      'content',
+      'export',
+      '--include-content',
+      '--root',
+      '/Campaigns',
+      '--out',
+      sealed,
+    )
+    expect(exported.code, exported.out).toBe(0)
+    expect(exported.out).toContain('encrypted')
+    const values = readFileSync(join(sealed, 'content', 'values', `${keys[1]}.json`))
+    expect(values.includes(Buffer.from('Offer A'))).toBe(false)
+
+    passphrase = 'not the passphrase it was given'
+    try {
+      const wrong = await cli('target', 'content', 'check', sealed)
+      expect(wrong.code).toBe(1)
+      expect(wrong.out).toContain('passphrase does not open this bundle')
+      passphrase = ''
+      const none = await cli('target', 'content', 'check', sealed)
+      expect(none.code).toBe(1)
+      expect(none.out).toContain('CROMBOLO_BUNDLE_PASSPHRASE')
+    } finally {
+      passphrase = PASSPHRASE
+    }
+
+    const open = join(dir, 'open')
+    const unencrypted = await cli(
+      'source',
+      'content',
+      'export',
+      '--include-content',
+      '--allow-content-unencrypted',
+      '--root',
+      '/Campaigns',
+      '--out',
+      open,
+    )
+    expect(unencrypted.code, unencrypted.out).toBe(0)
+    expect(unencrypted.out).toContain('warning')
+    expect(existsSync(join(open, 'content', 'values'))).toBe(false)
+    const refused = await cli(
+      'source',
+      'content',
+      'export',
+      '--allow-content-unencrypted',
+      '--root',
+      '/Campaigns',
+      '--out',
+      join(dir, 'x2'),
+    )
+    expect(refused.code).toBe(1)
   }, 60_000)
 
   test('publishes a branch, having refused to publish half of one', async () => {

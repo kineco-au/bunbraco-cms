@@ -480,8 +480,10 @@ as `crombolo bundle install` (`server/src/bundle-install.ts`), with the server's
 own connection. The site turns this off with `applyBundleContentOnInstall: false`
 (`CROMBOLO_APPLY_BUNDLE_CONTENT=false`), and the Marketplace card has a toggle
 that declines it for one install. A refused check or a backup the site cannot
-take leaves the dependency installed and says why, naming the command that
-applies the content later; the install that succeeded is not undone.
+take leaves the dependency installed and says why; the import then waits on the
+Changes dashboard, where its conflicts are answered and it is run
+([`content-transfer.md`](content-transfer.md), "In the backoffice"). The install
+that succeeded is not undone.
 
 **`package.json` is the install ledger.** There is no separate record of what was
 installed at runtime, because the dependency list already is one. "Incorporate
@@ -540,6 +542,19 @@ added to `package.json` — which is how an environment's export arrives. A
 directory holding a bare `bundle.json` with no `package.json` is refused, as is
 a package whose manifest names no `content` or whose peer range excludes this
 release. The transfer run records the package's name and version.
+
+### Encrypted content and people
+
+An environment's export seals its property values, media files and any
+members or users under a passphrase ([`content-transfer.md`](content-transfer.md),
+"What is readable, and what is sealed"). Such a bundle installs only when given
+it — the command line prompts or reads `CROMBOLO_BUNDLE_PASSPHRASE`, and the
+Changes dashboard asks for it and sends it with each request, never storing it.
+Without it the check is one blocking finding and an install is refused before
+anything is backed up or written. A package meant for anyone is open:
+`writeBundlePackage` refuses to write a public one that carries people or
+sealed content, and the marketplace's install of one that does anyway is
+refused with the reason.
 
 `bundle` is the artifact's name and `install` reads better for one that brings
 its own structure, but these are aliases: `content check` and `content import`
@@ -776,6 +791,9 @@ export interface ServerBundle {
   section: BundleSection  // what a caller must have access to
   capabilities: readonly BundleCapability[]
   routes: readonly ServerBundleRoute[]
+  tables?: BundleTables   // Part 4
+  forms?: BundleForms     // form field and workflow types, docs/forms.md
+  events?: BundleEvents   // webhook event handlers, docs/webhooks.md
 }
 ```
 
@@ -815,8 +833,10 @@ a section of the bundle's own by its manifest alias (`Acme.Section.Design`).
   bundle can find.
 - **Its own failures.** A handler that throws becomes a 500 and a log line naming
   the bundle; the request path stays up and the other bundles keep answering.
-- **Nothing on a `web` node.** These are backoffice endpoints, so they mount only
-  where `servesBackOffice`.
+- **No routes on a `web` node.** These are backoffice endpoints, so they mount
+  only where `servesBackOffice`. The bundle itself is still validated on every
+  node, because its `forms` types are needed where forms render and submit
+  (story `095`).
 
 ### What a handler knows about the caller
 

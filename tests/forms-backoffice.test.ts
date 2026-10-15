@@ -243,6 +243,28 @@ describe('the designer', () => {
     expect(again.items[0]?.name).toBe('Talk to us')
   })
 
+  test('a layout of pages, groups and columns is saved as a person would write it (story 094)', async () => {
+    const { h, root } = await site()
+    const detail = await h.json<{
+      definition: { pages: Array<{ groups: Array<{ columns: number; fields: unknown[] }> }> }
+    }>(`${FORMS}/${FORM_KEY}`)
+    const definition = detail.definition
+    const fields = definition.pages[0]?.groups[0]?.fields ?? []
+    // The last field moves onto a second page, into a two-column group of its own.
+    definition.pages.push({
+      caption: 'More',
+      groups: [{ caption: 'Extra', columns: 2, fields: [fields.pop()] }],
+    } as never)
+    const saved = await h.call(FORMS, { method: 'PUT', body: JSON.stringify(definition) })
+    expect(saved.status).toBe(200)
+    const file = readFileSync(join(root, 'schema', 'forms', 'contact-us.toml'), 'utf8')
+    expect(file.match(/^\[\[page\]\]$/gm)).toHaveLength(2)
+    expect(file).toContain('caption = "More"')
+    expect(file).toContain('columns = 2')
+    const reread = await h.json<{ definition: { pages: unknown[] } }>(`${FORMS}/${FORM_KEY}`)
+    expect(reread.definition.pages).toHaveLength(2)
+  })
+
   test('a new form is created, and its file is named after its alias', async () => {
     const { h, root } = await site()
     const saved = await h.call(FORMS, {
@@ -319,7 +341,7 @@ describe('the designer', () => {
     expect(saved.status).toBe(400)
     expect(
       ((await saved.json()) as { problems: { message: string }[] }).problems.some((p) =>
-        p.message.includes('unknown field type'),
+        p.message.includes('the field type "signature" is not built in'),
       ),
     ).toBe(true)
   })

@@ -30,6 +30,10 @@ import { registerPublishedCacheHandlers } from './handlers/published-cache.ts'
 import { registerRedirectHandlers } from './handlers/redirects.ts'
 import { registerReferenceDataHandlers } from './handlers/reference-data.ts'
 import { registerReferenceHandlers } from './handlers/references.ts'
+import {
+  registerRecycleBinReferenceHandlers,
+  registerRelationHandlers,
+} from './handlers/relations.ts'
 import { registerSearchIndexHandlers } from './handlers/search-index.ts'
 import { registerServerHandlers } from './handlers/server.ts'
 import { registerSettingsStubHandlers } from './handlers/settings-stubs.ts'
@@ -38,6 +42,7 @@ import { registerTemplateHandlers } from './handlers/template.ts'
 import { registerTemplateQueryHandlers } from './handlers/template-query.ts'
 import { registerTemporaryFileHandlers } from './handlers/temporary-file.ts'
 import { registerUserHandlers } from './handlers/user.ts'
+import { registerWebhookHandlers } from './handlers/webhook.ts'
 import type { ManagementApiDeps } from './ports.ts'
 import { type Authenticator, ManagementApiRouter, type RouterOptions } from './router.ts'
 
@@ -50,6 +55,8 @@ export interface ManagementApiOptions {
   allowLocalLogin?: boolean
   audit?: RouterOptions['audit']
   clientAddress?: RouterOptions['clientAddress']
+  onError?: RouterOptions['onError']
+  onWebhookEvent?: RouterOptions['onWebhookEvent']
 }
 
 export function createManagementApiRouter(options: ManagementApiOptions = {}): ManagementApiRouter {
@@ -61,6 +68,8 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     allowLocalLogin: options.allowLocalLogin,
     audit: options.audit,
     clientAddress: options.clientAddress,
+    onError: options.onError,
+    onWebhookEvent: options.onWebhookEvent,
   })
   const { deps } = options
   if (!deps) return router
@@ -124,9 +133,13 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
   )
   if (deps.redirects) registerRedirectHandlers(router, deps.redirects)
   if (deps.packages) registerPackageHandlers(router, deps.packages)
-  if (deps.references)
+  if (deps.references) {
     for (const area of ['Document', 'Media', 'Member', 'Element'] as const)
       registerReferenceHandlers(router, area, deps.references)
+    registerRecycleBinReferenceHandlers(router, deps.references)
+  }
+  if (deps.relations) registerRelationHandlers(router, deps.relations)
+  if (deps.webhooks) registerWebhookHandlers(router, deps.webhooks)
   registerEditorServiceHandlers(router, { tags: deps.tags, oembed: deps.oembed })
   return router
 }

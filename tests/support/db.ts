@@ -68,8 +68,8 @@ export async function canConnect(): Promise<boolean> {
  * instead of creating a per-test one: `SET search_path` is per-connection and
  * Bun's SQL client pools connections, so a search_path set on one connection
  * does not apply to the next query. Resetting the schema is pooling-safe.
- * The cost is that Postgres test files cannot run concurrently against the
- * same database.
+ * The cost is that files within one run go one at a time; separate runs each
+ * have a database of their own (`isolate.ts`).
  *
  * The schema is ensured before connecting and the extension is qualified, both so
  * that a run interrupted mid-reset recovers by itself; see `ensurePublicSchema`.
@@ -94,6 +94,14 @@ export async function freshDb(): Promise<Db> {
  * replay runs its `CREATE TABLE` against a table that is already there.
  */
 export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
+  // 037
+  await db.exec('DROP TABLE IF EXISTS delivery_member_token')
+  // 036
+  for (const table of ['transfer_answer', 'transfer_pending'])
+    await db.exec(`DROP TABLE IF EXISTS ${table}`)
+  // 035
+  for (const table of ['webhook_log', 'webhook_delivery', 'webhook'])
+    await db.exec(`DROP TABLE IF EXISTS ${table}`)
   await db.exec('ALTER TABLE form_entry_value DROP COLUMN label')
   await db.exec('ALTER TABLE server DROP COLUMN crombolo_version')
   await db.exec('DROP TABLE IF EXISTS audit_entry')
@@ -222,12 +230,10 @@ async function emptyMigratedSchema(db: Db): Promise<boolean> {
 }
 
 /**
- * Postgres tests share one database, so the data is cleared before a server
- * boots — otherwise seeding is skipped as already done and state leaks between
- * tests and files. SQLite gets a private in-memory database and needs nothing.
- *
- * The consequence is that Postgres test files must not run concurrently against
- * the same database.
+ * A run's Postgres tests share its database (one per run: `isolate.ts`), so the
+ * data is cleared before a server boots — otherwise seeding is skipped as
+ * already done and state leaks between tests and files. SQLite gets a private
+ * in-memory database and needs nothing.
  */
 export async function resetPostgresSchema(): Promise<void> {
   if (dialectUnderTest !== 'postgres') return

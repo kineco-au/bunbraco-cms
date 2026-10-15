@@ -124,6 +124,10 @@ export class PublishedMedia {
   readonly name: string
   readonly mediaType: { alias: string }
   readonly properties: PublishedProperty[]
+  readonly parentId: number
+  readonly sortOrder: number
+  readonly createDate: Date
+  readonly updateDate: Date
 
   constructor(init: {
     key: string
@@ -131,12 +135,20 @@ export class PublishedMedia {
     name: string
     mediaTypeAlias: string
     properties: PublishedProperty[]
+    parentId?: number
+    sortOrder?: number
+    createDate?: Date
+    updateDate?: Date
   }) {
     this.key = init.key
     this.id = init.id
     this.name = init.name
     this.mediaType = { alias: init.mediaTypeAlias }
     this.properties = init.properties
+    this.parentId = init.parentId ?? -1
+    this.sortOrder = init.sortOrder ?? 0
+    this.createDate = init.createDate ?? new Date(0)
+    this.updateDate = init.updateDate ?? this.createDate
   }
 
   /** The file's URL: what `umbracoFile` holds. */

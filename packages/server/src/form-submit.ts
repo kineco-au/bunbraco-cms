@@ -18,13 +18,16 @@
  */
 import {
   allFormFields,
+  BUILT_IN_FORM_TYPES,
   DEFAULT_UPLOAD_SETTINGS,
   FORM_HONEYPOT_FIELD,
+  FORM_PAGE_FIELD,
   FORM_RENDERED_FIELD,
   FORM_RESERVED_FIELDS,
   FORM_TOKEN_FIELD,
   type FormFieldError,
   type FormSubmissionState,
+  type FormTypes,
   isUploadAllowed,
   type SchemaForm,
   type SubmittedValues,
@@ -58,6 +61,8 @@ export interface FormRegistry {
   byKey(key: string): SchemaForm | undefined
   /** Drops the memo, for a test or after a schema write. */
   invalidate(): void
+  /** The field and workflow types the forms were read with. */
+  readonly types: FormTypes
 }
 
 /**
@@ -70,8 +75,9 @@ export interface FormRegistry {
  */
 export function createFormRegistry(
   schemaDir: string,
-  options: { ttlMs?: number } = {},
+  options: { ttlMs?: number; formTypes?: FormTypes } = {},
 ): FormRegistry {
+  const types = options.formTypes ?? BUILT_IN_FORM_TYPES
   const ttl = options.ttlMs ?? 1000
   let at = 0
   let forms: readonly SchemaForm[] = []
@@ -80,7 +86,7 @@ export function createFormRegistry(
   const refresh = () => {
     if (at !== 0 && Date.now() - at < ttl) return
     try {
-      forms = loadSchemaDirectory(schemaDir).set.forms ?? []
+      forms = loadSchemaDirectory(schemaDir, { formTypes: types }).set.forms ?? []
       byKey = new Map(forms.map((form) => [form.key ?? form.alias, form]))
     } catch (error) {
       // A broken schema directory fails the boot, so reaching here means it
@@ -105,6 +111,7 @@ export function createFormRegistry(
     invalidate() {
       at = 0
     },
+    types,
   }
 }
 
@@ -215,6 +222,8 @@ export type FormSubmitOutcome =
   | { status: 'badToken' }
   | { status: 'full'; form: SchemaForm }
   | { status: 'invalid'; form: SchemaForm; state: FormSubmissionState }
+  /** One page of a stepped form checked; nothing was stored, uploaded or run. */
+  | { status: 'checked'; form: SchemaForm; errors: FormFieldError[] }
   | {
       status: 'ok'
       form: SchemaForm
@@ -271,6 +280,10 @@ export async function submitForm(
   // submission without a good one did not come from a page this site rendered.
   if (!verifyFormToken(secret, formKey, renderedAt, token)) return { status: 'badToken' }
 
+  // A stepped form moving forward: this page's answers checked, and nothing else.
+  const checking = data.get(FORM_PAGE_FIELD)
+  if (checking !== null) return checkPage(deps, form, data, Number(checking))
+
   // Two guards, both silent. A bot is told the submission worked, because
   // telling it otherwise is how it learns to get past them.
   const honeypot = String(data.get(FORM_HONEYPOT_FIELD) ?? '').trim() !== ''
@@ -320,7 +333,7 @@ export async function submitForm(
     if (placed.length > 0) submitted[field.alias] = placed
   }
 
-  const result = validateSubmission(form, submitted)
+  const result = validateSubmission(form, submitted, { types: deps.forms.types })
   // What the file rules refused, which core cannot know: it has no notion of a
   // file's bytes or of what a server could be made to execute.
   result.errors.push(...refusedUploads)
@@ -389,6 +402,47 @@ export async function submitForm(
       message: form.messageOnSubmit ?? 'Thank you.',
     },
   }
+}
+
+/**
+ * One page of a stepped form, checked the way the final submission will be.
+ * An upload is judged by its name and size and then dropped: it is written
+ * nowhere until the form is submitted.
+ */
+function checkPage(
+  deps: FormSubmitDeps,
+  form: SchemaForm,
+  data: FormData,
+  page: number,
+): FormSubmitOutcome {
+  const fields = form.pages[page]?.groups.flatMap((group) => group.fields)
+  if (!fields) return { status: 'checked', form, errors: [] }
+  const onPage = new Set(fields.map((field) => field.alias))
+  const submitted = readBody(data)
+  const errors: FormFieldError[] = []
+  for (const field of fields.filter((candidate) => candidate.type === 'fileUpload')) {
+    const files = data.getAll(field.alias).filter((value): value is File => value instanceof File)
+    const name = field.caption || field.alias
+    const named: string[] = []
+    for (const file of files) {
+      if (file.size === 0) continue
+      if (!isUploadAllowed(file.name, deps.uploads ?? DEFAULT_UPLOAD_SETTINGS))
+        errors.push({
+          field: field.alias,
+          message: `${name} cannot be a ${extensionOf(file.name)} file`,
+        })
+      else if (field.maxSizeKb !== undefined && file.size > field.maxSizeKb * 1024)
+        errors.push({
+          field: field.alias,
+          message: `${name} must be smaller than ${field.maxSizeKb}KB`,
+        })
+      else named.push(file.name)
+    }
+    submitted[field.alias] = named
+  }
+  const result = validateSubmission(form, submitted, { page, types: deps.forms.types })
+  errors.push(...result.errors.filter((error) => onPage.has(error.field)))
+  return { status: 'checked', form, errors }
 }
 
 /** Whether the caller wants JSON rather than a redirect back to the page. */

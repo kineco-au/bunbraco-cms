@@ -300,6 +300,17 @@ export class MemberRepository {
   }
 
   /** Records a successful sign-in, clearing whatever failures came before it. */
+  /**
+   * Replaces an imported hash with argon2id after a successful sign-in. The
+   * password is the same, so the security stamp and change date stand.
+   */
+  async rehashPassword(key: string, passwordHash: string, passwordConfig: string): Promise<void> {
+    await this.#db.exec(
+      'UPDATE member SET password = ?, password_config = ? WHERE node_id = (SELECT id FROM node WHERE unique_id = ?)',
+      [passwordHash, passwordConfig, normaliseUuid(key)],
+    )
+  }
+
   async recordLogin(key: string): Promise<void> {
     const node = await this.#nodes.byKey(key)
     if (!node) return

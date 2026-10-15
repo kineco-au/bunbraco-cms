@@ -1,0 +1,3 @@
+[test]
+# Every run its own directories and Postgres database: tests/support/isolate.ts.
+preload = ["./tests/support/isolate.ts"]

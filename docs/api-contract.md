@@ -14,7 +14,7 @@ where Umbraco serves the committed contract unconditionally (the reflection-gene
 
 ```
 /umbraco/management/api/v{version}/{template}      Management
-/umbraco/delivery/api/v{version}/{template}        Delivery (later)
+/umbraco/delivery/api/v{version}/{template}        Delivery (docs/delivery-api.md)
 ```
 
 URL-segment versioning, default `v1`, unversioned URLs resolve to v1. Exactly one
@@ -244,9 +244,11 @@ static-file, with their `{path}` routing), ops and diagnostics (log viewer, heal
 checks, indexer, searcher, published cache, profiling, telemetry, packages),
 install/upgrade wizards, then the long tail.
 
-**Delivery API** is independent of the backoffice and small — 9 endpoints. The
-expensive parts are the `expand`/`fields`/`fetch`/`filter`/`sort` query grammar
-and tag-based output caching, not the routes.
+**Delivery API** is independent of the backoffice and small — 8 operations,
+vendored as `packages/contracts/DeliveryApi.json` from Umbraco's expected
+generic contract at `release-18.2.0`, with its types in
+`generated/delivery-api.d.ts`. Built in `packages/api-delivery`
+([`delivery-api.md`](delivery-api.md)); `coverage:api` counts it.
 
 ## How the contract is enforced
 

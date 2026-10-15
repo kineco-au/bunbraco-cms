@@ -1,7 +1,8 @@
 /**
  * The one trace App_Plugins leaves behind.
  *
- * Extensions are npm dependencies now (`docs/bundles.md`), and nothing
+ * Extensions are bundles now — npm dependencies, or the site's own under
+ * `bundles/` (`docs/bundles.md`) — and nothing
  * reads this directory any more. A site upgrading with files still in it would
  * otherwise find its extensions had quietly stopped loading, so the boot says
  * what happened. Remove at 1.0.
@@ -29,7 +30,7 @@ export function warnAboutAppPlugins(siteDir: string, log: NoticeLog): void {
       count: entries.length,
       dir,
       remedy:
-        'Backoffice extensions are npm dependencies now — install one with `bun add`, and see docs/bundles.md.',
+        'Backoffice extensions are bundles now: an npm dependency, installed with `bun add`, or one of the site’s own under bundles/. See docs/bundles.md.',
     },
   )
 }

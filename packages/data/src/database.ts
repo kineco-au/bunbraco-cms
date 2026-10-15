@@ -1,9 +1,9 @@
 /** Driver-agnostic database handle. */
 
 import { Database as BunSqlite } from 'bun:sqlite'
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { ambient, ambientFor } from './ambient.ts'
 import { type Dialect, type DialectName, dialectFor } from './dialect.ts'
-import { createLockManager, type LockManager } from './locks.ts'
+import { createLockManager, DEFAULT_LOCK_TIMEOUT_MS, type LockManager } from './locks.ts'
 
 export interface Db {
   readonly dialect: Dialect
@@ -12,6 +12,8 @@ export interface Db {
   exec(sql: string, params?: unknown[]): Promise<void>
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>
   close(): Promise<void>
+  /** Postgres only: calls `onNotify` for each `NOTIFY` on `channel`; resolves to the way to stop. */
+  listen?(channel: string, onNotify: (payload: string) => void): Promise<() => Promise<void>>
 }
 
 export interface ConnectOptions {
@@ -22,10 +24,15 @@ export interface ConnectOptions {
   file?: string
   /** Postgres connection string. Ignored for SQLite. */
   url?: string
+  /** How long a write waits for a content lock; defaults to `CROMBOLO_LOCK_TIMEOUT_SECONDS`, else 15s. */
+  lockTimeoutMs?: number
 }
 
-/** The connection the current async chain holds a transaction on. */
-const transacting = new AsyncLocalStorage<BunSqlite>()
+export function resolveLockTimeoutMs(options: ConnectOptions = {}): number {
+  if (options.lockTimeoutMs !== undefined) return options.lockTimeoutMs
+  const seconds = Number(Bun.env.CROMBOLO_LOCK_TIMEOUT_SECONDS)
+  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DEFAULT_LOCK_TIMEOUT_MS
+}
 
 /**
  * One connection has one transaction at a time, but async chains interleave:
@@ -45,9 +52,10 @@ class SqliteDb implements Db {
     locks?: LockManager,
     inTransaction = false,
     gate: { tail: Promise<void> } = { tail: Promise.resolve() },
+    lockTimeoutMs?: number,
   ) {
     this.#db = db
-    this.locks = locks ?? createLockManager(this)
+    this.locks = locks ?? createLockManager(this, { timeoutMs: lockTimeoutMs })
     this.#inTransaction = inTransaction
     this.#gate = gate
   }
@@ -63,7 +71,7 @@ class SqliteDb implements Db {
   async transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
     if (this.#inTransaction) return fn(this)
     const tx = new SqliteDb(this.#db, this.locks, true, this.#gate)
-    if (transacting.getStore() === this.#db) return fn(tx)
+    if (ambientFor(this.#db)) return fn(tx)
     const previous = this.#gate.tail
     let release!: () => void
     this.#gate.tail = new Promise<void>((resolve) => {
@@ -72,13 +80,16 @@ class SqliteDb implements Db {
     await previous
     try {
       this.#db.exec('BEGIN')
+      const store = { owner: this.#db, tx: tx as unknown }
       try {
-        const result = await transacting.run(this.#db, () => fn(tx))
+        const result = await ambient.run(store, () => fn(tx))
         this.#db.exec('COMMIT')
         return result
       } catch (error) {
         this.#db.exec('ROLLBACK')
         throw error
+      } finally {
+        store.tx = undefined
       }
     } finally {
       release()
@@ -94,6 +105,10 @@ interface SqlTag {
   unsafe(sql: string, params?: unknown[]): Promise<unknown>
   begin<T>(fn: (tx: SqlTag) => Promise<T>): Promise<T>
   close(): Promise<void>
+  listen(
+    channel: string,
+    onNotify: (payload: string) => void,
+  ): Promise<{ unlisten(): Promise<void> }>
 }
 
 class PostgresDb implements Db {
@@ -102,9 +117,9 @@ class PostgresDb implements Db {
   #sql: SqlTag
   #inTransaction: boolean
 
-  constructor(sql: SqlTag, locks?: LockManager, inTransaction = false) {
+  constructor(sql: SqlTag, locks?: LockManager, inTransaction = false, lockTimeoutMs?: number) {
     this.#sql = sql
-    this.locks = locks ?? createLockManager(this)
+    this.locks = locks ?? createLockManager(this, { timeoutMs: lockTimeoutMs })
     this.#inTransaction = inTransaction
   }
 
@@ -116,14 +131,32 @@ class PostgresDb implements Db {
     await this.#sql.unsafe(this.dialect.render(sql), params)
   }
 
-  /** Nested calls join the enclosing transaction, as they do on SQLite. */
+  /**
+   * Nested calls join the enclosing transaction, as they do on SQLite. The
+   * chain is marked as inside one, so a deadlock is not retried into a
+   * transaction Postgres has already aborted.
+   */
   async transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T> {
     if (this.#inTransaction) return fn(this)
-    return this.#sql.begin(async (tx) => fn(new PostgresDb(tx, this.locks, true)))
+    return this.#sql.begin(async (sql) => {
+      const tx = new PostgresDb(sql, this.locks, true)
+      const store = { owner: this, tx: tx as unknown }
+      try {
+        return await ambient.run(store, () => fn(tx))
+      } finally {
+        store.tx = undefined
+      }
+    })
   }
 
   async close(): Promise<void> {
     await this.#sql.close()
+  }
+
+  async listen(channel: string, onNotify: (payload: string) => void): Promise<() => Promise<void>> {
+    if (this.#inTransaction) throw new Error('A transaction cannot listen.')
+    const subscription = await this.#sql.listen(channel, onNotify)
+    return () => subscription.unlisten()
   }
 }
 
@@ -139,7 +172,7 @@ export async function connect(options: ConnectOptions = {}): Promise<Db> {
     // A modest pool: many short-lived connections exhaust Postgres' client limit,
     // and a single process does not need more.
     const sql = new SQL({ url, max: options.poolSize ?? 5 }) as unknown as SqlTag
-    const db = new PostgresDb(sql)
+    const db = new PostgresDb(sql, undefined, false, resolveLockTimeoutMs(options))
     await db.exec('CREATE EXTENSION IF NOT EXISTS citext')
     return db
   }
@@ -147,5 +180,5 @@ export async function connect(options: ConnectOptions = {}): Promise<Db> {
   sqlite.exec('PRAGMA journal_mode = WAL')
   sqlite.exec('PRAGMA foreign_keys = ON')
   sqlite.exec('PRAGMA busy_timeout = 5000')
-  return new SqliteDb(sqlite)
+  return new SqliteDb(sqlite, undefined, false, undefined, resolveLockTimeoutMs(options))
 }

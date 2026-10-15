@@ -12,7 +12,7 @@
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { SchemaForm } from '@crombolo/core'
+import type { FormTypes, SchemaForm } from '@crombolo/core'
 import {
   fileNameFor,
   loadSchemaDirectory,
@@ -28,6 +28,8 @@ export interface FormFileOptions {
   writable: boolean
   /** Publishes the directory to a shared store, when there is one. */
   onChanged?: () => Promise<void>
+  /** The field and workflow types the site's wired bundles add. */
+  formTypes?: FormTypes
 }
 
 export type FormWriteResult =
@@ -77,6 +79,7 @@ export function coerceForm(value: unknown): SchemaForm {
     notes: text('notes'),
     storeEntries: flag('storeEntries', true),
     requiresApproval: flag('requiresApproval', false),
+    ...(body.stepPages === true ? { stepPages: true } : {}),
     submitLabel: text('submitLabel'),
     nextLabel: text('nextLabel'),
     previousLabel: text('previousLabel'),
@@ -141,6 +144,7 @@ function coerceField(value: unknown): Field {
     autocomplete: text('autocomplete'),
     values: strings(body.values),
     ...coerceSource(body.source),
+    ...coerceSettings(body.settings),
     placeholder: text('placeholder'),
     defaultValue: text('defaultValue'),
     content: text('content'),
@@ -157,6 +161,23 @@ function coerceField(value: unknown): Field {
 }
 
 /** Kept as sent: the validator names a kind it does not know. */
+/** A bundle type's settings, kept as the designer sent them; the validator holds them to the declarations. */
+function coerceSettings(value: unknown): { settings?: Field['settings'] } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const settings: NonNullable<Field['settings']> = {}
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (entry === '' || entry === null || entry === undefined) continue
+    if (
+      typeof entry === 'string' ||
+      typeof entry === 'boolean' ||
+      (typeof entry === 'number' && Number.isFinite(entry))
+    )
+      settings[key] = entry
+    else if (Array.isArray(entry)) settings[key] = entry.filter((item) => typeof item === 'string')
+  }
+  return Object.keys(settings).length > 0 ? { settings } : {}
+}
+
 function coerceSource(value: unknown): { source?: Field['source'] } {
   if (!value || typeof value !== 'object') return {}
   const body = value as Record<string, unknown>
@@ -209,18 +230,19 @@ export async function saveForm(
   // Written then read back with the strict parser, so the file the designer
   // would produce is held to exactly what a hand-written one is.
   const name = formFileName(candidate.alias || 'form')
-  const reparsed = parseForm(`schema/forms/${name}`, writeForm(candidate))
+  const reparsed = parseForm(`schema/forms/${name}`, writeForm(candidate), options.formTypes)
   if (!reparsed.value) return { ok: false, status: 'invalid', problems: reparsed.problems }
   const form = reparsed.value
 
   // Against the whole set, because an alias has to be unique across forms and a
   // workflow is held to a content type that exists.
-  const loaded = loadSchemaDirectory(options.schemaDir)
+  const loaded = loadSchemaDirectory(options.schemaDir, { formTypes: options.formTypes })
   const others = (loaded.set.forms ?? []).filter(
     (candidate) => candidate.alias.toLowerCase() !== form.alias.toLowerCase(),
   )
   const problems = validateForms([...others, form], {
     contentTypeAliases: new Set(loaded.set.contentTypes.map((type) => type.alias)),
+    types: options.formTypes,
   })
   if (problems.length > 0) return { ok: false, status: 'invalid', problems }
 

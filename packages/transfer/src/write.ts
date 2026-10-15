@@ -10,9 +10,11 @@
  *
  * `read(write(x))` must equal `x` — the tests hold it to that.
  */
+
 import {
   BUNDLE_FORMAT_VERSION,
   BUNDLE_SECTIONS,
+  type BundleContentMode,
   type BundleManifest,
   type BundleNode,
   type BundleSection,
@@ -20,7 +22,10 @@ import {
   type BundleVariant,
   CONTENT_ONLY_FORMAT_VERSION,
   type ContentSet,
+  SECTIONS_FORMAT_VERSION,
 } from './model.ts'
+import { type BundlePeople, sealPeople } from './people.ts'
+import { type Seal, sealBytes } from './seal.ts'
 
 /** One file of a written bundle, ready to be put on disk or into a store. */
 export interface BundleFile {
@@ -37,27 +42,31 @@ function variant(v: BundleVariant): Record<string, unknown> {
   return { culture: v.culture, segment: v.segment, name: v.name, published: v.published }
 }
 
-function value(v: BundleValue): Record<string, unknown> {
+function value(v: BundleValue, open: boolean): Record<string, unknown> {
   const out: Record<string, unknown> = {
     property: v.property,
     culture: v.culture,
     segment: v.segment,
     editor: v.editor,
-    value: v.value,
+    ...(open ? { value: v.value } : {}),
   }
   // Absent rather than empty: a value that refers to nothing should not carry a key.
   if (v.references && v.references.length > 0) out.references = [...v.references].sort()
   return out
 }
 
-/** A node, with its variants and values in a stable order so a diff means something. */
-export function writeNode(node: BundleNode): string {
-  const values = [...node.values].sort(
-    (a, b) =>
-      a.property.localeCompare(b.property) ||
-      (a.culture ?? '').localeCompare(b.culture ?? '') ||
-      (a.segment ?? '').localeCompare(b.segment ?? ''),
-  )
+const byHandle = (a: BundleValue, b: BundleValue) =>
+  a.property.localeCompare(b.property) ||
+  (a.culture ?? '').localeCompare(b.culture ?? '') ||
+  (a.segment ?? '').localeCompare(b.segment ?? '')
+
+/**
+ * A node, with its variants and values in a stable order so a diff means
+ * something. `sealed` leaves each value's payload and the protected page's
+ * usernames out, for `sealedValues` to carry.
+ */
+export function writeNode(node: BundleNode, sealed = false): string {
+  const values = [...node.values].sort(byHandle)
   const variants = [...node.variants].sort(
     (a, b) =>
       (a.culture ?? '').localeCompare(b.culture ?? '') ||
@@ -71,9 +80,67 @@ export function writeNode(node: BundleNode): string {
     sortOrder: node.sortOrder,
     template: node.template,
     variants: variants.map(variant),
-    values: values.map(value),
+    values: values.map((v) => value(v, !sealed)),
+    // Absent when there is none, so an older node's bundle is unchanged.
+    ...(node.access
+      ? {
+          access: {
+            loginNode: node.access.loginNode,
+            errorNode: node.access.errorNode,
+            memberGroups: [...node.access.memberGroups].sort(),
+            ...(!sealed && node.access.memberUserNames
+              ? { memberUserNames: [...node.access.memberUserNames].sort() }
+              : {}),
+          },
+        }
+      : {}),
+    ...(node.schedule && node.schedule.length > 0
+      ? {
+          schedule: [...node.schedule]
+            .sort((a, b) => a.date.localeCompare(b.date) || a.action.localeCompare(b.action))
+            .map((e) => ({ culture: e.culture, action: e.action, date: e.date })),
+        }
+      : {}),
+    ...(node.redirects && node.redirects.length > 0
+      ? {
+          redirects: [...node.redirects]
+            .sort(
+              (a, b) =>
+                a.path.localeCompare(b.path) || (a.culture ?? '').localeCompare(b.culture ?? ''),
+            )
+            .map((r) => ({ path: r.path, root: r.root, culture: r.culture })),
+        }
+      : {}),
   })
 }
+
+/** What a node's sealed file holds: its values' payloads, and its protected page's usernames. */
+export interface SealedValues {
+  values: Array<{
+    property: string
+    culture: string | null
+    segment: string | null
+    value: unknown
+  }>
+  memberUserNames?: string[]
+}
+
+export function sealedValues(node: BundleNode): SealedValues {
+  return {
+    values: [...node.values].sort(byHandle).map((v) => ({
+      property: v.property,
+      culture: v.culture,
+      segment: v.segment,
+      value: v.value,
+    })),
+    ...(node.access?.memberUserNames
+      ? { memberUserNames: [...node.access.memberUserNames].sort() }
+      : {}),
+  }
+}
+
+/** Where a node's sealed values sit. */
+export const valuesPath = (key: string): string => `values/${key}.json`
 
 export function writeManifest(manifest: BundleManifest): string {
   const d = manifest.dependencies
@@ -123,6 +190,9 @@ export function writeManifest(manifest: BundleManifest): string {
     ...(manifest.carries && Object.keys(manifest.carries).length > 0
       ? { carries: sortedCarries(manifest.carries) }
       : {}),
+    ...(manifest.people ? { people: manifest.people } : {}),
+    ...(manifest.seal ? { seal: manifest.seal } : {}),
+    ...(manifest.content ? { content: manifest.content } : {}),
   })
 }
 
@@ -172,6 +242,37 @@ export function bundleIntegrity(files: readonly BundleFile[]): string {
   return `sha256-${hasher.digest('hex')}`
 }
 
+export interface WriteOptions {
+  /**
+   * How values, media files and protected-page usernames travel: `open`,
+   * `sealed` under `seal`, or `omitted`. Sealed when a seal is given, open
+   * otherwise.
+   */
+  content?: 'open' | BundleContentMode
+  /** One per export, from `newSeal`; needed for sealed content and for people. */
+  seal?: Seal
+  /** Members and users: always sealed. */
+  people?: BundlePeople
+}
+
+/** Without values, media files or usernames: what `omitted` writes. Pure. */
+function withoutContent(node: BundleNode): BundleNode {
+  const { access, ...rest } = node
+  return {
+    ...rest,
+    values: [],
+    ...(access
+      ? {
+          access: {
+            loginNode: access.loginNode,
+            errorNode: access.errorNode,
+            memberGroups: access.memberGroups,
+          },
+        }
+      : {}),
+  }
+}
+
 /**
  * The whole bundle as files. The integrity hash is computed over them and
  * written into the manifest, so the caller passes a manifest whose `integrity`
@@ -186,13 +287,34 @@ export function writeBundle(
   set: ContentSet,
   blobs: ReadonlyMap<string, Uint8Array> = new Map(),
   sections: readonly BundleFile[] = [],
+  options: WriteOptions = {},
 ): BundleFile[] {
-  const nodes: BundleFile[] = [...set.nodes]
-    .sort((a, b) => a.key.localeCompare(b.key))
-    .map((node) => ({ path: nodePath(node.key), text: writeNode(node) }))
-  const carried: BundleFile[] = [...blobs]
+  const seal = options.seal
+  const content = options.content ?? (seal ? 'sealed' : 'open')
+  if ((content === 'sealed' || options.people) && !seal)
+    throw new Error('Sealed content and people need a seal: give a passphrase.')
+  const sealing = content === 'sealed'
+  const source = content === 'omitted' ? set.nodes.map(withoutContent) : set.nodes
+  const carriedBlobs: ReadonlyMap<string, Uint8Array> = content === 'omitted' ? new Map() : blobs
+
+  const sorted = [...source].sort((a, b) => a.key.localeCompare(b.key))
+  const nodes: BundleFile[] = sorted.map((node) => ({
+    path: nodePath(node.key),
+    text: writeNode(node, sealing),
+  }))
+  const sealedFiles: BundleFile[] =
+    sealing && seal
+      ? sorted.map((node) => {
+          const path = valuesPath(node.key)
+          return { path, bytes: sealBytes(seal.key, path, Buffer.from(json(sealedValues(node)))) }
+        })
+      : []
+  const carried: BundleFile[] = [...carriedBlobs]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, bytes]) => ({ path: blobPath(key), bytes }))
+    .map(([key, bytes]) => {
+      const path = blobPath(key)
+      return { path, bytes: sealing && seal ? sealBytes(seal.key, path, bytes) : bytes }
+    })
 
   // A file in no known section would travel without being declared, so it
   // would not be hashed and a reader would never look for it. Refused here
@@ -205,16 +327,45 @@ export function writeBundle(
     carries[section] = [...(carries[section] ?? []), file.path]
   }
 
+  const people = options.people && seal ? sealPeople(options.people, seal) : undefined
+  // Rules a node carries beyond its content: an older reader would drop them,
+  // and a protected page it dropped would be public.
+  const nodeExtras = source.some(
+    (n) => n.access || (n.schedule?.length ?? 0) > 0 || (n.redirects?.length ?? 0) > 0,
+  )
   const manifest: BundleManifest = {
     ...set.manifest,
-    // Content-only bundles keep saying 1, so an older node can still read one.
-    formatVersion: extra.length > 0 ? BUNDLE_FORMAT_VERSION : CONTENT_ONLY_FORMAT_VERSION,
-    blobs: set.manifest.blobs.map((blob) => {
-      const bytes = blobs.get(blob.key)
+    // The oldest version that can read it: content only stays 1, sections
+    // need 2, and anything sealed or a node's rules need 3.
+    formatVersion:
+      people || sealing || nodeExtras
+        ? BUNDLE_FORMAT_VERSION
+        : extra.length > 0
+          ? SECTIONS_FORMAT_VERSION
+          : CONTENT_ONLY_FORMAT_VERSION,
+    // Without values nothing names a media file, so none is expected either.
+    blobs: (content === 'omitted' ? [] : set.manifest.blobs).map((blob) => {
+      const bytes = carriedBlobs.get(blob.key)
       return bytes ? { ...blob, included: true, size: bytes.length } : { ...blob, included: false }
     }),
     carries: extra.length > 0 ? carries : undefined,
-    integrity: bundleIntegrity([...nodes, ...carried, ...extra]),
+    people: people?.block,
+    seal: seal && (sealing || people) ? seal.params : undefined,
+    content: content === 'open' ? undefined : content,
+    integrity: bundleIntegrity([
+      ...nodes,
+      ...sealedFiles,
+      ...carried,
+      ...extra,
+      ...(people?.files ?? []),
+    ]),
   }
-  return [{ path: MANIFEST_FILE, text: writeManifest(manifest) }, ...nodes, ...carried, ...extra]
+  return [
+    { path: MANIFEST_FILE, text: writeManifest(manifest) },
+    ...nodes,
+    ...sealedFiles,
+    ...carried,
+    ...extra,
+    ...(people?.files ?? []),
+  ]
 }

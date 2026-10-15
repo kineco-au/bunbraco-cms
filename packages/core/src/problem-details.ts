@@ -31,6 +31,10 @@ export function problemResponse(problem: ProblemDetails, headers?: HeadersInit):
   })
 }
 
+/** Contention that outlasted the wait: the caller may simply try again. */
+export const serviceBusy = (detail: string) =>
+  problemDetails({ title: 'Service Unavailable', status: 503, detail, operationStatus: 'Busy' })
+
 export const notFound = (title = 'Not Found', detail?: string) =>
   problemDetails({ title, status: 404, detail, operationStatus: 'NotFound' })
 

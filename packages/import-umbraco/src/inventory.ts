@@ -277,40 +277,6 @@ export function takeInventory(
     items: domains.map((d) => d.host || `(culture ${d.defaultCulture ?? 'default'})`),
   })
 
-  // What a later version of the importer could carry, and this one does not.
-  const notYet = (code: string, title: string, count: number, detail: string) =>
-    findings.some({ class: 'not-yet', code, title, count, detail })
-  notYet(
-    'members',
-    'Members',
-    source.count('cmsMember'),
-    'Members, their groups and their passwords are not imported. Member types are.',
-  )
-  notYet(
-    'users',
-    'Backoffice users',
-    source.count('umbracoUser', 'id > 0'),
-    'Users and user groups are not imported. `crombolo start` creates an administrator.',
-  )
-  notYet(
-    'redirects',
-    'Redirects',
-    source.count('umbracoRedirectUrl'),
-    'Redirects Umbraco recorded when pages moved are not imported.',
-  )
-  notYet(
-    'public-access',
-    'Protected pages',
-    source.count('umbracoAccess'),
-    'Public access rules are not imported: these pages will be public until the rules are set again.',
-  )
-  notYet(
-    'schedules',
-    'Scheduled publishes',
-    source.count('umbracoContentSchedule'),
-    'Pending publish and unpublish dates are not imported.',
-  )
-
   // What has no equivalent.
   findings.some({
     class: 'cannot-migrate',
@@ -402,7 +368,7 @@ export function takeInventory(
       code: 'app-plugins',
       title: 'Backoffice plugins in App_Plugins',
       detail:
-        'A plugin that is client-side only may work if copied into the new site’s App_Plugins; one with a server side will not.',
+        'A plugin that is client-side only may work once repackaged as a bundle in the new site’s bundles/; one with a server side will not.',
       count: files.plugins.length,
       items: files.plugins,
     })

@@ -9,11 +9,13 @@
  * generated file is the schema's `content-types.d.ts`, read fresh on every
  * request so a content type added a minute ago is already in the editor.
  */
+
 import { existsSync, readFileSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { FormTypes } from '@crombolo/core'
 import { intendedTypes } from './models-builder.ts'
 
 /** A file in the editor's virtual file system. `path` is a URL, not a disk path. */
@@ -97,9 +99,12 @@ export function siteJsxImportSource(siteDir: string): JsxImportSource {
     : '@crombolo/crombolo'
 }
 
-export async function editorTypeLibs(options: { schemaDir: string }): Promise<EditorTypeLib[]> {
+export async function editorTypeLibs(options: {
+  schemaDir: string
+  formTypes?: FormTypes
+}): Promise<EditorTypeLib[]> {
   const libs = [...(await moduleLibs())]
-  const intended = intendedTypes(options.schemaDir)
+  const intended = intendedTypes(options.schemaDir, options.formTypes)
   // Left out rather than stubbed when the schema does not generate: a view that
   // imports it then says the file is missing, which is true, instead of being
   // checked against types that silently have nothing in them.

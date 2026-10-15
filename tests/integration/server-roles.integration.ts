@@ -165,7 +165,7 @@ describe('a split deployment, as separate processes', () => {
     const attempt = await collect(
       Bun.spawn(['bun', CLI, 'start'], {
         cwd: site(),
-        env: { ...environment('web'), PORT: '0' },
+        env: { ...environment('web'), PORT: '0', CROMBOLO_BOOT_ATTEMPTS: '1' },
         stdout: 'pipe',
         stderr: 'pipe',
       }),

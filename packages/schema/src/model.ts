@@ -112,6 +112,14 @@ export interface SchemaSet {
   languages: SchemaLanguage[]
   /** `schema/forms/*.toml` — form definitions; see `docs/forms.md`. */
   forms?: SchemaForm[]
+  /** `[urls]` in schema/schema.toml; Umbraco's defaults when absent. */
+  urls?: SchemaUrls
+}
+
+/** How URLs are built, as Umbraco's `Umbraco:CMS:Global` settings set it. */
+export interface SchemaUrls {
+  /** `HideTopLevelNodeFromPath`: true, the default, leaves the top-level page out of paths. */
+  hideTopLevel: boolean
 }
 
 /** A problem found while parsing or validating, always locatable. */

@@ -18,6 +18,7 @@ import {
   type Db,
   FolderRepository,
   LanguageRepository,
+  readUrlOptions,
   SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
 } from '@crombolo/data'
@@ -188,6 +189,7 @@ function isUnchangedBuiltin(dataType: SchemaDataType): boolean {
 
 /** Every live definition in the database as a schema set; keys are always present. */
 export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSet> {
+  const urls = await readUrlOptions(db)
   const types = new ContentTypeRepository(db)
   const dataTypes = new DataTypeRepository(db)
   const templates = new ComponentRepository(db)
@@ -330,6 +332,7 @@ export async function exportSchemaSet(db: Db, version: string): Promise<SchemaSe
     memberTypes,
     dataTypes: exportedDataTypes,
     languages,
+    ...(urls.hideTopLevel ? {} : { urls }),
   }
 }
 
@@ -342,7 +345,7 @@ export function writeSchemaFiles(schemaDir: string, set: SchemaSet): string[] {
     writeFileSync(file, content)
     written.push(file)
   }
-  put('schema.toml', writeSchemaVersion(set.version))
+  put('schema.toml', writeSchemaVersion(set.version, set.urls))
   for (const t of set.contentTypes)
     put(join(TYPE_KIND_FILES.document.dir, fileNameFor(t.alias)), writeContentType(t))
   for (const t of set.mediaTypes ?? [])

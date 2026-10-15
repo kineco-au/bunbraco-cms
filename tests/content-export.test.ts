@@ -8,7 +8,13 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@crombolo/data'
+import {
+  ContentTypeRepository,
+  DocumentRepository,
+  type NodeRow,
+  PublicAccessRepository,
+  RedirectRepository,
+} from '@crombolo/data'
 import { exportBundle } from '@crombolo/transfer'
 import { canConnect, dialectUnderTest } from './support/db.ts'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
@@ -205,6 +211,45 @@ describe(`exporting a bundle (${dialectUnderTest})`, () => {
     expect(set.manifest.dependencies.expected.map((e) => e.key)).toContain(outside)
     const value = set.nodes[0]?.values.find((v) => v.property === 'related')
     expect(value?.references).toEqual([outside])
+  })
+
+  test('a page carries its protection, its schedule and the routes it used to answer on', async () => {
+    const page = await make('Members area', null)
+    const signIn = await make('Sign in', null)
+    await new PublicAccessRepository(h.server.db).save({
+      nodeKey: page,
+      loginNodeKey: signIn,
+      errorNodeKey: signIn,
+      memberGroupNames: ['Staff'],
+      memberUserNames: ['ada'],
+    })
+    await new DocumentRepository(h.server.db).setSchedule(page, [
+      { culture: null, publishTime: null, unpublishTime: new Date('2031-01-01T00:00:00Z') },
+    ])
+    await new RedirectRepository(h.server.db).save({
+      source: 'tracked',
+      matchKind: 'exact',
+      pattern: '/old-members',
+      rootKey: null,
+      culture: null,
+      targetKind: 'document',
+      target: page,
+      statusCode: 301,
+      sortOrder: 0,
+    })
+    const { set } = await exportBundle(h.server.db, options([await nodeOf(page)]))
+    expect(set.nodes[0]).toMatchObject({
+      access: {
+        loginNode: signIn,
+        errorNode: signIn,
+        memberGroups: ['Staff'],
+        memberUserNames: ['ada'],
+      },
+      schedule: [{ culture: null, action: 'unpublish', date: '2031-01-01T00:00:00.000Z' }],
+      redirects: [{ path: '/old-members', root: null, culture: null }],
+    })
+    // The sign-in page is not in the selection, so it has to be at the destination.
+    expect(set.manifest.dependencies.expected.map((e) => e.key)).toContain(signIn)
   })
 
   test('a selection with nothing in it produces an empty bundle rather than throwing', async () => {

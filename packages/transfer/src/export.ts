@@ -19,6 +19,8 @@ import {
   type Db,
   DocumentRepository,
   type NodeRow,
+  PublicAccessRepository,
+  RedirectRepository,
 } from '@crombolo/data'
 import {
   BUNDLE_FORMAT_VERSION,
@@ -245,6 +247,38 @@ export async function exportBundle(db: Db, options: ExportOptions): Promise<Expo
         blobs.push({ key, node: node.key, etag: null, size: null, included: false })
   }
 
+  // The rules each page carries: who may see it, what is scheduled, and the
+  // routes it used to answer on.
+  const access = new PublicAccessRepository(db)
+  const redirects = new RedirectRepository(db)
+  for (const node of bundleNodes) {
+    if (node.kind !== 'document') continue
+    const entry = await access.byNodeKey(node.key)
+    if (entry)
+      node.access = {
+        loginNode: entry.loginNodeKey,
+        errorNode: entry.errorNodeKey,
+        memberGroups: entry.memberGroupNames,
+        memberUserNames: entry.memberUserNames,
+      }
+    const schedule = await repoFor('document').schedules(node.key)
+    if (schedule.length > 0)
+      node.schedule = schedule.map((s) => ({
+        culture: s.culture,
+        action: s.action === 'Release' ? ('publish' as const) : ('unpublish' as const),
+        date: s.date.toISOString(),
+      }))
+    const tracked = (await redirects.byDocument(node.key, { take: 1000 })).items.filter(
+      (r) => r.source === 'tracked' && r.matchKind === 'exact',
+    )
+    if (tracked.length > 0)
+      node.redirects = tracked.map((r) => ({
+        path: r.pattern,
+        root: r.rootKey,
+        culture: r.culture,
+      }))
+  }
+
   const carried = new Set(bundleNodes.map((n) => n.key))
 
   // Anything referenced or parented that the bundle does not carry must already
@@ -261,6 +295,18 @@ export async function exportBundle(db: Db, options: ExportOptions): Promise<Expo
       why: 'referenced by a value in this bundle',
     })
   }
+  for (const node of bundleNodes)
+    for (const page of node.access ? [node.access.loginNode, node.access.errorNode] : []) {
+      if (carried.has(page) || expected.some((e) => e.key === page)) continue
+      const row = await nodes.byKey(page)
+      if (row)
+        expected.push({
+          key: row.key,
+          objectType: row.objectType ?? '',
+          name: row.text ?? '',
+          why: `the sign-in or no-access page of ${node.variants[0]?.name ?? node.key}`,
+        })
+    }
   for (const node of bundleNodes) {
     if (!node.parent || carried.has(node.parent)) continue
     if (expected.some((e) => e.key === node.parent)) continue

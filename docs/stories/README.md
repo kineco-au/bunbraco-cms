@@ -40,8 +40,8 @@ phases and work packages of `roadmap.md`, and from the not-yet-built sections
 of the other docs. The old labels map as follows: Phases 0–4 are `001`–`005`;
 5a, 5b and 5c.1–5c.4 are `010`–`015`; WP-6.1 to 6.7 are `020`–`026` and
 WP-6.11 is `027`; WP-6.8 is `030` (built) and `031`; WP-6.9 is `040`–`048`;
-WP-6.10 is `033`; WP-6.12 is `070`–`072`; WP-6.13 is `060`–`061`; WP-6.14 is
-`062`; Phase 7 is `080`–`086`.
+WP-6.12 is `070`–`072`; WP-6.13 is `060`–`061`; WP-6.14 is
+`062`; Phase 7 is `080`–`086`; `087` was added to it later.
 
 ## Delivery order
 
@@ -54,7 +54,7 @@ not cover.
 | 1 | `045` — E-mail delivery | Senders exist, but the eleven content notification subscriptions are stored and never delivered |
 | 2 | `031` — External identity providers | Members and backoffice users are local-only; `external_login` is waiting |
 | 3 | `032` — Two-factor sign-in | Umbraco ships app-authenticator 2FA for users and members; the seams here are unreachable |
-| 4 | `044` — Webhooks | 1 of 8 operations; no events, no delivery log |
+| 4 | `044` — Webhooks | done |
 | 5 | `050` — The Delivery API | The largest absence for anyone wanting headless |
 | 6 | `060` — Provenance | A runtime install runs third-party code with the user's session, and nothing names its publisher |
 | 7 | `085` — A full Postgres parity run | The conformance suite green on both dialects is the hardening exit |
@@ -103,7 +103,6 @@ not cover.
 | `030` | Members and member types | must | L | done | 023, 026 |
 | `031` | External identity providers | should | M | ready | 030 |
 | `032` | Two-factor sign-in | should | M | ready | — |
-| `033` | SCIM provisioning | could | L | ready | 030 |
 
 ### Epic E — Cross-cutting
 
@@ -113,9 +112,9 @@ not cover.
 | `041` | References and content-type transfer | should | M | done | — |
 | `042` | Redirects and the URL tracker | must | M | done | — |
 | `043` | Search over content | must | L | done | — |
-| `044` | Webhooks | should | M | ready | — |
+| `044` | Webhooks | should | M | done | — |
 | `045` | E-mail delivery | must | M | ready | — |
-| `046` | Relations and relation types | could | S | ready | 041 |
+| `046` | Relations and relation types | could | S | done | 041 |
 | `047` | Diagnostics: health checks, telemetry, profiling and troubleshooting | could | M | done | — |
 | `048` | The rest of the contract | could | M | done | — |
 
@@ -123,7 +122,7 @@ not cover.
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `050` | The Delivery API | should | L | ready | — |
+| `050` | The Delivery API | should | L | done | — |
 
 ### Epic G — Trusting and extending bundles
 
@@ -139,20 +138,21 @@ not cover.
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `070` | Import schema, content and views | should | L | done | — |
-| `071` | Import members, users, redirects, protected pages and schedules | should | L | ready | 070 |
+| `071` | Import members, users, redirects, protected pages and schedules | should | L | done | 070 |
 | `072` | Proven on real exports from Umbraco 15, 16 and 18 | should | M | ready | 070 |
 
 ### Epic I — Hardening
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `080` | Install and upgrade flows | should | M | ready | 015 |
-| `081` | Concurrency and locking under load | should | M | ready | — |
+| `080` | Install and upgrade flows | should | M | done | 015 |
+| `081` | Concurrency and locking under load | should | M | done | — |
 | `082` | Version cleanup at scale | could | S | ready | — |
 | `083` | Audit log | should | M | done | — |
 | `084` | Problem-details parity | should | M | ready | — |
 | `085` | A full Postgres parity run | must | M | ready | — |
-| `086` | Performance of the tree and the published cache | should | M | ready | — |
+| `086` | Performance of the tree and the published cache | should | M | done | — |
+| `087` | A ready-to-run container image | should | M | ready | — |
 
 ### Epic J — Forms
 
@@ -161,30 +161,30 @@ not cover.
 | `090` | Choices from a prevalue source | should | M | done | — |
 | `091` | An e-mail template for the send-e-mail workflow | should | S | ready | — |
 | `092` | Form entries are deleted on a schedule | should | S | ready | — |
-| `093` | A multi-page form steps a page at a time | could | M | ready | — |
-| `094` | The form designer edits layout | should | M | ready | — |
-| `095` | Field and workflow types from a bundle | could | L | ready | — |
+| `093` | A multi-page form steps a page at a time | could | M | done | — |
+| `094` | The form designer edits layout | should | M | done | — |
+| `095` | Field and workflow types from a bundle | could | L | done | — |
 
 ### Epic K — Moving content
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `100` | Clone an environment, anonymised | should | L | ready | — |
-| `101` | The dry run predicts publish refusals | could | S | ready | — |
-| `102` | Per-property conflict resolutions | could | M | ready | — |
-| `103` | Resolve transfer conflicts in the backoffice | should | M | ready | — |
+| `101` | The dry run predicts publish refusals | could | S | done | — |
+| `102` | Per-property conflict resolutions | could | M | done | — |
+| `103` | Resolve transfer conflicts in the backoffice | should | M | done | — |
 
 ### Epic L — Routing
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `110` | URL options Umbraco sites rely on | could | S | ready | — |
+| `110` | URL options Umbraco sites rely on | could | S | done | — |
 
 ### Epic M — Running at scale
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `120` | Cache instructions arrive without polling | could | S | ready | — |
+| `120` | Cache instructions arrive without polling | could | S | done | — |
 | `121` | Reads from a Postgres replica | could | M | ready | — |
 
 ### Epic N — The assistant

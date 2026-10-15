@@ -15,6 +15,8 @@
 | `bun run test:all` | both dialects in sequence — the real gate |
 | `bun run docker:test` / `docker:test:sqlite` / `docker:test:postgres` / `docker:test:all` | the same four, inside a container over the mounted source |
 | `bun run test:integration` / `docker:test:integration` | the CLI suites: creating a site, importing an Umbraco site, content transfer, a split deployment and the upgrade, spawned per step |
+| `bun run test:load` / `docker:test:load` | concurrent edits on overlapping branches and an invariant pass; release pipeline only |
+| `bun run test:bench` / `docker:test:bench` | a generated 25,000-page site timed against its budgets; release pipeline only, or run small |
 | `bun run docker:test:browser` | the browser suite in its own Playwright image, against Chromium |
 | `bun run coverage:api` | implemented vs. total OpenAPI operations |
 | `bun run conformance` | replay recorded request sequences, validate against schemas |
@@ -66,15 +68,28 @@ because Google publishes no Linux arm64 build — `playwright install chrome` an
 the container sets it empty, which gives Playwright's bundled Chromium. Everything
 else about the two runs is the same.
 
-Postgres needs Docker either way; the SQLite half does not, and a host and a
-container Postgres run must not overlap, since they share `crombolo_test`.
+Postgres needs Docker either way; the SQLite half does not.
+
+**Runs side by side share nothing.** `bunfig.toml` preloads
+`tests/support/isolate.ts`, which gives every run its own components, media
+and logs directories under `output/test-runs/<run>/`, and its own views cache.
+A Postgres run also gets its own database, `crombolo_test_<run>`, created from
+`crombolo_test` at the start and dropped at the end. So two containers, a host
+and a container run, or one file beside a full suite can all run at once. A
+process id was not enough to tell runs apart, because two containers' processes
+start from the same small numbers; that is what broke parallel runs before. A
+database a killed run leaves behind is dropped by a later run once it is six
+hours old.
+The new-site integration suite stages the starter templates into a directory
+of its own and points the CLI at it with `CROMBOLO_TEMPLATES_DIR`, rather than
+writing into `packages/cli/templates`, which a unit run beside it lists.
 
 Postgres isolation resets the `public` schema per test rather than creating a
 schema per test: `SET search_path` is per-connection and Bun's SQL client pools
 connections, so a search_path set by one query does not apply to the next. The
-consequence is that Postgres test files must not run concurrently against the
-same database — and that anything else connected to it while the suite runs will
-have its tables dropped mid-query. That is why the stack provisions two
+consequence is that files within one run go one at a time against its database,
+and that anything else connected to that database while the run goes has its
+tables dropped mid-query. Each run's own database, above, keeps runs apart. That is why the stack provisions two
 databases: `crombolo` for the CMS and `crombolo_test` for the suite, so a running
 CMS container cannot collide with a test run.
 
@@ -129,6 +144,12 @@ calls the functions directly.
   real Umbraco 17 export, then `crombolo start` in the directory it wrote: the
   bundle imports on the first boot, and every URL the Umbraco site served is
   fetched from the imported one.
+- `first-boot.integration.ts` — story `080`'s first boot. It covers a production
+  start with no password, set up from the browser with `CROMBOLO_SETUP_CODE`
+  (which never appears in the output), then restarted. It covers the holding page
+  and `/health` while an unreachable database is retried, then the exit. And it
+  covers a database rewound to the previous release, refused at start, then
+  upgraded by `crombolo upgrade`.
 - `upgrade.integration.ts` — three releases of one site laid out as a deploy
   lays them out, a directory each: `upgrade --plan`, `check`, `check --fix`, the
   cut-over, the ledger, the refusals, and the backup restored. It boots each
@@ -143,6 +164,64 @@ collect them and a local run stays fast; `bun run test:integration` runs them
 as a filter unless the path is explicit), and CI runs them on every push. Unlike
 the browser suite they are not gated on a commit message: they take seconds, so
 there is no reason to make them opt-in.
+
+**Concurrency under load** — `tests/load/concurrency.load.ts` (story `081`):
+writers issue a seeded mix of saves, publishes, unpublishes, moves, sorts,
+trashes, restores, deletes and creates against shared, overlapping branches.
+On Postgres they are split across two nodes sharing the database. Afterwards:
+
+- `checkTreeInvariants` (`packages/data/src/tree-invariants.ts`) finds no
+  broken rule: every parent exists, paths and levels agree with the parent, a
+  trashed branch sits wholly under the bin, siblings have distinct sort orders,
+  a page has one current version, and a published page has one published
+  version and is not trashed. The check is a pure function over rows, so each
+  rule has a unit test in `tests/concurrency.test.ts` with hand-built rows.
+- Every save that answered 200 is in its page's history, and each page's
+  current name and value come from the same save: nothing was lost.
+- No request answered 500 or 503: nothing deadlocked or ran out its wait.
+- Each node, once it has polled, serves exactly the pages the database
+  publishes.
+
+`bun test` does not collect `*.load.ts`. The release workflow runs it on both
+dialects before publishing, at 1,500 operations. `CROMBOLO_LOAD_OPS`,
+`CROMBOLO_LOAD_WRITERS` and `CROMBOLO_LOAD_SEED` scale a run and replay one;
+the seed is printed with each run. Its first runs found three faults that need
+no concurrency at all — trashing kept a page's old path, so restoring an
+ancestor reached into the bin; moving a page out of the bin left it trashed;
+and trashed pages shared sort orders in the bin.
+
+**Large-site budgets** — `tests/load/large-site.bench.ts` (story `086`): a site
+generated through the repository, as a real one is made — 25,000 pages up to
+five levels deep, every page created and published in three cultures, one
+section of 2,000 siblings, and 1,000 media items — then timed:
+
+| Path | Budget (p95) | SQLite | Postgres |
+| --- | --- | --- | --- |
+| tree root, a page of 100 | 100 ms | 10.8 ms | 6.3 ms |
+| tree children, a page of 100 (the wide section and a deep one) | 100 ms | 9.0 ms | 9.7 ms |
+| tree siblings, 50 either side in the wide section | 100 ms | 9.1 ms | 12.1 ms |
+| a full published-cache rebuild | 5 s on SQLite, 10 s on Postgres | 1.28 s | 1.04 s |
+| a page render, once the cache is built | 20 ms | 1.8 ms | 4.4 ms |
+
+Measured 2026-10-15 in the Docker test services on a developer machine, at the
+full size. Generating the site took about five minutes on each dialect.
+
+Every measurement is printed against its budget, and the run fails only past
+twice the budget (`CROMBOLO_BENCH_MARGIN`), so a noisy shared runner does not
+block a release while a real regression does. Neither `bun test` nor
+`test:load` collects `*.bench.ts`; `bun run test:bench` runs it, and the release
+workflow does on both dialects. `CROMBOLO_BENCH_PAGES`, `_MEDIA`, `_WIDE` and
+`_SAMPLES` scale it: locally, run it small to check it works, and leave the full
+size to the release run.
+
+What the budgets made fast: a page of the tree was about eleven queries an item,
+because each item loaded the whole editing aggregate, values and schedules
+included; it is now four queries a page. A cache rebuild was three queries a
+published node and about nine a media item; it now reads in slices of 500 and
+looks each content type up once. Readers arriving while the cache builds share
+the one build, rather than each starting their own. What stays per-item is held
+to that in `tests/large-site-paths.test.ts`, which counts the statements a page
+of three and a page of thirty cost and expects the same number.
 
 Writing the transfer suite found two things the unit tests could not: `content
 check` printed a failed integrity hash and then exited 0, so a half-copied bundle
@@ -707,8 +786,8 @@ from the start rather than porting later:
 
 - Postgres `SET search_path` does not survive Bun's connection pool, so tables
   leaked into `public` and state bled between tests. Fixed by resetting the
-  `public` schema per test, which also means Postgres test files must not run
-  concurrently against one database.
+  `public` schema per test. Since story `044`'s round of fixes, each run also has
+  a database of its own, so runs can overlap.
 - Postgres refuses to infer a type for a parameter used only in `? IS NULL`, so
   that query is now built conditionally instead.
 - The lock test asserted one exact ordering of two concurrent writers, so it
@@ -793,6 +872,8 @@ container over the mounted source.
 | `bun run test:postgres` | `bun run docker:test:postgres` | Postgres; brings the `db` container up itself                       |
 | `bun run test:all`      | `bun run docker:test:all`      | both dialects in sequence — **the real gate**                       |
 | `bun run test:browser`  | `bun run docker:test:browser`  | the Playwright suite; Chromium in the container, Chrome on the host |
+| `bun run test:load` | `bun run docker:test:load` | concurrent editing on both dialects (the container script runs both); release pipeline only |
+| `bun run test:bench` | `bun run docker:test:bench` | the large-site budgets on both dialects (the container script runs both); release pipeline only |
 | `bun run test:integration` | `bun run docker:test:integration` | the CLI end to end — creating a site, content transfer, the server roles and the upgrade; `bun test` does not collect these |
 
 Each container service takes a command override, so a single file is

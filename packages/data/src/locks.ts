@@ -4,7 +4,11 @@
  * and necessary, while Postgres uses advisory locks.
  */
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { insideTransaction } from './ambient.ts'
+import { ContentBusyError, DEFAULT_RETRY, type RetryPolicy, retryContention } from './busy.ts'
 import type { Db } from './database.ts'
+
+export const DEFAULT_LOCK_TIMEOUT_MS = 15_000
 
 /** Mirrors Umbraco's Constants.Locks. */
 export const Locks = {
@@ -55,49 +59,114 @@ async function reentrant<T>(
   })
 }
 
-class SqliteLockManager implements LockManager {
-  #queues = new Map<number, Promise<unknown>>()
+export interface LockOptions {
+  /** How long to wait for the lock before answering busy. */
+  timeoutMs?: number
+  retry?: RetryPolicy
+}
 
-  withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
-    return reentrant(id, fn, (run) => this.#acquire(id, run))
-  }
+/**
+ * An in-process FIFO per lock id with a bounded wait. Ownership passes straight
+ * to the next waiter on release, and a waiter that times out leaves the line.
+ */
+export class LockQueue {
+  #lines = new Map<number, Array<() => void>>()
 
-  async #acquire<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
-    const previous = this.#queues.get(id) ?? Promise.resolve()
-    let release!: () => void
-    const gate = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    this.#queues.set(
-      id,
-      previous.then(() => gate),
-    )
-    await previous
+  async hold<T>(id: number, timeoutMs: number, fn: () => Promise<T>): Promise<T> {
+    await this.#acquire(id, timeoutMs)
     try {
       return await fn()
     } finally {
-      release()
-      if (this.#queues.get(id) === gate) this.#queues.delete(id)
+      this.#release(id)
     }
+  }
+
+  #acquire(id: number, timeoutMs: number): Promise<void> {
+    const line = this.#lines.get(id)
+    if (!line) {
+      this.#lines.set(id, [])
+      return Promise.resolve()
+    }
+    return new Promise<void>((resolve, reject) => {
+      const grant = () => {
+        clearTimeout(timer)
+        resolve()
+      }
+      const timer = setTimeout(() => {
+        const at = line.indexOf(grant)
+        if (at >= 0) line.splice(at, 1)
+        reject(new ContentBusyError('lockTimeout'))
+      }, timeoutMs)
+      line.push(grant)
+    })
+  }
+
+  #release(id: number): void {
+    const next = this.#lines.get(id)?.shift()
+    if (next) next()
+    else this.#lines.delete(id)
   }
 }
 
-class PostgresLockManager implements LockManager {
-  #db: Db
-  constructor(db: Db) {
-    this.#db = db
+/** Retries only from outside any transaction: one the database aborted cannot be resumed. */
+function guarded<T>(fn: () => Promise<T>, retry: RetryPolicy): Promise<T> {
+  return retryContention(fn, insideTransaction() ? { ...retry, attempts: 1 } : retry)
+}
+
+class SqliteLockManager implements LockManager {
+  #queue = new LockQueue()
+  #timeoutMs: number
+  #retry: RetryPolicy
+
+  constructor(options: LockOptions) {
+    this.#timeoutMs = options.timeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS
+    this.#retry = options.retry ?? DEFAULT_RETRY
   }
 
   withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
     return reentrant(id, fn, (run) =>
-      this.#db.transaction(async (tx) => {
-        await tx.exec('SELECT pg_advisory_xact_lock(?)', [id])
-        return run()
-      }),
+      guarded(() => this.#queue.hold(id, this.#timeoutMs, run), this.#retry),
     )
   }
 }
 
-export function createLockManager(db: Db): LockManager {
-  return db.dialect.name === 'postgres' ? new PostgresLockManager(db) : new SqliteLockManager()
+/**
+ * The in-process queue first, then the advisory lock, which orders the nodes.
+ * Without the queue every waiting request held a pooled connection blocked on
+ * the advisory lock, and a pool full of waiters left the holder none to work on.
+ */
+class PostgresLockManager implements LockManager {
+  #db: Db
+  #queue = new LockQueue()
+  #timeoutMs: number
+  #retry: RetryPolicy
+
+  constructor(db: Db, options: LockOptions) {
+    this.#db = db
+    this.#timeoutMs = options.timeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS
+    this.#retry = options.retry ?? DEFAULT_RETRY
+  }
+
+  withLock<T>(id: LockId, fn: () => Promise<T>): Promise<T> {
+    const timeout = Math.max(1, Math.round(this.#timeoutMs))
+    return reentrant(id, fn, (run) =>
+      guarded(
+        () =>
+          this.#queue.hold(id, this.#timeoutMs, () =>
+            this.#db.transaction(async (tx) => {
+              await tx.exec(`SET LOCAL lock_timeout = ${timeout}`)
+              await tx.exec('SELECT pg_advisory_xact_lock(?)', [id])
+              return run()
+            }),
+          ),
+        this.#retry,
+      ),
+    )
+  }
+}
+
+export function createLockManager(db: Db, options: LockOptions = {}): LockManager {
+  return db.dialect.name === 'postgres'
+    ? new PostgresLockManager(db, options)
+    : new SqliteLockManager(options)
 }

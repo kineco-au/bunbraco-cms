@@ -19,6 +19,7 @@ import {
   DataTypeRepository,
   type Db,
   DocumentRepository,
+  InvalidParentError,
   type NodeRow,
   type NodeSchemaState,
   type ValueIntake,
@@ -65,6 +66,8 @@ export function createMediaPort(
   const failure = (error: unknown) => {
     if (error instanceof WriteRejectedError)
       return { ok: false as const, reason: error.message, status: 409 }
+    if (error instanceof InvalidParentError)
+      return { ok: false as const, reason: error.message, status: 400 }
     if (error instanceof TemporaryFileMissingError)
       return { ok: false as const, reason: error.message, status: 400 }
     throw error

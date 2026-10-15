@@ -84,6 +84,44 @@ export interface PublishedContentSource {
   loadElements?(): Promise<PublishedElementNode[]>
   /** Content type aliases by key, so a block knows its element type; none when omitted. */
   loadContentTypeAliases?(): Promise<Map<string, string>>
+  /** How URLs are built; Umbraco's defaults when omitted. */
+  loadUrlOptions?(): Promise<PublishedUrlOptions>
+}
+
+/** `HideTopLevelNodeFromPath`: true, Umbraco's default, leaves the top-level page out of paths. */
+export interface PublishedUrlOptions {
+  hideTopLevel: boolean
+}
+
+const RTL_LANGUAGES = new Set([
+  'ar',
+  'arc',
+  'ckb',
+  'dv',
+  'fa',
+  'ha',
+  'he',
+  'khw',
+  'ks',
+  'ps',
+  'sd',
+  'ur',
+  'yi',
+])
+
+/** Whether a culture is written right to left, as .NET's `TextInfo.IsRightToLeft` says. Pure. */
+export function isRightToLeft(culture: string | null | undefined): boolean {
+  if (!culture) return false
+  try {
+    const locale = new Intl.Locale(culture) as Intl.Locale & {
+      getTextInfo?: () => { direction?: string }
+    }
+    const direction = locale.getTextInfo?.().direction
+    if (direction) return direction === 'rtl'
+    return RTL_LANGUAGES.has(locale.language)
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -106,6 +144,11 @@ export interface PublishedMediaNode {
   name: string
   mediaTypeAlias: string
   properties: PublishedProperty[]
+  /** Its place in the media tree; a root item's parent is -1. */
+  parentId?: number
+  sortOrder?: number
+  createDate?: Date
+  updateDate?: Date
 }
 
 /** The published tree in one culture. */
@@ -130,6 +173,8 @@ export interface CacheSnapshot {
   /** Keyed by lowercase culture; `''` holds an invariant site's single view. */
   views: Map<string, CultureView>
   defaultCulture: string | null
+  /** `HideTopLevelNodeFromPath`, as this snapshot was built with it. */
+  hideTopLevel?: boolean
   /** Routes without a hostname, in the default culture. */
   byRoute: Map<string, PublishedContent>
   /** `<domain name>:<route below it>`, for requests that match a hostname. */
@@ -238,6 +283,10 @@ export class PublishedCache {
   #snapshot: CacheSnapshot = EMPTY
   #loaded = false
   #options: PublishedCacheOptions
+  /** Moves on every invalidation, so a build that one overtook is not kept as current. */
+  #generation = 0
+  #building: { generation: number; done: Promise<CacheSnapshot> } | undefined
+  #snapshotGeneration = -1
 
   constructor(source: PublishedContentSource, options: PublishedCacheOptions = {}) {
     this.#source = source
@@ -247,14 +296,35 @@ export class PublishedCache {
   /** Dropped on publish or unpublish; the next read rebuilds it. */
   invalidate(): void {
     this.#loaded = false
+    this.#generation += 1
   }
 
+  /**
+   * The current snapshot, building it if it was dropped. Readers that arrive
+   * while it builds share that build rather than each starting one; a build
+   * an invalidation overtook still answers, but the next read builds again.
+   */
   async snapshot(): Promise<CacheSnapshot> {
-    if (!this.#loaded) {
-      this.#snapshot = await this.#build()
-      this.#loaded = true
-    }
-    return this.#snapshot
+    if (this.#loaded) return this.#snapshot
+    const generation = this.#generation
+    if (this.#building?.generation === generation) return this.#building.done
+    const done = this.#build().then((snapshot) => {
+      // A slower, older build must not replace a newer one that finished first.
+      if (generation >= this.#snapshotGeneration) {
+        this.#snapshot = snapshot
+        this.#snapshotGeneration = generation
+      }
+      if (this.#generation === generation) this.#loaded = true
+      return snapshot
+    })
+    const building = { generation, done }
+    this.#building = building
+    void done
+      .finally(() => {
+        if (this.#building === building) this.#building = undefined
+      })
+      .catch(() => {})
+    return done
   }
 
   #view(snapshot: CacheSnapshot, culture: string | null | undefined): CultureView | undefined {
@@ -386,6 +456,42 @@ export class PublishedCache {
       }
     }
     return out
+  }
+
+  /** Every published document a culture can see, in tree order: what a headless query scans. */
+  async contentIn(culture?: string | null): Promise<PublishedContent[]> {
+    const snapshot = await this.snapshot()
+    const view = this.#view(snapshot, culture)
+    if (!view) return []
+    const out: PublishedContent[] = []
+    const walk = (items: readonly PublishedContent[]) => {
+      for (const item of items) {
+        out.push(item)
+        walk(view.childrenOf.get(item.id) ?? [])
+      }
+    }
+    walk(view.roots)
+    return out
+  }
+
+  /** Every media item, in tree order. */
+  async allMedia(): Promise<PublishedMedia[]> {
+    return [...(await this.snapshot()).media.values()]
+  }
+
+  /** How URLs are built here: whether the top-level page is left out of paths. */
+  async hidesTopLevel(): Promise<boolean> {
+    return (await this.snapshot()).hideTopLevel ?? true
+  }
+
+  /** The culture a request gets when it names none. */
+  async defaultCulture(): Promise<string | null> {
+    return (await this.snapshot()).defaultCulture
+  }
+
+  /** Whether a culture has a view here: a language the site has. */
+  async hasCulture(culture: string): Promise<boolean> {
+    return (await this.snapshot()).views.has(viewKey(culture))
   }
 
   /** The published children of a document, or of the tree root; keys, once each. */
@@ -532,6 +638,7 @@ export class PublishedCache {
     const firstRootId = nodes
       .filter((node) => node.parentId <= 0)
       .sort((a, b) => a.sortOrder - b.sortOrder)[0]?.id
+    const { hideTopLevel } = (await this.#source.loadUrlOptions?.()) ?? { hideTopLevel: true }
 
     const byRoute = new Map<string, PublishedContent>()
     const byDomainRoute = new Map<string, PublishedContent>()
@@ -572,26 +679,38 @@ export class PublishedCache {
         )
       }
 
+      // Umbraco gathers a path from the page up and reverses it into root-first
+      // order only for a left-to-right culture; a right-to-left one keeps the
+      // page's own segment first.
+      const rtl = isRightToLeft(culture)
+      const inPathOrder = (segments: string[]) => (rtl ? [...segments].reverse() : segments)
+
       /**
        * Umbraco's default (`HideTopLevelNodeFromPath`): a top-level node's segment
        * is left out of every URL below it, the first top-level node is `/`, and any
-       * other is `/<segment>`. A route only exists if every ancestor is also
-       * published in the culture — an unpublished ancestor breaks the route rather
-       * than leaving a reachable orphan.
+       * other is `/<segment>`. With it off, every path starts with its top-level
+       * page's segment, the first one's included. A route only exists if every
+       * ancestor is also published in the culture — an unpublished ancestor breaks
+       * the route rather than leaving a reachable orphan.
        */
       const routeOf = (node: PublishedNode): string | undefined => {
         if (node.parentId <= 0)
-          return node.id === firstRootId ? '/' : joinPath([segmentOf.get(node.id) as string])
+          return node.id === firstRootId && hideTopLevel
+            ? '/'
+            : joinPath([segmentOf.get(node.id) as string])
         const segments: string[] = []
         let current: PublishedNode = node
         for (;;) {
           const parent = nodeById.get(current.parentId)
           if (!parent || !segmentOf.has(parent.id)) return undefined
           segments.unshift(segmentOf.get(current.id) as string)
-          if (parent.parentId <= 0) break
+          if (parent.parentId <= 0) {
+            if (!hideTopLevel) segments.unshift(segmentOf.get(parent.id) as string)
+            break
+          }
           current = parent
         }
-        return joinPath(segments)
+        return joinPath(inPathOrder(segments))
       }
 
       /** The route below the nearest document with a hostname for this culture, if there is one. */
@@ -602,7 +721,7 @@ export class PublishedCache {
         let current: PublishedNode | undefined = node
         while (current && segmentOf.has(current.id)) {
           const domain = domainFor(current.id, culture)
-          if (domain) return { domain, route: joinPath(segments) }
+          if (domain) return { domain, route: joinPath(inPathOrder(segments)) }
           segments.unshift(segmentOf.get(current.id) as string)
           current = nodeById.get(current.parentId)
         }
@@ -674,6 +793,10 @@ export class PublishedCache {
         )
         if (isDefault && !byRoute.has(route.toLowerCase()))
           byRoute.set(route.toLowerCase(), content)
+        // With the top level shown the home page's URL is its own segment, but `/`
+        // still has to answer with it.
+        if (!hideTopLevel && isDefault && node.id === firstRootId && !domainRoute)
+          byRoute.set('/', content)
         // Every hostname on the rooting document serves its own culture's view;
         // one with no culture serves the default's
         if (domainRoute)
@@ -757,6 +880,7 @@ export class PublishedCache {
     return {
       views,
       defaultCulture,
+      hideTopLevel,
       byRoute,
       byDomainRoute,
       domains,

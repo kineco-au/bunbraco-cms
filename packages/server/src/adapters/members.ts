@@ -45,6 +45,11 @@ export interface MemberPortOptions extends DocumentRepositoryOptions {
   valueIntake?: ValueIntake
   /** How many failed sign-ins lock an account out; Umbraco's default is 5. */
   maxFailedPasswordAttempts?: number
+  /**
+   * The members the Delivery API's client credentials sign in as: Umbraco shows
+   * them as kind `Api`, derived from config rather than stored.
+   */
+  apiMemberUserNames?: readonly string[]
 }
 
 const notFound = () => ({
@@ -54,6 +59,9 @@ const notFound = () => ({
 })
 
 export function createMemberPort(db: Db, options: MemberPortOptions = {}): MemberPort {
+  const apiMembers = new Set((options.apiMemberUserNames ?? []).map((n) => n.toLowerCase()))
+  const kindOf = (userName: string): 'Api' | 'Default' =>
+    apiMembers.has(userName.toLowerCase()) ? 'Api' : 'Default'
   const members = new MemberRepository(db, options)
   const memberTypes = new ContentTypeRepository(db, { kind: 'member' })
 
@@ -110,7 +118,7 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
       lastLockoutDate: member.lastLockoutDate?.toISOString() ?? null,
       lastPasswordChangeDate: member.lastPasswordChangeDate?.toISOString() ?? null,
       groups: await members.groupKeys(member.key),
-      kind: 'Default',
+      kind: kindOf(member.username),
       profileData: null,
       flags: [],
       values: content.values
@@ -136,7 +144,7 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
     id: member.key,
     memberType: { id: member.contentTypeKey, icon: member.contentTypeIcon ?? 'icon-user' },
     variants: [{ name: member.name, culture: null }],
-    kind: 'Default',
+    kind: kindOf(member.username),
     flags: [],
   })
 

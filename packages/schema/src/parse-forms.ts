@@ -6,15 +6,16 @@
  * type and the two share nothing but the reader.
  */
 import {
+  BUILT_IN_FORM_TYPES,
   type ChoiceSource,
   type ChoiceSourceKind,
   FORM_CONDITION_OPERATORS,
-  FORM_FIELD_TYPE_NAMES,
-  FORM_WORKFLOW_TYPES,
   type FormCondition,
   type FormConditionOperator,
   type FormConditionRule,
   type FormFieldType,
+  type FormSettingValue,
+  type FormTypes,
   type FormWorkflowTrigger,
   type FormWorkflowType,
   formFieldType,
@@ -33,6 +34,7 @@ const FORM_KEYS = [
   'notes',
   'store-entries',
   'requires-approval',
+  'step-pages',
   'submit-label',
   'next-label',
   'previous-label',
@@ -73,6 +75,7 @@ const FIELD_KEYS = [
   'accept',
   'max-size-kb',
   'multiple',
+  'settings',
   'condition',
 ] as const
 const CONDITION_KEYS = ['action', 'match', 'rule'] as const
@@ -128,14 +131,18 @@ function source(r: Reader, value: unknown, path: string): ChoiceSource | undefin
   }
 }
 
-function field(r: Reader, t: Toml, path: string): SchemaFormField {
+/** Says a type is unknown by its name, and what is known: the built-ins, then each bundle's. */
+function unknownType(kind: 'field' | 'workflow', type: string, known: Iterable<string>): string {
+  return `the ${kind} type "${type}" is not built in, and no wired bundle provides it; expected one of ${[...known].join(', ')}`
+}
+
+function field(r: Reader, t: Toml, path: string, types: FormTypes): SchemaFormField {
   r.unknown(t, FIELD_KEYS, path)
   const type = r.str(t, 'type', path, true) ?? ''
-  if (type && !formFieldType(type))
-    r.problem(
-      `${path}.type`,
-      `unknown field type; expected one of ${FORM_FIELD_TYPE_NAMES.join(', ')}`,
-    )
+  if (type && !formFieldType(type, types))
+    r.problem(`${path}.type`, unknownType('field', type, types.fields.keys()))
+  const settings =
+    t.settings === undefined ? undefined : (r.table(t.settings, `${path}.settings`) ?? {})
   // Consent is mandatory unless the form says otherwise: a consent box that can
   // be skipped records agreement nobody gave.
   const mandatoryByDefault = type === 'dataConsent'
@@ -165,37 +172,39 @@ function field(r: Reader, t: Toml, path: string): SchemaFormField {
     accept: r.strs(t, 'accept', path),
     maxSizeKb: r.num(t, 'max-size-kb', path),
     ...(t.multiple !== undefined ? { multiple: r.bool(t, 'multiple', path, false) } : {}),
+    ...(settings ? { settings: settings as Record<string, FormSettingValue> } : {}),
     condition: condition(r, t.condition, `${path}.condition`),
   }
 }
 
-function group(r: Reader, t: Toml, path: string): SchemaFormGroup {
+function group(r: Reader, t: Toml, path: string, types: FormTypes): SchemaFormGroup {
   r.unknown(t, GROUP_KEYS, path)
   return {
     caption: r.str(t, 'caption', path),
     columns: r.num(t, 'columns', path) ?? 1,
-    fields: r.tables(t.field, `${path}.field`).map((f, i) => field(r, f, `${path}.field[${i}]`)),
+    fields: r
+      .tables(t.field, `${path}.field`)
+      .map((f, i) => field(r, f, `${path}.field[${i}]`, types)),
     condition: condition(r, t.condition, `${path}.condition`),
   }
 }
 
-function page(r: Reader, t: Toml, path: string): SchemaFormPage {
+function page(r: Reader, t: Toml, path: string, types: FormTypes): SchemaFormPage {
   r.unknown(t, PAGE_KEYS, path)
   return {
     caption: r.str(t, 'caption', path),
-    groups: r.tables(t.group, `${path}.group`).map((g, i) => group(r, g, `${path}.group[${i}]`)),
+    groups: r
+      .tables(t.group, `${path}.group`)
+      .map((g, i) => group(r, g, `${path}.group[${i}]`, types)),
     condition: condition(r, t.condition, `${path}.condition`),
   }
 }
 
-function workflow(r: Reader, t: Toml, path: string): SchemaFormWorkflow {
+function workflow(r: Reader, t: Toml, path: string, types: FormTypes): SchemaFormWorkflow {
   r.unknown(t, WORKFLOW_KEYS, path)
   const type = r.str(t, 'type', path, true) ?? ''
-  if (type && !FORM_WORKFLOW_TYPES.includes(type as FormWorkflowType))
-    r.problem(
-      `${path}.type`,
-      `unknown workflow type; expected one of ${FORM_WORKFLOW_TYPES.join(', ')}`,
-    )
+  if (type && !types.workflows.has(type))
+    r.problem(`${path}.type`, unknownType('workflow', type, types.workflows.keys()))
   const on = r.str(t, 'on', path) ?? 'submit'
   if (on !== 'submit' && on !== 'approve') r.problem(`${path}.on`, "expected 'submit' or 'approve'")
   const settings = t.settings === undefined ? {} : r.table(t.settings, `${path}.settings`)
@@ -208,7 +217,11 @@ function workflow(r: Reader, t: Toml, path: string): SchemaFormWorkflow {
   }
 }
 
-export function parseForm(file: string, source: string): ParseResult<SchemaForm> {
+export function parseForm(
+  file: string,
+  source: string,
+  types: FormTypes = BUILT_IN_FORM_TYPES,
+): ParseResult<SchemaForm> {
   const r = new Reader(file)
   const root = toml(source, r)
   if (!root) return { value: undefined, problems: r.problems }
@@ -229,6 +242,7 @@ export function parseForm(file: string, source: string): ParseResult<SchemaForm>
     // what people typed would be the worst possible default.
     storeEntries: r.bool(t, 'store-entries', path, true),
     requiresApproval: r.bool(t, 'requires-approval', path, false),
+    ...(t['step-pages'] !== undefined ? { stepPages: r.bool(t, 'step-pages', path, false) } : {}),
     submitLabel: r.str(t, 'submit-label', path),
     nextLabel: r.str(t, 'next-label', path),
     previousLabel: r.str(t, 'previous-label', path),
@@ -239,8 +253,10 @@ export function parseForm(file: string, source: string): ParseResult<SchemaForm>
     minimumSubmitSeconds: r.num(t, 'minimum-submit-seconds', path),
     maxEntries: r.num(t, 'max-entries', path),
     since: r.str(t, 'since', path),
-    pages: r.tables(root.page, 'page').map((p, i) => page(r, p, `page[${i}]`)),
-    workflows: r.tables(root.workflow, 'workflow').map((w, i) => workflow(r, w, `workflow[${i}]`)),
+    pages: r.tables(root.page, 'page').map((p, i) => page(r, p, `page[${i}]`, types)),
+    workflows: r
+      .tables(root.workflow, 'workflow')
+      .map((w, i) => workflow(r, w, `workflow[${i}]`, types)),
   }
   return { value: r.problems.length === 0 ? value : undefined, problems: r.problems }
 }

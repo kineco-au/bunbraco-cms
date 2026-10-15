@@ -17,6 +17,9 @@ import {
   latestPreparedState,
   pendingMigrations,
   readLedger,
+  SYSTEM_CONTENT_TYPES,
+  SYSTEM_MEDIA_TYPES,
+  SYSTEM_MEMBER_TYPE,
 } from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor } from './builtin.ts'
 import type { LoadedSchema } from './load.ts'
@@ -213,26 +216,56 @@ export async function runCheck(
   const ledgered = new Set(ledger.filter((r) => r.kind === 'value').map((r) => r.name))
   const prepared = await latestPreparedState(db)
 
-  // ---- types removed while they have content
-  const inFiles = new Set(loaded.set.contentTypes.map((t) => t.alias))
-  const dbTypes = await db.query<{ unique_id: string; alias: string }>(
-    'SELECT n.unique_id, ct.alias FROM content_type ct JOIN node n ON n.id = ct.node_id WHERE ct.retired_at IS NULL',
-  )
-  for (const row of dbTypes) {
-    if (inFiles.has(String(row.alias))) continue
-    const count = await types.contentCount(String(row.unique_id).toLowerCase())
-    if (count === 0) continue
-    findings.push({
-      kind: 'blocking',
-      code: 'type-removed-with-content',
-      subjectType: 'document-type',
-      subjectKey: String(row.unique_id).toLowerCase(),
-      subjectName: String(row.alias),
-      propertyAlias: null,
-      culture: null,
-      message: `content type "${row.alias}" was removed from schema/ but ${count} document(s) of it exist`,
-      link: null,
-    })
+  // ---- types removed while they have content; the shipped types need no file
+  const shipped = new Set([
+    ...SYSTEM_MEDIA_TYPES.map((t) => t.key),
+    ...SYSTEM_CONTENT_TYPES.map((t) => t.key),
+    SYSTEM_MEMBER_TYPE.key,
+  ])
+  const kinds = [
+    {
+      kind: 'document' as const,
+      files: loaded.set.contentTypes,
+      noun: 'content type',
+      items: 'document(s)',
+    },
+    {
+      kind: 'media' as const,
+      files: loaded.set.mediaTypes ?? [],
+      noun: 'media type',
+      items: 'media item(s)',
+    },
+    {
+      kind: 'member' as const,
+      files: loaded.set.memberTypes ?? [],
+      noun: 'member type',
+      items: 'member(s)',
+    },
+  ]
+  for (const { kind, files, noun, items } of kinds) {
+    const repo = kind === 'document' ? types : new ContentTypeRepository(db, { kind })
+    const inFiles = new Set(files.map((t) => t.alias.toLowerCase()))
+    const dbTypes = await db.query<{ unique_id: string; alias: string }>(
+      'SELECT n.unique_id, ct.alias FROM content_type ct JOIN node n ON n.id = ct.node_id WHERE ct.retired_at IS NULL AND n.node_object_type = ?',
+      [repo.objectType],
+    )
+    for (const row of dbTypes) {
+      const key = String(row.unique_id).toLowerCase()
+      if (inFiles.has(String(row.alias).toLowerCase()) || shipped.has(key)) continue
+      const count = await repo.contentCount(key)
+      if (count === 0) continue
+      findings.push({
+        kind: 'blocking',
+        code: 'type-removed-with-content',
+        subjectType: `${kind}-type` as const,
+        subjectKey: key,
+        subjectName: String(row.alias),
+        propertyAlias: null,
+        culture: null,
+        message: `${noun} "${row.alias}" was removed from schema/ but ${count} ${items} of it exist`,
+        link: null,
+      })
+    }
   }
 
   // ---- properties that need data: newly mandatory, or changing editor

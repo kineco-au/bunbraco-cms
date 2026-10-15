@@ -3,6 +3,48 @@
 What a deployed site needs beyond the code: where uploads live, how a URL that
 moved keeps working, how schema travels, and what the security model is.
 
+## First boot
+
+A site self-hosted on your own cloud starts one of two ways, and neither uses
+Umbraco's install wizard: those endpoints answer 501 on purpose (`roadmap.md`).
+
+- **From a pipeline**, everything is a setting: the database
+  (`CROMBOLO_DB`, `CROMBOLO_POSTGRES_URL`) and the first administrator
+  (`CROMBOLO_ADMIN_LOGIN`, `CROMBOLO_ADMIN_PASSWORD`). The password seeds only a
+  database being created. A later start never resets, re-enables or signs out an
+  existing administrator.
+- **From a cloud console**, set `CROMBOLO_SETUP_CODE` to a value of at least 16
+  characters that only you know, and leave the password unset. The first visit
+  to the backoffice opens **Set up your new site** (`<backoffice>/setup`), which
+  asks for your name, e-mail, password and that code. `crombolo start` prints
+  the address but never the code.
+
+Setup is recorded in the database, so a restart cannot reopen it, and neither
+can deleting the administrator later. It closes for good when it completes,
+inside a lock, so two attempts at once create one account. The code is compared
+in constant time. Wrong codes are limited per caller and across all callers.
+Once the site is set up, the log warns (by name, never by value) while
+`CROMBOLO_SETUP_CODE` is still set. Remove it then.
+
+**When the server cannot start** — the database is unreachable, refuses the
+sign-in or does not exist, an upgrade is waiting, or `schema/` has errors —
+`crombolo start` keeps listening:
+
+- It serves a page saying what is wrong and which setting or command fixes it.
+  The database is named by host and database only, never by its URL.
+- `/health` answers 503, so a load balancer keeps traffic away.
+- It retries with backoff (2s, doubling, at most 60s), up to
+  `CROMBOLO_BOOT_ATTEMPTS` (10). Then it exits non-zero, so the platform's
+  restart policy and alerts take over.
+
+A database that comes up after the server is picked up without a restart.
+
+**Upgrading.** `crombolo upgrade check`, then `crombolo upgrade`. Each framework
+step commits with its own record in the ledger. A step that fails is rolled back
+and named, with what to do. The next run carries on from that step and never
+repeats one that landed. The Changes dashboard shows the version, when the site
+was installed, and its last upgrade.
+
 ## Media storage
 
 Where uploaded bytes live is one interface — `MediaStore` in

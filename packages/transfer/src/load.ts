@@ -6,21 +6,35 @@
  * check reports on what it would do, and by then a malformed node file would be
  * a crash rather than a finding.
  */
+
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   BUNDLE_FORMAT_VERSION,
   BUNDLE_SECTIONS,
+  type BundleAccess,
   type BundleKind,
   type BundleManifest,
   type BundleNode,
   type BundleProblem,
+  type BundleRedirect,
+  type BundleSchedule,
   type BundleSection,
   type BundleValue,
   type BundleVariant,
   type ContentSet,
 } from './model.ts'
-import { blobPath, bundleIntegrity, MANIFEST_FILE, nodePath, sectionOf } from './write.ts'
+import { type BundlePeople, openPeople, type PeopleBlock, parsePeopleBlock } from './people.ts'
+import { openBytes, parseSealParameters, unlock } from './seal.ts'
+import {
+  blobPath,
+  bundleIntegrity,
+  MANIFEST_FILE,
+  nodePath,
+  type SealedValues,
+  sectionOf,
+  valuesPath,
+} from './write.ts'
 
 export interface LoadedBundle {
   set: ContentSet | undefined
@@ -31,6 +45,10 @@ export interface LoadedBundle {
    * content-only bundle, which is every version 1 bundle.
    */
   files: Map<string, string>
+  /** The sealed people, when the bundle carries any: opened by `openBundle`. */
+  people?: { block: PeopleBlock; files: Map<string, Uint8Array> }
+  /** Each node's sealed values, by path, when the content is sealed. */
+  sealedValues?: Map<string, Uint8Array>
   /**
    * The media files the bundle carries, by store key, as paths on disk.
    *
@@ -139,6 +157,31 @@ export function parseNode(
     : []
   if (variants.length === 0) problems.push({ file, message: 'no variants: a node needs a name' })
 
+  const access = parseAccess(raw.access)
+  const schedule = Array.isArray(raw.schedule)
+    ? raw.schedule.flatMap((e): BundleSchedule[] =>
+        isRecord(e) &&
+        (e.action === 'publish' || e.action === 'unpublish') &&
+        typeof e.date === 'string' &&
+        !Number.isNaN(Date.parse(e.date))
+          ? [{ culture: nullableStr(e.culture) ?? null, action: e.action, date: e.date }]
+          : [],
+      )
+    : []
+  const redirects = Array.isArray(raw.redirects)
+    ? raw.redirects.flatMap((r): BundleRedirect[] =>
+        isRecord(r) && typeof r.path === 'string' && r.path.startsWith('/')
+          ? [
+              {
+                path: r.path,
+                root: nullableStr(r.root) ?? null,
+                culture: nullableStr(r.culture) ?? null,
+              },
+            ]
+          : [],
+      )
+    : []
+
   return {
     key,
     kind,
@@ -148,6 +191,25 @@ export function parseNode(
     template: nullableStr(raw.template) ?? null,
     variants,
     values,
+    ...(access ? { access } : {}),
+    ...(schedule.length > 0 ? { schedule } : {}),
+    ...(redirects.length > 0 ? { redirects } : {}),
+  }
+}
+
+const names = (v: unknown): string[] =>
+  Array.isArray(v) ? v.flatMap((n) => (typeof n === 'string' ? [n] : [])) : []
+
+function parseAccess(raw: unknown): BundleAccess | undefined {
+  if (!isRecord(raw)) return undefined
+  const loginNode = str(raw.loginNode)
+  const errorNode = str(raw.errorNode)
+  if (!loginNode || !errorNode) return undefined
+  return {
+    loginNode,
+    errorNode,
+    memberGroups: names(raw.memberGroups),
+    ...(Array.isArray(raw.memberUserNames) ? { memberUserNames: names(raw.memberUserNames) } : {}),
   }
 }
 
@@ -246,6 +308,11 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
         )
       : [],
     ...(isRecord(raw.carries) ? { carries: parseCarries(raw.carries) } : {}),
+    ...(raw.people !== undefined && parsePeopleBlock(raw.people)
+      ? { people: parsePeopleBlock(raw.people) as PeopleBlock }
+      : {}),
+    ...(parseSealParameters(raw.seal) ? { seal: parseSealParameters(raw.seal) } : {}),
+    ...(raw.content === 'sealed' || raw.content === 'omitted' ? { content: raw.content } : {}),
   }
 }
 
@@ -329,6 +396,48 @@ export function loadBundle(dir: string): LoadedBundle {
     }
   }
 
+  // People are sealed bytes, opened only with the passphrase at install; here
+  // they are only read, and counted in the hash like everything else.
+  const people = new Map<string, Uint8Array>()
+  for (const path of manifest.people?.paths ?? []) {
+    const file = join(dir, path)
+    if (!existsSync(file)) {
+      problems.push({
+        file: path,
+        message: 'the manifest says this file is carried, and it is not',
+      })
+      continue
+    }
+    const bytes = new Uint8Array(readFileSync(file))
+    people.set(path, bytes)
+    read.push({ path, bytes })
+  }
+
+  if ((manifest.content === 'sealed' || manifest.people) && !manifest.seal)
+    problems.push({
+      file: MANIFEST_FILE,
+      message: 'the bundle says it is sealed but carries no seal to open it with',
+    })
+
+  // A sealed bundle carries one sealed file per node, read as bytes here and
+  // opened only with the passphrase.
+  const sealed = new Map<string, Uint8Array>()
+  if (manifest.content === 'sealed')
+    for (const name of nodeFiles) {
+      const path = valuesPath(name.slice(0, -'.json'.length))
+      const file = join(dir, path)
+      if (!existsSync(file)) {
+        problems.push({
+          file: path,
+          message: 'a sealed bundle carries the values of every node, and this one is missing',
+        })
+        continue
+      }
+      const bytes = new Uint8Array(readFileSync(file))
+      sealed.set(path, bytes)
+      read.push({ path, bytes })
+    }
+
   // Before shape: a truncated copy produces confusing field errors otherwise.
   const integrity = bundleIntegrity(read)
   if (manifest.integrity && manifest.integrity !== integrity)
@@ -356,5 +465,60 @@ export function loadBundle(dir: string): LoadedBundle {
     seen.add(node.key)
   }
 
-  return { set: { manifest, nodes }, problems, blobs, files }
+  const isSealed = manifest.content === 'sealed' || manifest.people !== undefined
+  return {
+    set: { manifest, nodes, ...(isSealed ? { sealed: true } : {}) },
+    problems,
+    blobs,
+    files,
+    ...(manifest.people ? { people: { block: manifest.people, files: people } } : {}),
+    ...(manifest.content === 'sealed' ? { sealedValues: sealed } : {}),
+  }
+}
+
+/** A bundle opened with its passphrase: values filled in, people read, media files openable. */
+export interface OpenedBundle {
+  set: ContentSet
+  people: BundlePeople | undefined
+  /** A carried media file's bytes as they were exported. */
+  openBlob: (key: string, bytes: Uint8Array) => Uint8Array
+}
+
+/**
+ * Opens what a bundle sealed. Throws `WrongPassphraseError` for the wrong
+ * passphrase and `SealedFileError` for a file altered or moved; a bundle with
+ * nothing sealed opens without one.
+ */
+export function openBundle(loaded: LoadedBundle, passphrase: string | undefined): OpenedBundle {
+  const set = loaded.set
+  if (!set) throw new Error('The bundle could not be read, so there is nothing to open.')
+  const params = set.manifest.seal
+  if (!set.sealed || !params) return { set, people: undefined, openBlob: (_key, bytes) => bytes }
+  const key = unlock(passphrase ?? '', params)
+  const nodes = set.nodes.map((node) => {
+    const path = valuesPath(node.key)
+    const bytes = loaded.sealedValues?.get(path)
+    if (!bytes) return node
+    const opened = JSON.parse(openBytes(key, path, bytes).toString('utf8')) as SealedValues
+    const at = (v: { property: string; culture: string | null; segment: string | null }) =>
+      `${v.property}|${v.culture ?? ''}|${v.segment ?? ''}`
+    const payload = new Map(opened.values.map((v) => [at(v), v.value]))
+    return {
+      ...node,
+      values: node.values.map((v) => ({ ...v, value: payload.get(at(v)) })),
+      ...(node.access && opened.memberUserNames
+        ? { access: { ...node.access, memberUserNames: opened.memberUserNames } }
+        : {}),
+    }
+  })
+  const people = loaded.people
+    ? openPeople(loaded.people.block, loaded.people.files, key)
+    : undefined
+  const sealedBlobs = set.manifest.content === 'sealed'
+  const { sealed: _sealed, ...rest } = set
+  return {
+    set: { ...rest, nodes, ...(people ? { people } : {}) },
+    people,
+    openBlob: (blob, bytes) => (sealedBlobs ? openBytes(key, blobPath(blob), bytes) : bytes),
+  }
 }

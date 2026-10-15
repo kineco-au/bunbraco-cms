@@ -3,7 +3,7 @@
  * actually sends. See docs/backoffice-hosting.md for the wire contract.
  */
 import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@crombolo/core'
-import { hashPassword, passwordConfigJson, verifyPassword } from './password.ts'
+import { hashPassword, isNativeHash, passwordConfigJson, verifyPassword } from './password.ts'
 import { type CodeChallengeMethod, generateToken, verifyChallenge } from './pkce.ts'
 import type { AuthStore, UserRow } from './store.ts'
 
@@ -131,7 +131,11 @@ export class AuthService {
         await verifyPassword(password, await DUMMY_HASH_PROMISE)
         return { status: 'notAllowed', reason: 'lockedOut', user } as const
       }
-      if (!(await verifyPassword(password, user.passwordHash))) {
+      if (
+        !(await verifyPassword(password, user.passwordHash, {
+          passwordConfig: user.passwordConfig,
+        }))
+      ) {
         const attempts = await this.#store.recordLoginFailure(user.id)
         const lockedOut =
           this.#settings.maxFailedLoginAttempts > 0 &&
@@ -143,6 +147,13 @@ export class AuthService {
       // attacker can induce, so answering it only to whoever knows the password
       // discloses strictly less than checking it up front.
       if (!user.isApproved) return { status: 'notAllowed', reason: 'notApproved', user } as const
+      // An imported Umbraco hash is replaced now the password is known to match it.
+      if (!isNativeHash(user.passwordHash))
+        await this.#store.rehashPassword(
+          user.id,
+          await hashPassword(password),
+          passwordConfigJson(),
+        )
 
       const sessionId = crypto.randomUUID()
       await this.#store.recordLoginSuccess(user.id, sessionId, ipAddress)

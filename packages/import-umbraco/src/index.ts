@@ -18,10 +18,11 @@ import {
   writeMemberType,
   writeSchemaVersion,
 } from '@crombolo/schema'
-import { writeBundle, writeBundlePackage } from '@crombolo/transfer'
+import { newSeal, writeBundle, writeBundlePackage } from '@crombolo/transfer'
 import { convertContent } from './content.ts'
 import { Findings } from './findings.ts'
 import { type DictionaryItem, type DomainEntry, takeInventory } from './inventory.ts'
+import { convertPeople } from './people.ts'
 import { buildReport, type ImportReport, reportJson, reportMarkdown } from './report.ts'
 import { convertSchema } from './schema.ts'
 import { readSiteFiles, type SiteFiles } from './site-files.ts'
@@ -38,6 +39,7 @@ export {
   reportSummary,
 } from './report.ts'
 export { SUPPORTED_EDITORS } from './schema.ts'
+export { hideTopLevelFrom, parseAppSettings } from './site-files.ts'
 export { openSource, type Source } from './source.ts'
 export {
   type DetectedVersion,
@@ -71,6 +73,15 @@ export interface ImportOptions {
    * as its peer range. The importer does not know it itself: the CLI does.
    */
   coreVersion: string
+  /**
+   * Property values and media files: left out (the default), sealed under the
+   * passphrase, or in the open. Names, the tree and the rules travel regardless.
+   */
+  content?: 'omitted' | 'sealed' | 'open'
+  withMembers?: boolean
+  withUsers?: boolean
+  /** Seals the content and the people; needed for either. */
+  passphrase?: string
 }
 
 /** One file of the new site: literal text, or a file to copy. */
@@ -96,6 +107,10 @@ export interface ImportPlan {
 }
 
 export async function planImport(options: ImportOptions): Promise<ImportPlan> {
+  const mode = options.content ?? 'omitted'
+  const withPeople = Boolean(options.withMembers || options.withUsers)
+  if ((mode === 'sealed' || withPeople) && !options.passphrase)
+    throw new Error('Encrypted content and people need a passphrase.')
   const source = await openSource(options.source, { staging: options.staging })
   try {
     const findings = new Findings()
@@ -175,11 +190,50 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
       siteName,
     })
     const inventory = takeInventory(source, schema, files, findings)
+    const people = convertPeople(source, schema, findings, {
+      members: options.withMembers ?? false,
+      users: options.withUsers ?? false,
+    })
+    // What was left out by asking for less, and how to bring it.
+    if (!options.withMembers)
+      findings.some({
+        class: 'dropped',
+        code: 'members-left-out',
+        title: 'Members',
+        detail:
+          'Not asked for. Pass --with-members to bring them, with their groups and passwords, encrypted.',
+        count: source.count('cmsMember'),
+      })
+    if (!options.withUsers)
+      findings.some({
+        class: 'dropped',
+        code: 'users-left-out',
+        title: 'Backoffice users',
+        detail:
+          'Not asked for: `crombolo start` creates an administrator. Pass --with-users to bring them, with their groups and passwords, encrypted.',
+        count: source.count('umbracoUser', 'id > 0'),
+      })
+    if (mode === 'omitted')
+      findings.some({
+        class: 'dropped',
+        code: 'content-left-out',
+        title: 'Property values and media files',
+        detail:
+          'Not asked for: pages and media are created with their names, places and templates, and are empty. Pass --include-content to bring what they hold, encrypted.',
+        count: content.set.nodes.filter((node) => node.values.length > 0).length,
+      })
 
     const out: SiteFile[] = []
 
     // Schema
-    out.push({ path: 'schema/schema.toml', text: writeSchemaVersion(schema.set.version) })
+    // The source's address setting travels, so its URLs stay what they were.
+    out.push({
+      path: 'schema/schema.toml',
+      text: writeSchemaVersion(
+        schema.set.version,
+        files?.hideTopLevelNodeFromPath === false ? { hideTopLevel: false } : undefined,
+      ),
+    })
     for (const type of schema.set.contentTypes)
       out.push({
         path: `schema/content-types/${fileNameFor(type.alias)}`,
@@ -262,7 +316,7 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
     // the values name, so nothing has to hold a whole media library in memory.
     const missing: string[] = []
     const seen = new Set<string>()
-    for (const blob of content.blobs) {
+    for (const blob of mode === 'omitted' ? [] : content.blobs) {
       if (seen.has(blob.key)) continue
       seen.add(blob.key)
       const file = files?.mediaDir ? join(files.mediaDir, blob.key) : undefined
@@ -301,14 +355,25 @@ export async function planImport(options: ImportOptions): Promise<ImportPlan> {
     })
 
     // The content, as the private bundle package `content import` reads.
-    const imported = writeBundlePackage(writeBundle(content.set), {
-      name: 'umbraco-import',
-      version: '1.0.0',
-      id: 'umbraco-import',
-      label: `Content imported from ${siteName}`,
-      private: true,
-      peerRange: `^${options.coreVersion}`,
-    })
+    const seal =
+      options.passphrase && (mode === 'sealed' || withPeople)
+        ? newSeal(options.passphrase)
+        : undefined
+    const imported = writeBundlePackage(
+      writeBundle(content.set, undefined, [], {
+        content: mode,
+        seal,
+        people: withPeople ? people : undefined,
+      }),
+      {
+        name: 'umbraco-import',
+        version: '1.0.0',
+        id: 'umbraco-import',
+        label: `Content imported from ${siteName}`,
+        private: true,
+        peerRange: `^${options.coreVersion}`,
+      },
+    )
     for (const file of imported)
       out.push({ path: `${IMPORT_BUNDLE}/${file.path}`, text: file.text, bytes: file.bytes })
 

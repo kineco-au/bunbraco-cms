@@ -35,5 +35,4 @@ external accounts to local members, with auto-linking, is what is left.
 
 ## Out of scope
 
-- Provisioning and deprovisioning from the provider, which is 033.
 - Two-factor sign-in, which is 032.

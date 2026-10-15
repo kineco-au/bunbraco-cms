@@ -200,4 +200,3 @@ require.
 - External identity providers, and the decided shape for them (typed presets
   `entra(...)`, `awsIdentityCenter(...)` and `oidc(...)`): 031.
 - A second factor: 032.
-- Provisioning from an identity provider (SCIM): 033.

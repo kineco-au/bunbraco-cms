@@ -7,6 +7,7 @@
  * hash and sections mean what they always did. The package is what gives it a
  * name, a version and a core it was written for.
  */
+import { PEOPLE_DIR } from './people.ts'
 import type { BundleFile } from './write.ts'
 
 /** The directory inside a package that holds the `bundle.json` payload. */
@@ -77,6 +78,12 @@ export function writeBundlePackage(
   info: BundlePackageInfo,
 ): BundleFile[] {
   if (!isPackageName(info.name)) throw new Error(`"${info.name}" is not a package name npm accepts`)
+  // Personal data never goes where `npm publish` can take it, sealed or not;
+  // and sealed content would be no use to anyone who installed it.
+  if (!info.private && payload.some((file) => file.path.startsWith(`${PEOPLE_DIR}/`)))
+    throw new Error('A bundle that carries members or users can only be a private package.')
+  if (!info.private && payload.some((file) => file.path.startsWith('values/')))
+    throw new Error('A bundle whose content is encrypted can only be a private package.')
   return [
     { path: 'package.json', text: `${JSON.stringify(bundlePackageJson(info), null, 2)}\n` },
     ...payload.map((file) => ({ ...file, path: `${PAYLOAD_DIR}/${file.path}` })),

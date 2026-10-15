@@ -6,8 +6,10 @@ import {
   Locks,
   type Migration,
   MigrationPlan,
+  MigrationStepError,
   migrate,
   postgresDialect,
+  readLedger,
   readState,
   sqliteDialect,
   stampFinalState,
@@ -183,6 +185,49 @@ describe(`database (${dialectUnderTest})`, () => {
       await expect(migrate(db, plan)).rejects.toThrow('boom')
       expect(await readState(db)).toBe(INITIAL_STATE)
       await expect(db.query('SELECT * FROM half_done')).rejects.toThrow()
+    } finally {
+      await db.close()
+    }
+  })
+
+  test('a failed step names itself, keeps the steps before it, and the next run resumes there', async () => {
+    if (!available) return
+    const db = await freshDb()
+    try {
+      let broken = true
+      const plan = () =>
+        new MigrationPlan([
+          {
+            from: INITIAL_STATE,
+            to: STATE_1,
+            name: 'First',
+            async up(tx) {
+              await tx.exec(`CREATE TABLE first_done (id ${tx.dialect.types.integer})`)
+            },
+          },
+          {
+            from: STATE_1,
+            to: STATE_2,
+            name: 'Second',
+            async up(tx) {
+              if (broken) throw new Error('the disk is full')
+              await tx.exec(`CREATE TABLE second_done (id ${tx.dialect.types.integer})`)
+            },
+          },
+        ])
+      const failure = await migrate(db, plan()).catch((error: unknown) => error)
+      expect(failure).toBeInstanceOf(MigrationStepError)
+      expect((failure as Error).message).toBe(
+        'The upgrade stopped at step Second: the disk is full. Nothing from that step was kept; ' +
+          'the 1 step(s) before it are applied. Fix the cause and run the upgrade again: it carries on from this step.',
+      )
+      expect(await readState(db)).toBe(STATE_1)
+      expect((await readLedger(db)).map((row) => row.name)).toContain('First')
+
+      broken = false
+      const resumed = await migrate(db, plan())
+      expect(resumed.applied).toEqual(['Second'])
+      expect(await readState(db)).toBe(STATE_2)
     } finally {
       await db.close()
     }

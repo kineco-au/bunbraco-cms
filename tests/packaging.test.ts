@@ -59,6 +59,7 @@ function entryPoints(pkg: (typeof packages)[number]): string[] {
 describe('the published package set', () => {
   test('is the whole of packages/ bar nothing private', () => {
     expect(packages.map((pkg) => pkg.name)).toEqual([
+      '@crombolo/api-delivery',
       '@crombolo/api-management',
       '@crombolo/assistant',
       '@crombolo/auth',
@@ -274,8 +275,10 @@ describe('the release workflow', () => {
   })
 
   test('cannot publish without a green build', () => {
-    // `needs: ci` is the whole gate: without it a red suite still ships.
-    expect(workflow).toMatch(/needs:\s*ci/)
+    // The build and the load test are the whole gate: without them a red suite still ships.
+    const publish = workflow.slice(workflow.indexOf('\n    publish:'))
+    expect(publish).toMatch(/needs:\s*\[ci, load\]/)
+    expect(workflow).toContain('bun run test:load')
     expect(workflow).toContain('bun run release:publish')
   })
 })

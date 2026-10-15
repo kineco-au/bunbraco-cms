@@ -22,12 +22,14 @@ import {
   DocumentRepository,
   type DocumentRepositoryOptions,
   DomainRepository,
+  InvalidParentError,
   LanguageRepository,
   NOTIFIABLE_ACTIONS,
   type NodeRow,
   NotificationRepository,
   PublishBlockedError,
   RedirectRepository,
+  readUrlOptions,
   WriteRejectedError,
 } from '@crombolo/data'
 import type { PublishedCache, PublishedContentSource, PublishedNode } from '@crombolo/render'
@@ -91,6 +93,8 @@ export function createDocumentPort(
   const failure = (error: unknown) => {
     if (error instanceof WriteRejectedError)
       return { ok: false as const, reason: error.message, status: 409 }
+    if (error instanceof InvalidParentError)
+      return { ok: false as const, reason: error.message, status: 400 }
     if (error instanceof PublishBlockedError) return { ok: false as const, reason: error.message }
     if (error instanceof TemporaryFileMissingError)
       return { ok: false as const, reason: error.message, status: 400 }
@@ -160,7 +164,9 @@ export function createDocumentPort(
         ),
       ),
     async documentItems(keys: readonly string[]) {
-      const rows = await Promise.all(keys.map((key) => repo.nodes.byKey(key)))
+      // One read for all of them, answered in the order asked.
+      const found = new Map((await repo.nodes.byKeys(keys)).map((row) => [row.key, row]))
+      const rows = keys.map((key) => found.get(normaliseUuid(key)))
       return repo.treeItems(
         rows.filter((row): row is NodeRow => row?.objectType === ObjectTypes.Document),
       )
@@ -497,30 +503,24 @@ export function createPublishedContentSource(
     },
     async loadMedia() {
       const media = new DocumentRepository(db, { ...options, kind: 'media' })
-      const rows = await db.query<{ unique_id: string }>(
-        'SELECT unique_id FROM node WHERE node_object_type = ? AND trashed = ?',
-        [ObjectTypes.Media, db.dialect.boolValue(false)],
-      )
-      const nodes = []
-      for (const row of rows) {
-        const item = await media.byKey(normaliseUuid(String(row.unique_id)))
-        if (!item) continue
-        nodes.push({
-          key: item.key,
-          id: (await media.nodes.byKey(item.key))?.id ?? 0,
-          name: item.variants[0]?.name ?? '',
-          mediaTypeAlias: item.contentTypeAlias,
-          properties: item.values.map((value) => ({
-            alias: value.alias,
-            editorAlias: value.editorAlias ?? '',
-            culture: value.culture,
-            segment: value.segment,
-            value: toPublishedValue(value.editorAlias, value.value),
-            config: value.config,
-          })),
-        })
-      }
-      return nodes
+      return (await media.loadCurrent()).map((item) => ({
+        key: item.key,
+        id: item.id,
+        name: item.name,
+        mediaTypeAlias: item.contentTypeAlias,
+        parentId: item.parentId,
+        sortOrder: item.sortOrder,
+        createDate: item.createDate,
+        updateDate: item.updateDate,
+        properties: item.values.map((value) => ({
+          alias: value.alias,
+          editorAlias: value.editorAlias ?? '',
+          culture: value.culture,
+          segment: value.segment,
+          value: toPublishedValue(value.editorAlias, value.value),
+          config: value.config,
+        })),
+      }))
     },
     async loadLanguages() {
       return (await new LanguageRepository(db).all()).map((l) => ({
@@ -574,6 +574,7 @@ export function createPublishedContentSource(
       return out
     },
     loadContentTypeAliases: () => new ContentTypeRepository(db).aliasesByKey(),
+    loadUrlOptions: () => readUrlOptions(db),
 
     async loadRedirects() {
       return (await new RedirectRepository(db).all()).map((row) => ({

@@ -83,6 +83,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'sectionView:Crombolo.SectionView.Bundles.Marketplace',
       'sectionView:Crombolo.SectionView.Bundles.Created',
       'sectionView:Crombolo.SectionView.Bundles.Installed',
+      'workspaceView:Crombolo.WorkspaceView.Webhook.Storage',
+      'dashboard:Crombolo.Dashboard.Addresses',
       'dashboard:Crombolo.Dashboard.Changes',
       'dashboard:Crombolo.Dashboard.AuditLog',
       'dashboard:Crombolo.Dashboard.Welcome',

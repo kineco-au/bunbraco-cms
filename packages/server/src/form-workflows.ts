@@ -26,6 +26,7 @@ import {
   type NodeSchemaState,
 } from '@crombolo/data'
 import type { EmailAttachment, EmailPort } from './email.ts'
+import type { FormWorkflowTypeDefinition } from './form-types.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
 
@@ -40,7 +41,12 @@ export interface WorkflowContext {
   form: SchemaForm
   values: readonly FormValueToStore[]
   entryId: string | null
+  /** Which attempt this is, from 1. */
+  attempt?: number
 }
+
+/** How long a bundle's workflow may run before its signal aborts. */
+const BUNDLE_WORKFLOW_TIMEOUT_MS = 60_000
 
 export interface WorkflowDeps {
   db: Db
@@ -52,6 +58,8 @@ export interface WorkflowDeps {
   nodeId?: string
   /** Told when a workflow published something, so the cache is dropped. */
   onContentChanged?: () => void
+  /** The workflow types wired bundles add, by type. */
+  bundleWorkflows?: ReadonlyMap<string, FormWorkflowTypeDefinition>
 }
 
 export type WorkflowResult =
@@ -301,6 +309,54 @@ export async function runWorkflow(
     case 'sendToUrl':
       return sendToUrl(workflow, context, deps)
   }
+  const bundled = deps.bundleWorkflows?.get(workflow.type)
+  if (!bundled)
+    return {
+      ok: false,
+      retry: false,
+      error: `No wired bundle provides the workflow type "${workflow.type}".`,
+    }
+  return runBundleWorkflow(bundled, workflow, context, deps)
+}
+
+/** A bundle's handler, given the submission and narrow capabilities rather than the deps. */
+async function runBundleWorkflow(
+  definition: FormWorkflowTypeDefinition,
+  workflow: SchemaFormWorkflow,
+  context: WorkflowContext,
+  deps: WorkflowDeps,
+): Promise<WorkflowResult> {
+  const values: Record<string, readonly string[]> = {}
+  const labels: Record<string, readonly string[]> = {}
+  for (const value of context.values) {
+    values[value.fieldAlias] = value.values
+    if (value.labels) labels[value.fieldAlias] = value.labels
+  }
+  const named = logger('forms', workflow.type)
+  const signal = AbortSignal.timeout(BUNDLE_WORKFLOW_TIMEOUT_MS)
+  return definition.run({
+    form: {
+      key: context.form.key ?? context.form.alias,
+      alias: context.form.alias,
+      name: context.form.name,
+    },
+    values,
+    labels,
+    entryId: context.entryId,
+    settings: workflow.settings,
+    attempt: context.attempt ?? 1,
+    fetch: (input, init) => (deps.fetch ?? fetch)(input, { signal, ...init }),
+    sendEmail: async (message) =>
+      deps.email
+        ? deps.email.send(message)
+        : { ok: false, error: 'This site has no e-mail set up.' },
+    log: {
+      info: (message, properties) => named.info(message, properties),
+      warn: (message, properties) => named.warn(message, properties),
+      error: (message, properties) => named.error(message, properties),
+    },
+    signal,
+  })
 }
 
 export interface WorkflowRunReport {
@@ -347,6 +403,7 @@ export function createWorkflowRunner(
       form,
       values: run.payload,
       entryId: run.entryId,
+      attempt: run.attempts,
     }
     let result: WorkflowResult
     try {

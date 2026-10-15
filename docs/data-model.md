@@ -135,6 +135,27 @@ with it; nodes gate on the latest `current` state, so the old nodes stay
 writable while editors fill those elements in. `upgrade` flips `prepared` to
 `current`: that one-row update is the cut-over.
 
+## Relations are derived, not stored
+
+Umbraco keeps a `umbracoRelation` row per relation, written when content is
+saved or trashed. Here relations are computed when asked for, so they cannot go
+stale (`packages/data/src/relations.ts`, story `046`):
+
+- **Related Document, Media, Member and Element** are the pickers' references:
+  every key a current value names (`umb://<type>/<hex>` or a bare uuid), joined
+  to the item it names. This is the same derivation as "referenced by" (story
+  `041`), done as one scan.
+- **Relate Parent Document On Delete**, **… Media Folder …**, and **… Element
+  Container On Element Delete** pair a trashed item with the original parent it
+  remembers (`document.original_parent_id`).
+- **Relate Document On Copy** and **… Element Container On Container Delete**
+  have no relations. A copy records no origin, and element containers are not
+  trashed.
+
+The relation types are Umbraco's nine, in code. Their keys are the name-based
+UUIDs Umbraco derives from `alias____name`, so they match a real install's. A
+relation's own key is derived the same way from its type and its two ends.
+
 ## The two load-bearing decisions we keep
 
 **1. `node` is a universal polymorphic tree.** Documents, media, members, all

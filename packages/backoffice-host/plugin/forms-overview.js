@@ -14,25 +14,35 @@
 import '@umbraco-cms/backoffice/document'
 import { css, html, nothing, repeat } from '@umbraco-cms/backoffice/external/lit'
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
-import { deleteForm, listForms, previewChoices, readForm, saveForm } from './forms-client.js'
+import {
+  deleteForm,
+  listForms,
+  listFormTypes,
+  previewChoices,
+  readForm,
+  saveForm,
+} from './forms-client.js'
+import {
+  addGroup,
+  addPage,
+  groupHasFields,
+  layoutRows,
+  moveField,
+  moveGroup,
+  movePage,
+  nudgeField,
+  pageHasFields,
+  removeGroup,
+  removePage,
+  setColumns,
+  setGroupCaption,
+  setPageCaption,
+  withLayout,
+} from './forms-layout.js'
 
-const FIELD_TYPES = [
-  'shortAnswer',
-  'longAnswer',
-  'email',
-  'number',
-  'date',
-  'checkbox',
-  'dropdown',
-  'singleChoice',
-  'multipleChoice',
-  'fileUpload',
-  'dataConsent',
-  'titleAndDescription',
-  'richText',
-  'hidden',
-]
-const CHOICE_TYPES = new Set(['dropdown', 'singleChoice', 'multipleChoice'])
+/** What a preview depends on, so it survives a layout change that copies the field. */
+const sourceKey = (source) => `${source.kind}|${source.parent}`
+
 /** Where a choice field's options come from, as an editor would put it. */
 const CHOICE_FROM = [
   { kind: '', label: 'Options typed here' },
@@ -48,6 +58,7 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     _notice: { state: true },
     _busy: { state: true },
     _choices: { state: true },
+    _types: { state: true },
   }
 
   constructor() {
@@ -58,7 +69,9 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     this._notice = ''
     this._busy = false
     /** What each source currently offers, by field; shown under the field. */
-    this._choices = new WeakMap()
+    this._choices = new Map()
+    /** Field types by name, as the server has them: built in and from bundles. */
+    this._types = new Map()
   }
 
   connectedCallback() {
@@ -68,7 +81,9 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
 
   async #load() {
     try {
-      this._forms = await listForms()
+      const [forms, types] = await Promise.all([listForms(), listFormTypes()])
+      this._forms = forms
+      this._types = new Map(types.fields.map((info) => [info.type, info]))
     } catch (error) {
       this._forms = []
       this._notice = error.message
@@ -79,30 +94,98 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     this._problems = []
     this._notice = ''
     const detail = await readForm(key)
-    this._editing = structuredClone(detail.definition)
-    this._choices = new WeakMap()
+    this._editing = withLayout(detail.definition)
+    this._choices = new Map()
     for (const field of this.#fields) if (field.source) this.#preview(field)
   }
 
   async #preview(field) {
     const source = field.source
     if (!source?.parent) {
-      this._choices.delete(field)
       this.#touch()
       return
     }
     try {
       const result = await previewChoices(source)
-      this._choices.set(field, result.ok ? result.body.options : [])
+      this._choices.set(sourceKey(source), result.ok ? result.body.options : [])
     } catch {
-      this._choices.set(field, [])
+      this._choices.set(sourceKey(source), [])
     }
     this.#touch()
   }
 
+  /** Clears what the old type kept, so a switched field carries no settings it no longer takes. */
+  #changeType(field, type) {
+    const before = this._types.get(field.type)
+    for (const setting of before?.builtIn ? before.settings : []) delete field[setting.key]
+    delete field.settings
+    field.type = type
+    if (!this._types.get(type)?.choices) {
+      field.values = []
+      delete field.source
+    }
+  }
+
+  /**
+   * One input per setting the type declares. A built-in type keeps them on the
+   * field; a bundle's type keeps them in the field's own settings.
+   */
+  #settingsCell(field) {
+    const info = this._types.get(field.type)
+    if (!info || info.settings.length === 0) return nothing
+    const read = (key) => (info.builtIn ? field[key] : field.settings?.[key])
+    const write = (key, value) => {
+      if (info.builtIn) {
+        if (value === undefined) delete field[key]
+        else field[key] = value
+      } else {
+        field.settings = { ...(field.settings ?? {}) }
+        if (value === undefined) delete field.settings[key]
+        else field.settings[key] = value
+        if (Object.keys(field.settings).length === 0) delete field.settings
+      }
+      this.#touch()
+    }
+    return html`<div class="settings">
+      ${info.settings.map((setting) => {
+        const value = read(setting.key)
+        const label = `${setting.label}${setting.required ? ' *' : ''}`
+        if (setting.kind === 'boolean')
+          return html`<uui-toggle
+            label=${label}
+            title=${setting.description ?? ''}
+            .checked=${value === true}
+            @change=${(event) => write(setting.key, event.target.checked || undefined)}
+          ></uui-toggle>`
+        return html`<label>
+          <span>${label}</span>
+          <uui-input
+            title=${setting.description ?? ''}
+            type=${setting.kind === 'number' ? 'number' : 'text'}
+            .value=${value === undefined ? '' : setting.kind === 'list' ? value.join(', ') : String(value)}
+            @change=${(event) => {
+              const raw = event.target.value.trim()
+              if (raw === '') return write(setting.key, undefined)
+              if (setting.kind === 'number') return write(setting.key, Number(raw))
+              if (setting.kind === 'list')
+                return write(
+                  setting.key,
+                  raw
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                )
+              write(setting.key, raw)
+            }}
+          ></uui-input>
+        </label>`
+      })}
+    </div>`
+  }
+
   #choicesCell(field) {
     const kind = field.source?.kind ?? ''
-    const offered = this._choices.get(field)
+    const offered = field.source?.parent ? this._choices.get(sourceKey(field.source)) : undefined
     const list =
       kind === ''
         ? html`<uui-input
@@ -145,7 +228,6 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
             field.source = { kind: chosen, parent: '' }
             field.values = []
           }
-          this._choices.delete(field)
           this.#touch()
         }}
       >
@@ -184,8 +266,216 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     }
   }
 
+  /** Every field, in order: for the previews, which a layout change does not touch. */
   get #fields() {
-    return this._editing?.pages?.[0]?.groups?.[0]?.fields ?? []
+    return (this._editing?.pages ?? []).flatMap((page) =>
+      page.groups.flatMap((group) => group.fields),
+    )
+  }
+
+  /** Applies a layout operation from forms-layout.js to the form being edited. */
+  #apply(operation, ...args) {
+    this._editing = operation(this._editing, ...args)
+  }
+
+  #page(page, p) {
+    const pages = this._editing.pages
+    return html`<section class="page" aria-label=${page.caption || `Page ${p + 1}`}>
+      <div class="bar">
+        <uui-input
+          label="Page title"
+          placeholder=${`Page ${p + 1}`}
+          .value=${page.caption ?? ''}
+          @change=${(event) => this.#apply(setPageCaption, p, event.target.value)}
+        ></uui-input>
+        <uui-button compact look="secondary" label="Move page up" ?disabled=${p === 0}
+          @click=${() => this.#apply(movePage, p, p - 1)}>↑</uui-button>
+        <uui-button compact look="secondary" label="Move page down" ?disabled=${p === pages.length - 1}
+          @click=${() => this.#apply(movePage, p, p + 1)}>↓</uui-button>
+        <uui-button compact look="secondary" color="danger" label="Remove page" ?disabled=${pages.length === 1}
+          @click=${() => {
+            if (pageHasFields(page) && !confirm('Remove this page and the fields on it?')) return
+            this.#apply(removePage, p)
+          }}></uui-button>
+      </div>
+      ${page.groups.map((group, g) => this.#group(group, p, g, page.groups.length))}
+      <uui-button look="secondary" label="Add a group" @click=${() => this.#apply(addGroup, p)}></uui-button>
+    </section>`
+  }
+
+  #group(group, p, g, count) {
+    return html`<div
+      class="group"
+      @dragover=${(event) => event.preventDefault()}
+      @drop=${(event) => this.#drop(event, { page: p, group: g, index: group.fields.length })}
+    >
+      <div class="bar">
+        <uui-input
+          label="Group title"
+          placeholder="Untitled group"
+          .value=${group.caption ?? ''}
+          @change=${(event) => this.#apply(setGroupCaption, p, g, event.target.value)}
+        ></uui-input>
+        <label class="columns">
+          Columns
+          <select @change=${(event) => this.#apply(setColumns, p, g, Number(event.target.value))}>
+            ${[1, 2, 3, 4].map((n) => html`<option value=${n} ?selected=${n === group.columns}>${n}</option>`)}
+          </select>
+        </label>
+        <uui-button compact look="secondary" label="Move group up" ?disabled=${g === 0}
+          @click=${() => this.#apply(moveGroup, p, g, g - 1)}>↑</uui-button>
+        <uui-button compact look="secondary" label="Move group down" ?disabled=${g === count - 1}
+          @click=${() => this.#apply(moveGroup, p, g, g + 1)}>↓</uui-button>
+        <uui-button compact look="secondary" color="danger" label="Remove group" ?disabled=${count === 1}
+          @click=${() => {
+            if (groupHasFields(group) && !confirm('Remove this group and its fields?')) return
+            this.#apply(removeGroup, p, g)
+          }}></uui-button>
+      </div>
+      ${
+        group.fields.length > 0
+          ? html`<div class="preview" style=${`grid-template-columns: repeat(${group.columns}, 1fr)`} aria-hidden="true">
+              ${layoutRows(group)
+                .flat()
+                .map(
+                  (field) => html`<span>${field.caption || field.alias || 'Untitled field'}</span>`,
+                )}
+            </div>`
+          : nothing
+      }
+      ${this.#fieldsTable(group, p, g)}
+      <uui-button
+        look="secondary"
+        label="Add a field"
+        @click=${() => {
+          group.fields.push({
+            alias: '',
+            type: 'shortAnswer',
+            caption: '',
+            mandatory: false,
+            sensitive: false,
+            values: [],
+            accept: [],
+          })
+          this.#touch()
+        }}
+      ></uui-button>
+    </div>`
+  }
+
+  #drop(event, to) {
+    event.preventDefault()
+    event.stopPropagation()
+    const from = JSON.parse(event.dataTransfer?.getData('application/x-crombolo-field') || 'null')
+    if (from) this.#apply(moveField, from, to)
+  }
+
+  #fieldsTable(group, p, g) {
+    return html`<uui-table>
+          <uui-table-head>
+            <uui-table-head-cell>Order</uui-table-head-cell>
+            <uui-table-head-cell>Caption</uui-table-head-cell>
+            <uui-table-head-cell>Alias</uui-table-head-cell>
+            <uui-table-head-cell>Type</uui-table-head-cell>
+            <uui-table-head-cell>Choices</uui-table-head-cell>
+            <uui-table-head-cell>Settings</uui-table-head-cell>
+            <uui-table-head-cell>Required</uui-table-head-cell>
+            <uui-table-head-cell>Sensitive</uui-table-head-cell>
+            <uui-table-head-cell></uui-table-head-cell>
+          </uui-table-head>
+          ${repeat(
+            group.fields,
+            (_field, index) => index,
+            (field, index) => html`
+              <uui-table-row
+                draggable="true"
+                @dragstart=${(event) =>
+                  event.dataTransfer?.setData(
+                    'application/x-crombolo-field',
+                    JSON.stringify({ page: p, group: g, index }),
+                  )}
+                @dragover=${(event) => event.preventDefault()}
+                @drop=${(event) => this.#drop(event, { page: p, group: g, index })}
+              >
+                <uui-table-cell>
+                  <uui-button compact look="secondary" label="Move field up"
+                    @click=${() => this.#apply(nudgeField, { page: p, group: g, index }, -1)}>↑</uui-button>
+                  <uui-button compact look="secondary" label="Move field down"
+                    @click=${() => this.#apply(nudgeField, { page: p, group: g, index }, 1)}>↓</uui-button>
+                </uui-table-cell>
+                <uui-table-cell>
+                  <uui-input
+                    label="Caption"
+                    .value=${field.caption ?? ''}
+                    @change=${(event) => {
+                      field.caption = event.target.value
+                      this.#touch()
+                    }}
+                  ></uui-input>
+                </uui-table-cell>
+                <uui-table-cell>
+                  <uui-input
+                    label="Alias"
+                    .value=${field.alias ?? ''}
+                    @change=${(event) => {
+                      field.alias = event.target.value
+                      this.#touch()
+                    }}
+                  ></uui-input>
+                </uui-table-cell>
+                <uui-table-cell>
+                  <select
+                    aria-label="Type"
+                    @change=${(event) => {
+                      this.#changeType(field, event.target.value)
+                      this.#touch()
+                    }}
+                  >
+                    ${[...this._types.values()].map(
+                      (info) =>
+                        html`<option value=${info.type} ?selected=${info.type === field.type}>${info.label}</option>`,
+                    )}
+                  </select>
+                </uui-table-cell>
+                <uui-table-cell>
+                  ${this._types.get(field.type)?.choices ? this.#choicesCell(field) : nothing}
+                </uui-table-cell>
+                <uui-table-cell>${this.#settingsCell(field)}</uui-table-cell>
+                <uui-table-cell>
+                  <uui-toggle
+                    label="Required"
+                    .checked=${field.mandatory === true}
+                    @change=${(event) => {
+                      field.mandatory = event.target.checked
+                      this.#touch()
+                    }}
+                  ></uui-toggle>
+                </uui-table-cell>
+                <uui-table-cell>
+                  <uui-toggle
+                    label="Sensitive"
+                    .checked=${field.sensitive === true}
+                    @change=${(event) => {
+                      field.sensitive = event.target.checked
+                      this.#touch()
+                    }}
+                  ></uui-toggle>
+                </uui-table-cell>
+                <uui-table-cell>
+                  <uui-button
+                    look="secondary"
+                    color="danger"
+                    label="Remove"
+                    @click=${() => {
+                      group.fields.splice(index, 1)
+                      this.#touch()
+                    }}
+                  ></uui-button>
+                </uui-table-cell>
+              </uui-table-row>
+            `,
+          )}
+        </uui-table>`
   }
 
   #touch() {
@@ -320,111 +610,29 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
             }}
           ></uui-toggle>
         </uui-form-layout-item>
+        ${
+          form.pages.length > 1
+            ? html`<uui-form-layout-item>
+                <uui-label slot="label">Show one page at a time</uui-label>
+                <span slot="description">Each page is checked before the next. Without JavaScript the pages show together.</span>
+                <uui-toggle
+                  .checked=${form.stepPages === true}
+                  @change=${(event) => {
+                    if (event.target.checked) form.stepPages = true
+                    else delete form.stepPages
+                    this.#touch()
+                  }}
+                ></uui-toggle>
+              </uui-form-layout-item>
+              ${text('nextLabel', 'Next button')}
+              ${text('previousLabel', 'Back button')}`
+            : nothing
+        }
 
-        <h4>Fields</h4>
-        <uui-table>
-          <uui-table-head>
-            <uui-table-head-cell>Caption</uui-table-head-cell>
-            <uui-table-head-cell>Alias</uui-table-head-cell>
-            <uui-table-head-cell>Type</uui-table-head-cell>
-            <uui-table-head-cell>Choices</uui-table-head-cell>
-            <uui-table-head-cell>Required</uui-table-head-cell>
-            <uui-table-head-cell>Sensitive</uui-table-head-cell>
-            <uui-table-head-cell></uui-table-head-cell>
-          </uui-table-head>
-          ${repeat(
-            this.#fields,
-            (_field, index) => index,
-            (field, index) => html`
-              <uui-table-row>
-                <uui-table-cell>
-                  <uui-input
-                    .value=${field.caption ?? ''}
-                    @change=${(event) => {
-                      field.caption = event.target.value
-                      this.#touch()
-                    }}
-                  ></uui-input>
-                </uui-table-cell>
-                <uui-table-cell>
-                  <uui-input
-                    .value=${field.alias ?? ''}
-                    @change=${(event) => {
-                      field.alias = event.target.value
-                      this.#touch()
-                    }}
-                  ></uui-input>
-                </uui-table-cell>
-                <uui-table-cell>
-                  <select
-                    @change=${(event) => {
-                      field.type = event.target.value
-                      if (!CHOICE_TYPES.has(field.type)) {
-                        field.values = []
-                        delete field.source
-                      }
-                      this.#touch()
-                    }}
-                  >
-                    ${FIELD_TYPES.map(
-                      (type) =>
-                        html`<option value=${type} ?selected=${type === field.type}>${type}</option>`,
-                    )}
-                  </select>
-                </uui-table-cell>
-                <uui-table-cell>
-                  ${CHOICE_TYPES.has(field.type) ? this.#choicesCell(field) : nothing}
-                </uui-table-cell>
-                <uui-table-cell>
-                  <uui-toggle
-                    .checked=${field.mandatory === true}
-                    @change=${(event) => {
-                      field.mandatory = event.target.checked
-                      this.#touch()
-                    }}
-                  ></uui-toggle>
-                </uui-table-cell>
-                <uui-table-cell>
-                  <uui-toggle
-                    .checked=${field.sensitive === true}
-                    @change=${(event) => {
-                      field.sensitive = event.target.checked
-                      this.#touch()
-                    }}
-                  ></uui-toggle>
-                </uui-table-cell>
-                <uui-table-cell>
-                  <uui-button
-                    look="secondary"
-                    color="danger"
-                    label="Remove"
-                    @click=${() => {
-                      this.#fields.splice(index, 1)
-                      this.#touch()
-                    }}
-                  ></uui-button>
-                </uui-table-cell>
-              </uui-table-row>
-            `,
-          )}
-        </uui-table>
+        <h4>Layout</h4>
+        ${this._editing.pages.map((page, p) => this.#page(page, p))}
         <div class="actions">
-          <uui-button
-            look="secondary"
-            label="Add a field"
-            @click=${() => {
-              this.#fields.push({
-                alias: '',
-                type: 'shortAnswer',
-                caption: '',
-                mandatory: false,
-                sensitive: false,
-                values: [],
-                accept: [],
-              })
-              this.#touch()
-            }}
-          ></uui-button>
+          <uui-button look="secondary" label="Add a page" @click=${() => this.#apply(addPage)}></uui-button>
           <uui-button look="primary" label="Save" ?disabled=${this._busy} @click=${() => this.#save()}></uui-button>
           <uui-button look="secondary" label="Cancel" @click=${() => {
             this._editing = undefined
@@ -436,6 +644,56 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
   }
 
   static styles = css`
+    .page {
+      border: 1px solid var(--uui-color-border, #ddd);
+      border-radius: var(--uui-border-radius, 3px);
+      padding: var(--uui-size-space-4, 12px);
+      margin-bottom: var(--uui-size-space-4, 12px);
+    }
+    .group {
+      border-left: 3px solid var(--uui-color-divider-emphasis, #ccc);
+      padding: var(--uui-size-space-3, 9px) 0 var(--uui-size-space-3, 9px)
+        var(--uui-size-space-4, 12px);
+      margin: var(--uui-size-space-3, 9px) 0;
+    }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--uui-size-space-2, 6px);
+      margin-bottom: var(--uui-size-space-3, 9px);
+    }
+    .columns {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--uui-size-space-2, 6px);
+    }
+    .preview {
+      display: grid;
+      gap: var(--uui-size-space-2, 6px);
+      margin-bottom: var(--uui-size-space-3, 9px);
+    }
+    .preview span {
+      padding: var(--uui-size-space-2, 6px);
+      background: var(--uui-color-surface-alt, #f3f3f5);
+      border-radius: var(--uui-border-radius, 3px);
+      font-size: 0.9em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    uui-table-row[draggable='true'] {
+      cursor: grab;
+    }
+    .settings {
+      display: grid;
+      gap: var(--uui-size-space-2, 6px);
+    }
+    .settings label {
+      display: grid;
+      gap: 2px;
+      font-size: 0.9em;
+    }
     .offered {
       margin: var(--uui-size-space-2, 6px) 0 0;
       color: var(--uui-color-text-alt, #555);

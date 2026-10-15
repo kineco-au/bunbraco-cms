@@ -3,6 +3,7 @@
  * so a path that is not in the contract cannot be served, and an operation in
  * the contract without a handler answers 501 rather than 404.
  */
+
 import { type HttpMethod, listOperations, loadSpec, type OperationInfo } from '@crombolo/contracts'
 import {
   applyNotifications,
@@ -25,6 +26,7 @@ import {
 } from './audit.ts'
 import { authorize, LOCAL_LOGIN_OPERATIONS, type NodeLookup } from './authorization.ts'
 import { type ServerEvent, serverEventFor } from './server-events.ts'
+import { type RaisedWebhookEvent, webhookEventFor } from './webhook-events.ts'
 
 /**
  * Resolved back-office identity, assembled from a reference token plus the
@@ -88,6 +90,10 @@ export interface RouterOptions {
   audit?: AuditSink
   /** Where a request came from, for its audit entry. */
   clientAddress?: (request: Request) => ClientAddress
+  /** Answers an error a handler threw; undefined lets it propagate. */
+  onError?: (error: unknown) => Response | undefined
+  /** Told about every webhook event a successful operation raises. */
+  onWebhookEvent?: (event: RaisedWebhookEvent) => void
 }
 
 export interface ClientAddress {
@@ -122,6 +128,8 @@ export class ManagementApiRouter {
   readonly #allowLocalLogin: boolean
   readonly #audit: AuditSink | undefined
   readonly #clientAddress: (request: Request) => ClientAddress
+  readonly #onError: RouterOptions['onError']
+  readonly #onWebhookEvent: RouterOptions['onWebhookEvent']
 
   constructor(options: RouterOptions = {}) {
     const operations = options.operations ?? listOperations(loadSpec())
@@ -133,6 +141,8 @@ export class ManagementApiRouter {
     this.#allowLocalLogin = options.allowLocalLogin ?? true
     this.#audit = options.audit
     this.#clientAddress = options.clientAddress ?? forwardedOnly
+    this.#onError = options.onError
+    this.#onWebhookEvent = options.onWebhookEvent
     for (const operation of operations) {
       const segments = operation.path.split('/').filter((s) => s.length > 0)
       const paramNames = segments.map((s) =>
@@ -233,7 +243,7 @@ export class ManagementApiRouter {
     const plan = handler && this.#audit ? auditPlanFor(operation.operationId) : undefined
     const audit = plan ? await this.#beforeAudit(plan, params, request) : undefined
     const response = handler
-      ? await handler({ request, url, params, operation, notifications, principal })
+      ? await this.#run(handler, { request, url, params, operation, notifications, principal })
       : problemResponse(notImplemented(operation.operationId))
     if (plan && audit && response.status >= 200 && response.status < 300)
       await this.#recordAudit(plan, audit, params, request, response, principal)
@@ -241,10 +251,24 @@ export class ManagementApiRouter {
       const event = serverEventFor(operation, params, response)
       if (event) this.#onServerEvent(event)
     }
+    if (handler && this.#onWebhookEvent) {
+      const event = webhookEventFor(operation.operationId, params, response)
+      if (event) this.#onWebhookEvent(event)
+    }
     const headers = new Headers(response.headers)
     applyNotifications(headers, request.method, notifications)
     headers.set('cache-control', 'no-store')
     return new Response(response.body, { status: response.status, headers })
+  }
+
+  async #run(handler: OperationHandler, ctx: RequestContext): Promise<Response> {
+    try {
+      return await handler(ctx)
+    } catch (error) {
+      const answered = this.#onError?.(error)
+      if (answered) return answered
+      throw error
+    }
   }
 
   /** Reads what the entry needs before the handler consumes the body or removes the item. */

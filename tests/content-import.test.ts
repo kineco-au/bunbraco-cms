@@ -252,7 +252,7 @@ describe(`importing a bundle (${dialectUnderTest})`, () => {
       })),
     }
     const result = await importBundle(target.h.server.db, conflicting, {
-      resolutions: { [key]: 'keep-local' },
+      resolutions: { [key]: { '*': 'keep-local' } },
     })
     expect(result.runId).toBeDefined()
     expect(await readValue(target.h, key, 'title')).toBe('Local')
@@ -407,7 +407,7 @@ describe(`importing a bundle (${dialectUnderTest})`, () => {
 
     const target = await site()
     const result = await importBundle(target.h.server.db, bundle, {
-      resolutions: { [skipped]: 'skip' },
+      resolutions: { [skipped]: { '*': 'skip' } },
     })
     expect(result.runId).toBeDefined()
     expect(await new DocumentRepository(target.h.server.db).byKey(skipped)).toBeUndefined()

@@ -31,7 +31,7 @@ import { resetPostgresSchema } from './db.ts'
  *   (`render/src/snapshots.ts`). Every render in the losing process then fails
  *   with ENOENT.
  */
-const VIEWS_CACHE = join('.crombolo', `views-${process.pid}`)
+const VIEWS_CACHE = join('.crombolo', `views-${Bun.env.CROMBOLO_TEST_RUN ?? process.pid}`)
 
 /** The default site's copy; a fixture site's goes with the fixture. */
 process.on('exit', () => {
@@ -89,12 +89,14 @@ export interface HarnessOptions {
   keepDatabase?: boolean
 }
 
-export async function signedInServer(options: HarnessOptions = {}): Promise<Harness> {
+/** A server nobody has signed in to: for what a visitor, or a site with no administrator, sees. */
+export async function bootServer(options: HarnessOptions = {}): Promise<ServerHandle> {
   if (!options.keepDatabase) await resetPostgresSchema()
-  const server = await createServer(
-    loadConfig({ componentsCacheDir: VIEWS_CACHE, ...options.config }),
-  )
-  return signIn(server, ADMIN)
+  return createServer(loadConfig({ componentsCacheDir: VIEWS_CACHE, ...options.config }))
+}
+
+export async function signedInServer(options: HarnessOptions = {}): Promise<Harness> {
+  return signIn(await bootServer(options), ADMIN)
 }
 
 /**

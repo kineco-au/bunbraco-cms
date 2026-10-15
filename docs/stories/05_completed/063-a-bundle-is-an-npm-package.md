@@ -257,9 +257,6 @@ inside a template's own `bundle/` directory (`…/bundle/bundle/blobs`).
   and version through `<backoffice>/crombolo/api/bundles/created/<id>/package`.
 - **`@crombolo/simple-redirects`** — `crombolo.id` is `redirects`, it declares
   `server` and a peer range, and its factory reads its id from its manifest.
-- **The product site's platform upload** (`scripts/publish-brochureware.ts`)
-  still sends a zip, which is the platform's contract, but the zip now holds the
-  package — `package.json` and `content/` — rather than a bare payload.
 - **Tests** — `bundle-package.test.ts` and `tar.test.ts` are new; the installer,
   download, marketplace, server bundle, template and importer suites cover the
   rest.

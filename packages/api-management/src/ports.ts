@@ -18,6 +18,7 @@ import type {
   MediaPort,
   RedirectPort,
   ReferencePort,
+  RelationPort,
   TemplatePort,
   TemplateQueryPort,
 } from './ports-content.ts'
@@ -28,6 +29,7 @@ import type { MemberGroupPort, MemberPort, PublicAccessPort } from './ports-memb
 import type { ModelsBuilderPort } from './ports-models-builder.ts'
 import type { PackagePort } from './ports-packages.ts'
 import type { UserDataPort, UserGroupPort, UserPort } from './ports-users.ts'
+import type { WebhookPort } from './ports-webhooks.ts'
 import type { Principal } from './router.ts'
 
 export interface ServerPort {
@@ -284,6 +286,8 @@ export interface ManagementApiDeps {
   publicAccess?: PublicAccessPort
   elements?: ElementPort
   references?: ReferencePort
+  relations?: RelationPort
+  webhooks?: WebhookPort
   redirects?: RedirectPort
   packages?: PackagePort
 }

@@ -12,6 +12,12 @@ export const MANAGEMENT_API_PREFIX = '/umbraco/management/api/'
 
 export const MANAGEMENT_API_PATH = `${MANAGEMENT_API_PREFIX}v1`
 
+/**
+ * Umbraco's Delivery API, at the path its contract and every headless client
+ * use, wherever the backoffice is mounted.
+ */
+export const DELIVERY_API_PREFIX = '/umbraco/delivery/api'
+
 /** `server-event.context.js`: `${serverURL}/umbraco/serverEventHub`. */
 export const SERVER_EVENT_HUB_PATH = '/umbraco/serverEventHub'
 

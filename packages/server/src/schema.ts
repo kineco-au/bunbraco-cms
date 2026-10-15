@@ -6,6 +6,7 @@
 
 import { existsSync, watch } from 'node:fs'
 import {
+  CACHE_INSTRUCTION_CHANNEL,
   type CacheInstructionKind,
   cacheInstructionsAfter,
   compareStates,
@@ -40,6 +41,7 @@ import {
 } from '@crombolo/schema'
 import { listComponents } from './components.ts'
 import { type CromboloConfig, VERSION } from './config.ts'
+import { formTypesFor } from './form-types.ts'
 import { logger } from './logging.ts'
 import { materialiseSchema } from './schema-store.ts'
 
@@ -72,7 +74,7 @@ export async function checkSchemaDirectory(
   node: { nodeId: string; revision: string },
   options: { set?: Record<string, unknown> } = {},
 ): Promise<CheckReport> {
-  const loaded = loadSchemaDirectory(config.schemaDir)
+  const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
   return runCheck(
     db,
     loaded,
@@ -108,6 +110,7 @@ export function syncOptionsFor(config: CromboloConfig): SyncOptions {
   return {
     mode: config.development ? 'development' : 'production',
     componentAliases: componentAliasesIn(config.componentsDir),
+    formTypes: formTypesFor(config),
   }
 }
 
@@ -121,7 +124,7 @@ export async function syncSchemaDirectory(
   // The files are read under the lock the backoffice's schema writes hold, so a
   // sync never applies a snapshot that a later backoffice change has overtaken.
   return db.locks.withLock(Locks.Schema, async () => {
-    const loaded = loadSchemaDirectory(config.schemaDir)
+    const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
     const report = await syncSchema(
       db,
       loaded,
@@ -151,7 +154,7 @@ export async function bootSchema(db: Db, config: CromboloConfig): Promise<Schema
     await ensureSystemContentTypes(db)
     return { nodeState, nodeId, report: undefined, compatibilityMode: false }
   }
-  const loaded = loadSchemaDirectory(config.schemaDir)
+  const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
   const nodeState = { version: loaded.set.version, revision: config.schemaRevision }
   await touchServer(db, { nodeId, ...nodeState, role: config.role, cromboloVersion: VERSION })
   if (!config.syncSchemaAtBoot)
@@ -246,11 +249,18 @@ export interface CachePollerOptions {
   onInstruction(kind: CacheInstructionKind, payload: Record<string, unknown>): void
 }
 
-/** Polls `cache_instruction` from where this node came in; own instructions are skipped. */
+/**
+ * Polls `cache_instruction` from where this node came in; own instructions are
+ * skipped. Where the database can notify, a write wakes it at once and the
+ * timer is only the fallback.
+ */
 export class CacheInstructionPoller {
   #options: CachePollerOptions
   #cursor = 0
   #timer: ReturnType<typeof setInterval> | undefined
+  #unlisten: (() => Promise<void>) | undefined
+  #running: Promise<number> | undefined
+  #queued: Promise<number> | undefined
   #behind = false
   #bootLedgerId = 0
   #readsUnsafe = false
@@ -287,11 +297,39 @@ export class CacheInstructionPoller {
     if (intervalMs > 0) {
       this.#timer = setInterval(() => void this.poll().catch(() => {}), intervalMs)
       this.#timer.unref()
+      // Without it the timer still delivers everything, only later.
+      this.#unlisten = await this.#options.db
+        .listen?.(CACHE_INSTRUCTION_CHANNEL, () => void this.poll().catch(() => {}))
+        .catch(() => undefined)
     }
   }
 
-  /** Returns how many foreign instructions were applied. */
-  async poll(): Promise<number> {
+  /**
+   * Returns how many foreign instructions were applied. One poll at a time: a
+   * call while one runs waits for a single follow-up, so a burst of wake-ups
+   * reads the table twice, not once each.
+   */
+  poll(): Promise<number> {
+    if (this.#queued) return this.#queued
+    if (!this.#running) return this.#start()
+    this.#queued = this.#running
+      .catch(() => 0)
+      .then(() => {
+        this.#queued = undefined
+        return this.#start()
+      })
+    return this.#queued
+  }
+
+  #start(): Promise<number> {
+    const run = this.#pollOnce().finally(() => {
+      if (this.#running === run) this.#running = undefined
+    })
+    this.#running = run
+    return run
+  }
+
+  async #pollOnce(): Promise<number> {
     const { db, nodeId, nodeState, onInstruction } = this.#options
     const instructions = await cacheInstructionsAfter(db, this.#cursor)
     let applied = 0
@@ -322,6 +360,8 @@ export class CacheInstructionPoller {
   stop(): void {
     if (this.#timer) clearInterval(this.#timer)
     this.#timer = undefined
+    void this.#unlisten?.().catch(() => {})
+    this.#unlisten = undefined
   }
 }
 
@@ -381,7 +421,9 @@ export async function importSchema(
 
   const report = await syncSchemaDirectory(db, config, node)
   if (report.action === 'applied') {
-    boot.nodeState.version = loadSchemaDirectory(config.schemaDir).set.version
+    boot.nodeState.version = loadSchemaDirectory(config.schemaDir, {
+      formTypes: formTypesFor(config),
+    }).set.version
     boot.nodeState.revision = config.schemaRevision
   }
   return {

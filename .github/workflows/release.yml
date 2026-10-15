@@ -30,8 +30,51 @@ jobs:
             browser_tests: true
             postgres_tests: true
 
+    # Story 081's load test: concurrent edits on overlapping branches, then an
+    # invariant pass, on both dialects, two nodes sharing the database on
+    # Postgres. It runs here rather than in CI: it is minutes of hammering that
+    # guards what a release ships, not what every push to main changes. Locally:
+    # `bun run docker:test:load`. The seed is printed, so a failure replays with
+    # CROMBOLO_LOAD_SEED.
+    load:
+        name: load (${{ matrix.dialect }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                dialect: [sqlite, postgres]
+        services:
+            db:
+                image: postgres:18-alpine
+                env:
+                    POSTGRES_USER: crombolo
+                    POSTGRES_PASSWORD: crombolo
+                    POSTGRES_DB: crombolo_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U crombolo -d crombolo_test"
+                    --health-interval 2s
+                    --health-timeout 3s
+                    --health-retries 30
+        env:
+            CROMBOLO_DB: ${{ matrix.dialect }}
+            CROMBOLO_POSTGRES_URL: postgres://crombolo:crombolo@localhost:5432/crombolo_test
+            CROMBOLO_LOAD_OPS: "1500"
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - run: bun run generate:types
+            - run: bun run test:load
+            # Story 086's benchmark: a generated 25,000-page site, timed against
+            # the budgets in docs/testing.md. Release only; locally, run it small.
+            - run: bun run test:bench
+
     publish:
-        needs: ci
+        needs: [ci, load]
         runs-on: ubuntu-latest
         permissions:
             contents: read

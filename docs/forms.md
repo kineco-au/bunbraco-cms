@@ -114,12 +114,8 @@ without a second concept.
 
 ## Field types
 
-**Built.** A closed set in the first release. Field types are an internal registry, not a
-public extension point: the TOML vocabulary, the server validator, the TSX
-renderer and the entry value shape all have to agree, and freezing that contract
-before anything has stressed it would be a promise made too early. Opening it up
-later is additive — the npm extension mechanism in
-[`bundles.md`](bundles.md) is where it goes when it does.
+**Built.** The fourteen below are built in. A server bundle can add more, and
+can add workflow types too: see "Types from a bundle", below.
 
 | Type | Stores | Notes |
 | --- | --- | --- |
@@ -140,6 +136,74 @@ later is additive — the npm extension mechanism in
 
 Password is deliberately absent: a form that collects a password is a form that
 should not exist, and Umbraco only has it for legacy reasons.
+
+### Types from a bundle
+
+A server bundle wired in `crombolo.config.ts` can add field types and workflow
+types through its `forms` hook (story `095`). The contract is in
+`packages/server/src/form-types.ts`.
+
+```ts
+export const postcodeField: FormFieldTypeDefinition = {
+  type: 'postcode',             // camelCase, unique across built-ins and bundles
+  label: 'Postcode',
+  stores: 'string',             // string | strings | number | boolean | none
+  settings: [{ key: 'country', label: 'Country', kind: 'text', required: true }],
+  validate: (values, settings) => …,   // a message when the value is wrong
+  render: ({ field, values, id, name, shown }) => <input … />,
+}
+
+export const crmHandoff: FormWorkflowTypeDefinition = {
+  type: 'crmHandoff',
+  label: 'Hand off to the CRM',
+  settings: [{ key: 'endpoint', label: 'Endpoint', kind: 'text', required: true }],
+  validate: (settings) => …,
+  run: async ({ values, settings, fetch, sendEmail, log, signal, attempt }) =>
+    ({ ok: true }),             // or { ok: false, error, retry }
+}
+
+export const acmeForms = (): ServerBundle => ({
+  id: 'acme-forms', section: 'settings', capabilities: [], routes: [],
+  forms: { fields: [postcodeField], workflows: [crmHandoff] },
+})
+```
+
+**In the file,** a bundle field keeps its settings in a `settings` table:
+`settings = { country = "AU" }`. A bundle workflow uses `[workflow.settings]`, as
+the built-ins do. Both are held to the declared settings: one it does not
+declare, one it requires that is missing, or a value of the wrong kind is
+refused by name. The type's own `validate` then runs. A built-in field still
+refuses a `settings` table, and any setting that does not apply to it.
+
+**A type no wired bundle provides is refused by name**, at boot, by `crombolo
+schema check`, and in the designer: "the field type "postcode" is not built in,
+and no wired bundle provides it". The known types are passed to the parser and
+validator, never held globally, so every caller names the types it knows.
+
+**The value is a built-in kind.** A bundle's field stores as `string`,
+`strings`, `number`, `boolean` or `none`. An entry is still a list of strings
+with optional labels, so entries, the CSV export, redaction and workflows read
+it like any other field. `validate` runs after the kind's own checks, on the
+server, on submit. If it throws, the field is refused, not the whole submission.
+
+**It renders through the bundle.** The renderer draws the control, and the form
+draws the label, help text and error around it, as it does for a built-in. A
+site's own `components` override still wins.
+
+**The designer edits its settings from the declarations,** and does the same
+for the built-ins. A bundle ships no browser code. The designer reads the types
+from `<backoffice>/crombolo/api/forms/available-types`.
+
+**A workflow handler gets narrow capabilities:** the submission's values and
+labels by alias, its settings, the attempt number, `fetch` and `sendEmail`, a
+log named for the type, and a signal that aborts after a minute. It never gets
+the database. It runs on the built-ins' queue, with the same retries: up to five
+attempts, at 1, 5, 15 and 60 minutes. A throw counts as retryable. A run whose
+type no wired bundle provides fails at once, without retrying.
+
+**On every node.** A bundle's form types are honoured on `web` nodes too,
+because forms render and submit there. Its routes and tables still belong to
+the nodes that serve the backoffice.
 
 ### Choices from a source
 
@@ -398,9 +462,29 @@ reveal it without a round trip, and a visitor without one gets the server's
 answer on submit. `multipart/form-data` only when the form has a file to carry.
 
 Multi-page definitions render every page into one form, so a submission arrives
-in one go. Stepping through pages with a round trip each is a refinement on top
-of this rather than a different shape — `validateSubmission` already takes the
-page to check.
+in one go.
+
+**`step-pages = true`** shows one page at a time, in the browser (story `093`).
+The form carries `data-step-pages`, and its Back and Next buttons render
+`hidden` until the script reveals them. Behaviour you might not expect:
+
+- **No round trip per page.** Every page stays in the one `<form>`, so earlier
+  answers, uploads included, never travel between steps. Nothing is stored, and
+  nothing waits on the server, until the final submission. That submission is
+  checked in full, as for any form.
+- **Next checks the current page on the server.** The script posts the form
+  with `_crombolo_page=<index>`. The endpoint checks the token and that page's
+  fields, against the answers on earlier pages so a condition on them holds. It
+  judges an upload by its name and size and writes nothing. It never stores an
+  entry or queues a workflow. It answers `200 { ok: true }`, or `422` with that
+  page's errors, which the script shows on the page.
+- **A page a condition hides is skipped** both ways, and a page closed while
+  the visitor is on it steps back to an open one.
+- **Enter on an earlier page means Next.** After a refused final submission,
+  the form opens on the first page with an error.
+- **Without JavaScript, every page shows at once** and the form is checked on
+  submit, exactly as with `step-pages` off. The browser does the stepping, so
+  no answer needs carrying through the server.
 
 A form reaches a page through a `formPicker` data type — **built**, seeded with
 the other built-ins so a property can use it with no file, and with its editor
@@ -475,8 +559,18 @@ Here there is no contract to match, so the API is designed for this CMS.
   one a diff shows. Saving sends the whole definition; the server writes it to
   TOML and **reads it back with the strict parser** before keeping it, so a
   refusal in the designer is the same refusal a hand-written file would get, and
-  a rejected save never touches the file on disk. Reordering, multi-page layout
-  and the richer per-type settings are refinements on top
+  a rejected save never touches the file on disk.
+- The designer edits the **layout** (story `094`):
+  - Pages and groups can be added, renamed, reordered and removed. Removing one
+    that holds fields asks first, and a form keeps one page and a page one group.
+  - A group's columns (1–4) are set from a list, with a preview of the rows the
+    form will lay out.
+  - Fields reorder within a group and move between groups by dragging, or from
+    the keyboard with each row's up and down buttons, which step across into the
+    next group at an edge.
+  - The operations are pure functions in `plugin/forms-layout.js`. The writer's
+    order is the model's, so a reorder saves as a move: the same lines, in a new
+    order.
 - A choice field's options come from **typed values, a page's child pages
   (picked with the document picker) or a dictionary item's children**, and the
   designer shows what a source offers right now, from
@@ -551,8 +645,8 @@ script puts the attribute back when it reveals the field.
 Built: definitions as files, the closed field-type set, whole-set validation,
 entries with states and sensitive-data redaction, `<Form>` and the submission
 endpoint, server-side validation and conditions, the honeypot and timing
-guards, uploads, choices from a source, and the three workflows on a retrying
-queue.
+guards, uploads, choices from a source, the three workflows on a retrying
+queue, and field and workflow types from a bundle.
 
 Not built yet:
 
@@ -560,9 +654,6 @@ Not built yet:
 | --- | --- |
 | A TSX email template (the setting is refused by name rather than ignored) | `091` |
 | Entry retention and automatic deletion | `092` |
-| True page-at-a-time stepping, a round trip per page | `093` |
-| Reordering, multi-page and multi-column editing in the designer | `094` |
-| Custom field and workflow types published from npm | `095` |
 
 ## Scope change
 

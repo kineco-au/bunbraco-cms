@@ -85,6 +85,36 @@ export class PublicAccessRepository {
     }
   }
 
+  /**
+   * Every protected node with who may see it, in two queries: what a request
+   * checking many pages at once reads, rather than an entry per page.
+   */
+  async allRules(): Promise<
+    Array<{ nodeId: number; memberGroupNames: string[]; memberUserNames: string[] }>
+  > {
+    const entries = await this.#db.query<{ id: number; node_id: number }>(
+      'SELECT id, node_id FROM public_access',
+    )
+    if (entries.length === 0) return []
+    const rules = await this.#db.query<{
+      public_access_id: number
+      rule_type: string
+      rule_value: string
+    }>('SELECT public_access_id, rule_type, rule_value FROM public_access_rule')
+    return entries.map((entry) => {
+      const own = rules.filter((r) => Number(r.public_access_id) === Number(entry.id))
+      return {
+        nodeId: Number(entry.node_id),
+        memberGroupNames: own
+          .filter((r) => r.rule_type === MEMBER_GROUP_RULE)
+          .map((r) => r.rule_value),
+        memberUserNames: own
+          .filter((r) => r.rule_type === MEMBER_USERNAME_RULE)
+          .map((r) => r.rule_value),
+      }
+    })
+  }
+
   /** The entry protecting this page itself, if any. */
   async byNodeKey(nodeKey: string): Promise<PublicAccessEntry | undefined> {
     const rows = await this.#db.query<EntryRow>(`${SELECT} WHERE n.unique_id = ?`, [

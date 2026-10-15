@@ -86,13 +86,13 @@ describe('the development 501 log', () => {
     const h = await signedInServer({ config: { development: true } })
     open.push(h)
     expect(h.server.notImplemented.entries()).toEqual([])
-    await h.call(`${V1}/webhook/events?skip=0&take=10`)
-    await h.call(`${V1}/webhook/events?skip=0&take=10`)
+    await h.call(`${V1}/install/settings`)
+    await h.call(`${V1}/install/settings`)
     await h.call(`${V1}/upgrade/settings`)
     await h.call(`${V1}/document-type/configuration`)
     const entries = h.server.notImplemented.entries()
     expect(entries.map((e) => [e.operationId, e.method, e.path, e.count])).toEqual([
-      ['GetWebhookEvents', 'GET', '/umbraco/management/api/v1/webhook/events', 2],
+      ['GetInstallSettings', 'GET', '/umbraco/management/api/v1/install/settings', 2],
       ['GetUpgradeSettings', 'GET', '/umbraco/management/api/v1/upgrade/settings', 1],
     ])
   })
@@ -100,7 +100,7 @@ describe('the development 501 log', () => {
   test('is not wired up in production', async () => {
     const h = await signedInServer({ config: { development: false } })
     open.push(h)
-    expect((await h.call(`${V1}/webhook/events?skip=0&take=10`)).status).toBe(501)
+    expect((await h.call(`${V1}/install/settings`)).status).toBe(501)
     expect(h.server.notImplemented.entries()).toEqual([])
   })
 })

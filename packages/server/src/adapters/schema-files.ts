@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import type { PortFailure } from '@crombolo/api-management'
-import type { ContentTypeAggregate, DataTypeModel } from '@crombolo/core'
+import type { ContentTypeAggregate, DataTypeModel, FormTypes } from '@crombolo/core'
 import { currentSchemaState, type Db, updateSchemaStateHash } from '@crombolo/data'
 import {
   type ChangeClass,
@@ -18,6 +18,7 @@ import {
   loadSchemaDirectory,
   nextSchemaVersion,
   type SchemaTypeKind,
+  type SchemaUrls,
   TYPE_KIND_FILES,
   validateSchemaSet,
   writeContentType,
@@ -32,6 +33,8 @@ export interface SchemaFiles {
   schemaDir: string
   writable: boolean
   componentAliases(): ReadonlySet<string>
+  /** The form types the site's wired bundles add. */
+  formTypes?: FormTypes
   /**
    * Called after any write, so a shared schema store outlives this container.
    * Absent when the schema is a directory on disk, which needs no publishing.
@@ -54,6 +57,8 @@ export interface SchemaFileWriter {
   writeDataType(model: DataTypeModel): Promise<void>
   removeDataType(alias: string): Promise<void>
   writeLanguages(): Promise<void>
+  /** `[urls]` in `schema.toml`, the version left as it is. */
+  writeUrlOptions(urls: SchemaUrls): Promise<void>
   /** After a move or a folder change: every file, from the database, canonically. */
   rewriteAll(): Promise<void>
 }
@@ -82,7 +87,7 @@ export function createSchemaFileWriter(
     await updateSchemaStateHash(
       db,
       state.id,
-      hashSchemaSet(loadSchemaDirectory(files.schemaDir).set),
+      hashSchemaSet(loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes }).set),
     )
     await files.onChanged?.()
   }
@@ -100,10 +105,10 @@ export function createSchemaFileWriter(
 
     async bumpVersion(classification) {
       if (!managed() || !files.writable || classification === 'none') return
-      const loaded = loadSchemaDirectory(files.schemaDir)
+      const loaded = loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes })
       const next = nextSchemaVersion(loaded.set.version, classification)
       if (next === loaded.set.version) return
-      writeFileSync(join(files.schemaDir, 'schema.toml'), writeSchemaVersion(next))
+      writeFileSync(join(files.schemaDir, 'schema.toml'), writeSchemaVersion(next, loaded.set.urls))
       logger('schema').info('Schema version {from} → {to} ({classification})', {
         from: loaded.set.version,
         to: next,
@@ -113,7 +118,10 @@ export function createSchemaFileWriter(
 
     async write(aggregate, previousAlias) {
       if (!managed() || !files.writable) return
-      const set = await exportSchemaSet(db, loadSchemaDirectory(files.schemaDir).set.version)
+      const set = await exportSchemaSet(
+        db,
+        loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes }).set.version,
+      )
       const list =
         kind === 'document'
           ? set.contentTypes
@@ -122,7 +130,10 @@ export function createSchemaFileWriter(
             : (set.memberTypes ?? [])
       const type = list.find((t) => t.key === aggregate.key)
       if (!type) return
-      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
+      const problems = validateSchemaSet(set, {
+        componentAliases: files.componentAliases(),
+        types: files.formTypes,
+      })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not writing {file}: {detail}', {
@@ -146,7 +157,10 @@ export function createSchemaFileWriter(
 
     async writeDataType(model) {
       if (!managed() || !files.writable || !model.alias) return
-      const set = await exportSchemaSet(db, loadSchemaDirectory(files.schemaDir).set.version)
+      const set = await exportSchemaSet(
+        db,
+        loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes }).set.version,
+      )
       const dataType = set.dataTypes.find((d) => d.key === model.key)
       // An unchanged built-in has no file; a changed one does.
       if (!dataType) {
@@ -157,7 +171,10 @@ export function createSchemaFileWriter(
       // The same guard `write` applies to a content type: a set that does not
       // validate never reaches the disk, because the file is what every other
       // node reads and what a deploy boots from.
-      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
+      const problems = validateSchemaSet(set, {
+        componentAliases: files.componentAliases(),
+        types: files.formTypes,
+      })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not writing {file}: {detail}', {
@@ -182,16 +199,29 @@ export function createSchemaFileWriter(
 
     async writeLanguages() {
       if (!managed() || !files.writable) return
-      const set = await exportSchemaSet(db, loadSchemaDirectory(files.schemaDir).set.version)
+      const set = await exportSchemaSet(
+        db,
+        loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes }).set.version,
+      )
       writeFileSync(join(files.schemaDir, 'languages.toml'), writeLanguages(set.languages))
+      await settle()
+    },
+
+    async writeUrlOptions(urls) {
+      if (!managed() || !files.writable) return
+      const { version } = loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes }).set
+      writeFileSync(join(files.schemaDir, 'schema.toml'), writeSchemaVersion(version, urls))
       await settle()
     },
 
     async rewriteAll() {
       if (!managed() || !files.writable) return
-      const loaded = loadSchemaDirectory(files.schemaDir)
+      const loaded = loadSchemaDirectory(files.schemaDir, { formTypes: files.formTypes })
       const set = await exportSchemaSet(db, loaded.set.version)
-      const problems = validateSchemaSet(set, { componentAliases: files.componentAliases() })
+      const problems = validateSchemaSet(set, {
+        componentAliases: files.componentAliases(),
+        types: files.formTypes,
+      })
       if (problems.length > 0) {
         const detail = problems.map((p) => `${p.file}: ${p.message}`).join('; ')
         logger('schema').error('Not rewriting the schema files: {detail}', { detail })

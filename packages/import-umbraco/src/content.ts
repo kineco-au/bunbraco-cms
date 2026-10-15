@@ -90,7 +90,7 @@ function blobKeyOf(value: unknown): string | undefined {
   return undefined
 }
 
-type ValueRow = {
+export type ValueRow = {
   versionId: number
   propertyTypeId: number
   languageId: number | null
@@ -98,7 +98,7 @@ type ValueRow = {
 } & Record<ValueColumn, unknown>
 
 /** What the editor would be handed for a stored cell. */
-function editorValue(editor: string, dbType: string, row: ValueRow): unknown {
+export function editorValue(editor: string, dbType: string, row: ValueRow): unknown {
   // The declared column first; an older database may still hold the value in
   // another, as checkbox lists did before 17 moved them.
   const declared = COLUMN_OF[dbType]
@@ -343,6 +343,36 @@ export function convertContent(
     })
   }
 
+  const rules = attachRules(source, schema, bundleNodes)
+  findings.some({
+    class: 'migrates',
+    code: 'public-access',
+    title: 'Protected pages',
+    detail:
+      'With the member groups and members allowed to see them, and their sign-in and no-access pages.',
+    count: rules.access,
+  })
+  findings.some({
+    class: 'migrates',
+    code: 'redirects',
+    title: 'Redirects',
+    detail: 'The addresses pages had before they moved, which keep sending visitors to them.',
+    count: rules.redirects,
+  })
+  findings.some({
+    class: 'migrates',
+    code: 'schedules',
+    title: 'Scheduled publishes',
+    detail: 'Pending publish and unpublish dates, which run here at the same times.',
+    count: rules.schedules,
+  })
+  findings.some({
+    class: 'dropped',
+    code: 'rules-for-missing-pages',
+    title: 'Protection, redirects or schedules for pages not imported',
+    count: rules.orphaned,
+  })
+
   const bundleBlobs: BundleBlob[] = blobs.map((blob) => ({
     key: blob.key,
     node: blob.node,
@@ -432,4 +462,106 @@ export function convertContent(
       nodes: bundleNodes,
     },
   }
+}
+
+/**
+ * Umbraco's protected pages, scheduled publishes and recorded redirects, onto
+ * the nodes they belong to. Counts what was attached, and what named a page
+ * that is not being imported.
+ */
+function attachRules(
+  source: Source,
+  schema: ConvertedSchema,
+  nodes: BundleNode[],
+): { access: number; schedules: number; redirects: number; orphaned: number } {
+  const counts = { access: 0, schedules: 0, redirects: 0, orphaned: 0 }
+  const byKey = new Map(nodes.map((node) => [node.key, node]))
+  const keyOf = new Map(
+    source
+      .all<{ id: number; key: string }>('SELECT id, uniqueId AS key FROM umbracoNode')
+      .map((row) => [Number(row.id), key(row.key)]),
+  )
+  const nodeFor = (id: unknown) => byKey.get(keyOf.get(Number(id)) ?? '')
+
+  if (source.has('umbracoAccess')) {
+    const rulesOf = new Map<string, Array<{ type: string; value: string }>>()
+    if (source.has('umbracoAccessRule'))
+      for (const row of source.all<{ accessId: unknown; ruleType: string; ruleValue: string }>(
+        'SELECT accessId, ruleType, ruleValue FROM umbracoAccessRule',
+      )) {
+        const id = String(row.accessId).toLowerCase()
+        rulesOf.set(id, [...(rulesOf.get(id) ?? []), { type: row.ruleType, value: row.ruleValue }])
+      }
+    for (const row of source.all<{
+      id: unknown
+      nodeId: number
+      loginNodeId: number
+      noAccessNodeId: number
+    }>('SELECT id, nodeId, loginNodeId, noAccessNodeId FROM umbracoAccess')) {
+      const node = nodeFor(row.nodeId)
+      const login = keyOf.get(Number(row.loginNodeId))
+      const error = keyOf.get(Number(row.noAccessNodeId))
+      if (!node || !login || !error || !byKey.has(login) || !byKey.has(error)) {
+        counts.orphaned++
+        continue
+      }
+      const rules = rulesOf.get(String(row.id).toLowerCase()) ?? []
+      node.access = {
+        loginNode: login,
+        errorNode: error,
+        memberGroups: rules.filter((r) => r.type === 'MemberRole').map((r) => r.value),
+        memberUserNames: rules.filter((r) => r.type === 'MemberUsername').map((r) => r.value),
+      }
+      counts.access++
+    }
+  }
+
+  if (source.has('umbracoContentSchedule'))
+    for (const row of source.all<{
+      nodeId: number
+      languageId: number | null
+      date: string
+      action: string
+    }>('SELECT nodeId, languageId, date, action FROM umbracoContentSchedule ORDER BY date')) {
+      const node = nodeFor(row.nodeId)
+      const when = wallClock(row.date)
+      if (node?.kind !== 'document' || !when) {
+        counts.orphaned++
+        continue
+      }
+      // Umbraco stores the time in UTC.
+      node.schedule = [
+        ...(node.schedule ?? []),
+        {
+          culture:
+            row.languageId === null
+              ? null
+              : (schema.languages.get(Number(row.languageId))?.iso ?? null),
+          action: row.action === 'Expire' ? 'unpublish' : 'publish',
+          date: new Date(`${when.replace(' ', 'T')}Z`).toISOString(),
+        },
+      ]
+      counts.schedules++
+    }
+
+  if (source.has('umbracoRedirectUrl'))
+    for (const row of source.all<{ contentKey: string; url: string; culture: string | null }>(
+      'SELECT contentKey, url, culture FROM umbracoRedirectUrl ORDER BY createDateUtc',
+    )) {
+      const node = byKey.get(key(row.contentKey))
+      // `1234/about/` under a hostname root, or `/about/` without one.
+      const match = /^(\d+)?(\/.*)$/.exec(row.url)
+      if (!node || !match) {
+        counts.orphaned++
+        continue
+      }
+      const path = (match[2] as string).replace(/\/+$/, '').toLowerCase() || '/'
+      const root = match[1] ? (keyOf.get(Number(match[1])) ?? null) : null
+      const culture = row.culture ? row.culture : null
+      if (node.redirects?.some((r) => r.path === path && r.root === root && r.culture === culture))
+        continue
+      node.redirects = [...(node.redirects ?? []), { path, root, culture }]
+      counts.redirects++
+    }
+  return counts
 }

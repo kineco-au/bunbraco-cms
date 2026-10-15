@@ -139,7 +139,7 @@ test('the view editor reads TSX, and checks it against the site’s own types', 
   await expect(async () => {
     const view = await openView(page)
     expect(view.language).toBe('typescript')
-    expect(view.uri).toMatch(/^file:\/\/\/Views\/.+\.tsx$/)
+    expect(view.uri).toMatch(/^file:\/\/\/components\/.+\.tsx$/)
   }).toPass({ timeout: 15_000 })
 
   // Nothing is underlined in the scaffold. Every tag in it, and the `@crombolo/crombolo`

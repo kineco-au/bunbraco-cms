@@ -213,12 +213,15 @@ describe('shutting down', () => {
   })
 
   test('is registered as soon as it listens, leaving no deaf window', () => {
-    const serving = cli.indexOf('Bun.serve(server.serveOptions)')
-    const registered = cli.indexOf('stopOnSignal(listening, server)')
+    // It listens first, with a page explaining why the site is not up yet, and
+    // the handler is in place before the first boot attempt.
+    const serving = cli.indexOf('fetch: holding')
+    const registered = cli.indexOf('stopOnSignal(listening, () => current)')
     expect(serving).toBeGreaterThan(0)
     expect(registered).toBeGreaterThan(serving)
-    // Before the banner, which is the slow part of coming up.
-    expect(registered).toBeLessThan(cli.indexOf('banner(lines)'))
+    expect(registered).toBeLessThan(cli.indexOf('server = await createServer(config)'))
+    // The site itself replaces the holding page on the same listener.
+    expect(cli).toContain('listening.reload(server.serveOptions')
   })
 
   test('gives up rather than hanging, on a second signal or a stuck close', () => {

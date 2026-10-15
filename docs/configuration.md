@@ -11,8 +11,12 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_DB`                               | `sqlite`                                       | `sqlite` or `postgres`                                                                                 |
 | `CROMBOLO_SQLITE_FILE`                      | `crombolo.sqlite`                              | SQLite path, or `:memory:`                                                                             |
 | `CROMBOLO_POSTGRES_URL`                     | —                                              | required when `CROMBOLO_DB=postgres`                                                                   |
+| `CROMBOLO_SECRET_KEY`                       | —                                              | seals secrets kept in the database, such as a webhook's headers (32+ characters); without it they are not offered (`docs/webhooks.md`) |
+| `CROMBOLO_LOCK_TIMEOUT_SECONDS`             | `15`                                           | how long a content write waits for another before answering 503 (`docs/architecture.md`)               |
 | `CROMBOLO_ADMIN_LOGIN`                      | `admin@crombolo.local`                         | seeded administrator                                                                                   |
-| `CROMBOLO_ADMIN_PASSWORD`                   | generated                                      | seeded administrator's password                                                                        |
+| `CROMBOLO_ADMIN_PASSWORD`                   | generated in development                       | the first administrator's password, used only when the database is created; unset in production, the site is set up in the browser |
+| `CROMBOLO_SETUP_CODE`                       | —                                              | guards "Set up your new site" (16+ characters, chosen by you); never printed or shown (`docs/operations.md`) |
+| `CROMBOLO_BOOT_ATTEMPTS`                    | `10`                                           | how many times `crombolo start` tries to boot, with backoff from 2s to 60s, before it exits            |
 | `CROMBOLO_COMPONENTS_DIR`                        | `apps/site/Views`                              | where template views live                                                                              |
 | `CROMBOLO_COMPONENTS_CACHE_DIR`                  | `<site>/.crombolo/components`                  | where components are snapshotted so an edit needs no restart; inside the site, outside `components/` |
 | `CROMBOLO_COMPONENTS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
@@ -56,6 +60,10 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_APPLY_BUNDLE_CONTENT`             | `true`                                         | whether a Marketplace install also applies the schema, components and content the bundle carries       |
 | `CROMBOLO_INDEXABLE`                        | `true`                                         | `false` keeps search engines out: `Disallow: /`, no sitemap, `noindex` on every page (staging)        |
 | `CROMBOLO_SITEMAP`                          | `true`                                         | whether `/sitemap.xml` is served                                                                       |
+| `CROMBOLO_DELIVERY_API`                     | `false`                                        | whether Umbraco's Delivery API answers ([`delivery-api.md`](delivery-api.md))                          |
+| `CROMBOLO_DELIVERY_API_KEY`                 | unset                                          | the `Api-Key` that unlocks a non-public Delivery API and preview                                       |
+| `CROMBOLO_DELIVERY_API_PUBLIC`              | `true`                                         | `false` makes every Delivery API request need the key                                                  |
+| `CROMBOLO_DELIVERY_API_MEDIA`               | `false`                                        | whether the Delivery API serves media                                                                  |
 | `CROMBOLO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Bundles section sends someone browsing for bundles                                       |
 | `CROMBOLO_PACKAGE_KEYWORD`                  | `crombolo-bundle`                             | the npm keyword a bundle publishes to be discoverable                                    |
 | `CROMBOLO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
@@ -142,6 +150,10 @@ is code rather than a value:
 | `assistant` | the AI helper; enabling it takes a provider ([`assistant.md`](assistant.md)) |
 | `redirects` | rules built with `redirect()`, synced into the database at boot ([`rendering.md`](rendering.md)) |
 | `bundles` | the server halves of the bundles this site runs ([`bundles.md`](bundles.md)) |
+
+`deliveryApi` is the same: its switches and key have environment variables
+above, and member sign-in — clients, secrets, redirect URLs, the login page — is
+set in `crombolo.config.ts` ([`delivery-api.md`](delivery-api.md)).
 
 `seo` sits between the two: its two switches have environment variables above,
 and the rest — robots rules, site name, title suffix, sharing image, not-found
@@ -271,6 +283,8 @@ when a link can actually be delivered.
 | `bun run test:ci`                                     | the suite with the test environment but no dialect pinned — CI sets `CROMBOLO_DB` itself                                                                      |
 | `bun run test:browser`                                | the real backoffice in headless Chrome against a throwaway site; fails on console errors, failed requests and 4xx/5xx (`docs/testing.md`)                  |
 | `bun run docker:test:browser`                         | the same suite in its own Playwright image; Chromium rather than Chrome (no Linux arm64 Chrome)                                                               |
+| `bun run test:load` / `docker:test:load` | the `*.load.ts` suite: concurrent edits on overlapping branches, then an invariant pass; the release pipeline runs it on both dialects |
+| `bun run test:bench` / `docker:test:bench` | the `*.bench.ts` suite: a generated 25,000-page site timed against the budgets in `testing.md`; the release pipeline runs it on both dialects |
 | `bun run test:integration` / `docker:test:integration` | the `*.integration.ts` suites: the real CLI spawned per step, for creating a site, importing an Umbraco site, content transfer and the upgrade. Named so `bun test` leaves them out; CI always runs them |
 | `bun run check`                                       | **the gate**: Biome (formatting, lint, import order) + `tsc --noEmit`                                                                                         |
 | `bun run fix`                                         | **fix everything Biome can**: formatting, lint, import order                                                                                                  |

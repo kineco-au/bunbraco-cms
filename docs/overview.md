@@ -79,4 +79,5 @@ measures the contract.
 | `Umbraco.Cms.Api.Common` (OpenIddict auth) | `packages/auth` |
 | `Umbraco.Cms.StaticAssets` + backoffice shell views | `packages/backoffice-host` |
 | `Umbraco.Web.Website` + `PublishedCache.HybridCache` | `packages/render` |
-| `Umbraco.Web.UI` (host app), `Views/` | `apps/site` |
+| `Umbraco.Web.UI` (host app), `Views/` | `apps/site`; a site's `components/` |
+| `App_Plugins/` | npm dependencies, and a site's own `bundles/` |

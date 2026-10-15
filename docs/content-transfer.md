@@ -45,8 +45,10 @@ bundles/campaign-x/
 ├── package.json             "private": true, and "crombolo": { "id", "name", "content": "content" }
 └── content/
     ├── bundle.json          manifest, including an integrity hash over everything
-    ├── nodes/<uuid>.json    one file per node, every kind
-    ├── blobs/<key>          the media bytes, with --with-blobs
+    ├── nodes/<uuid>.json    one file per node, every kind: its place, name and rules
+    ├── values/<uuid>.json   the node's values, sealed, with --include-content
+    ├── blobs/<key>          the media bytes, with --with-blobs (sealed with the values)
+    ├── people/              members, users and their groups, always sealed
     └── resolutions.json     conflict decisions, once check has been run
 ```
 
@@ -68,6 +70,71 @@ and reordering its keys would rewrite somebody's data to no purpose.
 `integrity` is a hash over everything the bundle carries. `load` checks it
 before checking shape, so a bundle that was copied half-way is refused as
 incomplete rather than reported as a pile of confusing field errors.
+
+### What is readable, and what is sealed
+
+A bundle's metadata is readable, so it can be reviewed in a diff; anything
+that can hold personal information is sealed (story 071). One passphrase per
+export, from `CROMBOLO_BUNDLE_PASSPHRASE` or a prompt, stretched with scrypt
+(N=2^17, r=8, p=1) and a 16-byte salt the manifest keeps; each sealed file is
+AES-256-GCM with a nonce of its own and its path as additional data, so a file
+cannot be swapped for another's. A check value in the manifest tells a wrong
+passphrase apart from a damaged file. The key is never written anywhere.
+
+| Readable | Sealed |
+|---|---|
+| The manifest, with the seal's salt and cost and the counts of people | Property values (`values/`) |
+| Each node's key, kind, type, parent, order and template | Media files (`blobs/`) |
+| Names, cultures and whether each was published | Usernames on a protected page's rules |
+| Each value's property, culture, editor and the keys it refers to | `people/` |
+| Schema, components, styles, scripts and dictionary | |
+| Redirects, schedules, and protected pages by member group | |
+
+`content export` leaves values and media files out unless `--include-content`
+is given: such a bundle places and names pages and writes no value, and its
+check says so. `--include-content` seals them; `--allow-content-unencrypted`
+writes them readable, with a warning. People are never written readable.
+
+A sealed bundle is format 3. Without the passphrase its check is one blocking
+finding, `content-sealed`, because a check that compared values it cannot read
+would report every one as cleared; an install is refused before anything is
+backed up or written. A package for anyone to install is open: writing one
+that carries people or sealed content is refused.
+
+### Pages' rules
+
+A node carries what is true of the page beyond its values: `access` (its
+sign-in and no-access pages and the member groups it is for — the usernames
+travel sealed with the values), `schedule` (publishes and unpublishes waiting
+for their time, in UTC) and `redirects` (the routes it used to answer on, as
+`tracked` rules). They are applied after every node exists. A protected page
+whose sign-in page is in neither the bundle nor the site is blocking; a member
+group that does not exist here is reported, and nobody can see the page until
+it does.
+
+### People
+
+`--with-members` carries member groups and members, with their values and
+password hashes; `--with-users` carries user groups and users. Both are sealed
+into `people/`, whose manifest block counts them and names nobody.
+
+- **The same key is the same person**: updated, keeping a password set or
+  re-hashed here (an argon2id hash), otherwise taking the bundle's.
+- **A different key whose e-mail or username is taken here** is a
+  `person-conflict`, answered with `--resolve <key>=take-bundle` (the person
+  here takes the bundle's details and keeps their key and password) or `skip`.
+  Findings name people by key only.
+- **Groups**: a member group is matched by key, then by name; a user group by
+  key, then by alias, and one that exists here keeps its permissions.
+- **The administrator `crombolo start` seeds** on a new database stands in until
+  the site's own arrive: on that first boot an imported user with the same key,
+  login or e-mail takes it over, with the password they had.
+- **A revert** removes the people the run created, members before groups. Those
+  it updated keep the bundle's details, reported as `person-kept`.
+
+A password hash travels as the source stored it. Umbraco's four formats verify
+here (`packages/auth/src/umbraco-passwords.ts`) and are re-hashed to argon2id on
+the next successful sign-in, so nobody resets a password.
 
 ### A bundle that carries its own structure
 
@@ -128,12 +195,11 @@ renamed but not republished travels under its new name. The values are right.
 
 ### What never travels
 
-Members, outright — they are personal data and a bundle is a file that gets
-copied around and committed. Trashed nodes, and a selector rooted in a recycle
-bin is refused. And nothing that is true of exactly one environment: domains,
-users, sessions, tokens, external logins, per-user start nodes, notification
-subscriptions, public access rules, content schedules, redirects, log-viewer
-searches, `server`, `cache_instruction`, `schema_state`, `migration_history`.
+Members and users unless asked for, and then only sealed (see "People").
+Trashed nodes, and a selector rooted in a recycle bin is refused. And nothing
+that is true of exactly one environment: domains, sessions, tokens, external
+logins, per-user start nodes, notification subscriptions, log-viewer searches,
+`server`, `cache_instruction`, `schema_state`, `migration_history`.
 `tests/content-export.test.ts` asserts the whole list.
 
 ### Dependencies
@@ -222,13 +288,14 @@ skipped — and findings in three kinds:
 | `missing-dependency` | blocking | a node a value refers to is absent and not carried |
 | `editor-mismatch` | blocking | the property's editor changed, so the value would be stored in the wrong shape |
 | `local-trashed` | blocking | the target is in the recycle bin here, and importing would revive it silently |
-| `local-edit` | person | it is already here and differs; the finding names the properties |
+| `local-edit` | person | it is already here and one property differs; one finding per property (and culture) |
 | `name-collision` | person | a sibling of the same name, so the two would share a URL |
 | `missing-blob` | person | the media file is not in this environment's store |
 | `unresolved-reference` | person | a value points at something that is neither here nor carried |
 | `missing-property` | auto | retired here, so that value is not imported |
 | `missing-template` | auto | no view for the alias, so the page arrives without a template |
 | `new-node` | auto | created — a draft for documents, live for media |
+| `publish-refused` | auto | with `--publish`, the page that publish would refuse, and why |
 
 **Re-importing a bundle exported from the same site is a no-op with nothing to
 decide.** That is the identity case, and it is what tells you the comparison is
@@ -236,18 +303,42 @@ honest rather than reporting every node as changed.
 
 ### Resolutions
 
-A `person` finding waits for one of three answers, by node key:
+A `person` finding waits for one of three answers, for a node or for one of its
+properties:
 
 | | |
 | --- | --- |
 | `take-bundle` | the bundle wins |
-| `keep-local` | keep what is here; the node is left as it is |
-| `skip` | leave the node alone entirely |
+| `keep-local` | keep what is here |
+| `skip` | leave the node alone entirely — a whole node only |
 
 ```bash
 crombolo content check bundles/campaign-x --resolve 9a1f…=take-bundle
+crombolo content check bundles/campaign-x --resolve 9a1f…/title=keep-local
+crombolo content check bundles/campaign-x --resolve 9a1f…/heading@da-DK=keep-local
 crombolo content check bundles/campaign-x --resolve-all take-bundle --save
 ```
+
+The most specific answer wins: a property in one culture, then the property, then
+the node (`"*"`), then `--resolve-all`. So `9a1f…=take-bundle` with
+`9a1f…/title=keep-local` takes everything from the bundle except the title. A
+mixed answer still writes **one** version holding each chosen value, and a revert
+undoes it whole. Keeping every property that differs writes nothing.
+
+```json
+{
+  "bundleId": "…",
+  "under": null,
+  "all": null,
+  "byNode": {
+    "9a1f…": { "*": "take-bundle", "title": "keep-local" }
+  }
+}
+```
+
+Each node maps `"*"` or a property handle (`alias`, or `alias@culture`) to an
+answer. The earlier flat shape, a node key straight to an answer, is refused with
+a message saying what is wanted.
 
 `--save` writes `resolutions.json` beside the bundle, **by node key**, so the
 decision is committed with the bundle and not worked out again in test and then
@@ -305,6 +396,16 @@ everything — a page that was only a draft where the bundle was made stays a
 draft here. Publishing runs last and parents first, because an unpublished
 ancestor makes a published descendant unreachable and the repository refuses it.
 A refusal is reported per node rather than failing the run.
+
+`content check --publish` says which pages would be refused, before anything is
+written. It does this by **rehearsing** the import — running it with `--publish`
+in a transaction that is always rolled back — so the rules, and their wording, are
+publish's own rather than a second copy that could drift: an unpublished
+ancestor, an unpublished mandatory language, an empty mandatory property. A page
+whose parent goes live earlier in the same run is not refused, because in the
+rehearsal it has. Each refusal is an `auto` finding, `publish-refused`: it never
+holds an import up. The rehearsal runs only once nothing is outstanding, since
+the import would stop before publishing anything, and media files are not placed.
 
 ### The lock
 
@@ -433,17 +534,58 @@ database. At 0.x there is no deployed node to protect and `upgrade_report`
 shipped in the same pre-release line, so the exception was taken deliberately
 and comes off at 1.0.
 
+### In the backoffice
+
+A check records the import as **pending** (migration 036, `transfer_pending`):
+where the bundle was found — a package the site depends on, or a directory on
+this server — and what the check was asked to do, such as placing it under a
+node or publishing. An install from the Packages section that the check refuses
+is recorded the same way. The Changes dashboard lists each pending import under
+its bundle's name, and offers each finding the answers its code allows
+(`choicesFor`, beside `resolutionsFor`, so the two lists stay in step):
+
+| Finding | Offered |
+| --- | --- |
+| `local-edit` | use the incoming version, or keep this site's, for that property; or leave the item out |
+| `local-trashed`, `name-collision`, `unresolved-reference`, `missing-blob` | leave the item out |
+| `missing-blob` | also: import even where a media file is missing, for the whole bundle |
+
+A blocking finding offers nothing to choose: it needs a deployment or a change
+to the site, and the dashboard says so. Choosing records the answer in
+`transfer_answer` against the node and property handle, exactly as
+`--resolve <key>/<handle>=<choice>` would, and re-checks at once, so the finding
+resolves and the counts move. An answer can be taken back. **Import** is offered
+once nothing is outstanding; it runs the same `installBundleContent` the CLI
+does, re-checking inside the lock, and shows what it created, updated and
+published, and anything publish refused. On Postgres with no backup command
+configured, the person is asked to confirm a backup was taken, as
+`--backup-taken` does. A successful import clears what was pending.
+
+The answers are stored in the database, not written beside the bundle: an
+installed bundle lives in `node_modules`, which a redeploy replaces and which
+other nodes do not share. At import they sit between the bundle's own
+`resolutions.json` and anything given on the command line. **Download answers**
+returns the `resolutions.json` that `--save` would write for the same choices,
+to commit with the bundle so the next environment needs no answers.
+
+The actions, and the answers offered, are for users with the Packages section,
+as installing a bundle is; everyone with Settings still sees the findings.
+`tests/transfer-dashboard.test.ts`.
+
 ## Commands
 
 ```
 crombolo content export --root <path|uuid> [--root …] --out <dir>
-                        [--only] [--drafts] [--with-blobs] [--with-blueprints]
+                        [--only] [--drafts] [--with-blueprints]
+                        [--include-content [--with-blobs] [--allow-content-unencrypted]]
+                        [--with-members] [--with-users]
 
 crombolo content export … [--name <npm name>] [--package-version <version>]
 
 crombolo content check <pkg>          a package directory, or a bundle this site depends on
-                        [--under <path|uuid>] [--resolve <key>=<choice>]
+                        [--under <path|uuid>] [--resolve <key>[/<alias>[@<culture>]]=<choice>]
                         [--resolve-all <choice>] [--allow-missing-blobs] [--save]
+                        [--publish]   say which pages publishing would refuse
 
 crombolo content import <pkg>
                         [--publish] [--label <text>] [--backup-taken] + the check flags
@@ -516,8 +658,9 @@ destination, a carried file needs no check, and one that is *not* carried is
 looked up in the local store — `missing-blob`, a person's decision, which
 `--allow-missing-blobs` answers.
 
-Without the flag the bundle is metadata only, as before, and the export says so
-rather than leaving it to be discovered at the other end.
+Without the flag the bundle carries no media file, and the export says so
+rather than leaving it to be discovered at the other end. `--with-blobs` needs
+`--include-content`: a media file is content, and is sealed with the values.
 
 ### Still open
 
@@ -525,15 +668,6 @@ rather than leaving it to be discovered at the other end.
   for developing against, which is mostly orchestration over `pg_dump` or a file
   copy plus a media sync — but needs a sanitise step, because production users,
   members, tokens and e-mail addresses must not land on a laptop. Story `100`.
-- **`--publish` preconditions in the dry run.** `publish` refuses on an
-  unpublished ancestor, an unpublished mandatory language or an empty mandatory
-  property. The import reports each refusal per node and carries on rather than
-  failing the run, so nothing half-lands — but a dry run that predicted them
-  would be better than finding out at the end. Story `101`.
-- **Per-property resolutions.** `keep-local` is per node; a conflict on one
-  property of a page cannot yet be answered differently from the rest. Story `102`.
-- **Resolving conflicts in the backoffice.** The findings are already in the
-  Changes dashboard; acting on them is still a CLI flag. Story `103`.
 
 ## Moving content between environments
 
@@ -580,7 +714,7 @@ until the conflicts have been named and answered. It sorts each one into
 re-root it), **needs a person** (importable once somebody picks `take-bundle`,
 `keep-local` or `skip`) or **automatic** (what will happen, said out loud).
 `--save` commits the answers to `resolutions.json` beside the bundle, by node
-key, so a decision made once promotes with it rather than being worked out again
+key and property, so a decision made once promotes with it rather than being worked out again
 in every environment. Findings land in the **Changes** dashboard under the
 bundle's own scope, so two bundles in flight do not resolve each other's.
 

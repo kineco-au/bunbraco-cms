@@ -50,7 +50,20 @@ function toReference(node: ReferencingNode): unknown {
 
 export function createReferencePort(db: Db): ReferencePort {
   const references = new ReferenceRepository(db)
+  const binTypes = {
+    Document: ObjectTypes.Document,
+    Media: ObjectTypes.Media,
+    Element: ObjectTypes.Element,
+  } as const
   return {
+    async recycleBinReferencedBy(area, paging) {
+      const result = await references.referencingRecycleBin(
+        binTypes[area],
+        paging.skip,
+        paging.take,
+      )
+      return { total: result.total, items: result.items.map(toReference) }
+    },
     async referencedBy(key, paging) {
       const result = await references.referencedBy(key, paging.skip, paging.take)
       return { total: result.total, items: result.items.map(toReference) }

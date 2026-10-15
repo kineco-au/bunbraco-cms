@@ -14,6 +14,8 @@ export interface UserRow {
   login: string
   email: string
   passwordHash: string | null
+  /** The algorithm marker beside the hash; an imported one names Umbraco's. */
+  passwordConfig: string | null
   language: string | null
   avatar: string | null
   isLockedOut: boolean
@@ -71,6 +73,7 @@ function mapUser(row: Record<string, unknown>): UserRow {
     login: String(row.login),
     email: String(row.email),
     passwordHash: (row.password_hash as string | null) ?? null,
+    passwordConfig: (row.password_config as string | null) ?? null,
     language: (row.language as string | null) ?? null,
     avatar: (row.avatar as string | null) ?? null,
     isLockedOut: fromDbBool(row.is_locked_out),
@@ -81,7 +84,7 @@ function mapUser(row: Record<string, unknown>): UserRow {
 }
 
 const USER_COLUMNS =
-  'id, key, user_name, login, email, password_hash, language, avatar, is_locked_out, is_approved, failed_login_attempts, kind'
+  'id, key, user_name, login, email, password_hash, password_config, language, avatar, is_locked_out, is_approved, failed_login_attempts, kind'
 
 export class AuthStore {
   #db: Db
@@ -154,6 +157,21 @@ export class AuthStore {
    * Replaces a user's password. The caller supplies an already-hashed value, so
    * this module never needs to know which algorithm is in use.
    */
+  /**
+   * Replaces an imported hash with argon2id after a successful sign-in. The
+   * password is the same, so the security stamp and change date stand.
+   */
+  async rehashPassword(
+    userId: number,
+    passwordHash: string,
+    passwordConfig: string,
+  ): Promise<void> {
+    await this.#db.exec(
+      'UPDATE user_account SET password_hash = ?, password_config = ? WHERE id = ?',
+      [passwordHash, passwordConfig, userId],
+    )
+  }
+
   async setPassword(userId: number, passwordHash: string, passwordConfig: string): Promise<void> {
     const now = DbDate.toDb(new Date())
     await this.#db.exec(

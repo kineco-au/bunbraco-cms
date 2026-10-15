@@ -16,11 +16,13 @@ import {
   currentSchemaState,
   type Db,
   DocumentRepository,
+  ensureSystemMediaTypes,
   latestPreparedState,
   migrate,
   type NodeSchemaState,
   readLedger,
   readReport,
+  SYSTEM_MEDIA_TYPES,
   seedContent,
   seedIdentity,
 } from '@crombolo/data'
@@ -611,5 +613,41 @@ describe(`upgrade from a database behind the framework (${dialectUnderTest})`, (
     expect(upgraded.action).toBe('upgraded')
     expect(upgraded.check.siteChecked).toBe(true)
     expect((await currentSchemaState(db)).version).toBe('1.0.0')
+  })
+})
+
+describe(`the removed-type check (${dialectUnderTest})`, () => {
+  test('the shipped types need no file; a site type removed with content still blocks', async () => {
+    const db = await prepared()
+    const options = { mode: 'production' as const, componentAliases: templates }
+    const v1 = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE('') })
+    expect(
+      (await runFix(db, loadSchemaDirectory(v1), node(S1), { ...options, by: 'cli' })).sync.action,
+    ).toBe('applied')
+    await createPages(db, [{ title: 'One' }])
+    await ensureSystemMediaTypes(db)
+    const image = SYSTEM_MEDIA_TYPES.find((t) => t.alias === 'Image')?.key as string
+    await new DocumentRepository(db, { kind: 'media', nodeState: S1 }).create({
+      key: crypto.randomUUID(),
+      contentTypeKey: image,
+      componentKey: null,
+      parentKey: null,
+      variants: [{ culture: null, segment: null, name: 'Harbour View' }],
+      values: [],
+    })
+    const kept = await runCheck(db, loadSchemaDirectory(v1), node(S1), options)
+    expect(kept.findings.filter((f) => f.code === 'type-removed-with-content')).toEqual([])
+
+    const OTHER = ARTICLE('')
+      .replace(K(1), K(9))
+      .replace('"article"', '"other"')
+      .replace(K(2), K(8))
+    const v2 = schemaDir('1.0.0', { 'content-types/other.toml': OTHER })
+    const removed = await runCheck(db, loadSchemaDirectory(v2), node(S1), options)
+    expect(
+      removed.findings
+        .filter((f) => f.code === 'type-removed-with-content')
+        .map((f) => [f.subjectType, f.subjectName]),
+    ).toEqual([['document-type', 'article']])
   })
 })

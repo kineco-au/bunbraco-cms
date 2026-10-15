@@ -73,11 +73,11 @@ export function withLayout(content, alias) {
 export const TSX = 'tsx'
 
 /**
- * The virtual directory a view is opened in. It mirrors `Views/` on disk so that
- * a view's `../schema/content-types.d.ts` resolves in the editor exactly as it
- * resolves for `tsc`.
+ * The virtual directory a view is opened in. It mirrors `components/` on disk so
+ * that a view's `../schema/content-types.d.ts` resolves in the editor exactly as
+ * it resolves for `tsc`.
  */
-const VIEWS = 'file:///Views'
+const COMPONENTS = 'file:///components'
 
 /**
  * `bundler` module resolution, which is what the site's tsconfig uses and what
@@ -226,7 +226,7 @@ function teachDialect(editors) {
     const model = monaco.editor.createModel(
       created.getValue(),
       'typescript',
-      monaco.Uri.parse(`${VIEWS}/view-${++opened}.tsx`),
+      monaco.Uri.parse(`${COMPONENTS}/view-${++opened}.tsx`),
     )
     editor.setModel(model)
     created.dispose()

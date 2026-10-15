@@ -40,6 +40,7 @@
  * Deliberately not offered: raw SQL, a `Db`, and anything that writes the
  * site's files.
  */
+
 import { hasCultureAccess, hasSection, type Principal } from '@crombolo/api-management'
 import { BUNDLE_ID, type BundlePackage, peerRangeProblem } from '@crombolo/backoffice-host'
 import {
@@ -60,6 +61,8 @@ import {
   type RedirectTargetKind,
 } from '@crombolo/data'
 import { normaliseRedirectPath, type PublishedCache } from '@crombolo/render'
+import type { BundleForms } from './form-types.ts'
+import type { BundleEvents } from './webhooks.ts'
 
 /** The segment every bundle's routes hang below, inside the plugin API. */
 export const BUNDLE_API_SEGMENT = 'bundle'
@@ -232,6 +235,17 @@ export interface ServerBundle<
   routes: readonly ServerBundleRoute<C, T>[]
   /** Tables the bundle owns, from `defineBundleTables`, under its own id. */
   tables?: T
+  /**
+   * Form field and workflow types it adds. Unlike its routes and tables these
+   * are honoured on every node, because forms render and submit on `web` nodes.
+   */
+  forms?: BundleForms
+  /**
+   * Handlers for webhook events, by alias. Each event reaches each handler
+   * through the webhook delivery queue: once per cluster, after the change,
+   * retried on failure, and in the delivery log (docs/webhooks.md).
+   */
+  events?: BundleEvents
 }
 
 /** A bundle as mounted, with the prefix its routes answer below. */

@@ -552,7 +552,9 @@ describe('the Umbraco mark in the icon registry', () => {
     }
     walk(paths.vendorDir)
     expect(drawn).toEqual([])
-  })
+    // Reads every one of the client's ~6,500 modules: seconds of disk, and more
+    // with other runs beside it, so it gets longer than the default.
+  }, 30_000)
 
   test('draws in the consumer’s colour, as every icon in the registry does', async () => {
     const { default: svg } = await import(join(process.cwd(), BRANDING_DIR, 'icon-mark.js'))

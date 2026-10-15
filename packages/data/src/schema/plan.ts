@@ -22,6 +22,7 @@ import { clientIdPrefixMigration } from './client-id-prefix.ts'
 import { contentMigration } from './content.ts'
 import { contentEditingMigration } from './content-editing.ts'
 import { createdPackagesMigration } from './created-packages.ts'
+import { deliveryMemberTokensMigration } from './delivery-member-tokens.ts'
 import { diagnosticsMigration } from './diagnostics.ts'
 import { elementsMigration } from './elements.ts'
 import { formPermissionPrefixMigration } from './form-permission-prefix.ts'
@@ -41,11 +42,13 @@ import { richTextUiMigration } from './rich-text-ui.ts'
 import { searchIndexMigration } from './search-index.ts'
 import { serverRoleMigration } from './server-role.ts'
 import { sinceVersionMigration } from './since-version.ts'
+import { transferAnswersMigration } from './transfer-answers.ts'
 import { transferRunPackageMigration } from './transfer-run-package.ts'
 import { transferRunsMigration } from './transfer-runs.ts'
 import { upgradeReportMigration } from './upgrade-report.ts'
 import { usersLocalisationMigration } from './users-localisation.ts'
 import { valuesMigration } from './values.ts'
+import { webhooksMigration } from './webhooks.ts'
 
 export const cromboloPlan = new MigrationPlan([
   identityMigration,
@@ -82,4 +85,7 @@ export const cromboloPlan = new MigrationPlan([
   propertySearchableMigration,
   auditLogMigration,
   diagnosticsMigration,
+  webhooksMigration,
+  transferAnswersMigration,
+  deliveryMemberTokensMigration,
 ])

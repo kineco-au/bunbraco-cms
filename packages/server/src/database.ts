@@ -14,6 +14,7 @@ import {
   ensureSystemMediaTypes,
   ensureSystemMemberTypes,
   INITIAL_STATE,
+  markSetupPending,
   migrate,
   pendingMigrations,
   readState,
@@ -125,17 +126,18 @@ export async function installDatabase(
   // Core first, so a bundle step always runs against a core it declared itself compatible with.
   await migrateBundles(db, chains, { by: config.nodeId })
 
+  // In production a password is never made up: the pipeline supplies one, or
+  // the owner sets the site up in the browser (docs/operations.md).
+  const settingUp = !config.development && !config.adminPassword
   const password = config.adminPassword ?? crypto.randomUUID().replaceAll('-', '').slice(0, 20)
   const seeded = await seedIdentity(db, {
-    admin: {
-      name: 'Administrator',
-      login: config.adminLogin,
-      email: config.adminLogin,
-      password,
-    },
+    admin: settingUp
+      ? undefined
+      : { name: 'Administrator', login: config.adminLogin, email: config.adminLogin, password },
     hashPassword,
     passwordConfig: passwordConfigJson(),
   })
+  if (seeded && settingUp) await markSetupPending(db)
 
   await seedContent(db)
   // A database from an older version gains the built-ins it lacks.
@@ -144,5 +146,5 @@ export async function installDatabase(
   await ensureSystemMemberTypes(db)
   await ensureSystemContentTypes(db)
 
-  return seeded && !config.adminPassword ? password : undefined
+  return seeded && !settingUp && !config.adminPassword ? password : undefined
 }

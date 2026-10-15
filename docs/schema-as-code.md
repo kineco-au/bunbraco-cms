@@ -29,7 +29,7 @@ and where it sits here:
 | Member types | DB, same tables plus `cmsMemberType` per-property flags | **Files** `schema/member-types/` | with Members |
 | Data types | DB: `umbracoDataType` — editor, UI alias, storage type, config | **Files** `schema/data-types/`; the core set is built in | story `011` |
 | Version cleanup policy | DB: `umbracoContentVersionCleanupPolicy` per type | **Files**, as `cleanup.*` on the type | |
-| Templates | Both: `cmsTemplate` row and `~/Views/{alias}.cshtml`; the file wins | **Files** `Views/*.tsx`; the row is derived | done |
+| Templates | Both: `cmsTemplate` row and `~/Views/{alias}.cshtml`; the file wins | **Files** `components/*.tsx`; the row is derived | done |
 | Partial views, scripts, stylesheets, static files | Files under `~/Views` and `wwwroot` | Files | the backoffice editors write them |
 | Document blueprints | DB: content nodes of the blueprint object type | DB | they carry content values and are created from pages |
 | Form definitions | DB only, irreversibly since v9 | **Files** `schema/forms/` | the largest divergence from Umbraco Forms; entries stay in the database ([`forms.md`](forms.md)) |
@@ -61,9 +61,10 @@ and where it sits here:
 
 | Metadata | Umbraco today | Here | Notes |
 | --- | --- | --- | --- |
-| Relation types | DB: `umbracoRelationType` | **Files** `schema/relation-types.toml` | |
-| Relations, tags, redirect URLs | DB | DB | generated from content |
-| Webhooks | DB: `umbracoWebhook` plus events, headers, content-type keys | **Files** `schema/webhooks/` | integration is deploy-bound; edited through write-back |
+| Relation types | DB: `umbracoRelationType` | Code: Umbraco's nine, read-only | user-defined types are not supported; adding them is a separate decision (story `046`) |
+| Relations | DB: `umbracoRelation` | Derived, not stored | from current values and the recycle bin's original parents (`data-model.md`) |
+| Tags, redirect URLs | DB | DB | generated from content |
+| Webhooks | DB: `umbracoWebhook` plus events, headers, content-type keys | **Each chooses:** files `schema/webhooks/`, or this environment's database | a secret in the files is an `env:` reference; in the database it is sealed with `CROMBOLO_SECRET_KEY` (`webhooks.md`) |
 | Package manifests and extensions | Files: a `crombolo` field in each dependency's `package.json` | Files | already how they are discovered |
 | Created packages | Both: `umbracoCreatedPackageSchema` and an exported zip | DB, exporting to a file | out of scope |
 | Log viewer saved searches | DB: `umbracoLogViewerQuery` | DB | user-created |
@@ -143,7 +144,12 @@ The canonical writer names files as the kebab-case of the alias.
 version = "2.0"
 ```
 
-It declares the version the running site is at, and every element's `since` is
+An optional `[urls]` section sets how page addresses are built:
+`hide-top-level = false` shows the top-level page in every path
+([`rendering.md`](rendering.md), "URLs"). It is written only when it differs
+from Umbraco's default.
+
+The version declares the version the running site is at, and every element's `since` is
 compared against it (below). It lives here, not in `package.json`, because the
 schema files are the deploy unit and not every site bumps its package version.
 It changes rarely and only to express intent. Ordering between deployments
@@ -526,9 +532,9 @@ one node syncs, the others are stale. Umbraco solves this with a polled
 
 - `cache_instruction(id, kind, payload, created_at)` — appended by whatever
   changes shared state: schema sync, publish, unpublish. Every node polls with a
-  cursor of the last id it processed and reloads the affected cache. Postgres
-  `LISTEN/NOTIFY` is the low-latency upgrade (story `120`); on SQLite, which is single
-  node, it is a no-op.
+  cursor of the last id it processed and reloads the affected cache. On
+  Postgres the append also sends a `NOTIFY`, so the others poll as soon as it
+  commits; on SQLite, which is single node, there is nothing to notify.
 - `server(node_id, last_seen, version)` — node identity for `synced_by` and the
   ledger.
 - `schema_state` — the single row read in step 2.
@@ -540,6 +546,16 @@ polls from the id it saw at boot (2 s in development, 5 s in production), skips
 its own instructions, drops the published cache for the rest, and touches its
 `server` row on each pass. `tests/schema-boot.test.ts` runs two servers on one
 Postgres database through exactly this.
+
+On Postgres, `appendCacheInstruction` also calls `pg_notify` on
+`crombolo_cache_instruction`. A notification is delivered at commit, so a write
+that rolls back wakes nobody. Each poller listens on a connection from its own
+pool (`Db.listen`, Bun's SQL client) and polls when woken. Polls run one at a
+time, and a burst of wake-ups costs one follow-up read. The timer stays: it is
+how an instruction arrives if the listening connection drops, or if the row was
+written by something that does not notify, such as an older node mid-upgrade.
+`tests/cache-notify.test.ts` shows a write on one node reaching another well
+inside the 5 s interval.
 
 ### The other direction
 

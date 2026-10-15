@@ -8,8 +8,14 @@
  * across environments — with the alias as the readable fallback.
  */
 
+import type { BundlePeople, PeopleBlock } from './people.ts'
+import type { SealParameters } from './seal.ts'
+
 /** Bumped when a change to the shapes below stops an older reader understanding a bundle. */
-export const BUNDLE_FORMAT_VERSION = 2
+export const BUNDLE_FORMAT_VERSION = 3
+
+/** What a bundle with sections and nothing sealed writes: version 2 readers still read it. */
+export const SECTIONS_FORMAT_VERSION = 2
 
 /**
  * The version a bundle carrying only content is still written as.
@@ -61,6 +67,7 @@ export interface BundleValue {
   segment: string | null
   /** The editor that wrote it, so the destination can refuse a property whose editor changed. */
   editor: string
+  /** Undefined while the bundle's content is sealed. */
   value: unknown
   /** Node keys this value refers to, extracted at export so the importer need not re-parse. */
   references?: string[]
@@ -77,6 +84,34 @@ export interface BundleVariant {
   published: boolean
 }
 
+/**
+ * A protected page: who may see it, by member group name, and where a
+ * visitor is sent. The usernames are personal, so they travel with the values.
+ */
+export interface BundleAccess {
+  loginNode: string
+  errorNode: string
+  memberGroups: string[]
+  /** Absent while sealed, or when the bundle carries no content. */
+  memberUserNames?: string[]
+}
+
+/** A publish or unpublish waiting for its time. */
+export interface BundleSchedule {
+  culture: string | null
+  action: 'publish' | 'unpublish'
+  /** ISO 8601, UTC. */
+  date: string
+}
+
+/** A route the page used to answer on, which redirects to it. */
+export interface BundleRedirect {
+  path: string
+  /** The hostname root it was under, by key; null for none. */
+  root: string | null
+  culture: string | null
+}
+
 export interface BundleNode {
   key: string
   kind: BundleKind
@@ -88,6 +123,9 @@ export interface BundleNode {
   template: string | null
   variants: BundleVariant[]
   values: BundleValue[]
+  access?: BundleAccess
+  schedule?: BundleSchedule[]
+  redirects?: BundleRedirect[]
 }
 
 /** Something the bundle refers to but does not carry: it must already exist at the destination. */
@@ -176,7 +214,23 @@ export interface BundleManifest {
    * content-only bundle, which is what version 1 always was.
    */
   carries?: Partial<Record<BundleSection, string[]>>
+  /**
+   * Members and users, sealed (story 071): counts and how to derive the key,
+   * never who. Present only on a bundle exported with them — format 3, which an
+   * older reader refuses by name rather than half-reading.
+   */
+  people?: PeopleBlock
+  /** How values, media files and people are sealed: the salt and cost, never the key. */
+  seal?: SealParameters
+  /**
+   * `sealed`: values and media files are under `seal`. `omitted`: exported
+   * without them, so an import names and places pages and writes no value.
+   * Absent: in the open.
+   */
+  content?: BundleContentMode
 }
+
+export type BundleContentMode = 'sealed' | 'omitted'
 
 /**
  * A bundle read into memory: the manifest and its nodes. Named for
@@ -185,6 +239,10 @@ export interface BundleManifest {
 export interface ContentSet {
   manifest: BundleManifest
   nodes: BundleNode[]
+  /** True while the values are still sealed: `openBundle` with the passphrase first. */
+  sealed?: boolean
+  /** The people, once opened. */
+  people?: BundlePeople
 }
 
 /** A problem with the bundle itself, as opposed to a finding about applying it. */

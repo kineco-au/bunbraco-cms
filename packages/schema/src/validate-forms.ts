@@ -8,11 +8,14 @@
  */
 import {
   allFormFields,
+  BUILT_IN_FORM_TYPES,
   CHOICE_SOURCE_KINDS,
   type FormCondition,
+  type FormTypes,
   formFieldType,
   type SchemaForm,
   type SchemaFormField,
+  settingsProblems,
   VALUELESS_OPERATORS,
 } from '@crombolo/core'
 import type { SchemaProblem } from './model.ts'
@@ -48,6 +51,8 @@ export interface ValidateFormsOptions {
   formThemes?: ReadonlySet<string>
   /** Content type aliases, so `saveAsContent` can be held to a real one. */
   contentTypeAliases?: ReadonlySet<string>
+  /** The field and workflow types in play: the built-ins, and the wired bundles'. */
+  types?: FormTypes
 }
 
 export function validateForms(
@@ -101,7 +106,7 @@ export function validateForms(
         'requires store-entries, since there is no entry to approve',
       )
 
-    validateFields(form, file, add)
+    validateFields(form, file, options.types ?? BUILT_IN_FORM_TYPES, add)
     validateWorkflows(form, file, options, add)
   }
   return problems
@@ -109,7 +114,7 @@ export function validateForms(
 
 type Add = (file: string, path: string, message: string) => void
 
-function validateFields(form: SchemaForm, file: string, add: Add): void {
+function validateFields(form: SchemaForm, file: string, types: FormTypes, add: Add): void {
   const fields = allFormFields(form)
   const seen = new Set<string>()
   /** Aliases usable by a condition: a field may only look at earlier ones. */
@@ -124,7 +129,7 @@ function validateFields(form: SchemaForm, file: string, add: Add): void {
         add(file, 'page.group.columns', `${group.columns} is not a column count between 1 and 4`)
       for (const field of group.fields) {
         const path = `page.group.field[${index}]`
-        const info = formFieldType(field.type)
+        const info = formFieldType(field.type, types)
 
         if (!ALIAS.test(field.alias))
           add(
@@ -195,6 +200,21 @@ function validateFields(form: SchemaForm, file: string, add: Add): void {
             if (!info.settings.includes(setting as never))
               add(file, `${path}.${setting}`, `does not apply to a ${field.type} field`)
           }
+          // A built-in type's settings are keys of the field; only a bundle's
+          // type has a settings table, held to what it declares.
+          if (!info.bundle && field.settings !== undefined)
+            add(
+              file,
+              `${path}.settings`,
+              `a ${field.type} field is built in and takes no settings table; its settings are keys of the field`,
+            )
+          if (info.bundle)
+            for (const message of settingsProblems(
+              info.declared,
+              field.settings ?? {},
+              `a ${field.type} field`,
+            ))
+              add(file, `${path}.settings`, message)
         }
 
         if (field.pattern !== undefined) {
@@ -214,19 +234,27 @@ function validateFields(form: SchemaForm, file: string, add: Add): void {
           add(file, `${path}.max-size-kb`, 'must be at least 1')
 
         if (field.condition)
-          validateCondition(field.condition, fields, earlier, file, `${path}.condition`, add)
+          validateCondition(field.condition, fields, earlier, file, `${path}.condition`, types, add)
         earlier.add(field.alias.toLowerCase())
         index++
       }
       if (group.condition)
-        validateCondition(group.condition, fields, earlier, file, 'page.group.condition', add)
+        validateCondition(
+          group.condition,
+          fields,
+          earlier,
+          file,
+          'page.group.condition',
+          types,
+          add,
+        )
     }
     if (page.condition)
-      validateCondition(page.condition, fields, earlier, file, 'page.condition', add)
+      validateCondition(page.condition, fields, earlier, file, 'page.condition', types, add)
   }
 
   if (fields.length === 0) add(file, 'page.group.field', 'a form needs at least one field')
-  else if (fields.every((field) => formFieldType(field.type)?.presentational))
+  else if (fields.every((field) => formFieldType(field.type, types)?.presentational))
     add(file, 'page.group.field', 'every field is presentational, so the form collects nothing')
 }
 
@@ -236,6 +264,7 @@ function validateCondition(
   earlier: ReadonlySet<string>,
   file: string,
   path: string,
+  types: FormTypes,
   add: Add,
 ): void {
   for (const [index, rule] of condition.rules.entries()) {
@@ -253,7 +282,7 @@ function validateCondition(
         `${rulePath}.field`,
         `"${rule.field}" comes later in the form, so it has no value to compare yet`,
       )
-    if (formFieldType(target.type)?.presentational)
+    if (formFieldType(target.type, types)?.presentational)
       add(file, `${rulePath}.field`, `"${rule.field}" collects nothing, so it cannot be compared`)
     const valueless = VALUELESS_OPERATORS.includes(rule.operator)
     if (valueless && rule.value !== undefined)
@@ -305,6 +334,15 @@ function validateWorkflows(
         'runs on approval, but the form does not require approval so nothing ever approves it',
       )
 
+    const bundled = (options.types ?? BUILT_IN_FORM_TYPES).workflows.get(workflow.type)
+    if (bundled?.bundle) {
+      const where = `a ${workflow.type} workflow`
+      const declared = settingsProblems(bundled.declared, workflow.settings, where)
+      for (const message of declared) add(file, `${path}.settings`, message)
+      const own = declared.length === 0 ? bundled.validate?.(workflow.settings) : undefined
+      if (own) add(file, `${path}.settings`, own)
+      continue
+    }
     const rules = WORKFLOW_SETTINGS[workflow.type]
     if (!rules) continue
     const allowed = new Set([...rules.required, ...rules.optional])

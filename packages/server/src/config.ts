@@ -1,5 +1,6 @@
 import { hostname, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import type { DeliveryApiOptions } from '@crombolo/api-delivery'
 import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
 import { DEFAULT_RENDER_TIMEOUT_MS, type RedirectRule, type SnapshotLimits } from '@crombolo/render'
 import type { AssistantConfig } from './assistant.ts'
@@ -65,8 +66,15 @@ export interface CromboloConfig {
   /** SQLite file, or ':memory:'. Ignored when CROMBOLO_DB=postgres. */
   sqliteFile: string
   adminLogin: string
-  /** When unset, a password is generated on first run and printed once. */
+  /**
+   * Seeds the first administrator of a fresh database. Unset in development, one
+   * is generated and printed; unset in production, the site waits to be set up.
+   */
   adminPassword: string | undefined
+  /** Guards "Set up your new site". Chosen by the owner; never printed, logged or shown. */
+  setupCode: string | undefined
+  /** Seals secrets kept in the database, such as a webhook's headers; never stored. */
+  secretKey: string | undefined
   /**
    * The `__Host-` cookie prefix requires Secure. Browsers treat http://localhost
    * as secure, so this stays on in local development.
@@ -243,6 +251,13 @@ export interface CromboloConfig {
    */
   seo: SeoConfig
   /**
+   * Umbraco's Delivery API (`docs/delivery-api.md`): off unless enabled.
+   * `CROMBOLO_DELIVERY_API`, `CROMBOLO_DELIVERY_API_KEY`,
+   * `CROMBOLO_DELIVERY_API_PUBLIC` and `CROMBOLO_DELIVERY_API_MEDIA`; member
+   * sign-in is configured here, since its clients and secrets are a list.
+   */
+  deliveryApi: DeliveryApiOptions
+  /**
    * Bundles whose server half this site runs, each the result of calling the
    * factory its package exports. Imported and listed here by hand on purpose:
    * installing a bundle never makes its server code run, so the only way code
@@ -393,6 +408,8 @@ export function loadConfig(
     sqliteFile: Bun.env.CROMBOLO_SQLITE_FILE ?? DEFAULTS.sqliteFile,
     adminLogin: Bun.env.CROMBOLO_ADMIN_LOGIN ?? DEFAULTS.adminLogin,
     adminPassword: Bun.env.CROMBOLO_ADMIN_PASSWORD,
+    setupCode: Bun.env.CROMBOLO_SETUP_CODE,
+    secretKey: Bun.env.CROMBOLO_SECRET_KEY,
     secureCookies: Bun.env.CROMBOLO_INSECURE_COOKIES !== 'true',
     siteName: Bun.env.CROMBOLO_SITE_NAME ?? DEFAULTS.siteName,
     siteDir: cwd,
@@ -482,6 +499,15 @@ export function loadConfig(
       sitemap: envFlag(Bun.env.CROMBOLO_SITEMAP),
       indexable: envFlag(Bun.env.CROMBOLO_INDEXABLE),
     }),
+    deliveryApi: stripUndefined({
+      enabled: envFlag(Bun.env.CROMBOLO_DELIVERY_API),
+      apiKey: Bun.env.CROMBOLO_DELIVERY_API_KEY || undefined,
+      publicAccess: envFlag(Bun.env.CROMBOLO_DELIVERY_API_PUBLIC),
+      media:
+        envFlag(Bun.env.CROMBOLO_DELIVERY_API_MEDIA) === undefined
+          ? undefined
+          : { enabled: envFlag(Bun.env.CROMBOLO_DELIVERY_API_MEDIA) },
+    }),
     // No environment variable: a bundle is an import, which is code.
     bundles: [],
     marketplaceUrl: Bun.env.CROMBOLO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
@@ -493,6 +519,11 @@ export function loadConfig(
   const merged: CromboloConfig = { ...fromEnv, ...stripUndefined(overrides) }
   // Field by field, so a site setting its title suffix keeps the environment's switches.
   merged.seo = { ...fromEnv.seo, ...stripUndefined(overrides.seo ?? {}) }
+  merged.deliveryApi = {
+    ...fromEnv.deliveryApi,
+    ...stripUndefined(overrides.deliveryApi ?? {}),
+    media: { ...fromEnv.deliveryApi.media, ...(overrides.deliveryApi?.media ?? {}) },
+  }
   // A schema store makes backoffice writes durable, so it carries writability with
   // it — that is the point of configuring one. An explicit setting still wins.
   if (

@@ -14,6 +14,7 @@ import {
   choiceOptions,
   type FormCondition,
   type FormConditionRule,
+  type FormTypes,
   formFieldType,
   type SchemaForm,
   type SchemaFormField,
@@ -174,6 +175,8 @@ export interface ValidateSubmissionOptions {
    * forward. Values for other pages are still carried through.
    */
   page?: number
+  /** The field types in play: the built-ins, and the wired bundles'. */
+  types?: FormTypes
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}(?:T[\d:.]+Z?)?$/
@@ -195,7 +198,7 @@ export function validateSubmission(
     errors.push({ field: field.alias, message })
 
   for (const { field, page } of visibleFields(form, submitted)) {
-    const info = formFieldType(field.type)
+    const info = formFieldType(field.type, options.types)
     // A presentational field collects nothing, so there is nothing to check and
     // nothing to store — and a value posted for one is ignored, not kept.
     if (!info || info.presentational) continue
@@ -291,6 +294,17 @@ export function validateSubmission(
         }
         break
       }
+    }
+    // A bundle's own check, once the kind's have passed: a broken one refuses
+    // the value rather than the whole submission.
+    if (info.validate && !errors.some((error) => error.field === field.alias)) {
+      let message: string | undefined
+      try {
+        message = info.validate(accepted, field.settings ?? {})
+      } catch {
+        message = `${label(field)} could not be checked`
+      }
+      if (message) fail(field, message)
     }
     values.push(
       field.source

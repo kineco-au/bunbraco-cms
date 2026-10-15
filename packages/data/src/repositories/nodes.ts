@@ -284,6 +284,17 @@ export class NodeRepository {
     return { total: Number(totals[0]?.n ?? 0), items: rows.map(mapNode) }
   }
 
+  /** The nodes with these ids, in no particular order; one query. */
+  async byIds(ids: readonly number[]): Promise<NodeRow[]> {
+    if (ids.length === 0) return []
+    const placeholders = ids.map(() => '?').join(', ')
+    const rows = await this.#db.query(
+      `SELECT ${NODE_COLUMNS} FROM node WHERE id IN (${placeholders})`,
+      [...ids],
+    )
+    return rows.map(mapNode)
+  }
+
   /** Ancestors of a node, root first, excluding the node itself. */
   async ancestors(key: string): Promise<NodeRow[]> {
     const node = await this.byKey(key)

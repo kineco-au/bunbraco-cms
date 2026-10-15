@@ -16,14 +16,7 @@ export const DELIBERATE_DIVERGENCES: Readonly<Record<string, string>> = {
 }
 
 /** Areas still to build, by the story that builds them. */
-export const PLANNED_AREAS: Readonly<Record<string, string>> = {
-  relation: 'story 046',
-  'relation-type': 'story 046',
-  webhook: 'story 044',
-}
+export const PLANNED_AREAS: Readonly<Record<string, string>> = {}
 
 /** Operations outside those areas that a story builds. */
-export const PLANNED_OPERATIONS: Readonly<Record<string, string>> = {
-  GetItemRelationType: 'story 046',
-  GetItemWebhook: 'story 044',
-}
+export const PLANNED_OPERATIONS: Readonly<Record<string, string>> = {}

@@ -6,6 +6,11 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  createDeliveryApi,
+  deliveryCoverage,
+  resolveDeliveryApiSettings,
+} from '@crombolo/api-delivery'
+import {
   createManagementApiRouter,
   DELIBERATE_DIVERGENCES,
   EMPTY_SETTINGS_OPERATIONS,
@@ -98,10 +103,35 @@ const lines = [
       ]),
   '',
 ]
+// The Delivery API: a contract of its own (story 050), counted by asking the
+// handler, switched on, for each of its operations.
+const delivery = await deliveryCoverage(
+  createDeliveryApi({
+    settings: resolveDeliveryApiSettings({ enabled: true, media: { enabled: true } }),
+    cache: new PublishedCache(createPublishedContentSource(db)),
+    prefix: '/umbraco/delivery/api',
+    protection: async () => [],
+    member: async () => undefined,
+  }),
+)
+lines.push(
+  '## Delivery API',
+  '',
+  `**${delivery.served.size} / ${delivery.operations.length} operations served** — Umbraco's Delivery API v2 contract (\`packages/contracts/DeliveryApi.json\`), off unless a site enables it. Member sign-in under \`v1/security/member/\` is outside the contract, as in Umbraco.`,
+  '',
+  '| Operation | Route | Served |',
+  '| --- | --- | --- |',
+  ...delivery.operations.map(
+    (op) =>
+      `| \`${op.operationId}\` | \`${op.method.toUpperCase()} ${op.path.replace('/umbraco/delivery/api/v2', '')}\` | ${delivery.served.has(op.operationId) ? 'yes' : 'no'} |`,
+  ),
+  '',
+)
 writeFileSync(OUT, lines.join('\n'))
 
 console.log(`${implemented}/${total} operations implemented (${pct}%)`)
 console.log(`${divergent.length} deliberate divergences, ${missing.length} not built yet`)
+console.log(`Delivery API: ${delivery.served.size}/${delivery.operations.length} operations served`)
 console.log(`wrote ${OUT.replace(`${ROOT}/`, '')}`)
 
 await db.close()

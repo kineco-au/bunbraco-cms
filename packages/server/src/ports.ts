@@ -1,4 +1,6 @@
 /** Implementations of the Management API ports. */
+
+import { resolveDeliveryApiSettings } from '@crombolo/api-delivery'
 import type {
   CurrentUserPort,
   LocalizationPort,
@@ -57,6 +59,7 @@ import { createMemberPort } from './adapters/members.ts'
 import { createPublicAccessPort } from './adapters/public-access.ts'
 import { createRedirectPort } from './adapters/redirects.ts'
 import { createReferencePort } from './adapters/references.ts'
+import { createRelationPort } from './adapters/relations.ts'
 import {
   createSchemaFileWriter,
   type SchemaFiles,
@@ -66,10 +69,12 @@ import { createSearchIndexPort } from './adapters/search-index.ts'
 import { createTemplateFileStore } from './adapters/template-files.ts'
 import { createTemplateQueryPort } from './adapters/template-query.ts'
 import { avatarUrls, createUserPorts } from './adapters/users.ts'
+import { createWebhookPort } from './adapters/webhooks.ts'
 import { COMPONENT_SNIPPETS } from './component-snippets.ts'
 import { type CromboloConfig, type UserLinkSender, VERSION } from './config.ts'
 import { type EmailPort, resolveEmailPort } from './email.ts'
 import { createFileIntake } from './file-intake.ts'
+import { formTypesFor } from './form-types.ts'
 import { createLogViewerPort } from './log-viewer.ts'
 import { logger } from './logging.ts'
 import { MediaFileStore } from './media-files.ts'
@@ -78,6 +83,7 @@ import { createOEmbedService } from './oembed.ts'
 import { createRedirectTracker } from './redirects.ts'
 import { componentAliasesIn, type SchemaBoot } from './schema.ts'
 import { publishSchema } from './schema-store.ts'
+import { createWebhookService, type WebhookService } from './webhooks.ts'
 
 /** Re-exported for tests; the canonical list lives in @crombolo/core. */
 export const CORE_SECTIONS = CORE_SECTION_ALIASES
@@ -341,12 +347,13 @@ export function resolveUserLinkSender(
 }
 
 /** Where the backoffice writes schema files, and whether it may. */
-function schemaFiles(config: CromboloConfig): SchemaFiles {
+export function schemaFiles(config: CromboloConfig): SchemaFiles {
   const store = config.schemaStore
   return {
     schemaDir: config.schemaDir,
     writable: config.schemaWritable,
     componentAliases: () => componentAliasesIn(config.componentsDir),
+    formTypes: formTypesFor(config),
     // Only when a store is configured: a schema directory in a repository is
     // already where the files durably live.
     onChanged: store
@@ -374,6 +381,8 @@ export interface DepsOptions {
   extensions: ExtensionRegistry
   /** Omitted only by tests that exercise the contract without a database. */
   db?: Db
+  /** The site's webhooks, shared with the delivery job and the event source. */
+  webhooks?: WebhookService
   /** Required alongside `db` to serve documents, which invalidate the cache. */
   cache?: PublishedCache
   schema?: SchemaBoot
@@ -519,6 +528,9 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
       nodeState: options.schema?.nodeState,
       nodeId: options.schema?.nodeId,
       valueIntake,
+      apiMemberUserNames: resolveDeliveryApiSettings(
+        options.config.deliveryApi,
+      ).memberAuthorization.clientCredentialsFlow.associatedMembers.map((m) => m.userName),
     })
     deps.publicAccess = createPublicAccessPort(options.db, {
       onChange: () => options.cache?.invalidate(),
@@ -530,6 +542,17 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
       onChange: () => options.cache?.invalidate(),
     })
     deps.references = createReferencePort(options.db)
+    deps.relations = createRelationPort(options.db)
+    deps.webhooks = createWebhookPort(
+      options.webhooks ??
+        createWebhookService({
+          db: options.db,
+          schemaDir: options.config.schemaDir,
+          filesWritable: options.config.schemaWritable,
+          secretKey: options.config.secretKey,
+          bundles: options.config.bundles,
+        }),
+    )
     deps.redirects = createRedirectPort(options.db, options.cache, {
       isTracking: options.config.trackRedirects,
       onChange: () => options.cache?.invalidate(),

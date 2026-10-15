@@ -54,11 +54,14 @@ import {
   DomainRepository,
   describeRefFailure,
   type Finding,
+  MigrationStepError,
   NodeRepository,
   readLedger,
+  readSetupState,
   recordInLedger,
   resolveNodeRef,
   TransferRunRepository,
+  UpgradeStateError,
   writeReport,
 } from '@crombolo/data'
 import {
@@ -85,7 +88,10 @@ import {
   assertPortAvailable,
   assetDirs,
   assetScaffold,
+  type BootFailure,
   backupBefore,
+  bootFailurePage,
+  bootRetryDelays,
   bootstrapDatabase,
   type CromboloConfig,
   checkComponents,
@@ -95,9 +101,11 @@ import {
   createServer,
   DOMAINS_FILE,
   type DomainDeclaration,
+  describeBootFailure,
   describeDatabase,
   dictionaryToUdt,
   domainsFilePath,
+  formTypesFor,
   importDictionaryUdt,
   isSafeAlias,
   listAssets,
@@ -124,7 +132,10 @@ import {
   importBundle,
   isResolution,
   isRevertResolution,
+  type NodeResolutions,
   packageNameFor,
+  parseResolveFlags,
+  propertyHandle,
   RESOLUTIONS,
   RESOLUTIONS_FILE,
   REVERT_RESOLUTIONS,
@@ -183,7 +194,7 @@ const SHUTDOWN_MS = 10_000
  */
 function stopOnSignal(
   listening: { stop: (closeActiveConnections?: boolean) => void },
-  server: ServerHandle,
+  current: () => ServerHandle | undefined,
 ): void {
   let stopping = false
   const stop = (signal: string) => {
@@ -194,7 +205,8 @@ function stopOnSignal(
     setTimeout(() => process.exit(130), SHUTDOWN_MS).unref()
     void (async () => {
       listening.stop(true)
-      await server.close()
+      const server = current()
+      if (server) await server.close()
       process.exit(0)
     })()
   }
@@ -206,17 +218,10 @@ async function start(): Promise<void> {
   // Before the migration and the seed, so a clash with the container stack is
   // reported in a second rather than after the database work.
   await assertPortAvailable(config.port)
-  const server = await createServer(config)
-  // After the schema sync inside `createServer`, which is what gives the bundle
-  // content types to land on, and before anything is served.
-  const bundles = await importStartupBundles(server, config)
+  const { listening, server, bundles } = await bootWithRetries(config)
   const seededAdminPassword = server.seededAdminPassword
 
   const lines = ['Crombolo is running', '']
-  const listening = Bun.serve(server.serveOptions)
-  // Registered the moment it is listening, so there is no window in which the
-  // site answers requests and cannot be asked to stop.
-  stopOnSignal(listening, server)
   // What this node actually answers, so a split deployment's banner does not
   // advertise an address that 404s here.
   if (config.role !== 'web')
@@ -230,6 +235,18 @@ async function start(): Promise<void> {
   // and would end the sessions of editors signed in to the api node.
   if (config.role === 'web') {
     // Nothing to print: this node has no sign-in.
+  } else if (!config.development) {
+    // Production never touches an existing administrator at start: a restart an
+    // attacker forced must not reset, re-enable or sign anyone out.
+    if (await setupPending(server))
+      lines.push(
+        '  Set up your new site at',
+        `    ${listening.url}${config.backOfficePath.slice(1)}/setup`,
+        config.setupCode
+          ? '  with the code in CROMBOLO_SETUP_CODE.'
+          : '  First set CROMBOLO_SETUP_CODE (16+ characters) and restart.',
+        '',
+      )
   } else if (flags.has('--keep-admin')) {
     if (seededAdminPassword)
       lines.push(
@@ -277,6 +294,76 @@ async function start(): Promise<void> {
 }
 
 /**
+ * Listens at once, serving a page that says why the site is not up yet, and
+ * retries the boot with backoff: a database that comes up after the server is
+ * picked up without a restart. After the last attempt it exits, so the
+ * platform's restart policy and alerts take over. docs/operations.md.
+ */
+async function bootWithRetries(config: CromboloConfig) {
+  const attempts = Math.max(1, Number(Bun.env.CROMBOLO_BOOT_ATTEMPTS ?? 10) || 10)
+  const delays = bootRetryDelays(attempts)
+  let failure: BootFailure | undefined
+  let progress = { attempt: 1, attempts, retryInSeconds: undefined as number | undefined }
+  const holding = (request: Request) => {
+    if (new URL(request.url).pathname === '/health')
+      return Response.json(
+        { ok: false, starting: true, problem: failure?.title ?? null },
+        { status: 503 },
+      )
+    return new Response(bootFailurePage(failure, progress), {
+      status: 503,
+      headers: { 'content-type': 'text/html; charset=utf-8', 'retry-after': '10' },
+    })
+  }
+  const listening = Bun.serve({
+    port: config.port,
+    maxRequestBodySize: config.maxRequestBodyBytes,
+    fetch: holding,
+    websocket: { message() {} },
+  })
+  let current: ServerHandle | undefined
+  // Registered the moment it listens, so there is no window, retries included,
+  // in which it answers requests and cannot be asked to stop.
+  stopOnSignal(listening, () => current)
+  for (let attempt = 1; ; attempt++) {
+    let server: ServerHandle | undefined
+    try {
+      server = await createServer(config)
+      current = server
+      // After the schema sync inside `createServer`, which is what gives the
+      // bundle content types to land on, and before anything is served.
+      const bundles = await importStartupBundles(server, config)
+      listening.reload(server.serveOptions as never)
+      return { listening, server, bundles }
+    } catch (error) {
+      current = undefined
+      await server?.close().catch(() => {})
+      failure = describeBootFailure(error, describeDatabase(config))
+      const delay = delays[attempt - 1]
+      console.error(
+        `crombolo: ${failure.title}. ${failure.detail}\n  To fix it: ${failure.remedy}\n  (${error instanceof Error ? error.message : String(error)})`,
+      )
+      if (delay === undefined || error instanceof ops.CommandError) {
+        progress = { attempt, attempts, retryInSeconds: undefined }
+        listening.stop(true)
+        if (error instanceof ops.CommandError) throw error
+        throw new ops.CommandError(`Gave up after ${attempt} attempt(s): ${failure.title}.`)
+      }
+      progress = { attempt, attempts, retryInSeconds: Math.round(delay / 1000) }
+      if (attempt === 1) console.error(`  ${listening.url} explains this while it retries.`)
+      console.error(
+        `  Trying again in ${Math.round(delay / 1000)}s (attempt ${attempt} of ${attempts}).`,
+      )
+      await Bun.sleep(delay)
+    }
+  }
+}
+
+async function setupPending(server: ServerHandle): Promise<boolean> {
+  return (await readSetupState(server.db)) === 'pending'
+}
+
+/**
  * `start --bundle <dir>`, repeatable: apply a bundle before the site serves
  * anything, taking the flags `content import` takes.
  *
@@ -299,7 +386,7 @@ async function importStartupBundles(
   for (const target of targets) {
     let resolved: ops.ResolvedBundle
     try {
-      resolved = ops.readBundle(target, config.siteDir)
+      resolved = ops.readBundle(target, config.siteDir, await passphraseToOpen(target, config))
     } catch (error) {
       if (!(error instanceof ops.CommandError)) throw error
       console.error(`  ${error.message}`)
@@ -330,6 +417,8 @@ async function importStartupBundles(
     const started = performance.now()
     const result = await importBundle(db, set, {
       ...prepared.options,
+      // The administrator this boot created stands in until the site's own arrive.
+      adoptUsers: Boolean(server.seededAdminPassword),
       publish: flags.has('--publish'),
       nodeId: config.nodeId,
       label: flagValue('--label'),
@@ -347,7 +436,7 @@ async function importStartupBundles(
     const c = result.check.counts
     const placed = describePlaced(
       resolved.blobs.size > 0
-        ? await placeBlobs(await mediaStoreFor(config), resolved.blobs)
+        ? await placeBlobs(await mediaStoreFor(config), resolved.blobs, resolved.openBlob)
         : null,
     )
     lines.push(
@@ -355,6 +444,13 @@ async function importStartupBundles(
         `${result.published.length > 0 ? `, ${result.published.length} published` : ''} (run ${result.runId})`,
     )
     if (placed) lines.push(`  blobs       ${placed}`)
+    const people = result.people.filter((p) => p.kind === 'member' || p.kind === 'user')
+    if (people.length > 0)
+      lines.push(
+        `  people      ${people.filter((p) => p.kind === 'member').length} member(s), ${people.filter((p) => p.kind === 'user').length} user(s); their passwords are the ones they had`,
+      )
+    for (const finding of result.check.findings.filter((f) => f.code === 'user-adopted'))
+      lines.push(`  admin       ${finding.message}`)
     for (const failure of result.publishFailures)
       console.error(`  not published  ${failure.key}: ${failure.reason}`)
     await recordInLedger(db, {
@@ -553,11 +649,12 @@ async function schema(): Promise<void> {
   }
   switch (sub) {
     case 'check': {
-      const loaded = loadSchemaDirectory(config.schemaDir)
+      const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
       const problems = [
         ...loaded.problems,
         ...validateSchemaSet(loaded.set, {
           componentAliases: componentAliasesIn(config.componentsDir),
+          types: formTypesFor(config),
         }),
       ]
       if (problems.length > 0) {
@@ -604,7 +701,7 @@ async function schema(): Promise<void> {
       return schemaAddProperty(config)
     case 'rewrite': {
       // Every file in the canonical layout: a reviewable commit when the vocabulary changes.
-      const loaded = loadSchemaDirectory(config.schemaDir)
+      const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
       if (loaded.problems.length > 0) {
         printProblems(loaded.problems)
         process.exit(1)
@@ -617,7 +714,7 @@ async function schema(): Promise<void> {
       const { db } = await bootstrapDatabase(config)
       try {
         const version = existsSync(config.schemaDir)
-          ? loadSchemaDirectory(config.schemaDir).set.version
+          ? loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) }).set.version
           : '1.0.0'
         const set = await exportSchemaSet(db, version)
         for (const file of writeSchemaFiles(config.schemaDir, set))
@@ -654,7 +751,7 @@ async function schemaNew(config: CromboloConfig): Promise<void> {
     process.exit(1)
   }
 
-  const loaded = loadSchemaDirectory(config.schemaDir)
+  const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
   const existing = [
     ...loaded.set.contentTypes,
     ...(loaded.set.mediaTypes ?? []),
@@ -720,7 +817,7 @@ async function schemaAddProperty(config: CromboloConfig): Promise<void> {
     process.exit(1)
   }
 
-  const loaded = loadSchemaDirectory(config.schemaDir)
+  const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
   if (loaded.problems.length > 0) {
     printProblems(loaded.problems)
     process.exit(1)
@@ -861,8 +958,11 @@ async function schemaPurge(config: CromboloConfig): Promise<void> {
 
 async function generate(): Promise<void> {
   const config = await siteConfig()
-  const loaded = loadSchemaDirectory(config.schemaDir)
-  const problems = [...loaded.problems, ...validateSchemaSet(loaded.set)]
+  const loaded = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
+  const problems = [
+    ...loaded.problems,
+    ...validateSchemaSet(loaded.set, { types: formTypesFor(config) }),
+  ]
   if (problems.length > 0) {
     printProblems(problems)
     process.exit(1)
@@ -885,6 +985,89 @@ function flagValues(name: string): string[] {
 
 function flagValue(name: string): string | undefined {
   return flagValues(name)[0]
+}
+
+/** Where a script gives a bundle's passphrase, rather than typing it. */
+const PASSPHRASE_ENV = 'CROMBOLO_BUNDLE_PASSPHRASE'
+const MIN_PASSPHRASE = 12
+
+/** A line typed without echo. */
+async function readSecret(question: string): Promise<string> {
+  process.stdout.write(question)
+  const stdin = process.stdin
+  stdin.setRawMode(true)
+  stdin.resume()
+  return new Promise((done) => {
+    let typed = ''
+    const onData = (chunk: Buffer) => {
+      for (const char of chunk.toString('utf8')) {
+        if (char === '\u0003') {
+          process.stdout.write('\n')
+          process.exit(130)
+        }
+        if (char === '\r' || char === '\n') {
+          stdin.setRawMode(false)
+          stdin.pause()
+          stdin.off('data', onData)
+          process.stdout.write('\n')
+          done(typed)
+          return
+        }
+        if (char === '\u007f' || char === '\b') typed = typed.slice(0, -1)
+        else typed += char
+      }
+    }
+    stdin.on('data', onData)
+  })
+}
+
+/** The passphrase to open a bundle with, when it is sealed: the environment's, or asked for. */
+async function passphraseToOpen(
+  target: string,
+  config: CromboloConfig,
+): Promise<string | undefined> {
+  const given = process.env[PASSPHRASE_ENV]
+  if (given) return given
+  let sealed = false
+  try {
+    sealed = ops.readBundle(target, config.siteDir).set.sealed === true
+  } catch {
+    // The command that follows reads it again and says what is wrong with it.
+    return undefined
+  }
+  if (!sealed) return undefined
+  if (!process.stdin.isTTY) {
+    console.error(
+      `${target} is encrypted. Set ${PASSPHRASE_ENV} to the passphrase it was exported with.`,
+    )
+    process.exit(1)
+  }
+  return readSecret('  Passphrase for this bundle: ')
+}
+
+/** A new passphrase to seal an export with: the environment's, or asked for twice. */
+async function passphraseToSeal(): Promise<string> {
+  const given = process.env[PASSPHRASE_ENV]
+  if (given) {
+    if (given.length < MIN_PASSPHRASE) {
+      console.error(`${PASSPHRASE_ENV} is shorter than ${MIN_PASSPHRASE} characters.`)
+      process.exit(1)
+    }
+    return given
+  }
+  if (!process.stdin.isTTY) {
+    console.error(`An encrypted export needs a passphrase: set ${PASSPHRASE_ENV}.`)
+    process.exit(1)
+  }
+  for (;;) {
+    const first = await readSecret('  Passphrase to encrypt this bundle with: ')
+    if (first.length < MIN_PASSPHRASE) {
+      console.error(`  At least ${MIN_PASSPHRASE} characters, please.`)
+      continue
+    }
+    if ((await readSecret('  Again, to confirm: ')) === first) return first
+    console.error('  They did not match.')
+  }
 }
 
 async function content(): Promise<void> {
@@ -1013,6 +1196,7 @@ function transferInput(bundle: string): ops.TransferInput {
     resolutions: parseResolutions(),
     resolveAll: allFlag as Resolution | undefined,
     allowMissingBlobs: flags.has('--allow-missing-blobs'),
+    publish: flags.has('--publish'),
     // What a bundle carries is applied by default — that is the point of it
     // carrying anything — so these decline a half, for someone who wants the
     // content without the structure that came with it.
@@ -1074,6 +1258,7 @@ async function contentImport(config: CromboloConfig): Promise<void> {
   }
   const result = await ops.contentImport(config, {
     ...transferInput(dir),
+    passphrase: await passphraseToOpen(dir, config),
     publish: flags.has('--publish'),
     label: flagValue('--label'),
     backupTaken: flags.has('--backup-taken'),
@@ -1257,23 +1442,14 @@ async function contentRuns(config: CromboloConfig): Promise<void> {
   }
 }
 
-/** `--resolve <key>=take-bundle`, repeatable; the same shape as `--set`. */
-function parseResolutions(): Record<string, Resolution> {
-  const out: Record<string, Resolution> = {}
-  for (const pair of flagValues('--resolve')) {
-    const eq = pair.indexOf('=')
-    if (eq < 0) {
-      console.error(`  --resolve wants <key>=<choice>, not "${pair}"`)
-      process.exit(1)
-    }
-    const choice = pair.slice(eq + 1)
-    if (!isResolution(choice)) {
-      console.error(`  "${choice}" is not one of ${RESOLUTIONS.join(', ')}`)
-      process.exit(1)
-    }
-    out[pair.slice(0, eq)] = choice
+/** `--resolve <key>=<choice>` or `--resolve <key>/<property>[@<culture>]=<choice>`, repeatable. */
+function parseResolutions(): Record<string, NodeResolutions> {
+  const parsed = parseResolveFlags(flagValues('--resolve'))
+  if (parsed.problems.length > 0) {
+    for (const problem of parsed.problems) console.error(`  ${problem}`)
+    process.exit(1)
   }
-  return out
+  return parsed.byNode
 }
 
 function printTransferFindings(check: TransferCheck): void {
@@ -1288,6 +1464,11 @@ function printTransferFindings(check: TransferCheck): void {
   )
   for (const f of check.findings) {
     console.log(`  [${f.kind.padEnd(8)}] ${f.message}`)
+    // The handle is the CLI's to name; the dashboard offers the same answers as choices.
+    if (f.code === 'local-edit' && f.propertyAlias)
+      console.log(
+        `             answer it as ${f.subjectKey}/${propertyHandle(f.propertyAlias, f.culture)}`,
+      )
     for (const suggestion of resolutionsFor(f.code)) console.log(`             → ${suggestion}`)
     if (f.link) console.log(`             ${f.link}`)
   }
@@ -1301,12 +1482,18 @@ async function contentCheck(config: CromboloConfig): Promise<void> {
     )
     process.exit(1)
   }
-  const result = await ops.contentCheck(config, transferInput(dir))
+  const result = await ops.contentCheck(config, {
+    ...transferInput(dir),
+    passphrase: await passphraseToOpen(dir, config),
+  })
   for (const problem of result.problems) console.error(`  ${problem}`)
   describeBundle(result.bundle)
   if (result.under) console.log(`  under    ${result.under}`)
   printSections(result.sections)
   printTransferFindings(result.check)
+  // The reasons are publish's own: the check rehearsed the import to find them.
+  for (const refusal of result.publishRefusals)
+    console.error(`  would not publish  ${refusal.key}: ${refusal.reason}`)
 
   if (flags.has('--save')) {
     const target = join(result.payloadDir, RESOLUTIONS_FILE)
@@ -1331,6 +1518,42 @@ async function contentCheck(config: CromboloConfig): Promise<void> {
   console.log('\nNothing outstanding: this bundle would import cleanly.')
 }
 
+/**
+ * What an export or an import does with property values and media files:
+ * left out, sealed, or — when asked twice — in the open.
+ */
+function contentFlags(): { content: 'omitted' | 'sealed' | 'open' } {
+  const include = flags.has('--include-content')
+  const open = flags.has('--allow-content-unencrypted')
+  if (open && !include) {
+    console.error('--allow-content-unencrypted goes with --include-content.')
+    process.exit(1)
+  }
+  if (flags.has('--with-blobs') && !include) {
+    console.error('Media files are content: --with-blobs goes with --include-content.')
+    process.exit(1)
+  }
+  if (open)
+    console.error(
+      '  warning  property values and media files are written unencrypted: anyone with the files can read any personal information in them',
+    )
+  return { content: !include ? 'omitted' : open ? 'open' : 'sealed' }
+}
+
+function describeContentMode(
+  content: 'omitted' | 'sealed' | 'open',
+  people?: { members: number; users: number },
+): void {
+  if (content === 'omitted')
+    console.log(
+      '  content  not included: pages are placed and named, and no value is written. Pass --include-content to bring the values and media files',
+    )
+  else if (content === 'sealed') console.log('  content  encrypted: importing needs the passphrase')
+  else console.log('  content  unencrypted')
+  if (people && people.members + people.users > 0)
+    console.log(`  people   ${people.members} member(s), ${people.users} user(s), encrypted`)
+}
+
 async function contentExport(config: CromboloConfig): Promise<void> {
   const out = flagValue('--out')
   const refs = flagValues('--root')
@@ -1338,11 +1561,19 @@ async function contentExport(config: CromboloConfig): Promise<void> {
     console.error('content export needs --root <path|uuid> (repeatable) and --out <dir>.')
     process.exit(1)
   }
+  const content = contentFlags()
   const result = await ops.contentExport(config, {
+    ...content,
     roots: refs,
     only: flags.has('--only'),
     drafts: flags.has('--drafts'),
     withBlobs: flags.has('--with-blobs'),
+    withMembers: flags.has('--with-members'),
+    withUsers: flags.has('--with-users'),
+    passphrase:
+      content.content === 'sealed' || flags.has('--with-members') || flags.has('--with-users')
+        ? await passphraseToSeal()
+        : undefined,
     withBlueprints: flags.has('--with-blueprints'),
     // An export is a private package; without --name it is named for its directory.
     package: {
@@ -1369,6 +1600,7 @@ async function contentExport(config: CromboloConfig): Promise<void> {
     console.log(`  expects  ${result.expected.length} node(s) to exist at the destination:`)
     for (const e of result.expected) console.log(`    ${e.key}  ${e.name}  (${e.why})`)
   }
+  describeContentMode(result.content, result.people)
   if (result.blobs.carried > 0)
     console.log(
       `  blobs    ${result.blobs.carried} media file(s), ${describeBytes(result.blobs.bytes)}`,
@@ -1614,6 +1846,16 @@ async function importSite(): Promise<void> {
     process.exit(1)
   }
 
+  const { content } = sub === 'apply' ? contentFlags() : { content: 'omitted' as const }
+  const withMembers = flags.has('--with-members')
+  const withUsers = flags.has('--with-users')
+  const sealing = content === 'sealed' || withMembers || withUsers
+  // A report writes no bundle, so what it would seal with is never kept.
+  const passphrase = !sealing
+    ? undefined
+    : sub === 'apply'
+      ? await passphraseToSeal()
+      : crypto.randomUUID()
   let plan: Awaited<ReturnType<typeof importer.planImport>>
   try {
     plan = await importer.planImport({
@@ -1624,6 +1866,10 @@ async function importSite(): Promise<void> {
       drafts: flags.has('--drafts'),
       staging: flagValue('--staging'),
       coreVersion: VERSION,
+      content: sub === 'apply' ? content : flags.has('--include-content') ? 'open' : 'omitted',
+      withMembers,
+      withUsers,
+      passphrase,
     })
   } catch (error) {
     console.error(`  ${error instanceof Error ? error.message : error}`)
@@ -1697,6 +1943,14 @@ async function importSite(): Promise<void> {
   console.log(
     `\n\`bun start\` imports ${importer.IMPORT_BUNDLE} on the first boot of an empty database.`,
   )
+  if (sealing)
+    console.log(
+      `It is encrypted: \`bun start\` asks for the passphrase, or reads ${PASSPHRASE_ENV}.`,
+    )
+  if (content === 'omitted')
+    console.log(
+      'Pages and media were brought without what they hold. Run again with --include-content to bring it.',
+    )
   if (plan.dictionary.length > 0)
     console.log(`Then: crombolo dictionary import ${importer.IMPORT_DIR}/dictionary.udt`)
 }
@@ -1712,7 +1966,9 @@ async function components(): Promise<void> {
   const sub = positional[0] ?? 'check'
   if (sub !== 'check' && sub !== 'list' && sub !== 'new') return help()
 
-  const loaded = existsSync(config.schemaDir) ? loadSchemaDirectory(config.schemaDir) : undefined
+  const loaded = existsSync(config.schemaDir)
+    ? loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) })
+    : undefined
   const types = loaded?.set.contentTypes ?? []
 
   if (sub === 'list') {
@@ -2045,14 +2301,24 @@ function help(): void {
   content export --root <path|uuid> --out <dir>
                               write a private bundle package: the subtree, its
                               dependencies and what the destination must already have
-                              [--only] [--drafts] [--with-blobs] [--with-blueprints]
+                              [--only] [--drafts] [--with-blueprints]
                               [--name <npm name>] [--package-version <version>]
+                              Names and the tree only, unless [--include-content]:
+                              values, media files [--with-blobs] and protected-page
+                              usernames, encrypted under a passphrase (prompted, or
+                              CROMBOLO_BUNDLE_PASSPHRASE); [--allow-content-unencrypted]
+                              writes them readable. [--with-members] [--with-users]
+                              add people, always encrypted
   A bundle is an npm package. <pkg> is its directory, or the name of one this
   site depends on.
   content check <pkg>         what installing its content here would do, and what it
                               needs from a person first; writes to the Changes dashboard
                               [--under <path|uuid>] [--resolve <key>=take-bundle|keep-local|skip]
+                              [--resolve <key>/<property>[@<culture>]=take-bundle|keep-local]
                               [--resolve-all <choice>] [--allow-missing-blobs] [--save]
+                              [--publish: also say which pages the import would not publish]
+                              An encrypted bundle asks for its passphrase, or reads
+                              CROMBOLO_BUNDLE_PASSPHRASE
   content import <pkg>        re-check, back up, then apply: documents and elements
                               arrive as drafts, media is live. One transaction, so a
                               failure leaves nothing behind
@@ -2095,6 +2361,8 @@ function help(): void {
                               write a crombolo site: schema, view stubs, media and a
                               content bundle that \`bun start\` imports on first boot
                               [--name <site name>] [--drafts] [--postgres] [--force]
+                              [--include-content] [--allow-content-unencrypted]
+                              [--with-members] [--with-users], as content export
   upgrade check [--set t.p=v] what the deployed schema/ would do to this database's data
   upgrade check --fix         back up; apply the additive part and every conversion early
   upgrade [--force <reason>]  re-check, back up, apply framework steps, cut over, ledger
@@ -2116,6 +2384,11 @@ try {
   await dispatch()
   if (audited) await ops.recordCommand(await siteConfig(), audited)
 } catch (error) {
+  // These already say what happened and what to do; a stack trace would bury it.
+  if (error instanceof MigrationStepError || error instanceof UpgradeStateError) {
+    console.error(error.message)
+    process.exit(1)
+  }
   if (!(error instanceof ops.CommandError)) throw error
   for (const problem of error.problems) console.error(`  ${problem}`)
   console.error(error.message)

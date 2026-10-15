@@ -20,6 +20,9 @@ export interface CacheInstruction {
   createdBy: string | null
 }
 
+/** Where Postgres says an instruction was written, so nodes poll now rather than on their timer. */
+export const CACHE_INSTRUCTION_CHANNEL = 'crombolo_cache_instruction'
+
 export async function appendCacheInstruction(
   db: Db,
   instruction: { kind: CacheInstructionKind; payload?: Record<string, unknown>; by?: string },
@@ -33,6 +36,9 @@ export async function appendCacheInstruction(
       instruction.by ?? null,
     ],
   )
+  // Delivered at commit, so a write that rolls back wakes nobody.
+  if (db.dialect.name === 'postgres')
+    await db.exec('SELECT pg_notify(?, ?)', [CACHE_INSTRUCTION_CHANNEL, instruction.kind])
 }
 
 /** The highest instruction id, so a fresh node ignores history. */

@@ -349,6 +349,26 @@ export async function readLedger(db: Db): Promise<LedgerRow[]> {
   }))
 }
 
+/**
+ * A step failed and was rolled back; every step before it is applied. Says which,
+ * and that running the upgrade again carries on from there.
+ */
+export class MigrationStepError extends Error {
+  constructor(
+    readonly step: string,
+    readonly applied: readonly string[],
+    readonly bundle: string | undefined,
+    override readonly cause: unknown,
+  ) {
+    const reason = cause instanceof Error ? cause.message : String(cause)
+    super(
+      `The upgrade stopped at ${bundle ? `the bundle "${bundle}"'s step` : 'step'} ${step}: ${reason}. ` +
+        `Nothing from that step was kept${applied.length > 0 ? `; the ${applied.length} step(s) before it are applied` : ''}. ` +
+        'Fix the cause and run the upgrade again: it carries on from this step.',
+    )
+  }
+}
+
 /** The database is at a state this code's plan does not know: newer code wrote it. */
 export class UpgradeStateError extends Error {
   constructor(
@@ -440,23 +460,29 @@ export async function migrate(
     await verifyApplied(db, plan, state)
     for (const next of pending) {
       const started = performance.now()
-      await db.transaction(async (tx) => {
-        await next.up(tx)
-        await next.backfill?.(tx)
-      })
+      // The state and the ledger row commit with the step, so an interrupted
+      // run resumes at the first step that did not land and never repeats one.
+      await db
+        .transaction(async (tx) => {
+          await next.up(tx)
+          await next.backfill?.(tx)
+          await writeState(tx, next.to, plan.stateKey)
+          await recordInLedger(tx, {
+            name: next.name,
+            kind: next.kind ?? 'expand',
+            fromState: next.from,
+            toState: next.to,
+            durationMs: Math.round(performance.now() - started),
+            checksum: next.checksum ?? next.name,
+            appliedBy: options.by ?? null,
+            note: next.release ? `release ${next.release}` : null,
+            bundle: plan.bundle ?? null,
+          })
+        })
+        .catch((error: unknown) => {
+          throw new MigrationStepError(next.name, applied, plan.bundle, error)
+        })
       state = next.to
-      await writeState(db, state, plan.stateKey)
-      await recordInLedger(db, {
-        name: next.name,
-        kind: next.kind ?? 'expand',
-        fromState: next.from,
-        toState: next.to,
-        durationMs: Math.round(performance.now() - started),
-        checksum: next.checksum ?? next.name,
-        appliedBy: options.by ?? null,
-        note: next.release ? `release ${next.release}` : null,
-        bundle: plan.bundle ?? null,
-      })
       applied.push(next.name)
     }
     return { from, to: state, applied }

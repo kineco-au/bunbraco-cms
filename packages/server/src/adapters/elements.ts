@@ -18,6 +18,7 @@ import {
   type Db,
   DocumentRepository,
   FolderRepository,
+  InvalidParentError,
   NodeRepository,
   type NodeRow,
   type NodeSchemaState,
@@ -66,6 +67,8 @@ export function createElementPort(
   const failure = (error: unknown) => {
     if (error instanceof WriteRejectedError)
       return { ok: false as const, reason: error.message, status: 409 }
+    if (error instanceof InvalidParentError)
+      return { ok: false as const, reason: error.message, status: 400 }
     if (error instanceof PublishBlockedError) return { ok: false as const, reason: error.message }
     if (error instanceof TemporaryFileMissingError)
       return { ok: false as const, reason: error.message, status: 400 }

@@ -19,6 +19,7 @@ import { auditRetainedSince, recordAudit } from './adapters/audit.ts'
 import type { WorkflowRunner, WorkflowRunReport } from './form-workflows.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
+import type { WebhookService } from './webhooks.ts'
 
 export interface JobsOptions {
   db: Db
@@ -41,6 +42,9 @@ export interface JobsOptions {
    */
   formWorkflows?: WorkflowRunner
   formWorkflowsMs?: number
+  /** Raises the publishes scheduled publishing makes, and drains the delivery queue. */
+  webhooks?: Pick<WebhookService, 'raise' | 'runDue'>
+  webhooksMs?: number
   /** How often the search indexer looks for queued items; a write here also starts it at once. */
   searchIndexingMs?: number
   /** Days the audit log keeps an entry; 0 or absent keeps them forever. */
@@ -57,6 +61,8 @@ export interface BackgroundJobs {
   runScheduledPublishing(now?: Date): Promise<ScheduledRun>
   /** Runs the form workflows that are due; a no-op when none are configured. */
   runFormWorkflows(now?: Date): Promise<WorkflowRunReport>
+  /** Delivers the webhook and bundle events that are due. */
+  runWebhooks(now?: Date): Promise<WorkflowRunReport>
   /** Indexes every queued item, and returns how many. docs/search.md. */
   runSearchIndexing(): Promise<number>
   /** Something was queued here: index it shortly, rather than at the next tick. */
@@ -109,6 +115,10 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       }
     }
     if (run.published.length + run.unpublished.length > 0) options.cache.invalidate()
+    for (const key of run.published)
+      await options.webhooks?.raise({ alias: 'Umbraco.ContentPublish', key })
+    for (const key of run.unpublished)
+      await options.webhooks?.raise({ alias: 'Umbraco.ContentUnpublish', key })
     return run
   }
 
@@ -119,6 +129,10 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
 
   async function runVersionCleanup(now = new Date()) {
     return documents.cleanupVersions(now, options.versionCleanup)
+  }
+
+  async function runWebhooks(now = new Date()): Promise<WorkflowRunReport> {
+    return (await options.webhooks?.runDue(now)) ?? { claimed: 0, done: 0, retrying: 0, failed: 0 }
   }
 
   async function runFormWorkflows(now = new Date()): Promise<WorkflowRunReport> {
@@ -169,6 +183,7 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     runVersionCleanup,
     runAuditRetention,
     runFormWorkflows,
+    runWebhooks,
     runSearchIndexing,
     kickSearchIndexing() {
       if (timers.length === 0 || kicked) return
@@ -187,6 +202,8 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       // More often than the other jobs: somebody waiting on a form notification
       // notices a minute, and a queue row is cheap to look for.
       if (options.formWorkflows) every(options.formWorkflowsMs ?? 15_000, runFormWorkflows)
+      // As often, for the same reason: a receiver that is waiting notices a minute.
+      if (options.webhooks) every(options.webhooksMs ?? 15_000, runWebhooks)
       if (options.versionCleanup.enabled) every(60 * 60_000, runVersionCleanup)
       if (options.auditRetentionDays) every(60 * 60_000, runAuditRetention)
       const files = options.mediaFiles

@@ -23,13 +23,6 @@ const PAGED = [
     `GetRecycleBin${b}Children`,
     `GetRecycleBin${b}ReferencedBy`,
   ]),
-  // The recycle bin and the trash and delete dialogs; needs relations, story 046. Until
-  // then they cannot warn that other content links to what is being removed.
-  'GetRecycleBinDocumentReferencedBy',
-  'GetRecycleBinMediaReferencedBy',
-  'GetRecycleBinElementReferencedBy',
-  'GetRelationType',
-  'GetWebhook',
 ]
 /** Ancestor lookups: a bare array. */
 const ANCESTORS = STUB_TREES.map((t) => `GetTree${t}Ancestors`)

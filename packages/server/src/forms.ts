@@ -10,6 +10,7 @@
  * what a render would use.
  */
 
+import type { FormTypes } from '@crombolo/core'
 import type { FormEntryState } from '@crombolo/data'
 import { allFormFields, type SchemaForm, storingFormFields } from '@crombolo/schema'
 
@@ -26,14 +27,14 @@ export interface FormSummary {
   workflowCount: number
 }
 
-export function formSummary(form: SchemaForm): FormSummary {
+export function formSummary(form: SchemaForm, types?: FormTypes): FormSummary {
   return {
     // A form with no key in its file still has to be addressable, and its alias
     // is unique within the set, so it stands in until a key is written.
     key: form.key ?? form.alias,
     alias: form.alias,
     name: form.name,
-    fieldCount: storingFormFields(form).length,
+    fieldCount: storingFormFields(form, types).length,
     pageCount: form.pages.length,
     storeEntries: form.storeEntries,
     requiresApproval: form.requiresApproval,
@@ -119,6 +120,8 @@ function csvCell(value: string): string {
 }
 
 export interface EntriesCsvOptions {
+  /** The field types in play, so a bundle's type that collects nothing gets no column. */
+  types?: FormTypes
   /** Without it, a sensitive column is refused rather than silently blank. */
   includeSensitive: boolean
 }
@@ -144,7 +147,7 @@ export function entriesCsv(
   }[],
   options: EntriesCsvOptions,
 ): EntriesCsvResult {
-  const fields = storingFormFields(form)
+  const fields = storingFormFields(form, options.types)
   const sensitive = fields.filter((field) => field.sensitive)
   if (sensitive.length > 0 && !options.includeSensitive)
     return {

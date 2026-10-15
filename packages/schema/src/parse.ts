@@ -11,6 +11,7 @@ import {
   type SchemaProperty,
   type SchemaTab,
   type SchemaTypeKind,
+  type SchemaUrls,
   TYPE_KIND_FILES,
 } from './model.ts'
 import { type ParseResult, Reader, type Toml, toml } from './reader.ts'
@@ -251,12 +252,35 @@ export function parseLanguages(file: string, source: string): ParseResult<Schema
 }
 
 export function parseSchemaVersion(file: string, source: string): ParseResult<string> {
+  const parsed = parseSchemaSettings(file, source)
+  return { value: parsed.value?.version, problems: parsed.problems }
+}
+
+/** `schema/schema.toml`: the schema version, and how the site's URLs are built. */
+export function parseSchemaSettings(
+  file: string,
+  source: string,
+): ParseResult<{ version: string; urls?: SchemaUrls }> {
   const r = new Reader(file)
   const root = toml(source, r)
   if (!root) return { value: undefined, problems: r.problems }
-  r.unknown(root, ['schema'], '')
+  r.unknown(root, ['schema', 'urls'], '')
   const t = r.table(root.schema, 'schema')
   const version = t ? r.str(t, 'version', 'schema', true) : undefined
   if (t) r.unknown(t, ['version'], 'schema')
-  return { value: r.problems.length === 0 ? version : undefined, problems: r.problems }
+  let urls: SchemaUrls | undefined
+  if (root.urls !== undefined) {
+    const u = r.table(root.urls, 'urls')
+    if (u) {
+      r.unknown(u, ['hide-top-level'], 'urls')
+      urls = { hideTopLevel: r.bool(u, 'hide-top-level', 'urls', true) }
+    }
+  }
+  return {
+    value:
+      r.problems.length === 0 && version !== undefined
+        ? { version, ...(urls ? { urls } : {}) }
+        : undefined,
+    problems: r.problems,
+  }
 }

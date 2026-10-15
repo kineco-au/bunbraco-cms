@@ -554,8 +554,29 @@ URLs follow Umbraco's default `HideTopLevelNodeFromPath = true`: the first root
 page (by sort order) is `/`, any other root page is `/<segment>`, and no root's
 segment appears in the URLs below it, so Home's child is `/about-us`, not
 `/home/about-us`. Where two pages claim one URL, the shallower and then the
-first-sorted wins, as Umbraco resolves it. There is no switch to show the top
-level, and RTL segment order is not ported: story `110`.
+first-sorted wins, as Umbraco resolves it.
+
+**Showing the top level** (`HideTopLevelNodeFromPath = false`) is
+`hide-top-level = false` under `[urls]` in `schema/schema.toml`, or the
+**Page addresses** dashboard in Settings, which writes that file — read-only
+where the schema files are. Every path then starts with its top-level page's
+segment, the first one's included (`/home/about-us`); `/` still answers with
+the first top-level page. The setting is synced into the database
+(`key_value`, `crombolo:urls`) like the rest of the schema, and is hashed only
+when it is not the default, so sites that predate it kept their hash.
+
+**Right-to-left cultures** keep the page's own segment first, as Umbraco does:
+it gathers a path from the page upward and reverses it into root-first order
+only for a left-to-right culture. Whether a culture is right to left comes from
+`Intl.Locale`'s text direction (`isRightToLeft`), as .NET's
+`TextInfo.IsRightToLeft` decides it.
+
+**Changing the setting moves every URL**, so it is tracked as a rename is.
+Whichever applies the change — a sync from the files, at boot, from the
+watcher or the schema import, or a save in Settings — builds a second view of
+the published cache with the old setting, captures every route from it, and
+hands them to the redirect tracker against the routes the site has now. Each
+page that moved answers its old URL with a 301. Story `110`.
 
 ## Property values
 

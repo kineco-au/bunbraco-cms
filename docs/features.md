@@ -18,7 +18,7 @@ tail of 1–3 each.
 ### Boot & install
 - Install wizard (`install`), upgrade/state (`upgrade`), `server/status|information|configuration`
 - Schema creation and migration-state tracking (Umbraco: `umbracoKeyValue` + migration locks)
-- Write locks around content-tree mutation (SQLite single-writer queue; Postgres advisory locks)
+- Write locks around content-tree mutation (SQLite single-writer queue; Postgres advisory locks): every content write takes its tree's lock, a busy wait answers 503 with Retry-After, load-tested on both dialects (story `081`)
 
 ### Auth & security
 - OAuth 2.0 authorization-code + PKCE server issuing **reference tokens**, stored
@@ -90,7 +90,7 @@ tail of 1–3 each.
 - Dictionary items (tree + CRUD); backoffice UI localisation files served to the client
 
 ### Cross-cutting
-- Relations and relation types; tags; redirect management — the URL tracker, rules declared in code, and a Settings screen for the ones an administrator writes ([`bundles.md`](bundles.md))
+- Relations and relation types: Umbraco's nine, read-only, their relations derived from the values and the recycle bin rather than stored; the bins' "referenced by" warnings; tags; redirect management — the URL tracker, rules declared in code, and a Settings screen for the ones an administrator writes ([`bundles.md`](bundles.md))
 - Backoffice search over every text property, not only names: `searcher`, `indexer`, `filter` over FTS5/`tsvector` ([`search.md`](search.md))
 - Audit log: every backoffice change, sign-in and failed sign-in, and what the command line and scheduled publishing changed — who, what, when, from where — read on an item's Info tab and on a Settings dashboard, aged out after a configurable period ([`audit-log.md`](audit-log.md))
 - Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`bundles.md`](bundles.md))
@@ -102,7 +102,9 @@ tail of 1–3 each.
 
 ## Could have — high value, after core
 
-- **Delivery API** (`/umbraco/delivery/api/v2/**`) with API-key and preview auth — story `050`
+- **Delivery API** (`/umbraco/delivery/api/v2/**`) — built: content and media,
+  API key, members-only pages and member sign-in ([`delivery-api.md`](delivery-api.md));
+  preview of drafts is still to come
 - **ModelsBuilder equivalent**: generate TypeScript types per content type so TSX
   templates are type-safe end to end — built as `crombolo generate`
   ([`schema-as-code.md`](schema-as-code.md))
@@ -113,7 +115,7 @@ tail of 1–3 each.
 - Log viewer (story `040`, built); health checks, honest telemetry and profiling
   answers, troubleshooting and the upgrade check — built, story `047`
   ([`diagnostics.md`](diagnostics.md))
-- Webhooks (events → HTTP) with a delivery log — story `044`
+- Webhooks (events → HTTP), kept with the site's files or in the environment, delivered once per cluster with retries and a delivery log; bundles handle the same events ([`webhooks.md`](webhooks.md))
 - Content segments (A/B, personalisation) — a deliberate divergence, see
   [`roadmap.md`](roadmap.md); dynamic root pickers — built, story `048`
 - oEmbed proxy — built; `help` and `news-dashboard` answer an honest empty list —
@@ -121,8 +123,9 @@ tail of 1–3 each.
   static-file picker — built, story `048` ([`api-coverage.md`](api-coverage.md))
 - Email sending (invites, resets, notifications) — story `045`
 - Bulk actions, tree drag-and-drop refinements
-- Multi-server operation — built: roles and polled cache instructions
-  ([`operations.md`](operations.md)); low-latency notifications on Postgres are story `120`
+- Multi-server operation — built: roles, and cache instructions that Postgres
+  delivers as they are committed, with polling as the fallback
+  ([`operations.md`](operations.md))
 - Postgres tuning: pooling is built (`poolSize`); read replicas are story `121`
 
 ---

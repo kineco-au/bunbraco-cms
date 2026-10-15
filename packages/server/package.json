@@ -28,6 +28,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@crombolo/api-delivery": "workspace:*",
     "@crombolo/api-management": "workspace:*",
     "@crombolo/assistant": "workspace:*",
     "@crombolo/auth": "workspace:*",

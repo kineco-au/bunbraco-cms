@@ -6,7 +6,9 @@
  * API, the SPA shells, then the front-end site.
  */
 
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { createDeliveryApi, resolveDeliveryApiSettings } from '@crombolo/api-delivery'
 import {
   type ClientAddress,
   createManagementApiRouter,
@@ -39,6 +41,7 @@ import {
   CHOICE_SOURCE_KINDS,
   type ChoiceSourceKind,
   DEFAULT_UPLOAD_SETTINGS,
+  DELIVERY_API_PREFIX,
   FormPermissions,
   hasAccessToSensitiveData,
   localReturnUrl,
@@ -52,8 +55,11 @@ import {
   type Db,
   FormEntryRepository,
   FormWorkflowRepository,
+  PublicAccessRepository,
   RedirectRepository,
+  readLedger,
   readReport,
+  readUrlOptions,
   TransferRunRepository,
   type WritesPaused,
 } from '@crombolo/data'
@@ -66,21 +72,25 @@ import {
   PublishedCache,
   Renderer,
   type SnapshotStatus,
+  setFormFieldTypes,
   setFormTokenSigner,
   ViewSnapshots,
 } from '@crombolo/render'
 import type { SyncReport } from '@crombolo/schema'
+import { choicesFor } from '@crombolo/transfer'
 import type { Server } from 'bun'
 import { createNodeLookup, loadAccess } from './access.ts'
 import { createAuditHost, createAuditSink, pluginAuditPlan, recordAudit } from './adapters/audit.ts'
 import { readCreatedBundlePackage, writeCreatedBundlePackage } from './adapters/bundles.ts'
 import { createPublishedContentSource, loadDraftNode } from './adapters/documents.ts'
 import { createSchemaProposals } from './adapters/schema-proposals.ts'
-import { installBundleContent } from './bundle-install.ts'
+import { CommandError, installBundleContent } from './bundle-install.ts'
 import { bundleChains, bundleTablesReport } from './bundle-tables.ts'
 import { createBundleRedirects, createServerBundles, validateServerBundles } from './bundles.ts'
+import { busyResponse } from './busy.ts'
 import { type CromboloConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
+import { createDeliveryMemberSecurity } from './delivery-members.ts'
 import { createDiagnostics } from './diagnostics.ts'
 import { syncDomainsFile } from './domains.ts'
 import { editorTypeLibs, siteJsxImportSource } from './editor-types.ts'
@@ -98,6 +108,7 @@ import {
   wantsJson,
   writeFlash,
 } from './form-submit.ts'
+import { describeFormTypes, formTypesFor, formTypesOf } from './form-types.ts'
 import { createWorkflowRunner } from './form-workflows.ts'
 import {
   entriesCsv,
@@ -117,6 +128,14 @@ import { createMemberAuth, MEMBER_ROUTE_PREFIX } from './member-auth.ts'
 import { noNodesPage } from './no-nodes.ts'
 import { NotImplementedLog } from './not-implemented.ts'
 import { createDeps, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
+import { createRedirectTracker } from './redirects.ts'
+import { handleTransferAction, pendingTransfers } from './transfer-dashboard.ts'
+import {
+  changeUrlOptions,
+  redirectAfterUrlChange,
+  type UrlChangeContext,
+  urlSettingEditable,
+} from './url-settings.ts'
 
 export { PREVIEW_COOKIE }
 
@@ -136,7 +155,10 @@ import {
   type HubSocketData,
   type ServerEventHub,
 } from './server-events.ts'
+import { createSetupRoutes } from './setup.ts'
+import { summariseUpgrades } from './upgrade-summary.ts'
 import { assertViewRuntime } from './view-runtime.ts'
+import { bundleEventProblems, createWebhookService, webhookStoreView } from './webhooks.ts'
 
 const CONTRACT_PATH = Bun.resolveSync('@crombolo/contracts/OpenApi.json', import.meta.dir)
 
@@ -211,6 +233,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     }
   }
   const domainLog = logger('domains')
+  const apiLog = logger('management-api')
   // Extensions are the site's own npm dependencies (`docs/bundles.md`).
   // Uncached in development so an author editing one sees a reload pick it up.
   const extensions = createExtensionRegistry(config.siteDir, { cache: !config.development })
@@ -225,7 +248,16 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       (await new TransferRunRepository(db).appliedForPackage(packageName))?.packageVersion ?? null,
     applyContentOnInstall: config.applyBundleContentOnInstall,
     applyContent: async (packageName) => {
-      const result = await installBundleContent(db, config, { bundle: packageName })
+      // A package from the marketplace is for anyone, so nothing in it can be
+      // sealed; one that is is refused rather than half applied.
+      const result = await installBundleContent(db, config, { bundle: packageName }).catch(
+        (error: unknown) => {
+          if (error instanceof CommandError) return error
+          throw error
+        },
+      )
+      if (result instanceof CommandError)
+        return { applied: false, message: `Its content was not applied: ${result.message}` }
       if (!result.runId) {
         const reasons = [
           ...result.problems,
@@ -233,7 +265,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         ]
         return {
           applied: false,
-          message: `Its content was not applied: ${reasons.join('; ') || 'the check refused it'}. Resolve that, then run \`crombolo bundle install ${packageName}\`.`,
+          message: `Its content was not applied: ${reasons.join('; ') || 'the check refused it'}. Answer what it needs in Settings, under Changes, and import it from there.`,
         }
       }
       // The content landed under a cache this process had already constructed.
@@ -249,12 +281,20 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   const owns = config.role !== 'web'
   // Bundles are checked before the database is touched, because a bundle that
   // owns tables is migrated at boot, and a bad declaration must not get that far.
-  const bundlePackages = servesBackOffice ? extensions.bundles().bundles : []
-  if (servesBackOffice) {
-    const problems = validateServerBundles(config.bundles, bundlePackages, VERSION)
+  // On every role: a bundle's form types are needed wherever forms render and
+  // submit. Its routes and tables stay with the nodes that serve the backoffice.
+  const bundlePackages = extensions.bundles().bundles
+  const formTypes = formTypesOf(config)
+  {
+    const problems = [
+      ...validateServerBundles(config.bundles, bundlePackages, VERSION),
+      ...formTypes.problems,
+      ...bundleEventProblems(config.bundles),
+    ]
     if (problems.length > 0)
       throw new Error(`The configured bundles cannot be mounted:\n- ${problems.join('\n- ')}`)
   }
+  setFormFieldTypes(formTypes.types, formTypes.renderers)
   const chains = servesBackOffice ? bundleChains(config.bundles, bundlePackages) : []
   const { db, seededAdminPassword } = owns
     ? await bootstrapDatabase(config, chains)
@@ -284,6 +324,16 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   const clientAddress = (request: Request): ClientAddress => ({
     ipAddress: peers.get(request) ?? null,
     forwardedFor: request.headers.get('x-forwarded-for'),
+  })
+  // The global cap behind the per-caller one is what holds when a forwarded
+  // address is spoofed to dodge it.
+  const setup = createSetupRoutes({
+    db,
+    setupCode: config.setupCode,
+    siteName: config.siteName,
+    backOfficePath: paths.backOfficePath,
+    clientKey: (request) =>
+      peers.get(request) ?? request.headers.get('x-forwarded-for') ?? 'unknown',
   })
   const authRoutes = createAuthRoutes({
     backOfficePath: paths.backOfficePath,
@@ -335,15 +385,39 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
 
   // Form definitions are files, so they are re-read rather than cached with the
   // content: nothing about a publish tells this node that a form changed.
-  const forms = createFormRegistry(config.schemaDir)
+  const forms = createFormRegistry(config.schemaDir, { formTypes: formTypes.types })
   // Every form this node renders carries a token signed with the site's key, so
   // the timing guard cannot be bypassed by posting a made-up render time.
   const formSecret = await formSigningSecret(db)
   setFormTokenSigner((formKey, renderedAt) => signFormToken(formSecret, formKey, renderedAt))
-  const cache = new PublishedCache(
-    createPublishedContentSource(db, { nodeState: schema.nodeState, nodeId: schema.nodeId }),
-    { form: (key) => forms.byKey(key) },
-  )
+  const publishedSource = createPublishedContentSource(db, {
+    nodeState: schema.nodeState,
+    nodeId: schema.nodeId,
+  })
+  const cacheOptions = { form: (key: string) => forms.byKey(key) }
+  const cache = new PublishedCache(publishedSource, cacheOptions)
+  // A sync or a Settings change that alters how URLs are built moves every URL:
+  // the old ones redirect, as a rename's do.
+  const urlChange: UrlChangeContext = {
+    db,
+    config,
+    source: publishedSource,
+    cacheOptions,
+    cache,
+    tracker: createRedirectTracker({
+      cache,
+      redirects: new RedirectRepository(db),
+      enabled: config.trackRedirects,
+    }),
+  }
+  const afterSync = async (report: SyncReport | undefined) => {
+    if (!report?.urls) return
+    await redirectAfterUrlChange(urlChange, report.urls.before)
+    log.info('Page addresses now {mode} the top-level page; old addresses redirect', {
+      mode: report.urls.after.hideTopLevel ? 'leave out' : 'include',
+    })
+  }
+  await afterSync(schema.report)
   // A snapshot of the views, so a template edited anywhere — the backoffice, a
   // deploy, a bucket synced underneath — is picked up without restarting this
   // node. `assertViewRuntime` first, because a cache directory the JSX runtime
@@ -464,6 +538,11 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           { nodeId: schema.nodeId, revision: config.schemaRevision },
           (report: SyncReport) => {
             cache.invalidate()
+            void afterSync(report).catch((error: unknown) =>
+              schemaLog.error('Recording redirects after an address change failed: {error}', {
+                error: String(error),
+              }),
+            )
             if (report.action === 'refused')
               schemaLog.error('Schema change refused: {reason}', {
                 reason:
@@ -488,6 +567,26 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     nodeState: schema.nodeState,
     nodeId: schema.nodeId,
   })
+  const deliverySettings = resolveDeliveryApiSettings(config.deliveryApi)
+  const deliveryPrefix = DELIVERY_API_PREFIX
+  const deliveryMembers = createDeliveryMemberSecurity({
+    db,
+    settings: deliverySettings,
+    members,
+  })
+  for (const problem of deliveryMembers.problems)
+    log.warning('Delivery API: {problem}', { problem })
+  const deliveryApi =
+    config.role === 'api'
+      ? undefined
+      : createDeliveryApi({
+          settings: deliverySettings,
+          cache,
+          prefix: deliveryPrefix,
+          protection: () => new PublicAccessRepository(db).allRules(),
+          member: (token) => deliveryMembers.member(token),
+          security: (request, action) => deliveryMembers.handle(request, action),
+        })
 
   /** A document's latest saved version, as preview shows it, in the published tree's context. */
   async function draftModel(key: string, requested: string | null) {
@@ -546,6 +645,18 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   const canSendUserLinks = Boolean(resolveUserLinkSender(config, email))
   const mediaFiles = new MediaFileStore(mediaStore)
   const images = new ImageProcessor(mediaStore)
+  const webhooks = createWebhookService({
+    db,
+    schemaDir: config.schemaDir,
+    filesWritable: config.schemaWritable,
+    secretKey: config.secretKey,
+    bundles: config.bundles,
+    onFilesChanged: config.schemaStore
+      ? async () => {
+          await publishSchema(config.schemaStore as SchemaStore, config.schemaDir)
+        }
+      : undefined,
+  })
   const api = createManagementApiRouter({
     deps: {
       ...createDeps({
@@ -553,6 +664,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         paths,
         extensions,
         db,
+        webhooks,
         cache,
         schema,
         mediaFiles,
@@ -581,9 +693,18 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     allowLocalLogin: config.allowLocalLogin,
     audit: createAuditSink(db),
     clientAddress,
+    onError: (error) => {
+      const answered = busyResponse(error)
+      if (answered) apiLog.warn('A write gave up waiting for another: {error}', { error })
+      return answered
+    },
     onNotImplemented: config.development
       ? (operation, request) => notImplemented.record(operation, request)
       : undefined,
+    // Queued after the response, so a slow receiver never holds an editor up.
+    onWebhookEvent: (event) => {
+      void webhooks.raise(event)
+    },
     onServerEvent: (event) => {
       events.broadcast('notify', [event])
       // Saves, deletes and moves all announce themselves; whatever they queued gets indexed now.
@@ -636,6 +757,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     mediaFiles,
     // The workflow queue drains here rather than in the request: a submission is
     // stored first, and an e-mail that cannot be sent yet must not cost it.
+    webhooks,
     formWorkflows: createWorkflowRunner({
       db,
       forms,
@@ -644,6 +766,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       nodeState: schema.nodeState,
       nodeId: schema.nodeId,
       onContentChanged: () => cache.invalidate(),
+      bundleWorkflows: formTypes.workflows,
     }),
     onDocumentChanged: (key) =>
       events.broadcast('notify', [
@@ -662,6 +785,9 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   // App_Plugins is gone (`docs/bundles.md`). Saying so beats a site whose
   // extensions silently stopped loading after an upgrade; remove at 1.0.
   warnAboutAppPlugins(config.siteDir, log)
+  // Named, never shown: the value is the one thing this must not print.
+  if (config.setupCode && (await setup.pending()) === false)
+    log.warning('CROMBOLO_SETUP_CODE is still set, but the site is set up. Remove the setting.')
   noticeAboutEmail(emailStatus, logger('email'), { development: config.development })
   const hubPath = SERVER_EVENT_HUB_PATH
   const previewHubPath = PREVIEW_HUB_PATH
@@ -675,7 +801,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           module.createAssistantHost({
             config: config.assistant as NonNullable<typeof config.assistant>,
             db,
-            schema: createSchemaProposals({ db, config, boot: schema }),
+            schema: createSchemaProposals({ db, config, boot: schema, afterSync }),
             siteName: config.siteName,
             version: VERSION,
             dispatch: (inner) => api.dispatch(inner),
@@ -742,6 +868,13 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     // `web` node falls straight through to the public site, so the backoffice,
     // the Management API and the sign-in routes are not merely unauthorised
     // there — they are not routes at all, and 404 like any other unknown path.
+    // Umbraco's Delivery API, below the backoffice path but served wherever the
+    // site is, from the published cache: it scales with rendering.
+    if (deliveryApi && pathname.startsWith(`${deliveryPrefix}/`)) {
+      const response = await deliveryApi.handle(request)
+      if (response) return response
+    }
+
     if (servesBackOffice) {
       const response = await serveBackOffice(request, url)
       if (response) {
@@ -814,6 +947,16 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   async function serveBackOffice(request: Request, url: URL): Promise<Response | undefined> {
     const { pathname } = url
 
+    if (pathname === setup.path) return setup.handle(request)
+    // Until the first administrator exists there is nobody to sign in as.
+    if (
+      request.method === 'GET' &&
+      (pathname === `${paths.backOfficePath}/login` ||
+        isSpaRoute(paths.backOfficePath, pathname)) &&
+      (await setup.pending())
+    )
+      return new Response(null, { status: 303, headers: { location: setup.path } })
+
     // Non-contract, signed-in: the assistant's chat, review and MCP endpoints.
     // Absent configuration there is no `assistant`, so these paths 404 like any
     // other unknown route.
@@ -863,6 +1006,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       }
       const dryRun = request.method === 'GET'
       const result = await importSchema(db, config, schema, { dryRun })
+      if (!dryRun) await afterSync(result.report)
       if (!dryRun) {
         log.info('{user} imported the schema: {action}, {classification}', {
           user: principal.userName,
@@ -894,7 +1038,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       if (!principal) return new Response('Unauthorized', { status: 401 })
       if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
       const body = JSON.stringify({
-        libs: await editorTypeLibs({ schemaDir: config.schemaDir }),
+        libs: await editorTypeLibs({
+          schemaDir: config.schemaDir,
+          formTypes: formTypesFor(config),
+        }),
         jsxImportSource: siteJsxImportSource(config.siteDir),
       })
       // Revalidated on every open rather than kept: the generated types follow
@@ -1021,6 +1168,33 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
      * files are the truth, the backoffice may have just rewritten one, and a
      * picker that disagreed with what a render uses would be worse than slow.
      */
+    // Non-contract, Settings: the "Where it's kept" panel on a webhook's screen.
+    const kept = new RegExp(`^${paths.pluginPath}/api/webhooks/([0-9a-fA-F-]{36})/store$`).exec(
+      pathname,
+    )
+    if (kept) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'settings')) return new Response('Forbidden', { status: 403 })
+      const key = (kept[1] as string).toLowerCase()
+      if (request.method === 'PUT') {
+        const body = (await request.json().catch(() => ({}))) as { store?: unknown }
+        if (body.store !== 'files' && body.store !== 'database')
+          return Response.json({ reason: 'Choose files or database.' }, { status: 400 })
+        const moved = await webhooks.move(key, body.store)
+        return moved.ok
+          ? Response.json({ ok: true })
+          : Response.json(
+              { reason: moved.reason, problems: moved.problems ?? [] },
+              { status: moved.status },
+            )
+      }
+      if (request.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
+      const webhook = await webhooks.get(key)
+      if (!webhook) return new Response('Not Found', { status: 404 })
+      return Response.json(webhookStoreView(webhook.store, webhooks.stores()))
+    }
+
     if (pathname.startsWith(`${paths.pluginPath}/api/forms`)) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
@@ -1032,7 +1206,12 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       // A definition is structure, like a content type: anyone who may open the
       // section may read it, and the picker needs it in the Content section too.
       if (action === '' && request.method === 'GET')
-        return Response.json({ items: definitions.map(formSummary) })
+        return Response.json({
+          items: definitions.map((form) => formSummary(form, formTypes.types)),
+        })
+      // Hyphenated, so no form alias (letters and digits) can be mistaken for it.
+      if (action === 'available-types' && request.method === 'GET')
+        return Response.json(describeFormTypes(formTypes.types))
 
       const entries = new FormEntryRepository(db)
       const byKey = formsByKey(definitions)
@@ -1043,6 +1222,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       const formFiles = {
         schemaDir: config.schemaDir,
         writable: config.schemaWritable,
+        formTypes: formTypes.types,
         onChanged: config.schemaStore
           ? async () => {
               await publishSchema(config.schemaStore as SchemaStore, config.schemaDir)
@@ -1119,7 +1299,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         const form = byKey.get(key)
         if (!form) return new Response('Not Found', { status: 404 })
         const page = await entries.list({ formKey: key, take: 10_000 })
-        const result = entriesCsv(form, page.items, { includeSensitive: maySeeSensitive })
+        const result = entriesCsv(form, page.items, {
+          includeSensitive: maySeeSensitive,
+          types: formTypes.types,
+        })
         if (!result.ok)
           return new Response(result.reason, {
             status: 403,
@@ -1249,6 +1432,60 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       if (response) return response
     }
 
+    // Non-contract, Settings: how page addresses are built (story 110).
+    if (pathname === `${paths.pluginPath}/api/url-options`) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'settings')) return new Response('Forbidden', { status: 403 })
+      if (request.method === 'GET')
+        return Response.json({
+          ...(await readUrlOptions(db)),
+          editable: urlSettingEditable(config, existsSync(config.schemaDir)),
+        })
+      if (request.method !== 'PUT') return new Response('Method Not Allowed', { status: 405 })
+      const body = (await request.json().catch(() => ({}))) as { hideTopLevel?: unknown }
+      if (typeof body.hideTopLevel !== 'boolean')
+        return Response.json(
+          { ok: false, message: 'Say whether to hide the top-level page.' },
+          { status: 400 },
+        )
+      const outcome = await changeUrlOptions(urlChange, { hideTopLevel: body.hideTopLevel })
+      log.info('{user} set page addresses to {mode} the top-level page: {outcome}', {
+        user: principal.email,
+        mode: body.hideTopLevel ? 'leave out' : 'include',
+        outcome: outcome.ok ? 'ok' : outcome.message,
+      })
+      return outcome.ok
+        ? Response.json({ ok: true, ...outcome.options })
+        : Response.json({ ok: false, message: outcome.message }, { status: outcome.status })
+    }
+
+    // Non-contract, Packages: answering a content import's conflicts and running
+    // it, from the Changes dashboard. Packages, because installing is.
+    if (pathname.startsWith(`${paths.pluginPath}/api/transfers/`)) {
+      const principal = await authenticate(request)
+      if (!principal) return new Response('Unauthorized', { status: 401 })
+      if (!hasSection(principal, 'packages')) return new Response('Forbidden', { status: 403 })
+      const action = pathname.slice(`${paths.pluginPath}/api/transfers/`.length)
+      const response = await handleTransferAction(request, action, {
+        db,
+        config,
+        user: principal.email,
+        onApplied: () => cache.invalidate(),
+      })
+      if (response) {
+        if (request.method === 'POST')
+          log.info('{user} {verb} for the content bundle {bundle}: {status}', {
+            user: principal.email,
+            verb: action.split('/').pop(),
+            bundle: action.split('/')[0],
+            status: response.status,
+          })
+        return response
+      }
+      return new Response('Not Found', { status: 404 })
+    }
+
     if (pathname === `${paths.pluginPath}/api/change-report`) {
       const principal = await authenticate(request)
       if (!principal) return new Response('Unauthorized', { status: 401 })
@@ -1268,7 +1505,24 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       // A bundle's tables are part of what an upgrade changes, so the dashboard
       // that shows an upgrade's findings shows their steps too.
       const bundles = await bundleTablesReport(db, chains)
-      return Response.json({ health: health(), counts, bySource, findings, bundles })
+      const upgrades = summariseUpgrades(await readLedger(db), VERSION)
+      // The answers a finding can be given, offered only to those who may import.
+      const mayImport = hasSection(principal, 'packages')
+      const offered = findings.map((f) =>
+        f.source === 'transfer' && f.status === 'open' && mayImport
+          ? { ...f, choices: choicesFor(f) }
+          : f,
+      )
+      return Response.json({
+        health: health(),
+        counts,
+        bySource,
+        findings: offered,
+        bundles,
+        upgrades,
+        transfers: await pendingTransfers(db),
+        mayImport,
+      })
     }
 
     const staticMatch = resolveStaticFile(paths, pathname, {
@@ -1536,6 +1790,11 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           ? Response.json({ ok: false, error: message }, { status: 409 })
           : plain(message, 409)
       }
+      // Only the script checks a page, so this always answers in JSON.
+      case 'checked':
+        return outcome.errors.length > 0
+          ? Response.json({ ok: false, errors: outcome.errors }, { status: 422 })
+          : Response.json({ ok: true })
       case 'invalid':
         return json
           ? Response.json({ ok: false, errors: outcome.state.errors }, { status: 422 })

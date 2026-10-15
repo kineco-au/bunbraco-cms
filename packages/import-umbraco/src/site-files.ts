@@ -20,6 +20,51 @@ export interface SiteFiles {
   csharp: number
   /** Stylesheets and scripts under the web root, relative to it. */
   assets: Array<{ path: string; file: string }>
+  /** `Umbraco:CMS:Global:HideTopLevelNodeFromPath`, when the settings name it. */
+  hideTopLevelNodeFromPath?: boolean
+}
+
+/** JSON as .NET reads appsettings: comments and trailing commas allowed. Pure. */
+export function parseAppSettings(text: string): unknown {
+  let out = ''
+  let inString = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i] as string
+    if (inString) {
+      out += c
+      if (c === '\\') out += text[++i] ?? ''
+      else if (c === '"') inString = false
+    } else if (c === '"') {
+      inString = true
+      out += c
+    } else if (c === '/' && text[i + 1] === '/') {
+      while (i < text.length && text[i] !== '\n') i++
+    } else if (c === '/' && text[i + 1] === '*') {
+      i = text.indexOf('*/', i + 2)
+      if (i < 0) break
+      i++
+    } else out += c
+  }
+  try {
+    return JSON.parse(out.replace(/,(\s*[}\]])/g, '$1'))
+  } catch {
+    return undefined
+  }
+}
+
+/** The setting from parsed appsettings, matching keys as .NET does, ignoring case. Pure. */
+export function hideTopLevelFrom(settings: unknown): boolean | undefined {
+  let at: unknown = settings
+  for (const name of ['umbraco', 'cms', 'global', 'hidetoplevelnodefrompath']) {
+    if (!at || typeof at !== 'object') return undefined
+    const entry = Object.entries(at as Record<string, unknown>).find(
+      ([key]) => key.toLowerCase() === name,
+    )
+    at = entry?.[1]
+  }
+  if (typeof at === 'boolean') return at
+  if (typeof at === 'string' && /^(true|false)$/i.test(at)) return at.toLowerCase() === 'true'
+  return undefined
 }
 
 const SKIP = new Set(['bin', 'obj', 'node_modules', '.git', '.vs', 'umbraco'])
@@ -114,5 +159,18 @@ export function readSiteFiles(root: string, mediaOverride?: string): SiteFiles {
     plugins: plugins.sort(),
     csharp,
     assets: assets.sort((a, b) => a.path.localeCompare(b.path)),
+    ...urlSettingsIn(webRoot),
   }
+}
+
+/** The production settings override the base ones, as they do when the site runs. */
+function urlSettingsIn(webRoot: string): Pick<SiteFiles, 'hideTopLevelNodeFromPath'> {
+  let found: boolean | undefined
+  for (const name of ['appsettings.json', 'appsettings.Production.json']) {
+    const file = join(webRoot, name)
+    if (!existsSync(file)) continue
+    const value = hideTopLevelFrom(parseAppSettings(readFileSync(file, 'utf8')))
+    if (value !== undefined) found = value
+  }
+  return found === undefined ? {} : { hideTopLevelNodeFromPath: found }
 }

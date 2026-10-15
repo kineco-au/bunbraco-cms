@@ -18,6 +18,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { SchemaProposalPort } from '@crombolo/assistant'
 import type { Db } from '@crombolo/data'
+import type { SyncReport } from '@crombolo/schema'
 import {
   fileNameFor,
   loadSchemaDirectory,
@@ -32,6 +33,7 @@ import {
   writeSchemaVersion,
 } from '@crombolo/schema'
 import type { CromboloConfig } from '../config.ts'
+import { formTypesFor } from '../form-types.ts'
 import { logger } from '../logging.ts'
 import { componentAliasesIn, importSchema } from '../schema.ts'
 
@@ -48,6 +50,8 @@ export interface SchemaProposalOptions {
   config: CromboloConfig
   /** The node's identity and state, refreshed in place by an import. */
   boot: { nodeId: string; nodeState: { version: string; revision: string } }
+  /** After an import applies: what a change to how URLs are built needs. */
+  afterSync?(report: SyncReport | undefined): Promise<void>
 }
 
 export function createSchemaProposals(options: SchemaProposalOptions): SchemaProposalPort {
@@ -70,12 +74,12 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
           ? parsed.problems
           : [{ file, path: '', message: 'the file defines no data type' }]
       }
-      const set = loadSchemaDirectory(config.schemaDir).set
+      const set = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) }).set
       const dataTypes = [
         ...set.dataTypes.filter((existing) => existing.alias !== dataType.alias),
         dataType,
       ]
-      return validateSchemaSet({ ...set, dataTypes })
+      return validateSchemaSet({ ...set, dataTypes }, { types: formTypesFor(config) })
     }
 
     const parsed = parseContentType(file, toml)
@@ -85,14 +89,14 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
         ? parsed.problems
         : [{ file, path: '', message: 'the file defines no content type' }]
     }
-    const set = loadSchemaDirectory(config.schemaDir).set
+    const set = loadSchemaDirectory(config.schemaDir, { formTypes: formTypesFor(config) }).set
     const contentTypes = [
       ...set.contentTypes.filter((existing) => existing.alias !== contentType.alias),
       contentType,
     ]
     return validateSchemaSet(
       { ...set, contentTypes },
-      { componentAliases: componentAliasesIn(config.componentsDir) },
+      { componentAliases: componentAliasesIn(config.componentsDir), types: formTypesFor(config) },
     )
   }
 
@@ -140,9 +144,11 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
       // import lands at a version the other nodes already have and they never
       // learn they are behind.
       const ahead = await importSchema(options.db, config, options.boot, { dryRun: true })
-      const version = loadSchemaDirectory(config.schemaDir).set.version
+      const { version, urls } = loadSchemaDirectory(config.schemaDir, {
+        formTypes: formTypesFor(config),
+      }).set
       const next = nextSchemaVersion(version, ahead.classification)
-      if (next !== version) await writeFile(versionFile, writeSchemaVersion(next), 'utf8')
+      if (next !== version) await writeFile(versionFile, writeSchemaVersion(next, urls), 'utf8')
 
       const result = await importSchema(options.db, config, options.boot)
       if (result.report && result.report.action !== 'applied') {
@@ -154,6 +160,7 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
           error: result.report.reason ?? `the import was ${result.report.action}`,
         }
       }
+      await options.afterSync?.(result.report)
       log.info('{alias} applied from a proposal: {classification}, schema at {version}', {
         alias,
         classification: ahead.classification,

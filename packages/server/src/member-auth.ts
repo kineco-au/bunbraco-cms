@@ -22,6 +22,7 @@
 import {
   expireCookie,
   hashPassword,
+  isNativeHash,
   memberCookieName,
   passwordConfigJson,
   readCookie,
@@ -69,6 +70,8 @@ export interface MemberAuth {
   decide(content: PublishedContent, member: RequestMember | undefined): Promise<AccessDecision>
   /** Handles the member endpoints, or undefined when the path is not one. */
   handle(request: Request, pathname: string): Promise<Response | undefined>
+  /** The `Set-Cookie` value that ends a member's site session. */
+  signOutCookie(): string
 }
 
 const isFormPost = (request: Request) =>
@@ -249,10 +252,22 @@ export function createMemberAuth(
       await verifyPassword(input.password ?? '', await hashPassword(crypto.randomUUID()))
       return failed()
     }
-    if (!(await verifyPassword(input.password ?? '', member.passwordHash))) {
+    if (
+      !(await verifyPassword(input.password ?? '', member.passwordHash, {
+        passwordConfig: member.passwordConfig,
+        forMember: true,
+      }))
+    ) {
       await members.recordFailedLogin(member.key, config.maxFailedPasswordAttempts)
       return failed()
     }
+    // An imported Umbraco hash is replaced now the password is known to match it.
+    if (!isNativeHash(member.passwordHash))
+      await members.rehashPassword(
+        member.key,
+        await hashPassword(input.password ?? ''),
+        passwordConfigJson(),
+      )
     await members.recordLogin(member.key)
     return answer(
       request,
@@ -359,6 +374,7 @@ export function createMemberAuth(
   return {
     resolve,
     decide,
+    signOutCookie: () => expireCookie(cookie, config.secureCookies),
     async handle(request, pathname) {
       if (!pathname.startsWith(`${MEMBER_ROUTE_PREFIX}/`)) return undefined
       const action = pathname.slice(MEMBER_ROUTE_PREFIX.length + 1)

@@ -4,6 +4,9 @@ import { join } from 'node:path'
 
 export const SPEC_PATH = join(import.meta.dir, '../OpenApi.json')
 
+/** Umbraco's Delivery API at release-18.2.0: its generic contract (story 050). */
+export const DELIVERY_SPEC_PATH = join(import.meta.dir, '../DeliveryApi.json')
+
 export const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch'] as const
 export type HttpMethod = (typeof HTTP_METHODS)[number]
 
@@ -41,6 +44,14 @@ let cached: OpenApiSpec | undefined
 export function loadSpec(): OpenApiSpec {
   if (!cached) cached = JSON.parse(readFileSync(SPEC_PATH, 'utf8')) as OpenApiSpec
   return cached
+}
+
+let deliveryCached: OpenApiSpec | undefined
+
+export function loadDeliverySpec(): OpenApiSpec {
+  if (!deliveryCached)
+    deliveryCached = JSON.parse(readFileSync(DELIVERY_SPEC_PATH, 'utf8')) as OpenApiSpec
+  return deliveryCached
 }
 
 export async function loadSpecAsync(): Promise<OpenApiSpec> {

@@ -12,6 +12,7 @@
  */
 import { normaliseUuid } from '@crombolo/core'
 import type { Db } from '../database.ts'
+import { RelationRepository } from '../relations.ts'
 
 export interface ReferencingNode {
   key: string
@@ -158,5 +159,19 @@ export class ReferenceRepository {
       (found.get(key) ?? []).some((id) => id !== selfIds.get(key)),
     )
     return { total: referenced.length, items: referenced.slice(skip, skip + take) }
+  }
+
+  /**
+   * What refers to anything of `objectType` in the recycle bin — what the
+   * "empty the bin" dialog warns about — in name order, paged.
+   */
+  async referencingRecycleBin(
+    objectType: string,
+    skip: number,
+    take: number,
+  ): Promise<{ total: number; items: ReferencingNode[] }> {
+    const ids = await new RelationRepository(this.#db).referencingRecycleBin(objectType)
+    const described = await this.#describe(ids)
+    return { total: described.length, items: described.slice(skip, skip + take) }
   }
 }

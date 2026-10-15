@@ -23,6 +23,12 @@ export interface Finding {
   subjectType:
     | 'document'
     | 'document-type'
+    | 'media-type'
+    | 'member-type'
+    | 'member'
+    | 'member-group'
+    | 'user'
+    | 'user-group'
     | 'property'
     | 'migration'
     | 'file'

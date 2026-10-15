@@ -48,6 +48,7 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
       CROMBOLO_LOGS_DIR: join(dir, 'logs'),
       CROMBOLO_LOG_TO_CONSOLE: 'false',
       CROMBOLO_ADMIN_PASSWORD: 'integration-password',
+      CROMBOLO_BUNDLE_PASSPHRASE: 'the integration passphrase',
     }
   }
 
@@ -97,6 +98,9 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
       site,
       '--name',
       'Tea Shop',
+      '--include-content',
+      '--with-members',
+      '--with-users',
     )
     if (applied.code !== 0) return
 
@@ -228,6 +232,8 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
 
   test('the first boot imports the bundle and publishes what was live', () => {
     expect(server?.banner).toContain('436 created, 0 updated, 181 published')
+    // The demo store's administrator came with it, encrypted, on the password they had.
+    expect(server?.banner).toContain('0 member(s), 1 user(s)')
   })
 
   test('every URL the Umbraco site served answers here', async () => {

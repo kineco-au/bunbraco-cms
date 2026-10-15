@@ -30,7 +30,3 @@ members, tokens and e-mail addresses must not land on a laptop.
       address or token.
 - [ ] Without `--anonymise` the command refuses unless told the destination is
       trusted.
-
-## Out of scope
-
-- Copying between two hosted environments.

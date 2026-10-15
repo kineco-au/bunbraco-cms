@@ -18,6 +18,7 @@ import {
   loadBundle,
   MANIFEST_FILE,
   referenceCandidates,
+  SECTIONS_FORMAT_VERSION,
   writeBundle,
 } from '@crombolo/transfer'
 
@@ -325,7 +326,9 @@ describe('the sections a bundle can carry', () => {
       formatVersion: number
       carries: Record<string, string[]>
     }
-    expect(manifest.formatVersion).toBe(BUNDLE_FORMAT_VERSION)
+    // Version 2, not the newest: a bundle without people stays readable by a
+    // node that predates them.
+    expect(manifest.formatVersion).toBe(SECTIONS_FORMAT_VERSION)
     expect(manifest.carries).toEqual({ schema: [SCHEMA], components: [VIEW] })
     expect(files.map((f) => f.path)).toContain(SCHEMA)
   })

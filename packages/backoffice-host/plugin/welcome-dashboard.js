@@ -19,7 +19,7 @@ const STEPS = [
   {
     title: 'Write a template',
     body: html`Templates are <strong>TSX</strong>, not Razor. A template is a file in
-      <code>Views/</code> that default-exports a component and receives the page as
+      <code>components/</code> that default-exports a component and receives the page as
       <code>model</code>; <code>export const layout = 'alias'</code> names its master.
       The editor under Settings → Templates writes that shape for you.`,
   },

@@ -26,6 +26,7 @@ import {
   type NodeRow,
 } from '@crombolo/data'
 import type { BundleNode, ContentSet } from './model.ts'
+import { type PeoplePlan, planPeople } from './people-apply.ts'
 import { referenceCandidates } from './references.ts'
 
 /** What a person can decide about a node the destination already has. */
@@ -37,6 +38,50 @@ export const isResolution = (value: string): value is Resolution =>
   (RESOLUTIONS as readonly string[]).includes(value)
 
 /**
+ * The answers for one node. `"*"` answers the whole node; `"<alias>"` or
+ * `"<alias>@<culture>"` answers one property, and wins over `"*"` for it.
+ */
+export type NodeResolutions = Readonly<Record<string, Resolution>>
+
+/** The node itself, in a node's answers. */
+export const WHOLE_NODE = '*'
+
+/** How a property is named in a node's answers and in `--resolve`. */
+export const propertyHandle = (alias: string, culture: string | null | undefined): string =>
+  culture ? `${alias}@${culture}` : alias
+
+/** The answer for one property: its own, its alias's across cultures, the node's, then everyone's. Pure. */
+export function answerFor(
+  answers: NodeResolutions | undefined,
+  alias: string,
+  culture: string | null | undefined,
+  all: Resolution | undefined,
+): Resolution | undefined {
+  return (
+    (culture ? answers?.[propertyHandle(alias, culture)] : undefined) ??
+    answers?.[alias] ??
+    answers?.[WHOLE_NODE] ??
+    all
+  )
+}
+
+/** Why a node's answers cannot be used: `skip` belongs to a whole node, not a property. Pure. */
+export function nodeResolutionProblems(key: string, answers: Record<string, unknown>): string[] {
+  const problems: string[] = []
+  for (const [handle, answer] of Object.entries(answers)) {
+    if (typeof answer !== 'string' || !isResolution(answer))
+      problems.push(
+        `"${key}" answers ${handle} with "${String(answer)}", which is not one of ${RESOLUTIONS.join(', ')}`,
+      )
+    else if (handle !== WHOLE_NODE && answer === 'skip')
+      problems.push(
+        `"${key}" answers ${handle} with skip, which leaves a whole node alone, not one property`,
+      )
+  }
+  return problems
+}
+
+/**
  * What to suggest for a finding, as a function of its code — so the table keeps
  * its stable shape and both the CLI and the dashboard render the same advice.
  */
@@ -44,9 +89,9 @@ export function resolutionsFor(code: string): readonly string[] {
   switch (code) {
     case 'local-edit':
       return [
-        '--resolve <key>=take-bundle to let the bundle win',
-        '--resolve <key>=keep-local to keep what is here',
-        '--resolve <key>=skip to leave the node alone entirely',
+        '--resolve <key>/<property>=take-bundle to let the bundle win for this property',
+        '--resolve <key>/<property>=keep-local to keep what is here for this property',
+        '--resolve <key>=<choice> to answer the whole node, skip included',
         '--resolve-all=<choice> to answer every one the same way',
       ]
     case 'missing-parent':
@@ -75,6 +120,58 @@ export function resolutionsFor(code: string): readonly string[] {
       return ['rename one of them, or --resolve <key>=skip']
     case 'missing-template':
       return ['deploy the view, and the template attaches on the next save']
+    case 'content-sealed':
+      return [
+        '--passphrase-env <name>, or answer the prompt, with the passphrase it was exported with',
+      ]
+    case 'person-conflict':
+      return [
+        '--resolve <key>=take-bundle to update the person here with the bundle’s details',
+        '--resolve <key>=skip to leave this one out',
+      ]
+    case 'missing-member-type':
+      return ['deploy schema/ to this environment first']
+    default:
+      return []
+  }
+}
+
+/** One answer a finding can be given: the handle it is recorded under, and the choice. */
+export interface FindingChoice {
+  handle: string
+  resolution: Resolution
+}
+
+const LEAVE_OUT: FindingChoice = { handle: WHOLE_NODE, resolution: 'skip' }
+
+/**
+ * The answers a finding can be given in the backoffice, as a function of its
+ * code, beside `resolutionsFor`'s advice. Recorded under the finding's node,
+ * they are what `--resolve` would have set; a finding with none is answered
+ * by deploying something, not by choosing.
+ */
+export function choicesFor(finding: {
+  code: string
+  propertyAlias: string | null
+  culture: string | null
+}): readonly FindingChoice[] {
+  switch (finding.code) {
+    case 'local-edit': {
+      if (!finding.propertyAlias) return [LEAVE_OUT]
+      const handle = propertyHandle(finding.propertyAlias, finding.culture)
+      return [
+        { handle, resolution: 'take-bundle' },
+        { handle, resolution: 'keep-local' },
+        LEAVE_OUT,
+      ]
+    }
+    case 'person-conflict':
+      return [{ handle: WHOLE_NODE, resolution: 'take-bundle' }, LEAVE_OUT]
+    case 'local-trashed':
+    case 'missing-blob':
+    case 'name-collision':
+    case 'unresolved-reference':
+      return [LEAVE_OUT]
     default:
       return []
   }
@@ -83,8 +180,8 @@ export function resolutionsFor(code: string): readonly string[] {
 export interface CheckOptions {
   /** Re-root the bundle here instead of at the parents it names. */
   under?: NodeRow | undefined
-  /** Per-node decisions, by node key. */
-  resolutions?: Readonly<Record<string, Resolution>>
+  /** Decisions by node key: the node's (`"*"`) and its properties'. */
+  resolutions?: Readonly<Record<string, NodeResolutions>>
   /** One decision for every node that needs one. */
   resolveAll?: Resolution | undefined
   /** Template aliases with a view on disk; absent means templates are not checked. */
@@ -94,6 +191,8 @@ export interface CheckOptions {
   allowMissingBlobs?: boolean
   /** For linking a finding to the document it is about. */
   backOfficePath?: string
+  /** Users here the bundle's may take over by e-mail or username: a site this boot created. */
+  adoptUsers?: boolean
 }
 
 /** What the import would do to one node. */
@@ -104,7 +203,10 @@ export interface NodePlan {
   action: 'create' | 'update' | 'unchanged' | 'skip'
   /** Property aliases whose value would change. */
   changing: string[]
+  /** The node's own answer. */
   resolution: Resolution | undefined
+  /** Values kept as they are here, by property handle; the rest come from the bundle. */
+  keepLocal?: string[]
 }
 
 export interface TransferCheck {
@@ -114,6 +216,8 @@ export interface TransferCheck {
   outstanding: Finding[]
   plan: NodePlan[]
   counts: { create: number; update: number; unchanged: number; skip: number }
+  /** What the bundle's people would do here, when it carries any. */
+  people?: PeoplePlan
 }
 
 const documentLink = (backOfficePath: string | undefined, key: string): string | null =>
@@ -181,6 +285,31 @@ export async function checkBundle(
     message,
     link: null,
   })
+
+  // Nothing can be compared while the values are sealed, and a check that
+  // compared them as absent would report every one as cleared.
+  if (set.sealed) {
+    const sealed = bundleFinding(
+      'blocking',
+      'content-sealed',
+      'this bundle’s content is encrypted — give the passphrase it was exported with to check or import it',
+    )
+    return {
+      bundleId: set.manifest.id,
+      findings: [sealed],
+      outstanding: [sealed],
+      plan,
+      counts: { create: 0, update: 0, unchanged: 0, skip: 0 },
+    }
+  }
+  if (set.manifest.content === 'omitted')
+    findings.push(
+      bundleFinding(
+        'auto',
+        'content-omitted',
+        'this bundle was exported without its content: pages are placed and named, and no value here changes',
+      ),
+    )
 
   // Every content type the bundle names, matched by key first and alias second:
   // keys are stable across environments because tooling writes them into the
@@ -285,7 +414,8 @@ export async function checkBundle(
 
   for (const node of set.nodes) {
     const name = node.variants[0]?.name ?? node.key
-    const resolution = resolutions[node.key] ?? options.resolveAll
+    const answers = resolutions[node.key]
+    const resolution = answers?.[WHOLE_NODE] ?? options.resolveAll
     const existing = await nodes.byKey(node.key)
     const editors = await editorsFor(node.contentType.alias)
     const typeMissing = !(await typeFor(node.contentType))
@@ -491,15 +621,14 @@ export async function checkBundle(
     const currentByKey = new Map(
       (current?.values ?? []).map((v) => [`${v.alias}|${v.culture ?? ''}|${v.segment ?? ''}`, v]),
     )
-    const changing = node.values
-      .filter((value) => {
-        if (!editors.has(value.property)) return false
-        const mine = currentByKey.get(
-          `${value.property}|${value.culture ?? ''}|${value.segment ?? ''}`,
-        )
-        return !sameValue(mine?.value, value.value)
-      })
-      .map((value) => value.property)
+    const changedValues = node.values.filter((value) => {
+      if (!editors.has(value.property)) return false
+      const mine = currentByKey.get(
+        `${value.property}|${value.culture ?? ''}|${value.segment ?? ''}`,
+      )
+      return !sameValue(mine?.value, value.value)
+    })
+    const changing = [...new Set(changedValues.map((value) => value.property))]
 
     if (changing.length === 0) {
       plan.push({
@@ -516,30 +645,93 @@ export async function checkBundle(
     // It exists, and the bundle disagrees with it. We cannot know whether
     // somebody edited it here or the bundle is simply newer, so this is a
     // decision rather than a defect — and it is the one an import waits on.
-    if (resolution === undefined)
-      findings.push({
-        kind: 'person',
-        code: 'local-edit',
-        subjectType: node.kind === 'media' ? 'media' : 'document',
-        subjectKey: node.key,
-        subjectName: name,
-        propertyAlias: null,
-        culture: null,
-        message: `"${name}" is already here and differs: the bundle would replace ${changing.join(', ')}`,
-        link: link(node.key),
-      })
+    // One per property, so each can be answered on its own.
+    const keepLocal: string[] = []
+    let taking = false
+    for (const value of changedValues) {
+      const handle = propertyHandle(value.property, value.culture)
+      const answer = answerFor(answers, value.property, value.culture, options.resolveAll)
+      if (answer === 'keep-local') keepLocal.push(handle)
+      else if (answer === 'take-bundle') taking = true
+      else
+        findings.push({
+          kind: 'person',
+          code: 'local-edit',
+          subjectType: node.kind === 'media' ? 'media' : 'document',
+          subjectKey: node.key,
+          subjectName: name,
+          propertyAlias: value.property,
+          culture: value.culture ?? null,
+          message: `"${name}" is already here and its ${value.property}${value.culture ? ` (${value.culture})` : ''} differs from the bundle's`,
+          link: link(node.key),
+        })
+    }
     plan.push({
       key: node.key,
       name,
       kind: node.kind,
-      action: resolution === 'keep-local' ? 'unchanged' : 'update',
+      action: taking || keepLocal.length < changedValues.length ? 'update' : 'unchanged',
       changing,
       resolution,
+      keepLocal,
     })
   }
 
   const counts = { create: 0, update: 0, unchanged: 0, skip: 0 }
   for (const entry of plan) counts[entry.action] += 1
+
+  // The rules a node carries: a protected page needs its login and error
+  // pages, and names groups that may not exist here yet.
+  const groupsHere = new Set(
+    (
+      await db.query<{ text: string }>('SELECT text FROM node WHERE node_object_type = ?', [
+        ObjectTypes.MemberGroup,
+      ])
+    ).map((row) => String(row.text)),
+  )
+  for (const group of set.people?.memberGroups ?? []) groupsHere.add(group.name)
+  const skipped = new Set(plan.filter((p) => p.action === 'skip').map((p) => p.key))
+  for (const node of set.nodes) {
+    if (!node.access || skipped.has(node.key)) continue
+    const name = node.variants[0]?.name ?? node.key
+    const pages = [node.access.loginNode, node.access.errorNode]
+    const absent = pages.filter((key) => !carried.has(key))
+    const found = new Set((await nodes.byKeys(absent)).map((row) => row.key))
+    if (absent.some((key) => !found.has(key)))
+      findings.push({
+        kind: 'blocking',
+        code: 'access-page-missing',
+        subjectType: 'document',
+        subjectKey: node.key,
+        subjectName: name,
+        propertyAlias: null,
+        culture: null,
+        message: `"${name}" is protected, and its sign-in or no-access page is neither in the bundle nor here`,
+        link: link(node.key),
+      })
+    const unknown = node.access.memberGroups.filter((group) => !groupsHere.has(group))
+    if (unknown.length > 0)
+      findings.push({
+        kind: 'auto',
+        code: 'access-group-missing',
+        subjectType: 'document',
+        subjectKey: node.key,
+        subjectName: name,
+        propertyAlias: null,
+        culture: null,
+        message: `"${name}" is protected for ${unknown.join(', ')}, which there is no member group for here yet: nobody can see it until there is`,
+        link: link(node.key),
+      })
+  }
+
+  const people = set.people
+    ? await planPeople(db, set.people, {
+        resolutions,
+        resolveAll: options.resolveAll,
+        adoptUsers: options.adoptUsers,
+      })
+    : undefined
+  if (people) findings.push(...people.findings)
 
   return {
     bundleId: set.manifest.id,
@@ -548,5 +740,6 @@ export async function checkBundle(
     outstanding: findings.filter((f) => f.kind === 'blocking' || f.kind === 'person'),
     plan,
     counts,
+    ...(people ? { people } : {}),
   }
 }

@@ -3,6 +3,7 @@
  * retirement, and a type with content refuses to disappear. The algorithm and
  * the multi-node rules are in docs/schema-as-code.md, "Synchronisation".
  */
+import type { FormTypes } from '@crombolo/core'
 import { type ContentTypeAggregate, ObjectTypes, type PropertyTypeModel } from '@crombolo/core'
 import {
   appendCacheInstruction,
@@ -15,6 +16,7 @@ import {
   DataTypeRepository,
   type Db,
   DbDate,
+  DEFAULT_URL_OPTIONS,
   FolderRepository,
   LanguageRepository,
   Locks,
@@ -25,7 +27,10 @@ import {
   SYSTEM_CONTENT_TYPES,
   SYSTEM_MEDIA_TYPES,
   SYSTEM_MEMBER_TYPE,
+  sameUrlOptions,
+  type UrlOptions,
   updateSchemaStateHash,
+  writeUrlOptions,
 } from '@crombolo/data'
 import { BUILTIN_DATA_TYPES, storageTypeFor, systemPropertyKeys } from './builtin.ts'
 import { hashSchemaSet, type LoadedSchema } from './load.ts'
@@ -56,6 +61,8 @@ export interface SyncOptions {
    * is pending everywhere until `upgrade` makes the state current. Default current.
    */
   status?: 'prepared' | 'current'
+  /** The form field and workflow types the site's wired bundles add. */
+  formTypes?: FormTypes
 }
 
 export type SyncAction = 'applied' | 'would-apply' | 'skipped-older' | 'skipped-same' | 'refused'
@@ -88,6 +95,8 @@ export interface SyncReport {
   revived: string[]
   assignedKeys: AssignedKey[]
   deferred: string[]
+  /** Set when the sync changed how URLs are built, so the old ones can be redirected. */
+  urls?: { before: UrlOptions; after: UrlOptions }
 }
 
 export const emptySyncReport = (
@@ -132,7 +141,10 @@ export async function syncSchema(
 ): Promise<SyncReport> {
   const problems = [
     ...loaded.problems,
-    ...validateSchemaSet(loaded.set, { componentAliases: options.componentAliases }),
+    ...validateSchemaSet(loaded.set, {
+      componentAliases: options.componentAliases,
+      types: options.formTypes,
+    }),
   ]
   if (problems.length > 0)
     return emptySyncReport('refused', { reason: 'the schema has problems', problems })
@@ -266,6 +278,14 @@ export async function syncSchema(
           )
           report.created.languages += result.created
           report.updated.languages += result.updated
+        }
+
+        // ---- how URLs are built: the files are the source, absent is the default.
+        // Only a current sync moves it; a prepared one serves no URLs yet.
+        if (status === 'current') {
+          const urls = { hideTopLevel: set.urls?.hideTopLevel ?? DEFAULT_URL_OPTIONS.hideTopLevel }
+          const before = await writeUrlOptions(tx, urls)
+          if (!sameUrlOptions(before, urls)) report.urls = { before, after: urls }
         }
 
         // ---- templates referenced by types must have a row

@@ -12,6 +12,7 @@ import {
   type SchemaLanguage,
   type SchemaProperty,
   type SchemaTypeKind,
+  type SchemaUrls,
   TYPE_KIND_FILES,
 } from './model.ts'
 
@@ -162,8 +163,10 @@ export function writeLanguages(languages: readonly SchemaLanguage[]): string {
   return `${out.join('\n')}\n`
 }
 
-export function writeSchemaVersion(version: string): string {
-  return `[schema]\nversion = ${str(version)}\n`
+/** `schema/schema.toml`. `[urls]` is written only when it differs from Umbraco's defaults. */
+export function writeSchemaVersion(version: string, urls?: SchemaUrls): string {
+  const out = `[schema]\nversion = ${str(version)}\n`
+  return urls && !urls.hideTopLevel ? `${out}\n[urls]\nhide-top-level = false\n` : out
 }
 
 /** The canonical filename for an alias: kebab-case. */

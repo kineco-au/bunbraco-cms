@@ -504,9 +504,32 @@ export interface MediaPort {
 
 /** What refers to a document, media item or member — the Info tab's list. */
 export interface ReferencePort {
+  /** What refers to anything of this kind in the recycle bin, as the empty-bin dialog asks. */
+  recycleBinReferencedBy?(
+    area: 'Document' | 'Media' | 'Element',
+    paging: SkipTake,
+  ): Promise<Page<unknown>>
   referencedBy(key: string, paging: SkipTake): Promise<Page<unknown>>
   referencedDescendants(key: string, paging: SkipTake): Promise<Page<{ id: string }>>
   areReferenced(keys: readonly string[], paging: SkipTake): Promise<Page<{ id: string }>>
+}
+
+/** A relation type as the wire carries it: `RelationTypeResponseModel`. */
+export interface RelationTypeView {
+  id: string
+  alias: string
+  name: string
+  parentObject: { id: string; name: string } | null
+  childObject: { id: string; name: string } | null
+  isBidirectional: boolean
+  isDependency: boolean
+}
+
+/** Umbraco's relation types, read-only, with relations derived for each (story 046). */
+export interface RelationPort {
+  types(): readonly RelationTypeView[]
+  /** Undefined when there is no such type. */
+  relations(typeKey: string, paging: SkipTake): Promise<Page<unknown> | undefined>
 }
 
 /** One redirect as the dashboard and the Info tab read it. */

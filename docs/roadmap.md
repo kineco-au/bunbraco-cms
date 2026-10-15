@@ -56,8 +56,9 @@ Listed so they are not mistaken for gaps:
 
 - The **install wizard** (3 ops) and the **upgrade endpoints** (2) answer 501 on
   purpose; `crombolo init`, schema-as-code and `crombolo upgrade` replace them.
-  The real consequence is that there is no first-run browser experience, so a
-  non-developer cannot stand a site up.
+  A self-hosted site is set up from environment variables, or from the browser's
+  "Set up your new site" screen guarded by `CROMBOLO_SETUP_CODE` (story `080`,
+  `docs/operations.md`).
 - The **template query builder** writes TypeScript against the render model rather
   than Razor (story `021`).
 - **Telemetry** is fixed at Minimal and cannot be raised: nothing is collected or
@@ -96,6 +97,9 @@ source tree.
 **R4 — SQLite write concurrency.** Umbraco relies on DB-level locks around
 content-tree mutation. *Mitigation:* WAL plus a single-writer queue on SQLite,
 advisory locks on Postgres, both behind one lock abstraction from story `001`.
+*Load-tested in story `081`*: every content write takes its tree's lock, a wait
+is bounded and answers 503, and waiters queue in-process rather than each holding
+a pooled connection — see `architecture.md`.
 
 **R5 — Reference-token semantics.** The client must never be made to call
 `validateToken()` per request — it revokes the previous reference token and the UI

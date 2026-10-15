@@ -19,8 +19,13 @@ import { join, relative } from 'node:path'
 import { siteMediaTypeFiles } from '@crombolo/schema'
 import { VERSION } from '@crombolo/server'
 
-/** `templates/`, beside `src/` and `bin/` in the published package. */
-export const TEMPLATES_DIR = join(import.meta.dir, '..', 'templates')
+/**
+ * `templates/`, beside `src/` and `bin/` in the published package.
+ * `CROMBOLO_TEMPLATES_DIR` stands in for it, so a test can stage the sites
+ * without writing into the package that other runs read.
+ */
+export const TEMPLATES_DIR =
+  process.env.CROMBOLO_TEMPLATES_DIR || join(import.meta.dir, '..', 'templates')
 
 /**
  * A bundle whose server half a template wires into the site it scaffolds: the

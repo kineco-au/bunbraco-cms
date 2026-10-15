@@ -510,7 +510,12 @@ describe('the upgrade, end to end through the CLI', () => {
     const refused = await collect(
       Bun.spawn(['bun', CLI, 'start'], {
         cwd: releaseDir(2),
-        env: { ...environment('prod', 2), NODE_ENV: 'production', PORT: '0' },
+        env: {
+          ...environment('prod', 2),
+          NODE_ENV: 'production',
+          PORT: '0',
+          CROMBOLO_BOOT_ATTEMPTS: '1',
+        },
         stdout: 'pipe',
         stderr: 'pipe',
       }),

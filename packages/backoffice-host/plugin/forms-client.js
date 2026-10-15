@@ -25,6 +25,9 @@ const call = async (path, init) => {
 
 export const listForms = async () => (await call('')).body.items ?? []
 
+/** The field and workflow types this site has, built in and from its bundles. */
+export const listFormTypes = async () => (await call('/available-types')).body
+
 export const readForm = async (key) => (await call(`/${encodeURIComponent(key)}`)).body
 
 export const saveForm = (definition) =>

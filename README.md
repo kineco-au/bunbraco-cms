@@ -180,8 +180,8 @@ the administrator's password, and prints the credentials**:
 └─────────────────────────────────────────────────────┘
 ```
 
-It resets the password on every start so that what it prints is always true, and
-it clears any lockout. Changing the password ends existing sessions, so other tabs
+In development it resets the password on every start so what it prints is true,
+and clears any lockout; production never does ([first boot](docs/operations.md#first-boot)). Changing the password ends existing sessions, so other tabs
 are signed out. Set `CROMBOLO_ADMIN_PASSWORD` to keep a stable one:
 
 ```bash
@@ -460,7 +460,7 @@ Design documents, in reading order; planned work is in the stories:
 | [schema-at-runtime](docs/schema-at-runtime.md) | the shared schema store, and importing at runtime |
 | [content-transfer](docs/content-transfer.md) | the bundle format, and moving content between environments |
 | [configuration](docs/configuration.md) | every environment variable, and every script |
-| [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions; the backoffice's health checks and troubleshooting in [diagnostics](docs/diagnostics.md) |
+| [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions; the backoffice's health checks and troubleshooting in [diagnostics](docs/diagnostics.md); [webhooks](docs/webhooks.md) |
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port |
@@ -496,8 +496,8 @@ crombolo/
 │   ├── data/                      # dialect seam, drivers, migrations, repositories, bundle tables
 │   ├── auth/                      # OAuth2 + PKCE, reference tokens, cookie redaction
 │   ├── api-management/            # contract-first router, authorization, ports, handlers
-│   ├── assistant/                 # optional AI helper: tool definitions, guardrails, changesets,
-│   │                              #    the agent loop, the MCP server and the Bedrock provider
+│   ├── api-delivery/              # Umbraco's Delivery API over the published cache (docs/delivery-api.md)
+│   ├── assistant/                 # optional AI helper: tools, guardrails, changesets, agent loop, MCP, Bedrock
 │   ├── backoffice-host/           # SPA shells, import map, static serving, graphics, bundle manifest and discovery;
 │   │                              #    plugin/ = the Changes dashboard, the Bundles views, the banner,
 │   │                              #    the template editor's TSX scaffold and layout, and the assistant drawer;

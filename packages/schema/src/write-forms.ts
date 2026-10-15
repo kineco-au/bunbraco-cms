@@ -86,6 +86,12 @@ function writeField(out: string[], header: string, field: SchemaFormField): void
   line(out, 'accept', field.accept, field.accept.length > 0)
   line(out, 'max-size-kb', field.maxSizeKb)
   line(out, 'multiple', field.multiple)
+  const settings = Object.keys(field.settings ?? {}).sort()
+  // Inline, so a bundle type's settings stay inside the one field they belong to.
+  if (field.settings)
+    out.push(
+      `settings = { ${settings.map((key) => `${keyOf(key)} = ${scalar(field.settings?.[key])}`).join(', ')} }`,
+    )
   if (field.condition) writeCondition(out, `${header}.condition`, field.condition)
 }
 
@@ -125,6 +131,7 @@ export function writeForm(form: SchemaForm): string {
   line(out, 'notes', form.notes)
   line(out, 'store-entries', false, !form.storeEntries)
   line(out, 'requires-approval', true, form.requiresApproval)
+  line(out, 'step-pages', true, form.stepPages === true)
   line(out, 'submit-label', form.submitLabel)
   line(out, 'next-label', form.nextLabel)
   line(out, 'previous-label', form.previousLabel)

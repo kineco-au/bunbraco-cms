@@ -228,8 +228,8 @@ describe('the editor configuration', () => {
     const editors = await source('plugin/tsx-editors.js')
 
     // The file name is what decides whether TypeScript will read JSX at all.
-    expect(editors).toMatch(/monaco\.Uri\.parse\(`\$\{VIEWS}\/view-\$\{\+\+opened}\.tsx`\)/)
-    expect(editors).toContain("const VIEWS = 'file:///Views'")
+    expect(editors).toMatch(/monaco\.Uri\.parse\(`\$\{COMPONENTS}\/view-\$\{\+\+opened}\.tsx`\)/)
+    expect(editors).toContain("const COMPONENTS = 'file:///components'")
     // A `tsx` language would tokenise and then be ignored by the worker every
     // completion comes from, so the mode stays monaco's own.
     expect(editors).not.toMatch(/setMonarchTokensProvider|languages\.register\(/)

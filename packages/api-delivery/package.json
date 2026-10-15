@@ -1,0 +1,35 @@
+{
+  "name": "@crombolo/api-delivery",
+  "version": "0.12.0",
+  "description": "Umbraco's Content Delivery API for crombolo: published content and media as JSON, served from the published cache.",
+  "license": "MIT",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
+    "directory": "packages/api-delivery"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@crombolo/core": "workspace:*",
+    "@crombolo/contracts": "workspace:*",
+    "@crombolo/render": "workspace:*"
+  }
+}

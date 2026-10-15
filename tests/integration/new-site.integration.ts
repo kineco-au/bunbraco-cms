@@ -12,18 +12,28 @@
  * processes and boots servers. `bun run test:integration` runs it, and CI does.
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, resolve } from 'node:path'
-import { listSites, stageTemplates, unstage } from '../../scripts/sites.ts'
+import { listSites, stageTemplates } from '../../scripts/sites.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
-const TEMPLATES = join(ROOT, 'packages/cli/templates')
 /**
- * The sites in `sites/`, staged into the CLI as packing stages the distributed
- * ones — all of them, so the product site boots through `init` like the rest.
+ * The CLI's own templates and the sites in `sites/`, staged as packing stages
+ * the distributed ones — all of them, so the product site boots through `init`
+ * like the rest. Into a directory of this run's, not the package, which a run
+ * beside this one reads.
  */
-let staged: string[] = []
+mkdirSync(join(ROOT, 'output'), { recursive: true })
+const TEMPLATES = mkdtempSync(join(ROOT, 'output', 'templates-'))
 
 interface Run {
   code: number
@@ -68,6 +78,7 @@ describe('creating a site, end to end through the CLI', () => {
     return {
       ...inherited,
       CROMBOLO_DB: 'sqlite',
+      CROMBOLO_TEMPLATES_DIR: TEMPLATES,
       CROMBOLO_LOGS_DIR: join(dir, 'logs', site),
       CROMBOLO_LOG_TO_CONSOLE: 'false',
       CROMBOLO_ADMIN_PASSWORD: 'integration-password',
@@ -158,7 +169,8 @@ describe('creating a site, end to end through the CLI', () => {
     JSON.parse(readFileSync(join(siteDir(site), file), 'utf8')) as Record<string, unknown>
 
   beforeAll(async () => {
-    staged = stageTemplates(TEMPLATES, listSites())
+    cpSync(join(ROOT, 'packages/cli/templates'), TEMPLATES, { recursive: true })
+    stageTemplates(TEMPLATES, listSites())
     // `output/` is gitignored, so a fresh checkout has not got one.
     mkdirSync(join(ROOT, 'output'), { recursive: true })
     dir = mkdtempSync(join(ROOT, 'output', 'new-site-'))
@@ -194,7 +206,7 @@ describe('creating a site, end to end through the CLI', () => {
   afterAll(async () => {
     for (const server of [...running]) await server.stop()
     if (dir) rmSync(dir, { recursive: true, force: true })
-    unstage(staged, TEMPLATES)
+    rmSync(TEMPLATES, { recursive: true, force: true })
   })
 
   test('scaffolds a site that is a package, a config, a server and its schema', () => {
