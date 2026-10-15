@@ -69,6 +69,6 @@
     "@crombolo/server": "workspace:*"
   },
   "peerDependencies": {
-    "@crombolo/crombolo": "^0.13.0"
+    "@crombolo/crombolo": ">=0.13.0"
   }
 }
