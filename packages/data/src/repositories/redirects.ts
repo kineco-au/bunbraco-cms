@@ -163,55 +163,40 @@ export class RedirectRepository {
   /**
    * Stores a rule, replacing any existing one matching the same thing. The
    * returned row carries the key, which is a fresh one only when the rule is new.
+   *
+   * One statement, not a read then a write: two nodes recording the same retired
+   * route at once would both find nothing and the second insert would hit the
+   * unique index. The upsert lets the database decide which one is new.
    */
   async save(input: RedirectInput): Promise<RedirectRow> {
     const hash = matchHash(input)
     const now = new Date()
-    return this.#db.transaction(async (tx) => {
-      const existing = await tx.query<{ key: string }>(
-        'SELECT key FROM redirect_url WHERE match_hash = ?',
-        [hash],
-      )
-      if (existing[0]) {
-        const key = normaliseUuid(String(existing[0].key))
-        await tx.exec(
-          `UPDATE redirect_url
-              SET target_kind = ?, target = ?, status_code = ?, sort_order = ?, create_date = ?
-            WHERE key = ?`,
-          [
-            input.targetKind,
-            input.target,
-            input.statusCode,
-            input.sortOrder,
-            DbDate.toDb(now),
-            key,
-          ],
-        )
-        return { ...input, key, createDate: now }
-      }
-      const key = crypto.randomUUID()
-      await tx.exec(
-        `INSERT INTO redirect_url
-           (key, source, match_kind, pattern, root_key, culture,
-            target_kind, target, status_code, sort_order, match_hash, create_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          key,
-          input.source,
-          input.matchKind,
-          input.pattern,
-          input.rootKey,
-          input.culture,
-          input.targetKind,
-          input.target,
-          input.statusCode,
-          input.sortOrder,
-          hash,
-          DbDate.toDb(now),
-        ],
-      )
-      return { ...input, key, createDate: now }
-    })
+    const rows = await this.#db.query<{ key: string }>(
+      `INSERT INTO redirect_url
+         (key, source, match_kind, pattern, root_key, culture,
+          target_kind, target, status_code, sort_order, match_hash, create_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (match_hash) DO UPDATE SET
+         target_kind = excluded.target_kind, target = excluded.target,
+         status_code = excluded.status_code, sort_order = excluded.sort_order,
+         create_date = excluded.create_date
+       RETURNING key`,
+      [
+        crypto.randomUUID(),
+        input.source,
+        input.matchKind,
+        input.pattern,
+        input.rootKey,
+        input.culture,
+        input.targetKind,
+        input.target,
+        input.statusCode,
+        input.sortOrder,
+        hash,
+        DbDate.toDb(now),
+      ],
+    )
+    return { ...input, key: normaliseUuid(String(rows[0]?.key)), createDate: now }
   }
 
   /** Deletes one rule. `false` means there was nothing with that key. */

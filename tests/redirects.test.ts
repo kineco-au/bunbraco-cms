@@ -457,3 +457,35 @@ describe('the Redirect URL Management dashboard', () => {
     })
   })
 })
+
+describe('storing a rule', () => {
+  test('two nodes recording the same route at once leave one rule, pointing where the last said', async () => {
+    const h = await signedInServer()
+    try {
+      const repository = new RedirectRepository(h.server.db)
+      const rule = (target: string) => ({
+        source: 'tracked' as const,
+        matchKind: 'exact' as const,
+        pattern: '/moved',
+        rootKey: null,
+        culture: null,
+        targetKind: 'path' as const,
+        target,
+        statusCode: 301,
+        sortOrder: 0,
+      })
+      // Each on its own connection's turn: the read-then-insert this replaced
+      // let two of these both insert, and the second hit the unique index.
+      const saved = await Promise.all(['/a', '/b', '/c', '/d'].map((t) => repository.save(rule(t))))
+      expect(new Set(saved.map((r) => r.key)).size).toBe(1)
+      const stored = (await repository.all()).filter((r) => r.pattern === '/moved')
+      expect(stored).toHaveLength(1)
+      expect(stored[0]?.key).toBe(saved[0]?.key as string)
+      const again = await repository.save(rule('/e'))
+      expect(again.key).toBe(saved[0]?.key as string)
+      expect((await repository.byKey(again.key))?.target).toBe('/e')
+    } finally {
+      await h.db.close()
+    }
+  })
+})

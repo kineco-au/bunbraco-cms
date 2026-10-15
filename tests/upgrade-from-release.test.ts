@@ -123,7 +123,7 @@ describe('upgrading from the previous release', () => {
     )
     expect(sections.map((r) => r.alias)).toEqual(['admin', 'editor', 'writer'])
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.13.0', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.13.1', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

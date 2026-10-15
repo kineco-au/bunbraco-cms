@@ -19,7 +19,7 @@ export const approvalsMigration: Migration = {
   to: STATE_APPROVALS,
   name: 'AddApprovals',
   kind: 'expand',
-  release: '0.13.0',
+  release: '0.13.1',
   async up(db: Db) {
     const t = db.dialect.types
     await db.exec(

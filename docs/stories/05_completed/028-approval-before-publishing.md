@@ -236,7 +236,7 @@ as run and would never get the tables. Its `release` must be the next version
 - **Sync** — a current schema sync stores the workflows in `key_value`
   (`crombolo:workflows`) and applies each changed one's `on-change` to the
   requests in flight (`syncWorkflows`, `packages/data/src/workflow-store.ts`).
-- **Record** — migration 038 (`release: 0.13.0`): `approval_request` (with the
+- **Record** — migration 038 (`release: 0.13.1`; 0.13.0 was tagged and never published): `approval_request` (with the
   workflow copied onto it), `approval_step` (one row per stage visit),
   `approval_history` (each decision, edit, restart and outcome, with its
   comment); it gives Admin, Editors and Writers the Workflow section.
