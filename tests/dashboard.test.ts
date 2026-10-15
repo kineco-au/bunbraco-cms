@@ -5,7 +5,7 @@
  * its manifest, not by clicking it. docs/10, "The upgrade dashboard ships in the first release".
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ContentTypeRepository, connect, readLedger, writeReport } from '@crombolo/data'
 import { dialectUnderTest } from './support/db.ts'
@@ -333,5 +333,26 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     open.push(rolled)
     expect(rolled.server.schema.report?.action).toBe('applied')
     expect((await readLedger(rolled.server.db)).some((r) => r.kind === 'upgrade')).toBe(false)
+  })
+})
+
+describe('the plugin views', () => {
+  test('a section or workspace view is an Umbraco element, which the router provides context on', () => {
+    const dir = join(import.meta.dir, '..', 'packages', 'backoffice-host', 'plugin')
+    const manifest = JSON.parse(readFileSync(join(dir, 'umbraco-package.json'), 'utf8')) as {
+      extensions: Array<{ type: string; alias: string; element?: string }>
+    }
+    const plain = manifest.extensions
+      .filter((e) => (e.type === 'sectionView' || e.type === 'workspaceView') && e.element)
+      .filter((e) => {
+        const source = readFileSync(
+          join(dir, (e.element as string).replace('/crombolo-plugin/', '')),
+          'utf8',
+        )
+        return !source.includes('UmbLitElement') && !source.includes('UmbElementMixin')
+      })
+      .map((e) => e.alias)
+    // A plain LitElement fails as `provideContext is not a function` when the view opens.
+    expect(plain).toEqual([])
   })
 })

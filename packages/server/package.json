@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/server",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "The crombolo HTTP server: routing, configuration, media stores and background jobs.",
   "license": "MIT",
   "author": "Crombolo",

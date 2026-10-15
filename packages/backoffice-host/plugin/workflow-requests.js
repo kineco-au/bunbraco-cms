@@ -3,7 +3,8 @@
  * approval, every request in flight, and those decided. Each row links to the
  * page, whose Workflow tab is where a request is acted on.
  */
-import { css, html, LitElement, nothing } from '@umbraco-cms/backoffice/external/lit'
+import { css, html, nothing } from '@umbraco-cms/backoffice/external/lit'
+import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 import { finished, inFlight, waitingForMe } from './workflow-client.js'
 
 const STATE = {
@@ -21,7 +22,7 @@ const pageLink = (key) => {
   return `${base}/section/content/workspace/document/edit/${key}/view/workflow`
 }
 
-class CromboloWorkflowListElement extends LitElement {
+class CromboloWorkflowListElement extends UmbLitElement {
   static properties = {
     _items: { state: true },
     _message: { state: true },
