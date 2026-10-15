@@ -1,6 +1,8 @@
 /**
  * Cuts a release: sets every package to the version, commits the bump, tags it
  * and pushes the commit and tag together, which starts the release workflow.
+ * When the packages already carry the version there is nothing to commit, and
+ * the current commit is tagged instead.
  *
  *   bun run release v0.7.0
  */
@@ -18,13 +20,23 @@ export function parseReleaseVersion(argv: readonly string[]): string | { error: 
   return match[1] as string
 }
 
-/** The commands a release runs, in order, once the preconditions hold. */
-export function releaseSteps(version: string): string[][] {
-  const tag = `v${version}`
+/** Sets the version and stages it: what decides whether there is a bump to commit. */
+export function bumpSteps(version: string): string[][] {
   return [
     ['bun', 'run', 'scripts/version.ts', version],
     ['git', 'add', '--update'],
-    ['git', 'commit', '--message', `bump version->${tag}`],
+  ]
+}
+
+/**
+ * What follows the bump, in order. `bumped` is false when the packages already
+ * carried the version, so there is nothing to commit and the current commit is
+ * the release.
+ */
+export function releaseSteps(version: string, bumped: boolean): string[][] {
+  const tag = `v${version}`
+  return [
+    ...(bumped ? [['git', 'commit', '--message', `bump version->${tag}`]] : []),
     ['git', 'tag', tag],
     // Atomic, so the tag never reaches the remote without the commit it points at
     // also landing on the branch.
@@ -61,7 +73,12 @@ if (import.meta.main) {
     if (capture(['git', 'ls-remote', '--tags', 'origin', `refs/tags/${tag}`]))
       throw new Error(`Tag ${tag} already exists on origin.`)
 
-    for (const step of releaseSteps(version)) run(step)
+    for (const step of bumpSteps(version)) run(step)
+    // `git diff --quiet` exits 1 when something is staged.
+    const bumped =
+      Bun.spawnSync(['git', 'diff', '--cached', '--quiet'], { cwd: ROOT }).exitCode !== 0
+    if (!bumped) console.log(`The packages are already at ${version}; tagging the current commit.`)
+    for (const step of releaseSteps(version, bumped)) run(step)
     console.log(`Released ${tag}.`)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
