@@ -5,6 +5,7 @@
  * usable credential.
  */
 import { type Db, DbDate, fromDbBool, Locks } from '@crombolo/data'
+import { DeviceStore } from './device.ts'
 import { hashToken } from './pkce.ts'
 
 export interface UserRow {
@@ -88,9 +89,12 @@ const USER_COLUMNS =
 
 export class AuthStore {
   #db: Db
+  /** Device sign-ins (story 107), beside the sessions they become. */
+  readonly devices: DeviceStore
 
   constructor(db: Db) {
     this.#db = db
+    this.devices = new DeviceStore(db)
   }
 
   async findUserByLogin(login: string): Promise<UserRow | undefined> {

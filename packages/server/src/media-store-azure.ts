@@ -168,7 +168,7 @@ export function azureMediaStore(options: AzureMediaStoreOptions): MediaStore {
     async put(key, body, putOptions) {
       if (!isSafeMediaKey(key)) throw new Error(`"${key}" is not a usable media key.`)
       // Copied into a plain ArrayBuffer so `fetch` and the signature agree on its length.
-      const bytes = new Uint8Array(body instanceof File ? await body.arrayBuffer() : body)
+      const bytes = new Uint8Array(body instanceof Blob ? await body.arrayBuffer() : body)
       const response = await send('PUT', blobUrl(key), {
         body: bytes,
         headers: {

@@ -320,6 +320,10 @@ describe(`members signing in through a provider (${process.env.CROMBOLO_DB ?? 's
     expect(no.member).toBeUndefined()
     expect(no.location).toContain('memberLoginFailed=1')
     expect(decodeURIComponent(no.location)).toContain('already exists')
+    // Closed before the next site boots: on Postgres the next one resets the
+    // schema this one is still connected to.
+    await refused.h.db.close()
+    open.splice(open.indexOf(refused.h), 1)
 
     const linking = await memberSite({ linkByEmail: true })
     await linking.h.post(`${V1}/member`, {

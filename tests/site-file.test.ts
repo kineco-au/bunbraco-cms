@@ -325,6 +325,30 @@ describe(`a whole-site export (${dialectUnderTest})`, () => {
     expect(opened.people?.members.map((m) => m.email)).toEqual(['ada@example.com'])
   })
 
+  test('sealed, the structure reads and the values and media files do not', async () => {
+    const { h } = await site()
+    const { loaded, dir } = await exported(h, {
+      out: join(temp('out'), 'site.tgz'),
+      sealContent: true,
+      passphrase: PASSPHRASE,
+    })
+    expect(loaded.problems).toEqual([])
+    expect(loaded.set.manifest.content).toBe('sealed')
+    expect(loaded.set.sealed).toBe(true)
+    // Content data only: the dictionary is a section, which travels readable.
+    const glob = new Bun.Glob('content/{nodes,values,blobs}/**/*')
+    for (const path of glob.scanSync({ cwd: dir, onlyFiles: true }))
+      expect(readFileSync(join(dir, path)).toString('latin1'), path).not.toContain(
+        'ada@example.com',
+      )
+    const opened = openBundle(loaded, PASSPHRASE)
+    const home = opened.set.nodes.find((n) => n.kind === 'document')
+    expect(home?.values.find((v) => v.property === 'contact')?.value).toBe('ada@example.com')
+    const [key, file] = [...loaded.blobs][0] as [string, string]
+    const sealedBytes = new Uint8Array(readFileSync(file))
+    expect([...opened.openBlob(key, sealedBytes)]).toEqual([1, 2, 3, 4, 5])
+  })
+
   test('anonymised, no address it held survives anywhere in the file', async () => {
     const { h } = await site()
     const { loaded, dir, result } = await exported(h, {

@@ -135,21 +135,15 @@ describe('the first boot of a self-hosted site', () => {
   test('a database the previous release left is upgraded by `crombolo upgrade`, and then starts', async () => {
     const file = readdirSync(site()).find((name) => name.endsWith('.sqlite')) as string
     const sqlite = new Database(join(site(), file))
-    // As 0.13.2 left it: before site search (039) and two-factor sign-in (040).
-    // Every migration since the last release has to be undone here, or the
-    // upgrade replays one against a table or column that is already there.
-    sqlite.exec('DROP TABLE two_factor_recovery_code')
-    sqlite.exec('DROP TABLE two_factor_login')
-    sqlite.exec('DROP TABLE site_search_document_fts')
-    sqlite.exec('DROP TABLE site_search_document')
-    sqlite.exec('ALTER TABLE property_type DROP COLUMN site_search')
-    sqlite.exec('ALTER TABLE content_type DROP COLUMN site_search')
-    sqlite.exec(
-      "DELETE FROM migration_history WHERE name IN ('AddSiteSearch', 'AddTwoFactorLogin')",
-    )
+    // As 0.14.1 left it: before the remote protocol (041). Every migration since
+    // the last release has to be undone here, or the upgrade replays one
+    // against a table that is already there.
+    sqlite.exec('DROP TABLE remote_job')
+    sqlite.exec('DROP TABLE device_authorization')
+    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddRemote'")
     sqlite
       .query("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'")
-      .run('{8e4c0a3d-0038-4b62-9c07-3d5f2b0e6c48}')
+      .run('{4c2e7a90-0040-4d1b-9f63-8a5e2c7b1d40}')
     sqlite.close()
 
     const run = async (...args: string[]) => {
@@ -173,8 +167,7 @@ describe('the first boot of a self-hosted site', () => {
     const upgraded = await run('upgrade')
     expect(upgraded.code, upgraded.out).toBe(0)
     const ledger = await run('upgrade', 'ledger')
-    expect(ledger.out).toContain('AddSiteSearch')
-    expect(ledger.out).toContain('AddTwoFactorLogin')
+    expect(ledger.out).toContain('AddRemote')
 
     const proc = Bun.spawn(['bun', CLI, 'start'], {
       cwd: site(),

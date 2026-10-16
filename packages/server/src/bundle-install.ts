@@ -524,15 +524,32 @@ export async function installBundleContent(
     return refuse([
       'this file was written without its media files (--no-media); pass --allow-missing-media to import the media items without them',
     ])
+  // Referenced media arrives in the store one file at a time, before the file
+  // that names it (story 107): every one has to be there already.
+  let referencedPresent = false
+  if (manifest.media === 'referenced') {
+    const store = await mediaStoreFor(config)
+    const absent: string[] = []
+    for (const blob of manifest.blobs) if (!(await store.get(blob.key))) absent.push(blob.key)
+    if (absent.length > 0 && !input.allowMissingBlobs)
+      return refuse([
+        `${absent.length} media file(s) this file refers to are not in the media store yet`,
+        ...absent,
+      ])
+    referencedPresent = true
+  }
   if (replace === 'replace-all' && !carriesAdministrator(set.people))
     return refuse([
       'this file carries no back-office administrator, so replacing everything would leave nobody able to sign in; export it with --with-users, or use --replace',
     ])
 
   // A replace takes the file's side of every difference, and replaces files.
-  const effective: ContentImportInput = replace
+  const replaced: ContentImportInput = replace
     ? { ...input, resolveAll: 'take-bundle', replaceFiles: true, publish: input.publish ?? true }
     : input
+  const effective: ContentImportInput = referencedPresent
+    ? { ...replaced, allowMissingBlobs: true }
+    : replaced
 
   // The coarse layer, under the fine-grained revert: in-place conversion is not
   // reversible by itself, so the same rule as `upgrade` applies here.

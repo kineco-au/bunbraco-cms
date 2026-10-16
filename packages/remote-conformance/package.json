@@ -1,0 +1,34 @@
+{
+  "name": "@crombolo/remote-conformance",
+  "version": "0.14.2",
+  "description": "Checks a server against the Crombolo remote protocol: discovery, sign-in, environments, pulls, pushes and media by reference.",
+  "license": "MIT",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
+    "directory": "packages/remote-conformance"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "crombolo-remote-conformance": "./bin/crombolo-remote-conformance.ts"
+  },
+  "files": [
+    "src",
+    "bin",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

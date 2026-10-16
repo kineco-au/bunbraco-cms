@@ -315,21 +315,17 @@ export function writeBundle(
 /**
  * A bundle whose media files the caller streams (story 104): the manifest and
  * every other file, from each carried file's size alone. The caller writes
- * `blobs` at `blobPath`, computes `bundleIntegrity` over those and `files` in
- * path order, and writes the manifest with it. Open content only: sealing a
- * file needs all of it at once.
+ * `blobs` at `blobPath` — sealed with `sealBytes` under the seal when `sealing`
+ * — computes `bundleIntegrity` over those and `files` in path order, and writes
+ * the manifest with it.
  */
 export function planStreamedBundle(
   set: ContentSet,
   blobSizes: ReadonlyMap<string, number>,
   sections: readonly BundleFile[] = [],
-  options: Omit<WriteOptions, 'content'> & { content?: 'open' | 'omitted' } = {},
-): { manifest: BundleManifest; files: BundleFile[]; blobs: string[] } {
-  const planned = planBundle(set, blobSizes, sections, {
-    ...options,
-    content: options.content ?? 'open',
-  })
-  return { manifest: planned.manifest, files: planned.files, blobs: planned.blobs }
+  options: WriteOptions = {},
+): { manifest: BundleManifest; files: BundleFile[]; blobs: string[]; sealing: boolean } {
+  return planBundle(set, blobSizes, sections, { ...options, content: options.content ?? 'open' })
 }
 
 function planBundle(

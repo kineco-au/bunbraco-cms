@@ -140,3 +140,64 @@ ${noscript(`${graphics}/login-logo-alternative`)}
 </html>
 `
 }
+
+/**
+ * A page of its own beside the backoffice, for a signed-in person: approving a
+ * command-line sign-in or a protected push (story 107). `element` is the custom
+ * element's opening and closing tags, attributes already escaped.
+ */
+export function renderStandaloneShell(
+  paths: BackOfficePaths,
+  importmap: PackageManifestImportmap,
+  settings: { title: string; script: string; element: string },
+): string {
+  const assets = paths.assetsPath
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <base href="${paths.backOfficePath}/" />
+  <link rel="icon" type="image/svg+xml" href="${assets}/assets/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>${escapeHtml(settings.title)}</title>
+  <link rel="stylesheet" href="${assets}/css/light.css" />
+  <link rel="stylesheet" href="${paths.pluginPath}/branding/theme.css" />
+  <style>body { margin: 0; padding: 0; background-color: #fff7ea; }</style>
+  <script type="importmap">
+${JSON.stringify(importmap, null, 2)}
+  </script>
+  <script type="module" src="${paths.backOfficePath}/login/${settings.script}"></script>
+</head>
+<body class="uui-font uui-text" style="margin: 0; padding: 0; overflow: hidden">
+${settings.element}
+</body>
+</html>
+`
+}
+
+/** The page a command-line sign-in is approved on: the person is signed in already. */
+export function renderDeviceShell(
+  paths: BackOfficePaths,
+  importmap: PackageManifestImportmap,
+  settings: { title: string; userCode?: string },
+): string {
+  return renderStandaloneShell(paths, importmap, {
+    title: settings.title,
+    script: 'device.js',
+    element: `<crombolo-device user-code="${escapeHtml(settings.userCode ?? '')}" logo-image="${MANAGEMENT_API_PATH}/security/back-office/graphics/login-logo-alternative"></crombolo-device>`,
+  })
+}
+
+/** The page a push to a protected environment is approved or declined on. */
+export function renderRemoteApprovalShell(
+  paths: BackOfficePaths,
+  importmap: PackageManifestImportmap,
+  settings: { title: string; job: string },
+): string {
+  return renderStandaloneShell(paths, importmap, {
+    title: settings.title,
+    script: 'remote-approval.js',
+    element: `<crombolo-remote-approval job="${escapeHtml(settings.job)}" logo-image="${MANAGEMENT_API_PATH}/security/back-office/graphics/login-logo-alternative"></crombolo-remote-approval>`,
+  })
+}

@@ -80,6 +80,11 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(ours).toBeDefined()
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
     expect(aliases).toEqual([
+      'entityUserPermission:Crombolo.UserPermission.Remote.Pull',
+      'entityUserPermission:Crombolo.UserPermission.Remote.PullFull',
+      'entityUserPermission:Crombolo.UserPermission.Remote.Push',
+      'entityUserPermission:Crombolo.UserPermission.Remote.PushProtected',
+      'userProfileApp:Crombolo.UserProfileApp.SignedInDevices',
       'mfaLoginProvider:Crombolo.MfaLoginProvider.Authenticator',
       'sectionView:Crombolo.SectionView.Bundles.Marketplace',
       'sectionView:Crombolo.SectionView.Bundles.Created',
@@ -140,19 +145,29 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     const created = ours?.extensions.find((e) => e.alias === 'Crombolo.SectionView.Bundles.Created')
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
-    // Three kinds of extension have no module of their own: a `section`, which is
+    // Four kinds of extension have no module of their own: a `section`, which is
     // a route and a label, a `propertyEditorSchema`, which declares a
-    // server-side editor alias and its default UI; and a header app of `kind:
-    // 'button'`, whose element the client supplies. Everything else loads one,
-    // under `element`, `js`, or — for a context class — `api`.
+    // server-side editor alias and its default UI; a header app of `kind:
+    // 'button'`, whose element the client supplies; and an
+    // `entityUserPermission`, which declares a verb a user group can grant.
+    // Everything else loads one, under `element`, `js`, or — for a context
+    // class — `api`.
     const moduleless = ours?.extensions.filter((e) => !e.element && !e.js && !e.api) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
+      'Crombolo.UserPermission.Remote.Pull',
+      'Crombolo.UserPermission.Remote.PullFull',
+      'Crombolo.UserPermission.Remote.Push',
+      'Crombolo.UserPermission.Remote.PushProtected',
       'Crombolo.HeaderApp.Settings',
       'Crombolo.Section.Forms',
       'Crombolo.FormPicker',
       'Crombolo.Section.Workflow',
     ])
     expect(moduleless.map((e) => e.type)).toEqual([
+      'entityUserPermission',
+      'entityUserPermission',
+      'entityUserPermission',
+      'entityUserPermission',
       'headerApp',
       'section',
       'propertyEditorSchema',

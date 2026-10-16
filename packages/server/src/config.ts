@@ -1,7 +1,11 @@
 import { hostname, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { DeliveryApiOptions } from '@crombolo/api-delivery'
-import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
+import {
+  DEFAULT_BACKOFFICE_PATH,
+  DEFAULT_PASSWORD_CONFIGURATION,
+  isValidPassword,
+} from '@crombolo/core'
 import { DEFAULT_RENDER_TIMEOUT_MS, type RedirectRule, type SnapshotLimits } from '@crombolo/render'
 import type { AssistantConfig } from './assistant.ts'
 import type { ServerBundle } from './bundles.ts'
@@ -29,6 +33,65 @@ export type UserLinkSender = (message: {
   /** The inviting user's personal message, for an invitation. */
   message: string | null
 }) => Promise<void>
+
+export interface RemoteSettings {
+  enabled: boolean
+  /** The environment this server is, as the remote protocol names it. */
+  environment: string
+  /** A push here replaces something people rely on: it needs its own permission. */
+  protected: boolean
+  /** A push to a protected environment waits for another person's approval. */
+  approvals: boolean
+  /**
+   * The largest push file or media file a client may upload. Every other route
+   * keeps `maxRequestBodyBytes`, checked per request, since Bun's own limit is
+   * the server's.
+   */
+  maxUploadBytes: number
+}
+
+/** The prefix every API client id carries, as the Management API requires. */
+export const API_CLIENT_ID_PREFIX = 'crombolo-back-office-'
+
+/** Refuses a seeded API client that the Management API would refuse, naming the variable. */
+function checkApiClient(client: CromboloConfig['apiClient']): void {
+  if (!client) return
+  if (!client.id || !client.secret)
+    throw new Error(
+      'CROMBOLO_API_CLIENT_ID and CROMBOLO_API_CLIENT_SECRET go together: set both, or neither.',
+    )
+  if (
+    !client.id.startsWith(API_CLIENT_ID_PREFIX) ||
+    client.id.length <= API_CLIENT_ID_PREFIX.length
+  )
+    throw new Error(`CROMBOLO_API_CLIENT_ID must start with "${API_CLIENT_ID_PREFIX}".`)
+  if (!isValidPassword(client.secret))
+    throw new Error(
+      `CROMBOLO_API_CLIENT_SECRET must be at least ${DEFAULT_PASSWORD_CONFIGURATION.minimumPasswordLength} characters.`,
+    )
+}
+
+/**
+ * Whether this site runs on the developer's own machine: development, and an
+ * application URL that is unset or names localhost. What `localAdmin` needs.
+ */
+export function runsOnLocalhost(config: CromboloConfig): boolean {
+  if (!config.development) return false
+  if (!config.applicationUrl) return true
+  try {
+    const host = new URL(config.applicationUrl).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1'
+  } catch {
+    return false
+  }
+}
+
+/** The body limit to listen with: raised for remote uploads when the remote is on. */
+export function listeningBodyLimit(config: CromboloConfig): number {
+  return config.remote.enabled
+    ? Math.max(config.maxRequestBodyBytes, config.remote.maxUploadBytes)
+    : config.maxRequestBodyBytes
+}
 
 export interface CromboloConfig {
   port: number
@@ -74,6 +137,20 @@ export interface CromboloConfig {
   adminPassword: string | undefined
   /** Guards "Set up your new site". Chosen by the owner; never printed, logged or shown. */
   setupCode: string | undefined
+  /**
+   * The API client an unattended install seeds (story 034), so a pipeline can
+   * administer a site whose backoffice only takes an identity provider. Seeded
+   * once and never rotated from here; the secret is never printed or logged.
+   * With it set, no password administrator is seeded unless `adminPassword` is
+   * — or `localAdmin` is, on a site running on localhost.
+   */
+  apiClient: { id: string; secret: string } | undefined
+  /**
+   * Seed the password administrator even with `apiClient` set, so local
+   * development keeps printing a sign-in. Honoured only on localhost
+   * (`runsOnLocalhost`); ignored, with a warning, anywhere else.
+   */
+  localAdmin: boolean
   /** Seals secrets kept in the database, such as a webhook's headers; never stored. */
   secretKey: string | undefined
   /**
@@ -241,6 +318,15 @@ export interface CromboloConfig {
   memberIdentityProviders: readonly IdentityProvider[]
   /** Identity providers backoffice users may sign in with. `allowLocalLogin: false` makes them the only way in. */
   backofficeIdentityProviders: readonly IdentityProvider[]
+  /**
+   * Answering the remote protocol (story 107): a developer's `crombolo` pulls a
+   * copy of this site and pushes work back. Off unless `enabled`. This server
+   * offers one environment, itself, named `environment`; `protected` makes a
+   * push need the protected-push permission, and `approvals` makes it wait for
+   * someone else with that permission to approve it, which needs
+   * `CROMBOLO_SECRET_KEY`. docs/remote-protocol.md.
+   */
+  remote: RemoteSettings
   /**
    * Redirects the site declares itself, built with `redirect()`. They are synced
    * into the database at boot, so the backoffice lists them beside the tracked
@@ -427,6 +513,14 @@ export function loadConfig(
     sqliteFile: Bun.env.CROMBOLO_SQLITE_FILE ?? DEFAULTS.sqliteFile,
     adminLogin: Bun.env.CROMBOLO_ADMIN_LOGIN ?? DEFAULTS.adminLogin,
     adminPassword: Bun.env.CROMBOLO_ADMIN_PASSWORD,
+    apiClient:
+      Bun.env.CROMBOLO_API_CLIENT_ID || Bun.env.CROMBOLO_API_CLIENT_SECRET
+        ? {
+            id: Bun.env.CROMBOLO_API_CLIENT_ID ?? '',
+            secret: Bun.env.CROMBOLO_API_CLIENT_SECRET ?? '',
+          }
+        : undefined,
+    localAdmin: Bun.env.CROMBOLO_LOCAL_ADMIN === 'true',
     setupCode: Bun.env.CROMBOLO_SETUP_CODE,
     secretKey: Bun.env.CROMBOLO_SECRET_KEY,
     secureCookies: Bun.env.CROMBOLO_INSECURE_COOKIES !== 'true',
@@ -514,6 +608,13 @@ export function loadConfig(
     // No environment variable: a provider is a preset, which is code.
     memberIdentityProviders: [],
     backofficeIdentityProviders: [],
+    remote: {
+      enabled: Bun.env.CROMBOLO_REMOTE_ENABLED === 'true',
+      environment: Bun.env.CROMBOLO_REMOTE_ENVIRONMENT || 'production',
+      protected: Bun.env.CROMBOLO_REMOTE_PROTECTED !== 'false',
+      approvals: Bun.env.CROMBOLO_REMOTE_APPROVALS === 'true',
+      maxUploadBytes: Number(Bun.env.CROMBOLO_REMOTE_MAX_UPLOAD_GB ?? 50) * 1024 ** 3,
+    },
     redirects: [],
     trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
     applyBundleContentOnInstall: Bun.env.CROMBOLO_APPLY_BUNDLE_CONTENT !== 'false',
@@ -545,6 +646,12 @@ export function loadConfig(
   checkIdentityProviders(merged.backofficeIdentityProviders, 'backoffice')
   // Field by field, so a site setting its title suffix keeps the environment's switches.
   merged.seo = { ...fromEnv.seo, ...stripUndefined(overrides.seo ?? {}) }
+  merged.remote = { ...fromEnv.remote, ...stripUndefined(overrides.remote ?? {}) }
+  checkApiClient(merged.apiClient)
+  if (!/^[a-z][a-z0-9-]{0,62}$/.test(merged.remote.environment))
+    throw new Error(
+      `remote.environment "${merged.remote.environment}" must be lower case letters, digits and dashes.`,
+    )
   merged.deliveryApi = {
     ...fromEnv.deliveryApi,
     ...stripUndefined(overrides.deliveryApi ?? {}),
@@ -632,4 +739,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.14.1'
+export const VERSION = '0.14.2'

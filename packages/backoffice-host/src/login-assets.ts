@@ -13,6 +13,9 @@ export function resolveLoginAsset(backOfficePath: string, pathname: string): str
   const prefix = `${backOfficePath}/login/`
   if (!pathname.startsWith(prefix)) return undefined
   const name = pathname.slice(prefix.length)
-  // Only the files we ship; no traversal, no directory listing.
-  return name === 'login.js' ? join(LOGIN_ASSET_DIR, 'login.js') : undefined
+  // Only the files we ship; no traversal, no directory listing. `device.js` and
+  // `remote-approval.js` are the pages a sign-in and a push are approved on (story 107).
+  return ['login.js', 'device.js', 'remote-approval.js'].includes(name)
+    ? join(LOGIN_ASSET_DIR, name)
+    : undefined
 }

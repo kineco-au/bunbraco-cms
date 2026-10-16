@@ -40,6 +40,7 @@ import { propertySearchableMigration } from './property-searchable.ts'
 import { publicAccessMigration } from './public-access.ts'
 import { recycleBinMigration } from './recycle-bin.ts'
 import { redirectsMigration } from './redirects.ts'
+import { remoteMigration } from './remote.ts'
 import { richTextUiMigration } from './rich-text-ui.ts'
 import { searchIndexMigration } from './search-index.ts'
 import { serverRoleMigration } from './server-role.ts'
@@ -95,4 +96,5 @@ export const cromboloPlan = new MigrationPlan([
   approvalsMigration,
   siteSearchMigration,
   twoFactorMigration,
+  remoteMigration,
 ])

@@ -27,6 +27,7 @@ import {
   packageNameFor,
   planStreamedBundle,
   sanitise,
+  sealBytes,
   writeManifest,
 } from '@crombolo/transfer'
 import { createFileSystemPort } from './adapters/file-system.ts'
@@ -40,15 +41,25 @@ import { TarballWriter } from './tar.ts'
 export interface SiteExportOptions {
   /** The `.tgz` to write. */
   out: string
-  /** False for `--no-media`: the media nodes travel, their files do not. */
-  media?: boolean
+  /**
+   * False for `--no-media`: the media nodes travel, their files do not.
+   * `referenced`: likewise, for a remote and its CLI to move the files one at a
+   * time (story 107).
+   */
+  media?: boolean | 'referenced'
   /** Carry the latest drafts rather than what is published. */
   drafts?: boolean
   withMembers?: boolean
   withUsers?: boolean
   /** Replace every personal value before anything is written (`sanitise`). */
   anonymise?: boolean
-  /** Seals the people; needed when any travel. */
+  /**
+   * Seal the content data — property values and media files — as well as any
+   * people, under `passphrase`: the bundle rule, metadata readable and content
+   * not (story 107). Each media file is sealed whole, one at a time.
+   */
+  sealContent?: boolean
+  /** Seals the people, and the content with `sealContent`; needed when either travels sealed. */
   passphrase?: string
   package?: { name?: string; version?: string }
 }
@@ -101,12 +112,14 @@ export async function exportSite(
   config: CromboloConfig,
   options: SiteExportOptions,
 ): Promise<SiteExportResult> {
-  const withMedia = options.media !== false
+  const withMedia = options.media !== false && options.media !== 'referenced'
   const carryMembers = Boolean(options.withMembers)
   // Anonymised users are removed, so there are none to carry.
   const carryUsers = Boolean(options.withUsers) && !options.anonymise
   if ((carryMembers || carryUsers) && !options.passphrase)
     throw new Error('Members and users travel sealed: give a passphrase.')
+  if (options.sealContent && !options.passphrase)
+    throw new Error('Sealed content needs a passphrase.')
 
   const exported = await exportBundle(db, {
     roots: await topLevelNodes(db),
@@ -158,30 +171,43 @@ export async function exportSite(
   const store = await mediaStoreFor(config)
   const stored = new Map<string, StoredFile>()
   const missing: string[] = []
-  if (withMedia)
+  // Referenced, each file is named with its size and etag, so the far side can
+  // fetch it — or skip it, holding one with the same etag already.
+  const described = new Map<string, { size: number; etag: string }>()
+  if (withMedia || options.media === 'referenced')
     for (const key of exported.blobKeys) {
       const file = await store.get(key)
-      if (file) stored.set(key, file)
-      else missing.push(key)
+      if (!file) missing.push(key)
+      else if (withMedia) stored.set(key, file)
+      else described.set(key, { size: file.size, etag: file.etag })
     }
 
   const site = {
     ...set,
     manifest: {
       ...set.manifest,
+      blobs: set.manifest.blobs.map((blob) => {
+        const found = described.get(blob.key)
+        return found ? { ...blob, size: found.size, etag: found.etag } : blob
+      }),
       label: `${config.siteName} (whole site)`,
       provenance: { ...set.manifest.provenance, cmsVersion: VERSION },
       scope: 'site' as const,
-      ...(withMedia ? {} : { media: 'omitted' as const }),
+      ...(withMedia
+        ? {}
+        : {
+            media: options.media === 'referenced' ? ('referenced' as const) : ('omitted' as const),
+          }),
       requires: requiredPackages(config),
     },
   }
-  const seal = people && options.passphrase ? newSeal(options.passphrase) : undefined
+  const seal =
+    (people || options.sealContent) && options.passphrase ? newSeal(options.passphrase) : undefined
   const planned = planStreamedBundle(
     site,
     new Map([...stored].map(([key, file]) => [key, file.size])),
     sections,
-    { people, seal },
+    { people, seal, content: options.sealContent ? 'sealed' : 'open' },
   )
 
   const name = options.package?.name ?? packageNameFor(`${config.siteName}-site`)
@@ -213,6 +239,14 @@ export async function exportSite(
         await writer.add(`${PAYLOAD_DIR}/${path}`, body)
       } else {
         const media = stored.get(blobs.get(path) as string) as StoredFile
+        if (planned.sealing && seal) {
+          const sealed = sealBytes(seal.key, path, await media.bytes())
+          hasher.update(sealed)
+          hasher.update('\n')
+          await writer.add(`${PAYLOAD_DIR}/${path}`, sealed)
+          bytes += media.size
+          continue
+        }
         async function* hashed() {
           for await (const chunk of streamOf(media)) {
             hasher.update(chunk)

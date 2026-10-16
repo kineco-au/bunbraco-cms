@@ -55,3 +55,17 @@ export function completeSetup(
     }),
   )
 }
+
+/**
+ * Closes setup without creating an administrator: a machine can administer the
+ * site instead (story 034's seeded API client). Answers whether it was pending.
+ */
+export function closeSetup(db: Db): Promise<boolean> {
+  return db.locks.withLock(Locks.KeyValues, () =>
+    db.transaction(async (tx) => {
+      if ((await readSetupState(tx)) !== 'pending') return false
+      await writeSetupState(tx, 'complete')
+      return true
+    }),
+  )
+}

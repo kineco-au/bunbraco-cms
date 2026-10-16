@@ -3,6 +3,12 @@
  * actually sends. See docs/backoffice-hosting.md for the wire contract.
  */
 import { type ExtensionSectionAlias, type SectionAlias, toSectionAliases } from '@crombolo/core'
+import {
+  DEVICE_CODE_SECONDS,
+  DEVICE_POLL_SECONDS,
+  type DeviceAuthorizationRow,
+  type SignedInDevice,
+} from './device.ts'
 import { hashPassword, isNativeHash, passwordConfigJson, verifyPassword } from './password.ts'
 import { type CodeChallengeMethod, generateToken, verifyChallenge } from './pkce.ts'
 import type { AuthStore, UserRow } from './store.ts'
@@ -71,6 +77,11 @@ export type TokenError =
   | 'invalid_request'
   | 'invalid_client'
   | 'unauthorized_client'
+  // RFC 8628's answers while a device sign-in waits.
+  | 'authorization_pending'
+  | 'slow_down'
+  | 'expired_token'
+  | 'access_denied'
 
 export type TokenResult =
   | { ok: true; grant: TokenGrant }
@@ -375,6 +386,83 @@ export class AuthService {
     const token = await this.#store.findToken(accessToken, 'access')
     if (!token) return undefined
     return this.signOut(token.sessionId)
+  }
+
+  /** Starts a device sign-in (RFC 8628): the codes, and how often the client may poll. */
+  async startDeviceAuthorization(
+    clientId: string,
+    clientName: string | null,
+  ): Promise<{ deviceCode: string; userCode: string; expiresIn: number; interval: number }> {
+    const created = await this.#store.devices.create({ clientId, clientName, scope: DEFAULT_SCOPE })
+    return {
+      deviceCode: created.deviceCode,
+      userCode: created.userCode,
+      expiresIn: DEVICE_CODE_SECONDS,
+      interval: DEVICE_POLL_SECONDS,
+    }
+  }
+
+  /** A device sign-in waiting for a person, by the code they typed; undefined once it is not. */
+  async pendingDevice(userCode: string): Promise<DeviceAuthorizationRow | undefined> {
+    const row = await this.#store.devices.byUserCode(userCode)
+    if (row?.status !== 'pending' || row.expiresAt.getTime() < Date.now()) return undefined
+    return row
+  }
+
+  /** Approves or denies a waiting device sign-in for the signed-in person. */
+  async decideDevice(userCode: string, userId: number, approve: boolean): Promise<boolean> {
+    const row = await this.pendingDevice(userCode)
+    return row ? this.#store.devices.decide(row.id, userId, approve) : false
+  }
+
+  /**
+   * The device's poll: pending until a person decides, then the tokens, once.
+   * Polling faster than the interval answers `slow_down` and lengthens it, as
+   * RFC 8628 says.
+   */
+  async pollDevice(
+    deviceCode: string,
+    clientId: string,
+  ): Promise<TokenResult & { user?: UserRow }> {
+    const row = await this.#store.devices.byDeviceCode(deviceCode)
+    if (!row || row.clientId !== clientId)
+      return { ok: false, error: 'invalid_grant', description: 'Unknown device code.' }
+    if (row.status === 'denied')
+      return { ok: false, error: 'access_denied', description: 'The sign-in was declined.' }
+    if (row.status === 'issued')
+      return { ok: false, error: 'invalid_grant', description: 'This device code has been used.' }
+    if (row.expiresAt.getTime() < Date.now())
+      return { ok: false, error: 'expired_token', description: 'The device code has expired.' }
+    if (row.status === 'pending') {
+      const tooSoon =
+        row.lastPolledAt !== undefined &&
+        Date.now() - row.lastPolledAt.getTime() < row.intervalSeconds * 1000
+      await this.#store.devices.polled(row.id, row.intervalSeconds + (tooSoon ? 5 : 0))
+      return tooSoon
+        ? { ok: false, error: 'slow_down', description: 'Poll less often.' }
+        : { ok: false, error: 'authorization_pending', description: 'Waiting for approval.' }
+    }
+    const user = row.userId === null ? undefined : await this.#store.findUserById(row.userId)
+    if (!user || user.isLockedOut || !user.isApproved)
+      return { ok: false, error: 'access_denied', description: 'This account cannot sign in.' }
+    const sessionId = crypto.randomUUID()
+    if (!(await this.#store.devices.issued(row.id, sessionId)))
+      return { ok: false, error: 'invalid_grant', description: 'This device code has been used.' }
+    await this.#store.recordLoginSuccess(user.id, sessionId)
+    return { ok: true, grant: await this.#issue(user.id, sessionId, clientId, row.scope), user }
+  }
+
+  /** The devices signed in as this user. */
+  signedInDevices(userId: number): Promise<SignedInDevice[]> {
+    return this.#store.devices.signedIn(userId)
+  }
+
+  /** Signs a device out, ending its session; false when it is not this user's. */
+  async revokeDevice(id: number, userId: number): Promise<boolean> {
+    const row = await this.#store.devices.byId(id)
+    if (!row || row.userId !== userId || !row.sessionId) return false
+    await this.#store.endSession(row.sessionId)
+    return true
   }
 
   async #issue(

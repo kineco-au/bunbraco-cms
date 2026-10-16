@@ -21,8 +21,10 @@ import {
   seedContent,
   seedIdentity,
 } from '@crombolo/data'
+import { ensureApiClient } from './api-client.ts'
 import { type BundleChain, migrateBundles, pendingBundleSteps } from './bundle-tables.ts'
-import type { CromboloConfig } from './config.ts'
+import { type CromboloConfig, runsOnLocalhost } from './config.ts'
+import { logger } from './logging.ts'
 
 /** Production never auto-upgrades: an existing database with steps pending refuses to boot. */
 export class UpgradePendingError extends Error {
@@ -127,17 +129,28 @@ export async function installDatabase(
   await migrateBundles(db, chains, { by: config.nodeId })
 
   // In production a password is never made up: the pipeline supplies one, or
-  // the owner sets the site up in the browser (docs/operations.md).
-  const settingUp = !config.development && !config.adminPassword
-  const password = config.adminPassword ?? crypto.randomUUID().replaceAll('-', '').slice(0, 20)
+  // the owner sets the site up in the browser (docs/operations.md). With an API
+  // client to seed (story 034) a machine administers the site instead, and no
+  // password administrator exists unless asked for — `adminPassword`, or
+  // `localAdmin` on the developer's own machine.
+  const localAdmin = config.localAdmin && runsOnLocalhost(config)
+  if (config.localAdmin && !localAdmin)
+    logger('install').warning(
+      'CROMBOLO_LOCAL_ADMIN is ignored: this site does not run on localhost',
+    )
+  const machineOnly = config.apiClient !== undefined && !config.adminPassword && !localAdmin
+  const settingUp = !machineOnly && !config.development && !config.adminPassword
+  const password = config.adminPassword || crypto.randomUUID().replaceAll('-', '').slice(0, 20)
   const seeded = await seedIdentity(db, {
-    admin: settingUp
-      ? undefined
-      : { name: 'Administrator', login: config.adminLogin, email: config.adminLogin, password },
+    admin:
+      settingUp || machineOnly
+        ? undefined
+        : { name: 'Administrator', login: config.adminLogin, email: config.adminLogin, password },
     hashPassword,
     passwordConfig: passwordConfigJson(),
   })
   if (seeded && settingUp) await markSetupPending(db)
+  if (config.apiClient) await ensureApiClient(db, config.apiClient)
 
   await seedContent(db)
   // A database from an older version gains the built-ins it lacks.
@@ -146,5 +159,5 @@ export async function installDatabase(
   await ensureSystemMemberTypes(db)
   await ensureSystemContentTypes(db)
 
-  return seeded && !settingUp && !config.adminPassword ? password : undefined
+  return seeded && !settingUp && !machineOnly && !config.adminPassword ? password : undefined
 }

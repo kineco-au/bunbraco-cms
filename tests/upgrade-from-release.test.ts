@@ -13,9 +13,8 @@ import {
   migrate,
   readLedger,
   readState,
-  STATE_APPROVALS,
+  STATE_REMOTE,
   STATE_TWO_FACTOR,
-  schemaOps,
   seedIdentity,
 } from '@crombolo/data'
 import { summariseUpgrades, VERSION } from '@crombolo/server'
@@ -80,22 +79,13 @@ describe('summarising the ledger', () => {
   })
 })
 
-/** Puts a current database back the way 0.13.2 left it, a day ago. */
+/** Puts a current database back the way 0.14.1 left it, a day ago: before the remote protocol (041). */
 async function asPreviousRelease(db: Db): Promise<void> {
-  if (db.dialect.name === 'sqlite') {
-    for (const trigger of ['ai', 'ad', 'au'])
-      await db.exec(`DROP TRIGGER site_search_document_${trigger}`)
-    await db.exec('DROP TABLE site_search_document_fts')
-  }
-  await db.exec('DROP TABLE two_factor_recovery_code')
-  await db.exec('DROP TABLE two_factor_login')
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddTwoFactorLogin'")
-  await db.exec('DROP TABLE site_search_document')
-  await schemaOps(db).dropColumn('property_type', 'site_search')
-  await schemaOps(db).dropColumn('content_type', 'site_search')
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddSiteSearch'")
+  await db.exec('DROP TABLE remote_job')
+  await db.exec('DROP TABLE device_authorization')
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddRemote'")
   await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [
-    STATE_APPROVALS,
+    STATE_TWO_FACTOR,
     MIGRATION_STATE_KEY,
   ])
   const yesterday = new Date(Date.now() - 24 * 3600_000).toISOString()
@@ -122,17 +112,14 @@ describe('upgrading from the previous release', () => {
       passwordConfig: passwordConfigJson(),
     })
     await asPreviousRelease(db)
-    expect(await readState(db)).toBe(STATE_APPROVALS)
+    expect(await readState(db)).toBe(STATE_TWO_FACTOR)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual(['AddSiteSearch', 'AddTwoFactorLogin'])
-    expect(await readState(db)).toBe(STATE_TWO_FACTOR)
-    const columns = await db.query<{ site_search: unknown }>(
-      'SELECT site_search FROM content_type LIMIT 1',
-    )
-    expect(columns).toBeArray()
+    expect(result.applied).toEqual(['AddRemote'])
+    expect(await readState(db)).toBe(STATE_REMOTE)
+    expect(await db.query('SELECT id FROM remote_job')).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.0', steps: 2 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.2', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

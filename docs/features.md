@@ -26,6 +26,7 @@ tail of 1–3 each.
   v17+ behaviour; the client sends `credentials: include`)
 - Backoffice login/logout, token refresh and revocation, password reset, invite acceptance
 - `security/back-office/graphics/*` — logo/background images the login shell references
+- A site as a remote (story `107`, [`remote-protocol.md`](remote-protocol.md)): device sign-in for the CLI, pulls and pushes of whole-site files as jobs, approval of protected pushes, media by reference, and a conformance suite
 - Two-factor sign-in with an authenticator app and recovery codes, for users and members; administrators can turn it off for someone (story `032`, [`operations.md`](operations.md#two-factor-sign-in))
 
 ### Users & user groups

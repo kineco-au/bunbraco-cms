@@ -31,7 +31,9 @@ import {
   createExtensionRegistry,
   isSpaRoute,
   renderBackOfficeShell,
+  renderDeviceShell,
   renderLoginShell,
+  renderRemoteApprovalShell,
   resolveGraphic,
   resolveLoginAsset,
   resolveStaticFile,
@@ -95,7 +97,13 @@ import { CommandError, installBundleContent } from './bundle-install.ts'
 import { bundleChains, bundleTablesReport } from './bundle-tables.ts'
 import { createBundleRedirects, createServerBundles, validateServerBundles } from './bundles.ts'
 import { busyResponse } from './busy.ts'
-import { type CromboloConfig, loadConfig, type ServerRole, VERSION } from './config.ts'
+import {
+  type CromboloConfig,
+  listeningBodyLimit,
+  loadConfig,
+  type ServerRole,
+  VERSION,
+} from './config.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDeliveryMemberSecurity } from './delivery-members.ts'
 import { createDiagnostics } from './diagnostics.ts'
@@ -136,6 +144,7 @@ import { noNodesPage } from './no-nodes.ts'
 import { NotImplementedLog } from './not-implemented.ts'
 import { createDeps, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
 import { createRedirectTracker } from './redirects.ts'
+import { createRemote } from './remote.ts'
 import { handleTransferAction, pendingTransfers } from './transfer-dashboard.ts'
 import {
   changeUrlOptions,
@@ -656,6 +665,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           },
         )
       : undefined
+  const remote = createRemote({ db, config, authenticate })
   const members = createMemberAuth(db, config, {
     nodeState: schema.nodeState,
     nodeId: schema.nodeId,
@@ -965,6 +975,12 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     // site is, from the published cache: it scales with rendering.
     if (deliveryApi && pathname.startsWith(`${deliveryPrefix}/`)) {
       const response = await deliveryApi.handle(request)
+      if (response) return response
+    }
+
+    // The remote protocol (story 107), where the backoffice is: it acts as a person.
+    if (servesBackOffice) {
+      const response = await remote.handle(request, url)
       if (response) return response
     }
 
@@ -1698,6 +1714,51 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       return api.dispatch(request)
     }
 
+    // Approving a command-line sign-in (story 107): signed in first, then back here.
+    if (pathname === `${paths.backOfficePath}/device` && request.method === 'GET') {
+      const sessionId = readCookie(request, names.session)
+      if (!sessionId || !(await auth.resolveSession(sessionId))) {
+        const back = `${pathname}${url.search}`
+        return new Response(null, {
+          status: 303,
+          headers: {
+            location: `${paths.backOfficePath}/login?returnUrl=${encodeURIComponent(back)}`,
+          },
+        })
+      }
+      const { importmap } = collectManifests(paths, extensions.list())
+      return html(
+        renderDeviceShell(paths, importmap, {
+          title: config.siteName,
+          userCode: url.searchParams.get('user_code') ?? undefined,
+        }),
+      )
+    }
+
+    // Approving a push to a protected environment (story 107): the page reads
+    // and decides the job through the remote API, as the signed-in person.
+    if (
+      pathname === `${paths.backOfficePath}/remote-approval` &&
+      request.method === 'GET' &&
+      config.remote.enabled
+    ) {
+      const sessionId = readCookie(request, names.session)
+      if (!sessionId || !(await auth.resolveSession(sessionId)))
+        return new Response(null, {
+          status: 303,
+          headers: {
+            location: `${paths.backOfficePath}/login?returnUrl=${encodeURIComponent(`${pathname}${url.search}`)}`,
+          },
+        })
+      const { importmap } = collectManifests(paths, extensions.list())
+      return html(
+        renderRemoteApprovalShell(paths, importmap, {
+          title: config.siteName,
+          job: url.searchParams.get('job') ?? '',
+        }),
+      )
+    }
+
     if (pathname === `${paths.backOfficePath}/login`) {
       const { importmap } = collectManifests(paths, extensions.list())
       return html(
@@ -2108,11 +2169,24 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     jobs,
     serveOptions: {
       port: config.port,
-      maxRequestBodySize: config.maxRequestBodyBytes,
+      maxRequestBodySize: listeningBodyLimit(config),
       fetch: diagnostics.wrap(async (request, bunServer: Server<HubSocketData>) => {
         const peer = bunServer.requestIP(request)?.address
         if (peer) peers.set(request, peer)
-        const pathname = new URL(request.url).pathname
+        const requestUrl = new URL(request.url)
+        const pathname = requestUrl.pathname
+        // Listening with the remote's larger limit (story 107), so every other
+        // request is held to the usual one here.
+        if (
+          listeningBodyLimit(config) > config.maxRequestBodyBytes &&
+          !remote.isUpload(request, requestUrl)
+        ) {
+          const length = Number(request.headers.get('content-length') ?? 0)
+          if (length > config.maxRequestBodyBytes)
+            return new Response('Payload Too Large', { status: 413 })
+          if (!request.headers.has('content-length') && request.headers.has('transfer-encoding'))
+            return new Response('Length Required', { status: 411 })
+        }
         if (pathname === hubPath || pathname === previewHubPath) {
           const principal = await authenticate(request)
           const hub = pathname === hubPath ? events : previewHub

@@ -46,6 +46,9 @@ export default {
       "Hello there and welcome to Crombolo! In just 1 minute you'll be good to go, we just need you to setup a password and add a picture for your avatar.",
     userinviteExpiredMessage:
       'Welcome to Crombolo! Unfortunately your invite has expired. Please contact your administrator to get a new one.',
+
+    // The heading over the remote permissions (story 107) in a user group.
+    'permissionsEntityGroup_crombolo-remote': 'Moving whole sites',
   },
   general: {
     umbracoInfo: 'Crombolo info',

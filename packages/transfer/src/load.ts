@@ -315,7 +315,7 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
     ...(parseSealParameters(raw.seal) ? { seal: parseSealParameters(raw.seal) } : {}),
     ...(raw.content === 'sealed' || raw.content === 'omitted' ? { content: raw.content } : {}),
     ...(raw.scope === 'site' ? { scope: 'site' as const } : {}),
-    ...(raw.media === 'omitted' ? { media: 'omitted' as const } : {}),
+    ...(raw.media === 'omitted' || raw.media === 'referenced' ? { media: raw.media } : {}),
     ...(isRecord(raw.requires) ? { requires: parseRequires(raw.requires) } : {}),
   }
 }

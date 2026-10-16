@@ -27,7 +27,7 @@ server is the reference implementation.
 
 ## Acceptance criteria
 
-- [ ] **A public, versioned specification** in `docs/remote-protocol.md`,
+- [x] **A public, versioned specification** in `docs/remote-protocol.md`,
       the contract other implementations are held to. It covers:
       - discovery;
       - signing in;
@@ -37,36 +37,36 @@ server is the reference implementation.
       - progress;
       - approvals;
       - errors.
-- [ ] **Discovery.** `GET /.well-known/crombolo-remote` names the protocol
+- [x] **Discovery.** `GET /.well-known/crombolo-remote` names the protocol
       versions served, the sign-in endpoints, and the environments the
       remote offers. Each environment is named, and says whether it is
       `protected`: a push there replaces something people rely on.
-- [ ] **Signing in** is the OAuth 2.0 device authorization grant (RFC 8628).
+- [x] **Signing in** is the OAuth 2.0 device authorization grant (RFC 8628).
       The CLI shows a code, the person approves it in a browser where they
       are already signed in, and the CLI receives a short-lived token for
       that person with that person's permissions. The tokens can be listed
       and revoked from the back office.
-- [ ] **Pull:**
+- [x] **Pull:**
       - a request for an environment's whole-site file (`104`) starts an
         export, reports its progress, and ends in a short-lived download;
       - people are anonymised unless a full copy is asked for, and a full
         copy needs a permission of its own;
       - it is sealed with a passphrase the requester gives, and is recorded.
-- [ ] **Push:**
+- [x] **Push:**
       - an upload of a whole-site file starts an import that replaces the
         environment (`105`), and reports its progress;
       - a backup is taken before anything is replaced, wherever the remote
         can take one;
       - a push to a `protected` environment needs a permission of its own.
-- [ ] **Approval required.** A remote may answer any request with "approval
+- [x] **Approval required.** A remote may answer any request with "approval
       required", giving a URL where a person approves that one action, and
       a way to wait for the outcome. The protocol says nothing about how the
       approval is decided: that is the remote's business.
-- [ ] **The CMS's own server implements it,** behind a setting that is off
+- [x] **The CMS's own server implements it,** behind a setting that is off
       by default, with the back-office permissions for pull, full pull,
       push and protected push. So a self-hosted site is a remote with one
       setting.
-- [ ] **A conformance suite** in the repository, which any implementation
+- [x] **A conformance suite** in the repository, which any implementation
       can run against its own endpoint, and which the CMS's server passes.
 
 ## Out of scope
@@ -182,3 +182,111 @@ run it unchanged.
 - jobs across a node restart going stale;
 - download expiry;
 - tampered upload hash.
+
+## Media by reference (2026-10-16)
+
+A whole-site file with gigabytes of media is slow to build, to move and to
+pull again. A pull or push can therefore send the **media's metadata only**,
+and the media files then move one at a time between the remote's store and the
+developer's machine. The CLI flag is `--media-info-only` (`108`).
+
+- **The file:** the manifest says `media: 'referenced'`. Media items travel
+  with every blob's key, size and etag, and the file carries no media files
+  and no URLs or credentials. Such a file is not self-contained, so
+  `export --site` never writes one. It exists only between a CLI and a remote.
+- **The local site never gets the bucket's credentials.** Media comes through
+  the remote, under the developer's own sign-in. No environment keeps another's
+  credentials, and a local mistake can't delete production media.
+- **The protocol** adds a capability. A remote without it answers every pull
+  and push with the whole file, and a client falls back to that.
+
+  | | |
+  | --- | --- |
+  | discovery `capabilities: ["media-fetch"]` | the remote serves media by reference |
+  | `POST <api>/environments/{id}/pulls` `{ media: 'referenced' }` | a pull whose file carries media metadata only |
+  | `POST <api>/environments/{id}/media/links` `{ keys: [...] }` | short-lived download links, in batches: presigned straight from S3 or Azure where the store can, otherwise `GET <api>/environments/{id}/media/{key}` with the token |
+  | `POST <api>/environments/{id}/media/have` `{ blobs: [{ key, etag }] }` | which of these the remote already has, for a push |
+  | `PUT <api>/environments/{id}/media/{key}` | one media file, with `Crombolo-Sha256`, for a push |
+  | `PUT <api>/environments/{id}/pushes` with a referenced file | an import that waits until every referenced file is in the store, and refuses naming any that are missing |
+
+- **Permissions:** fetching media needs `Pull`, and uploading it needs `Push`
+  on that environment, the same as the whole-file paths. Links expire within
+  minutes, and each batch is audited as part of its job.
+- **Sealing:** media files are content data. They travel over TLS, one per
+  authenticated request, and never sit at rest in a file that carries them.
+- **The CMS's own server** implements the capability. Links come from
+  `MediaStore.publicUrl` presigning where the store offers it, and otherwise
+  stream through the server. The conformance suite covers the capability and
+  the fallback without it.
+
+**Extra tests:**
+- a referenced pull;
+- links that expire;
+- a push uploading only the files the remote lacks;
+- a push refused while a referenced file is missing;
+- the fallback against a remote without the capability.
+
+## Implementation (2026-10-16)
+
+- **The specification** is `docs/remote-protocol.md`, version 1.
+- **Sealed whole-site export** (`server/src/site-file.ts`): `sealContent`
+  seals values, media files and people under the passphrase, and each media
+  file is sealed whole, one at a time. `media: 'referenced'` names every blob
+  with its size and etag and carries none of them. Manifest `media` gains
+  `'referenced'`, and the import refuses a referenced file until every blob it
+  names is in the store.
+- **Migration 041 `AddRemote`:**
+  - the `device_authorization` and `remote_job` tables;
+  - the four verbs (`Crombolo.Remote.Pull`, `.PullFull`, `.Push`,
+    `.PushProtected`) granted to administrators.
+
+  It ships in release 0.14.2.
+- **Device sign-in** (`auth/src/device.ts`, `service.ts`, `routes.ts`):
+  - **The grant.** RFC 8628 for the client `crombolo-cli`, covering pending,
+    `slow_down`, decline, expiry and single use. Tokens come in the body, and
+    refresh works.
+  - **Approving.** The page is at `<backoffice>/device` (`assets/device.js`,
+    `renderDeviceShell`). A cookie write must come from this site.
+  - **Signed-in devices.** Each approval becomes a session. The list and sign
+    out are in the profile (`plugin/signed-in-devices.js`, a `userProfileApp`).
+- **The remote** (`server/src/remote.ts`, wired in `server.ts`):
+  - **Endpoints:** discovery, environments, pulls, pushes, jobs, download,
+    approve and decline, and media links, have, get and put.
+  - **Jobs** run in-process. Their state is in `remote_job`
+    (`RemoteJobRepository`) and their files in the media store under
+    `.remote/`, a reserved prefix that public `/media` URLs never reach.
+  - **Staleness and clean-up.** A job not heard from in 10 minutes is
+    reported `interrupted`. Files go an hour after a job finishes, and rows a
+    day after that.
+  - **Pushes:**
+    - the upload is hash-checked before anything else;
+    - the import is `installBundleContent` with `--replace`;
+    - a backup is taken wherever the server can take one.
+  - **Approvals** (`remote.approvals`) hold the passphrase sealed with
+    `CROMBOLO_SECRET_KEY`. Someone else with `PushProtected` decides, at
+    `<backoffice>/remote-approval` (`assets/remote-approval.js`).
+  - **Upload size.** The listening body limit is raised to
+    `remote.maxUploadBytes` only when the remote is on, and every other route
+    is held to `maxRequestBodyBytes` per request (`listeningBodyLimit`).
+  - **Downloads** always go through the API, never a store's public URL.
+  - **Audit.** Every pull, push and decision is audited.
+- **Permissions in the user group editor:** four `entityUserPermission`
+  extensions under "Moving whole sites". `MediaStore.put` now takes any
+  `Blob`.
+- **Config:** `remote: { enabled, environment, protected, approvals,
+  maxUploadBytes }` and the `CROMBOLO_REMOTE_*` variables, all off by default.
+- **Conformance:** `packages/remote-conformance`, published and opt-in, with
+  `runConformance` and the `crombolo-remote-conformance` bin. It needs nothing
+  but `fetch`.
+- **Docs:** `docs/remote-protocol.md`, `docs/operations.md` (§ A site as a
+  remote), `docs/configuration.md`, `docs/features.md`, and the README's
+  package tree.
+- **Tests:**
+  - `tests/remote-device.test.ts` (4);
+  - `tests/remote.test.ts` (11): discovery, permissions, an anonymised pull
+    with download and hash, a refused full pull, a push, a tampered hash, a
+    protected push, approvals approved and declined, stale jobs and expired
+    approvals, media by reference, and the body limit;
+  - `tests/remote-conformance.test.ts`: the server passes the suite,
+    read-only and with a push;
+  - `tests/site-file.test.ts`: the sealed export.

@@ -113,6 +113,7 @@ import {
   isSafeAlias,
   listAssets,
   listComponents,
+  listeningBodyLimit,
   loadConfig,
   mediaStoreFor,
   placeBlobs,
@@ -404,7 +405,7 @@ async function bootWithRetries(config: CromboloConfig) {
   }
   const listening = Bun.serve({
     port: config.port,
-    maxRequestBodySize: config.maxRequestBodyBytes,
+    maxRequestBodySize: listeningBodyLimit(config),
     fetch: holding,
     websocket: { message() {} },
   })

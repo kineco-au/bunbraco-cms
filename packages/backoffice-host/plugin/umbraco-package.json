@@ -2,9 +2,61 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo",
   "id": "Crombolo.Core",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "allowPublicAccess": false,
   "extensions": [
+    {
+      "type": "entityUserPermission",
+      "alias": "Crombolo.UserPermission.Remote.Pull",
+      "name": "Crombolo Remote Pull Permission",
+      "forEntityTypes": ["crombolo-remote"],
+      "meta": {
+        "verbs": ["Crombolo.Remote.Pull"],
+        "label": "Pull a copy",
+        "description": "Download a copy of this site to work on, with members and users anonymised"
+      }
+    },
+    {
+      "type": "entityUserPermission",
+      "alias": "Crombolo.UserPermission.Remote.PullFull",
+      "name": "Crombolo Remote PullFull Permission",
+      "forEntityTypes": ["crombolo-remote"],
+      "meta": {
+        "verbs": ["Crombolo.Remote.PullFull"],
+        "label": "Pull a full copy",
+        "description": "Download a copy that includes members and users, sealed with a passphrase"
+      }
+    },
+    {
+      "type": "entityUserPermission",
+      "alias": "Crombolo.UserPermission.Remote.Push",
+      "name": "Crombolo Remote Push Permission",
+      "forEntityTypes": ["crombolo-remote"],
+      "meta": {
+        "verbs": ["Crombolo.Remote.Push"],
+        "label": "Push",
+        "description": "Replace this site with a copy sent from a terminal"
+      }
+    },
+    {
+      "type": "entityUserPermission",
+      "alias": "Crombolo.UserPermission.Remote.PushProtected",
+      "name": "Crombolo Remote PushProtected Permission",
+      "forEntityTypes": ["crombolo-remote"],
+      "meta": {
+        "verbs": ["Crombolo.Remote.PushProtected"],
+        "label": "Push to a protected site",
+        "description": "Replace a site people rely on, and approve or decline other people's pushes to it"
+      }
+    },
+    {
+      "type": "userProfileApp",
+      "alias": "Crombolo.UserProfileApp.SignedInDevices",
+      "name": "Crombolo Signed-in Devices",
+      "element": "/crombolo-plugin/signed-in-devices.js",
+      "weight": 100,
+      "meta": { "label": "Signed-in devices", "pathname": "devices" }
+    },
     {
       "type": "mfaLoginProvider",
       "alias": "Crombolo.MfaLoginProvider.Authenticator",

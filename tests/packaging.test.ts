@@ -27,6 +27,7 @@ const packages = publishablePackages()
 const OPT_IN = new Set([
   '@crombolo/entra',
   '@crombolo/import-umbraco',
+  '@crombolo/remote-conformance',
   '@crombolo/simple-redirects',
 ])
 
@@ -76,6 +77,7 @@ describe('the published package set', () => {
       '@crombolo/data',
       '@crombolo/entra',
       '@crombolo/import-umbraco',
+      '@crombolo/remote-conformance',
       '@crombolo/render',
       '@crombolo/schema',
       '@crombolo/server',

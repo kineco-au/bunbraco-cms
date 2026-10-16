@@ -1,5 +1,6 @@
 export * from './admin.ts'
 export * from './cookies.ts'
+export * from './device.ts'
 export * from './member-session.ts'
 export * from './oidc.ts'
 export * from './password.ts'

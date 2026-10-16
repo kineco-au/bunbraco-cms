@@ -4,6 +4,7 @@
  * Password hashing is injected rather than imported so this package stays free of
  * a dependency on @crombolo/auth.
  */
+import { RemotePermissions } from '@crombolo/core'
 import type { Db } from '../database.ts'
 import { DbDate } from '../dialect.ts'
 
@@ -65,6 +66,7 @@ export const BUILT_IN_GROUP_PERMISSIONS: Record<string, readonly string[]> = {
     'Umb.Document.PropertyValue.Write',
     ...FORM_FULL,
     ...ELEMENT_EDIT,
+    ...Object.values(RemotePermissions),
   ],
   editor: [
     'Umb.Document.Create',

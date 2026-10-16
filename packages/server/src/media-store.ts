@@ -13,6 +13,7 @@
  *   `ab12cd34/photo.jpg`        a placed file, served at `/media/ab12cd34/photo.jpg`
  *   `.temp/<uuid>/photo.jpg`    an upload not yet placed, with `meta.json` beside it
  *   `.cache/ab/<hash>.webp`     a processed image variant
+ *   `.remote/<job>/site.tgz`    a remote pull's or push's file (story 107), never public
  *
  * A site picks a store in `crombolo.config.ts` — `fileSystemMediaStore`,
  * `s3MediaStore` or `azureMediaStore` — or leaves it to the environment, which
@@ -41,7 +42,7 @@ export interface MediaStore {
   /** Named in the boot banner and in logs: `media/`, `s3://bucket`, … */
   readonly description: string
   get(key: string): Promise<StoredFile | undefined>
-  put(key: string, body: Uint8Array | File, options?: { contentType?: string }): Promise<void>
+  put(key: string, body: Uint8Array | Blob, options?: { contentType?: string }): Promise<void>
   delete(key: string): Promise<void>
   /** Every key under a prefix, which is how temporary uploads are swept. */
   list(prefix: string): Promise<string[]>
@@ -111,7 +112,8 @@ export function isSafeMediaKey(key: string): boolean {
       part !== '' &&
       part !== '.' &&
       part !== '..' &&
-      (!part.startsWith('.') || (index === 0 && (part === '.temp' || part === '.cache'))),
+      (!part.startsWith('.') ||
+        (index === 0 && (part === '.temp' || part === '.cache' || part === '.remote'))),
   )
 }
 

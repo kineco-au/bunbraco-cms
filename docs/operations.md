@@ -19,6 +19,26 @@ Umbraco's install wizard: those endpoints answer 501 on purpose (`roadmap.md`).
   asks for your name, e-mail, password and that code. `crombolo start` prints
   the address but never the code.
 
+- **From a pipeline, with sign-in only through an identity provider**
+  (`allowLocalLogin: false`), seed the API client the pipeline signs in with:
+  `CROMBOLO_API_CLIENT_ID` (starting `crombolo-back-office-`) and
+  `CROMBOLO_API_CLIENT_SECRET`. The install creates an API user in the
+  administrators group holding that client, and **no password administrator**
+  unless `CROMBOLO_ADMIN_PASSWORD` is set too. The site counts as set up. The
+  pipeline gets a token with the client-credentials grant
+  (`POST …/security/back-office/token`, `grant_type=client_credentials`),
+  local sign-in or not.
+  - An existing site gains the client the next time it starts, and a site
+    still waiting for setup stops waiting.
+  - A client that exists is never changed from config: rotate its secret
+    through the Management API.
+  - The secret is never printed or logged.
+  - On your own machine, `CROMBOLO_LOCAL_ADMIN=true` still seeds the password
+    administrator, so `crombolo start` prints a sign-in. It is honoured only
+    in development with no `applicationUrl`, or one on localhost, and the demo
+    sites set it. Anywhere else it is ignored, and the log says so (story
+    `034`).
+
 Setup is recorded in the database, so a restart cannot reopen it, and neither
 can deleting the administrator later. It closes for good when it completes,
 inside a lock, so two attempts at once create one account. The code is compared
@@ -398,6 +418,24 @@ the last step used is recorded. A wrong code counts towards lockout as a wrong
 password does. Recovery codes are kept as SHA-256 hashes; turning it on again
 replaces them.
 
+## A site as a remote
+
+With `CROMBOLO_REMOTE_ENABLED=true` the site answers the remote protocol
+([`remote-protocol.md`](remote-protocol.md), story `107`). A developer's
+`crombolo` can then:
+- sign in with a code they approve in the back office;
+- pull a sealed, anonymised copy of the site;
+- push work back. A push to a protected environment needs its own
+  permission, and with `CROMBOLO_REMOTE_APPROVALS` it waits for someone else
+  to approve it.
+
+The four permissions are under "Moving whole sites" in a user group. People
+see the terminals signed in as them under **Signed-in devices** in their
+profile, and sign them out there. Each pull and push is a job, so a
+load-balanced set needs no stickiness: the job's state is in the database and
+its file in the media store. Run `bunx crombolo-remote-conformance <url>
+--token <token>` to check a remote against the specification.
+
 ## Security
 
 The posture is Umbraco's where the contract sets it, and stricter where the
@@ -500,3 +538,4 @@ answering the public site, which the editor, and on which schema state.
 | [`assistant.md`](assistant.md)                           | the optional AI helper: why the boundary is real, query and propose, approval and staleness, TSX guardrails, MCP, providers                |
 | [`schema-at-runtime.md`](schema-at-runtime.md)           | the shared schema store, importing files at runtime, how the version moves with the change, and getting it back into git                   |
 | [`content-transfer.md`](content-transfer.md)             | moving content between environments: the bundle format, what travels and what never does, dependency classification, naming a node         |
+| [`remote-protocol.md`](remote-protocol.md)               | the remote protocol: discovery, device sign-in, pulls and pushes as jobs, approvals, media by reference, conformance |

@@ -502,6 +502,7 @@ crombolo/
 │   ├── transfer/                  # content transfer: the bundle format, canonical writer, reader, exporter
 │   ├── import-umbraco/            # opt-in: an Umbraco backup → a compatibility report, schema files,
 │   │                              #    a content bundle package and view stubs; reads a .bacpac without .NET
+│   ├── remote-conformance/        # opt-in: checks a server against the remote protocol (docs/remote-protocol.md)
 │   ├── simple-redirects/          # opt-in bundle: manage redirects in Settings; the reference example
 │   │                              #    of a bundle with a server half (docs/bundles.md)
 │   ├── backoffice-dist/           # the built Umbraco backoffice; dist/ is generated, upstream-static/ is committed

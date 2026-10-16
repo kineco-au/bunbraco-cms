@@ -288,6 +288,10 @@ if (flags.has('--docker')) {
     'CROMBOLO_DB=sqlite',
     '-e',
     `CROMBOLO_SQLITE_FILE=${containerSite}/crombolo.sqlite`,
+    // A demo always prints a password to sign in with, even one that seeds an
+    // API client (story 034): the flag is honoured only on localhost.
+    '-e',
+    'CROMBOLO_LOCAL_ADMIN=true',
     'cms',
     'bun',
     `${CONTAINER_ROOT}/packages/cli/bin/crombolo.ts`,
@@ -322,6 +326,7 @@ const proc = Bun.spawn(command, {
     CROMBOLO_POSTGRES_URL: '',
     CROMBOLO_MEDIA_DIR: join(siteDir, 'media'),
     CROMBOLO_LOGS_DIR: join(siteDir, 'logs'),
+    CROMBOLO_LOCAL_ADMIN: 'true',
   },
 })
 // Nothing to clean up: the server is this child, and it holds the port only for

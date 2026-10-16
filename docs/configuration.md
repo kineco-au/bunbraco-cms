@@ -12,6 +12,14 @@ defaults are chosen so that a clone runs with nothing set.
 | `CROMBOLO_SQLITE_FILE`                      | `crombolo.sqlite`                              | SQLite path, or `:memory:`                                                                             |
 | `CROMBOLO_POSTGRES_URL`                     | —                                              | required when `CROMBOLO_DB=postgres`                                                                   |
 | `CROMBOLO_SECRET_KEY`                       | —                                              | seals secrets kept in the database, such as a webhook's headers (32+ characters); without it they are not offered (`docs/webhooks.md`) |
+| `CROMBOLO_API_CLIENT_ID` | — | an API client an unattended install seeds in the administrators group (starts `crombolo-back-office-`); with it, no password administrator is seeded unless `CROMBOLO_ADMIN_PASSWORD` is set (`docs/operations.md`) |
+| `CROMBOLO_API_CLIENT_SECRET` | — | that client's secret; set with the id, never printed, never rotated from here |
+| `CROMBOLO_LOCAL_ADMIN` | `false` | seed the password administrator even with an API client, on localhost only; the demo sites set it |
+| `CROMBOLO_REMOTE_ENABLED` | `false` | answer the remote protocol, so `crombolo pull` and `push` can reach this site (`docs/remote-protocol.md`) |
+| `CROMBOLO_REMOTE_ENVIRONMENT` | `production` | the environment this server is, as the remote protocol names it |
+| `CROMBOLO_REMOTE_PROTECTED` | `true` | a push here needs the protected-push permission |
+| `CROMBOLO_REMOTE_APPROVALS` | `false` | a push to a protected environment waits for someone else to approve it; needs `CROMBOLO_SECRET_KEY` |
+| `CROMBOLO_REMOTE_MAX_UPLOAD_GB` | `50` | the largest push or media file a client may upload; every other request keeps `CROMBOLO_MAX_REQUEST_BODY_MB` |
 | `CROMBOLO_LOCK_TIMEOUT_SECONDS`             | `15`                                           | how long a content write waits for another before answering 503 (`docs/architecture.md`)               |
 | `CROMBOLO_ADMIN_LOGIN`                      | `admin@crombolo.local`                         | seeded administrator                                                                                   |
 | `CROMBOLO_ADMIN_PASSWORD`                   | generated in development                       | the first administrator's password, used only when the database is created; unset in production, the site is set up in the browser |

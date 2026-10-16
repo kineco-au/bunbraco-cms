@@ -115,3 +115,42 @@ the device approval done through the back-office endpoint:
 
 `Bun.secrets` is stubbed in tests behind a small keychain interface, since CI
 has no keychain.
+
+## Media by reference: `--media-info-only` (2026-10-16)
+
+`107` § Media by reference describes the protocol side. On the CLI:
+
+- **`pull --media-info-only`** asks for a file that carries media metadata
+  only, starts or replaces the local site from it, and then fetches the media
+  files:
+  - it asks the remote for links in batches and downloads in parallel, retrying
+    each file on its own;
+  - it puts each file into the local media store, whichever store that is;
+  - it skips any file already there with the same key and etag, so after the
+    first pull a pull downloads only the media that changed;
+  - progress is reported in files and bytes;
+  - if a download fails, the pulled site is still in place: the files are
+    listed, and `pull --media-info-only` again fetches only what is missing.
+- **`pull --media-info-only --lazy-media`** downloads nothing up front. The
+  local site's media store becomes a read-through cache: a file missing
+  locally is fetched from the remote the first time it is requested, under the
+  stored sign-in, then kept. A pull is close to instant, but until each file
+  has been viewed once, local media needs a connection and a valid sign-in. A
+  file that can't be fetched answers 404 and says why in the log.
+  `crombolo media fetch` downloads whatever is still missing, for working
+  offline.
+- **`push --media-info-only`** exports the site with media referenced, asks the
+  remote which media files it already has, uploads only the missing or changed
+  ones one at a time, then sends the file. The remote's import waits until
+  every referenced file is present.
+- **Without `--media-info-only`**, pull and push move one self-contained file
+  as before. Against a remote that doesn't advertise `media-fetch`, the flag
+  says so and falls back to the whole file.
+- **`export --site` is unchanged** and always self-contained, because a file
+  with referenced media is no use without its remote.
+
+**Extra tests:**
+- a referenced pull, then a second pull that downloads nothing new;
+- a lazy pull serving a media file on first request;
+- a push that uploads only a changed file;
+- the fallback against a remote without the capability.

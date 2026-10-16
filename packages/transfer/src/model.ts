@@ -236,8 +236,13 @@ export interface BundleManifest {
    * selection, overlaid as always.
    */
   scope?: 'site'
-  /** `omitted`: a whole-site file written without its media files (`--no-media`). */
-  media?: 'omitted'
+  /**
+   * `omitted`: a whole-site file written without its media files (`--no-media`).
+   * `referenced`: without them because they move one at a time between the
+   * stores of a remote and the CLI (story 107): every blob is named, none is in
+   * the file, and the file is no use away from its remote.
+   */
+  media?: 'omitted' | 'referenced'
   /**
    * The server bundles the site wires, by package name, at the versions that
    * wrote it. An import refuses when the destination lacks one or has an older

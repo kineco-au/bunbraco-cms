@@ -15,6 +15,7 @@ import {
   resolveRedacted,
   serializeCookie,
 } from './cookies.ts'
+import { REMOTE_CLIENT_ID } from './device.ts'
 import type { AuthService } from './service.ts'
 import { BACKOFFICE_CLIENT_ID, DEFAULT_SCOPE } from './service.ts'
 import { readShortLived, signShortLived } from './short-lived.ts'
@@ -24,6 +25,9 @@ import type { UserRow } from './store.ts'
 const TWO_FACTOR_PENDING_SECONDS = 5 * 60
 
 export const SECURITY_PREFIX = `${MANAGEMENT_API_PATH}/security/back-office`
+
+/** RFC 8628's grant type. */
+export const DEVICE_CODE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code'
 
 export interface AuthRouteOptions {
   backOfficePath: string
@@ -182,6 +186,32 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
         token_type: 'Bearer',
         expires_in: issued.expiresIn,
         issued_at: issued.issuedAt,
+        scope: DEFAULT_SCOPE,
+      })
+    }
+
+    // The CLI (story 107): tokens in the body, as a client with no cookie jar needs.
+    if (clientId === REMOTE_CLIENT_ID) {
+      const result =
+        grantType === DEVICE_CODE_GRANT
+          ? await service.pollDevice(form.get('device_code') ?? '', clientId)
+          : grantType === 'refresh_token'
+            ? await service.refresh(form.get('refresh_token') ?? '', clientId)
+            : {
+                ok: false as const,
+                error: 'unsupported_grant_type' as const,
+                description: `Unsupported grant_type '${grantType}'.`,
+              }
+      if (!result.ok) return oauthError(result.error, result.description, 400)
+      const signedIn = (result as { user?: UserRow }).user
+      if (grantType === DEVICE_CODE_GRANT && signedIn)
+        await audit({ action: 'SignIn', user: signedIn, detail: 'Device sign-in' }, request)
+      return Response.json({
+        access_token: result.grant.accessToken,
+        refresh_token: result.grant.refreshToken,
+        token_type: 'Bearer',
+        expires_in: result.grant.expiresIn,
+        issued_at: result.grant.issuedAt,
         scope: DEFAULT_SCOPE,
       })
     }
@@ -447,6 +477,101 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
     return response
   }
 
+  /** RFC 8628's device authorization endpoint: the codes the CLI shows and polls with. */
+  async function handleDeviceAuthorization(request: Request, url: URL): Promise<Response> {
+    const form = new URLSearchParams(await request.text())
+    if ((form.get('client_id') ?? '') !== REMOTE_CLIENT_ID)
+      return oauthError('invalid_client', `Unknown client '${form.get('client_id') ?? ''}'.`, 401)
+    const name = form.get('client_name')?.slice(0, 200) || null
+    const started = await service.startDeviceAuthorization(REMOTE_CLIENT_ID, name)
+    const verification = `${url.origin}${options.backOfficePath}/device`
+    return Response.json({
+      device_code: started.deviceCode,
+      user_code: started.userCode,
+      verification_uri: verification,
+      verification_uri_complete: `${verification}?user_code=${encodeURIComponent(started.userCode)}`,
+      expires_in: started.expiresIn,
+      interval: started.interval,
+    })
+  }
+
+  /** The signed-in back-office person, from the session cookie, or undefined. */
+  async function sessionUser(request: Request): Promise<number | undefined> {
+    const sessionId = readCookie(request, names.session)
+    return sessionId ? (await service.resolveSession(sessionId))?.userId : undefined
+  }
+
+  /** A cookie-authenticated write must come from this site, not a form elsewhere. */
+  const sameSite = (request: Request) => {
+    const site = request.headers.get('sec-fetch-site')
+    if (site) return site === 'same-origin'
+    const origin = request.headers.get('origin')
+    return !origin || origin === new URL(request.url).origin
+  }
+
+  const signInFirst = () => problemResponse(problemDetails({ title: 'Sign in first', status: 401 }))
+
+  /** What the approval page shows for a code, and its decision. */
+  async function handleDevicePage(
+    request: Request,
+    url: URL,
+    action: string,
+  ): Promise<Response | undefined> {
+    const userId = await sessionUser(request)
+    if (!userId) return signInFirst()
+    if (action === 'device/pending' && request.method === 'GET') {
+      const pending = await service.pendingDevice(url.searchParams.get('user_code') ?? '')
+      if (!pending)
+        return problemResponse(
+          problemDetails({
+            title: 'That code is not waiting',
+            status: 404,
+            detail:
+              'It may have expired or been used. Start the sign-in again from the command line.',
+          }),
+        )
+      return Response.json({
+        userCode: pending.userCode,
+        clientName: pending.clientName,
+        expiresAt: pending.expiresAt.toISOString(),
+      })
+    }
+    if (action === 'device/decide' && request.method === 'POST') {
+      if (!sameSite(request)) return new Response('Forbidden', { status: 403 })
+      const body = (await request.json().catch(() => ({}))) as {
+        userCode?: unknown
+        approve?: unknown
+      }
+      const decided = await service.decideDevice(
+        typeof body.userCode === 'string' ? body.userCode : '',
+        userId,
+        body.approve === true,
+      )
+      return decided
+        ? new Response(null, { status: 204 })
+        : problemResponse(problemDetails({ title: 'That code is not waiting', status: 404 }))
+    }
+    if (action === 'devices' && request.method === 'GET') {
+      const devices = await service.signedInDevices(userId)
+      return Response.json(
+        devices.map((device) => ({
+          id: device.id,
+          name: device.clientName,
+          signedInAt: device.signedInAt.toISOString(),
+          lastUsedAt: device.lastUsedAt?.toISOString() ?? null,
+        })),
+      )
+    }
+    const revoking = /^devices\/(\d+)$/.exec(action)
+    if (revoking && request.method === 'DELETE') {
+      if (!sameSite(request)) return new Response('Forbidden', { status: 403 })
+      return (await service.revokeDevice(Number(revoking[1]), userId))
+        ? new Response(null, { status: 204 })
+        : problemResponse(problemDetails({ title: 'No such device', status: 404 }))
+    }
+    return undefined
+  }
+
   return {
     async handle(request, pathname) {
       if (!pathname.startsWith(`${prefix}/`)) return undefined
@@ -460,6 +585,10 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
       if (action === 'signout') return handleSignOut(request, url)
       if (action === 'verify-2fa' && request.method === 'POST')
         return handleVerifyTwoFactor(request)
+      if (action === 'device' && request.method === 'POST')
+        return handleDeviceAuthorization(request, url)
+      if (action.startsWith('device/') || action === 'devices' || action.startsWith('devices/'))
+        return handleDevicePage(request, url, action)
       return undefined
     },
   }

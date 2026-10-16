@@ -73,6 +73,7 @@
     "@crombolo/crombolo": "workspace:*",
     "@crombolo/data": "workspace:*",
     "@crombolo/entra": "workspace:*",
+    "@crombolo/remote-conformance": "workspace:*",
     "@crombolo/import-umbraco": "workspace:*",
     "@crombolo/render": "workspace:*",
     "@crombolo/schema": "workspace:*",

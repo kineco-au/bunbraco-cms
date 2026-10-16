@@ -141,7 +141,7 @@ async function exportAndClose(
   return out
 }
 
-const live = async (config: CromboloConfig, db: Harness['server']['db']) =>
+const live = async (_config: CromboloConfig, db: Harness['server']['db']) =>
   (
     await db.query<{ text: string }>(
       'SELECT text FROM node WHERE node_object_type = ? AND trashed = ? ORDER BY text',

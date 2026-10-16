@@ -54,6 +54,19 @@ export const FormPermissions = {
 
 export type FormVerb = (typeof FormPermissions)[keyof typeof FormPermissions]
 
+/**
+ * Sending and receiving whole sites through the remote protocol (story 107).
+ * A full pull carries people, and a push to a protected environment replaces
+ * something people rely on, so each is a grant of its own.
+ */
+export const RemotePermissions = {
+  Pull: 'Crombolo.Remote.Pull',
+  PullFull: 'Crombolo.Remote.PullFull',
+  Push: 'Crombolo.Remote.Push',
+  PushProtected: 'Crombolo.Remote.PushProtected',
+} as const
+export type RemoteVerb = (typeof RemotePermissions)[keyof typeof RemotePermissions]
+
 /** The discriminator on a granular permission row. */
 export type PermissionContext = 'Document' | 'Element' | 'DocumentTypeProperty'
 
