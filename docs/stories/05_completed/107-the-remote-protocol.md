@@ -240,7 +240,7 @@ developer's machine. The CLI flag is `--media-info-only` (`108`).
   - the four verbs (`Crombolo.Remote.Pull`, `.PullFull`, `.Push`,
     `.PushProtected`) granted to administrators.
 
-  It ships in release 0.14.2.
+  It ships in release 0.14.3.
 - **Device sign-in** (`auth/src/device.ts`, `service.ts`, `routes.ts`):
   - **The grant.** RFC 8628 for the client `crombolo-cli`, covering pending,
     `slow_down`, decline, expiry and single use. Tokens come in the body, and

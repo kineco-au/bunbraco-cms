@@ -205,6 +205,20 @@ export async function runConformance(options: ConformanceOptions): Promise<Confo
     assert(body.links?.['conformance/not-there.png'] === null, 'the missing file was not null')
   })
 
+  await check('a push check answers what would be recycled and removed', async () => {
+    const capabilities = (state.discovery?.capabilities as string[] | undefined) ?? []
+    if (!capabilities.includes('push-check') || !state.may?.push) return 'skip'
+    const response = await api(`environments/${state.environment}/pushes/check`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nodes: [], files: [] }),
+    })
+    assert(response.status === 200, `answered ${response.status}`)
+    const body = (await response.json()) as Json
+    assert(typeof body.recycles === 'object' && body.recycles !== null, 'recycles is missing')
+    assert(Array.isArray(body.removesFiles), 'removesFiles is missing')
+  })
+
   await check('a push whose file does not match its hash is refused', async () => {
     if (!state.may?.push || !state.pulled) return 'skip'
     const response = await api(`environments/${state.environment}/pushes`, {

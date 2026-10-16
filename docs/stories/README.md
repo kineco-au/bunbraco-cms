@@ -175,7 +175,7 @@ not cover.
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `100` | Clone an environment, anonymised | should | L | backlog | 108 |
+| `100` | Clone an environment, anonymised | should | L | ready | 108 |
 | `101` | The dry run predicts publish refusals | could | S | done | — |
 | `102` | Per-property conflict resolutions | could | M | done | — |
 | `103` | Resolve transfer conflicts in the backoffice | should | M | done | — |
@@ -183,7 +183,7 @@ not cover.
 | `105` | Start a site from a file | should | L | done | 104, 106 |
 | `106` | An imported schema reaches the schema store | must | S | done | — |
 | `107` | The remote protocol | should | L | done | 104, 105, 106 |
-| `108` | crombolo pull and push | should | M | ready | 107 |
+| `108` | crombolo pull and push | should | M | done | 107 |
 
 ### Epic L — Routing
 

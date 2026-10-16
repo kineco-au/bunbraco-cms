@@ -2,7 +2,7 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo",
   "id": "Crombolo.Core",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "allowPublicAccess": false,
   "extensions": [
     {

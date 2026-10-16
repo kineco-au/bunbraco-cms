@@ -436,6 +436,33 @@ load-balanced set needs no stickiness: the job's state is in the database and
 its file in the media store. Run `bunx crombolo-remote-conformance <url>
 --token <token>` to check a remote against the specification.
 
+From the developer's side (story `108`):
+
+```bash
+crombolo remote add production https://example.com   # kept in remotes.toml, committed
+crombolo login                                        # a code to approve in the back office
+crombolo pull [--full] [--media-info-only | --lazy-media]
+crombolo push [--force [--auto-approve]] [--media-info-only]
+```
+
+- **`pull`:**
+  - In an empty folder it starts the site, as `start --from` does. In a
+    folder that holds a site it replaces it, after saying what will be
+    recycled; it asks first unless `--yes` is given.
+  - The copy is sealed and anonymised unless `--full`. The passphrase is made
+    for that one pull and never shown.
+- **`push`:**
+  - It shows what it would recycle and remove on the remote first.
+  - A protected environment needs `--force` and its name typed back
+    (`--auto-approve` skips the typing), and the remote may still hold the
+    push for someone else's approval.
+- **Media by reference:** `--media-info-only` moves media one file at a time,
+  only what changed, and `--lazy-media` fetches each file the first time the
+  local site is asked for it.
+- **Sign-ins** live in the operating system's keychain, never in the folder.
+- **Exit codes:** 0 done, 1 the remote refused or failed, 2 refused before
+  sending, 3 gave up waiting.
+
 ## Security
 
 The posture is Umbraco's where the contract sets it, and stricter where the

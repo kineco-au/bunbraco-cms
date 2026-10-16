@@ -14,11 +14,12 @@ import { createHash } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import type { Principal } from '@crombolo/api-management'
 import { DEVICE_CODE_GRANT, REMOTE_CLIENT_ID } from '@crombolo/auth'
 import { MANAGEMENT_API_PATH, RemotePermissions, type RemoteVerb } from '@crombolo/core'
 import { type Db, type RemoteJob, RemoteJobRepository } from '@crombolo/data'
+import type { ContentSet } from '@crombolo/transfer'
 import { recordAudit } from './adapters/audit.ts'
 import { installBundleContent } from './bundle-install.ts'
 import type { CromboloConfig } from './config.ts'
@@ -26,6 +27,7 @@ import { mediaStoreFor } from './media-files.ts'
 import { type MediaStore, streamOf } from './media-store.ts'
 import { openSecret, sealSecret, usableSecretKey } from './secrets.ts'
 import { exportSite } from './site-file.ts'
+import { replaceSummary } from './site-replace.ts'
 import { extractTarball } from './tar.ts'
 
 export const REMOTE_PROTOCOL_VERSION = '1'
@@ -121,7 +123,7 @@ export function createRemote(options: RemoteOptions): Remote {
       clientId: REMOTE_CLIENT_ID,
       grantType: DEVICE_CODE_GRANT,
     },
-    capabilities: ['media-fetch', ...(settings.approvals ? ['approvals'] : [])],
+    capabilities: ['media-fetch', 'push-check', ...(settings.approvals ? ['approvals'] : [])],
     environments: [environment()],
   })
 
@@ -510,6 +512,47 @@ export function createRemote(options: RemoteOptions): Remote {
     return Response.json(await describe((await jobs.get(id)) as RemoteJob, url.origin))
   }
 
+  /**
+   * What a push would do here, from the file's node keys and section paths
+   * alone — no upload, nothing written (`push-check`, story 108). Paths are
+   * answered by section, never as this server's own.
+   */
+  async function pushCheck(request: Request): Promise<Response> {
+    const body = (await request.json().catch(() => ({}))) as { nodes?: unknown; files?: unknown }
+    const strings = (value: unknown) =>
+      Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+    const nodes = strings(body.nodes)
+    const files = strings(body.files)
+    const folders = [
+      { section: 'schema', dir: config.schemaDir },
+      { section: 'components', dir: config.componentsDir },
+      { section: 'styles', dir: config.stylesheetsDir },
+      { section: 'scripts', dir: config.scriptsDir },
+    ]
+    const summary = await replaceSummary(
+      db,
+      { nodes: nodes.map((key) => ({ key })) } as unknown as ContentSet,
+      new Set(files),
+      folders,
+      'replace',
+    )
+    const relative = (path: string) => {
+      const folder = folders.find((f) => path.startsWith(`${f.dir}${sep}`))
+      return folder
+        ? `${folder.section}/${path
+            .slice(folder.dir.length + 1)
+            .split(sep)
+            .join('/')}`
+        : path
+    }
+    return Response.json({
+      environment: settings.environment,
+      recycles: summary.leaving,
+      removesFiles: summary.filesRemoved.map(relative).sort(),
+      keepsPeople: true,
+    })
+  }
+
   /** Short-lived links to media files, for a pull that carries their metadata only. */
   async function mediaLinks(request: Request, url: URL): Promise<Response> {
     const body = (await request.json().catch(() => ({}))) as { keys?: unknown }
@@ -700,6 +743,14 @@ export function createRemote(options: RemoteOptions): Remote {
 
       if (what === 'pulls' && request.method === 'POST') return startPull(request, url, principal)
       if (what === 'pushes' && request.method === 'PUT') return startPush(request, url, principal)
+      if (what === 'pushes/check' && request.method === 'POST') {
+        if (
+          !may(principal, RemotePermissions.Push) ||
+          (settings.protected && !may(principal, RemotePermissions.PushProtected))
+        )
+          return problem(403, { code: 'forbidden', title: 'You may not push to this environment' })
+        return pushCheck(request)
+      }
       if (what === 'media/links' && request.method === 'POST') {
         if (!may(principal, RemotePermissions.Pull))
           return problem(403, {

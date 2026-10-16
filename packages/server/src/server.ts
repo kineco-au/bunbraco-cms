@@ -145,6 +145,7 @@ import { NotImplementedLog } from './not-implemented.ts'
 import { createDeps, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
 import { createRedirectTracker } from './redirects.ts'
 import { createRemote } from './remote.ts'
+import { withRemoteMedia } from './remote-media.ts'
 import { handleTransferAction, pendingTransfers } from './transfer-dashboard.ts'
 import {
   changeUrlOptions,
@@ -738,7 +739,11 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   })
   // The site's config may name a store; without one the environment decides,
   // and that falls back to the media directory on this disk.
-  const mediaStore = config.mediaStore ?? (await mediaStoreFromEnvironment(config.mediaDir))
+  // A site pulled with `--lazy-media` reads files through from its remote (story 108).
+  const mediaStore = withRemoteMedia(
+    config.mediaStore ?? (await mediaStoreFromEnvironment(config.mediaDir)),
+    config.siteDir,
+  )
   // Resolved once: constructing it twice would warn twice about a provider that
   // is half-configured, and the adapters are cheap but not free of side effects.
   const email = resolveEmailPort(config)

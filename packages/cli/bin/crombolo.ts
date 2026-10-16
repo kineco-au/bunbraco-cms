@@ -32,6 +32,10 @@
  *   crombolo domains set            write domains.toml and apply it
  *
  *   crombolo import <file>          replace this site with a whole-site file; says what first
+ *   crombolo remote add|list|remove the remotes this site pulls from and pushes to (remotes.toml)
+ *   crombolo login|logout|whoami    sign in to a remote with a code you approve in its back office
+ *   crombolo pull [<remote>]        a copy of a remote environment: started here, or replacing this site
+ *   crombolo push [<remote>]        replace a remote environment with this site
  *   crombolo import umbraco report  read-only: what importing an Umbraco backup would and would not bring
  *   crombolo import umbraco apply   write a crombolo site from an Umbraco backup
  *
@@ -45,6 +49,7 @@
  */
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
+import { hostname } from 'node:os'
 import { basename, join, relative, resolve } from 'node:path'
 import { AuthStore, resetAdminPassword } from '@crombolo/auth'
 import { ObjectTypes } from '@crombolo/core'
@@ -108,6 +113,7 @@ import {
   describeDatabase,
   dictionaryToUdt,
   domainsFilePath,
+  forgetSignIn,
   formTypesFor,
   importDictionaryUdt,
   isSafeAlias,
@@ -116,8 +122,11 @@ import {
   listeningBodyLimit,
   loadConfig,
   mediaStoreFor,
+  osKeychain,
   placeBlobs,
   readDomainsFile,
+  readRemoteMedia,
+  readSignIn,
   resolveDomainNode,
   resolvePlaceholders,
   type ServerHandle,
@@ -130,6 +139,7 @@ import {
   writeDictionaryUdt,
   writeDomains,
   writeDomainsFile,
+  writeRemoteMedia,
   writeUdtAll,
 } from '@crombolo/server'
 import {
@@ -152,6 +162,23 @@ import {
   writeResolutions,
 } from '@crombolo/transfer'
 import * as ops from '../src/operations/commands.ts'
+import {
+  discover,
+  type Job,
+  problemOf,
+  RemoteClient,
+  RemoteError,
+  signIn,
+  TimedOut,
+} from '../src/remote/client.ts'
+import { addRemote, pickRemote, readRemotes, removeRemote } from '../src/remote/remotes-file.ts'
+import {
+  fetchReferencedMedia,
+  pullFile,
+  pushSite,
+  RefusedBeforeSending,
+  referencedBlobs,
+} from '../src/remote/transfer.ts'
 import { findTemplate, listTemplates, scaffoldFiles } from '../src/templates.ts'
 
 const cwd = process.cwd()
@@ -223,7 +250,7 @@ function stopOnSignal(
  * imported as a replace so nothing of the scaffold's own starting point stays.
  * The new administrator's password is printed here, once.
  */
-async function startFromFile(from: string): Promise<void> {
+async function startFromFile(from: string, known?: string): Promise<void> {
   const file = resolve(cwd, from)
   if (!existsSync(file)) {
     console.error(`${from} does not exist.`)
@@ -241,12 +268,16 @@ async function startFromFile(from: string): Promise<void> {
     console.error(`${from} is not a whole-site file: write one with \`crombolo export --site\`.`)
     process.exit(1)
   }
-  const passphrase = manifest.people
-    ? (process.env[PASSPHRASE_ENV] ??
-      (process.stdin.isTTY ? await readSecret('  Passphrase for its people: ') : undefined))
-    : undefined
-  if (manifest.people && !passphrase) {
-    console.error(`${from} carries people, sealed: set ${PASSPHRASE_ENV} to its passphrase.`)
+  // A pull already holds the passphrase it sealed the file with.
+  const sealed = manifest.people !== undefined || manifest.content === 'sealed'
+  const passphrase = known
+    ? known
+    : sealed
+      ? (process.env[PASSPHRASE_ENV] ??
+        (process.stdin.isTTY ? await readSecret('  Passphrase for its people: ') : undefined))
+      : undefined
+  if (sealed && !passphrase) {
+    console.error(`${from} is sealed: set ${PASSPHRASE_ENV} to its passphrase.`)
     process.exit(1)
   }
 
@@ -2607,6 +2638,27 @@ function help(): void {
   domains clear <path|uuid|/> unbind that page, in the file and in the database
   domains apply               apply domains.toml here, as a boot does
   domains undo                put back the file the last write replaced, and apply it
+  remote add <name> <url> [--env <id>]
+                              a remote this site pulls from and pushes to, kept in
+                              remotes.toml (URLs only; sign-ins are in your keychain)
+  remote list | remove <name>
+  login [<remote>]            sign in with a code you approve in the remote's back office
+  logout [<remote>] | whoami [<remote>]
+  pull [<remote>] [--env <id>] [--full] [--yes]
+                              a copy of the environment, sealed and anonymised unless
+                              --full: started here in an empty folder, or replacing this
+                              site (what it loses is recycled; --yes skips the question)
+                              [--no-media] [--media-info-only] fetches media files one at a
+                              time, only what changed since the last pull; [--lazy-media]
+                              fetches each the first time it is asked for
+  push [<remote>] [--env <id>] [--force] [--auto-approve] [--media-info-only]
+                              replace the environment with this site; shows what it would
+                              replace first. A protected one needs --force and its name
+                              typed back (--auto-approve skips that); the remote may also
+                              hold it for someone else's approval
+                              exit 0 done, 1 refused or failed, 2 refused before sending,
+                              3 gave up waiting
+  media fetch                 a lazily pulled site's media files, all of them now
   import <file> [--replace | --replace-all]
                               replace this site with a whole-site file. Says first what
                               would be replaced, and changes nothing without a mode:
@@ -2706,6 +2758,331 @@ function commandAudit(): ops.CommandAudit | undefined {
   }
 }
 
+// ---------------------------------------------------------------- remotes (story 108)
+
+const keychain = () => osKeychain()
+
+/** Exit codes a pull or push states: 1 the remote refused or failed, 2 refused before sending, 3 gave up waiting. */
+function remoteExit(error: unknown): never {
+  if (error instanceof RefusedBeforeSending) {
+    console.error(`  ${error.message}`)
+    process.exit(2)
+  }
+  if (error instanceof TimedOut) {
+    console.error(`  ${error.message} The job carries on at the remote.`)
+    process.exit(3)
+  }
+  if (error instanceof RemoteError) {
+    console.error(`  ${error.message}`)
+    for (const item of error.problem.items ?? []) console.error(`    ${item}`)
+    process.exit(error.problem.code === 'sign-in-required' ? 2 : 1)
+  }
+  console.error(`  ${error instanceof Error ? error.message : String(error)}`)
+  process.exit(1)
+}
+
+function openInBrowser(url: string): void {
+  if (flags.has('--no-browser')) return
+  const opener =
+    process.platform === 'darwin'
+      ? ['open']
+      : process.platform === 'win32'
+        ? ['cmd', '/c', 'start', '']
+        : ['xdg-open']
+  try {
+    Bun.spawn([...opener, url], { stdout: 'ignore', stderr: 'ignore' })
+  } catch {
+    // Printed above; opening it is a convenience.
+  }
+}
+
+/** The remote a command names, signed in or not, with the environment it goes to. */
+async function connectRemote(name: string | undefined) {
+  const entry = pickRemote(cwd, name)
+  if (!entry) {
+    const known = readRemotes(cwd)
+    console.error(
+      known.length === 0
+        ? '  No remotes yet: `crombolo remote add <name> <url>`.'
+        : `  Which remote? ${known.map((r) => r.name).join(', ')}`,
+    )
+    process.exit(2)
+  }
+  const discovery = await discover(entry.url).catch(remoteExit)
+  const client = new RemoteClient(discovery, keychain())
+  const environment =
+    flagValue('--env') ??
+    entry.environment ??
+    (discovery.environments.length === 1 ? discovery.environments[0]?.id : undefined)
+  return { entry, discovery, client, environment }
+}
+
+async function remoteCommand(): Promise<void> {
+  const [sub, name, url] = positional
+  if (sub === 'add') {
+    if (!name || !url) {
+      console.error("remote add needs a name and the site's URL.")
+      process.exit(2)
+    }
+    const discovery = await discover(url).catch(remoteExit)
+    addRemote(cwd, { name, url: new URL(url).origin, environment: flagValue('--env') })
+    console.log(`  added    ${name}  ${discovery.name} (${new URL(url).origin})`)
+    for (const env of discovery.environments)
+      console.log(`  env      ${env.id}${env.protected ? '  protected' : ''}`)
+    console.log(`\n\`crombolo login ${name}\` signs in.`)
+    return
+  }
+  if (sub === 'remove') {
+    if (!name || !removeRemote(cwd, name)) {
+      console.error(`  There is no remote "${name ?? ''}".`)
+      process.exit(2)
+    }
+    console.log(`  removed  ${name}`)
+    return
+  }
+  const remotes = readRemotes(cwd)
+  if (remotes.length === 0) console.log('  No remotes yet: `crombolo remote add <name> <url>`.')
+  for (const remote of remotes) {
+    const signed = (await readSignIn(keychain(), remote.url).catch(() => undefined)) !== undefined
+    console.log(
+      `  ${remote.name.padEnd(12)} ${remote.url}${remote.environment ? `  env ${remote.environment}` : ''}${signed ? '' : '  (not signed in)'}`,
+    )
+  }
+}
+
+async function loginCommand(): Promise<void> {
+  const { entry, discovery } = await connectRemote(positional[0])
+  await signIn(discovery, keychain(), {
+    clientName: `crombolo on ${hostname()}`,
+    onCode: (code, url) => {
+      console.log(`  Approve this sign-in at ${url}`)
+      console.log(`  and check it shows   ${code}`)
+      openInBrowser(url)
+    },
+  }).catch(remoteExit)
+  console.log(`  signed in to ${entry.name}`)
+}
+
+async function logoutCommand(): Promise<void> {
+  const { entry, discovery } = await connectRemote(positional[0])
+  const signedIn = await readSignIn(keychain(), discovery.api)
+  // Ended at the remote too, best effort: the device leaves "Signed-in devices".
+  if (signedIn)
+    await fetch(signedIn.tokenUrl.replace(/\/token$/, '/revoke'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token: signedIn.accessToken }).toString(),
+    }).catch(() => undefined)
+  await forgetSignIn(keychain(), discovery.api)
+  console.log(`  signed out of ${entry.name}`)
+}
+
+async function whoamiCommand(): Promise<void> {
+  const { entry, client, discovery } = await connectRemote(positional[0])
+  const response = await client
+    .call(`${new URL(discovery.api).origin}/umbraco/management/api/v1/user/current`)
+    .catch(remoteExit)
+  if (!response.ok) remoteExit(await problemOf(response))
+  const me = (await response.json()) as { name: string; email: string }
+  console.log(`  ${me.name} <${me.email}> on ${entry.name}`)
+  for (const env of await client.environments().catch(remoteExit)) {
+    const may = [env.may.pull && 'pull', env.may.pullFull && 'full pull', env.may.push && 'push']
+      .filter(Boolean)
+      .join(', ')
+    console.log(`  ${env.id.padEnd(12)} ${may || 'nothing'}${env.protected ? '  (protected)' : ''}`)
+  }
+}
+
+const describeJob = (job: Job) =>
+  `  ${job.kind.padEnd(5)} ${job.state}${job.stage ? `, ${job.stage}` : ''}${job.progress != null ? ` (${job.progress}%)` : ''}`
+
+async function pullCommand(): Promise<void> {
+  const { client, environment, discovery } = await connectRemote(positional[0])
+  if (!environment) {
+    console.error(
+      `  Which environment? ${discovery.environments.map((e) => e.id).join(', ')} (--env)`,
+    )
+    process.exit(2)
+  }
+  const media = flags.has('--no-media')
+    ? ('omitted' as const)
+    : flags.has('--media-info-only') || flags.has('--lazy-media')
+      ? ('referenced' as const)
+      : ('included' as const)
+  const incoming = join(cwd, '.crombolo', 'transfer', 'incoming')
+  await mkdir(incoming, { recursive: true })
+  const out = join(incoming, `pull-${environment}-${Date.now().toString(36)}.tgz`)
+  const pulled = await pullFile(client, {
+    environment,
+    out,
+    full: flags.has('--full'),
+    media,
+    onProgress: (job) => console.log(describeJob(job)),
+  }).catch(remoteExit)
+  console.log(
+    `  pulled   ${describeBytes(pulled.size)}${flags.has('--full') ? '' : ', anonymised'}`,
+  )
+  if (media !== 'included') flags.add('--allow-missing-media')
+
+  const existing = existsSync(join(cwd, 'crombolo.config.ts'))
+  if (!existing) {
+    await startFromFile(out, pulled.passphrase)
+  } else {
+    const config = await siteConfig()
+    const { summary } = await ops.siteReplaceCheck(config, {
+      bundle: out,
+      passphrase: pulled.passphrase,
+      replace: 'replace',
+      allowMissingBlobs: media !== 'included',
+    })
+    const leaving = Object.entries(summary.leaving)
+    if (leaving.length > 0)
+      console.log(
+        `  recycled ${leaving.map(([kind, n]) => `${n} ${kind}`).join(', ')} here, not in ${environment}`,
+      )
+    if (summary.filesRemoved.length > 0)
+      console.log(`  removes  ${summary.filesRemoved.length} file(s) here, kept for a revert`)
+    if (!flags.has('--yes')) {
+      if (!process.stdin.isTTY) {
+        console.error(`\nThis replaces this site with ${environment}: pass --yes to go on.`)
+        process.exit(2)
+      }
+      const answer = prompt(`  Replace this site with ${environment}? [y/N]`)
+      if (!/^y(es)?$/i.test(answer?.trim() ?? '')) {
+        console.error('  Nothing was changed.')
+        process.exit(2)
+      }
+    }
+    const result = await ops.contentImport(config, {
+      bundle: out,
+      passphrase: pulled.passphrase,
+      replace: 'replace',
+      allowMissingBlobs: media !== 'included',
+      label: `pull from ${environment}`,
+      backupTaken: flags.has('--backup-taken'),
+    })
+    for (const problem of result.problems) console.error(`  ${problem}`)
+    if (!result.runId) {
+      printTransferFindings(result.check)
+      console.error('\npull refused. Nothing was changed.')
+      process.exit(1)
+    }
+    console.log(
+      `  replaced, run ${result.runId}: \`crombolo content revert ${result.runId}\` puts it back`,
+    )
+  }
+
+  if (media === 'referenced') {
+    const config = await siteConfig()
+    const blobs = await referencedBlobs(out)
+    if (flags.has('--lazy-media')) {
+      writeRemoteMedia(cwd, { api: discovery.api, environment })
+      await writeFile(
+        join(cwd, '.crombolo', 'remote-media-blobs.json'),
+        `${JSON.stringify(
+          blobs.map((b) => ({ key: b.key, etag: b.etag })),
+          null,
+          2,
+        )}\n`,
+      )
+      console.log(
+        `  media    ${blobs.length} file(s) fetched from ${environment} as they are first asked for`,
+      )
+    } else {
+      const fetched = await fetchReferencedMedia(client, {
+        environment,
+        blobs,
+        store: await mediaStoreFor(config),
+        siteDir: cwd,
+      }).catch(remoteExit)
+      console.log(
+        `  media    ${fetched.fetched} fetched (${describeBytes(fetched.bytes)}), ${fetched.skipped} already here`,
+      )
+      for (const key of fetched.failed)
+        console.error(`  missing  ${key}: run the pull again to fetch it`)
+    }
+  }
+  if (!existing) await start()
+}
+
+async function pushCommand(): Promise<void> {
+  const { client, environment, discovery } = await connectRemote(positional[0])
+  if (!environment) {
+    console.error(
+      `  Which environment? ${discovery.environments.map((e) => e.id).join(', ')} (--env)`,
+    )
+    process.exit(2)
+  }
+  const config = await siteConfig()
+  const result = await pushSite(config, client, {
+    environment,
+    force: flags.has('--force'),
+    autoApprove: flags.has('--auto-approve'),
+    mediaInfoOnly: flags.has('--media-info-only'),
+    onCheck: (check) => {
+      const counts = Object.entries(check.sending.counts)
+      console.log(
+        `  sending  ${counts.map(([kind, n]) => `${n} ${kind}`).join(', ') || 'no content'}, ${check.sending.files} file(s)`,
+      )
+      if (check.fromRemote) {
+        const recycles = Object.entries(check.recycles)
+        if (recycles.length > 0)
+          console.log(
+            `  recycles ${recycles.map(([kind, n]) => `${n} ${kind}`).join(', ')} on ${environment}`,
+          )
+        if (check.removesFiles.length > 0)
+          console.log(`  removes  ${check.removesFiles.join(', ')} on ${environment}`)
+      }
+    },
+    confirm: async () => {
+      if (!process.stdin.isTTY) return false
+      const answer = prompt(`  This replaces ${environment}. Type its name to go on:`)
+      return answer?.trim() === environment
+    },
+    onProgress: (job) => console.log(describeJob(job)),
+    onApproval: (job) => {
+      console.log(`  waiting  for someone else to approve it: ${job.approvalUrl}`)
+      if (job.approvalUrl) openInBrowser(job.approvalUrl)
+    },
+  }).catch(remoteExit)
+  const { job } = result
+  if (job.state === 'done') {
+    console.log(`\n  pushed   ${environment} replaced, run ${job.runId ?? '—'}`)
+    return
+  }
+  console.error(`\n  ${job.problem?.title ?? `the push ended ${job.state}`}`)
+  for (const item of job.problem?.items ?? []) console.error(`    ${item}`)
+  process.exit(1)
+}
+
+async function mediaCommand(): Promise<void> {
+  if (positional[0] !== 'fetch') return help()
+  const source = readRemoteMedia(cwd)
+  const listed = join(cwd, '.crombolo', 'remote-media-blobs.json')
+  if (!source || !existsSync(listed)) {
+    console.error('  This site was not pulled with --lazy-media: there is nothing to fetch.')
+    process.exit(2)
+  }
+  const discovery = await discover(source.api).catch(remoteExit)
+  const client = new RemoteClient(discovery, keychain())
+  const config = await siteConfig()
+  const blobs = JSON.parse(await Bun.file(listed).text()) as { key: string; etag: string | null }[]
+  const fetched = await fetchReferencedMedia(client, {
+    environment: source.environment,
+    blobs,
+    store: await mediaStoreFor(config),
+    siteDir: cwd,
+    onProgress: (done, total) => {
+      if (done % 50 === 0 || done === total) console.log(`  ${done}/${total}`)
+    },
+  }).catch(remoteExit)
+  console.log(
+    `  media    ${fetched.fetched} fetched (${describeBytes(fetched.bytes)}), ${fetched.skipped} already here`,
+  )
+  for (const key of fetched.failed) console.error(`  missing  ${key}`)
+  if (fetched.failed.length > 0) process.exit(1)
+}
+
 async function dispatch(): Promise<void> {
   switch (command) {
     case 'start':
@@ -2757,6 +3134,27 @@ async function dispatch(): Promise<void> {
       break
     case 'export':
       await exportCommand()
+      break
+    case 'remote':
+      await remoteCommand()
+      break
+    case 'login':
+      await loginCommand()
+      break
+    case 'logout':
+      await logoutCommand()
+      break
+    case 'whoami':
+      await whoamiCommand()
+      break
+    case 'pull':
+      await pullCommand()
+      break
+    case 'push':
+      await pushCommand()
+      break
+    case 'media':
+      await mediaCommand()
       break
     case 'import':
       await importSite()

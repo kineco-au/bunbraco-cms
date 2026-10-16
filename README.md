@@ -325,6 +325,8 @@ both the dependency and the `bundles: [redirects()]` line into the site's own
 bunx crombolo export --site --out my-site.tgz     # schema, files, content, media; not domains or people
 bunx crombolo start --from my-site.tgz            # in an empty folder: scaffold, install, import, serve
 bunx crombolo import my-site.tgz --replace        # replace an existing site; says what first
+bunx crombolo remote add production https://example.com && bunx crombolo login
+bunx crombolo pull                                # or push: the same, to and from a running site
 ```
 
 [`docs/content-transfer.md`](docs/content-transfer.md) has the detail.

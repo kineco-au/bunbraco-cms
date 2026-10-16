@@ -200,7 +200,7 @@ describe(`discovery (${dialectUnderTest})`, () => {
         token: `${ORIGIN}${SECURITY}/token`,
         clientId: REMOTE_CLIENT_ID,
       },
-      capabilities: ['media-fetch'],
+      capabilities: ['media-fetch', 'push-check'],
       environments: [{ id: 'production', name: 'production', protected: true }],
     })
     const anonymous = await h.server.fetch(new Request(`${ORIGIN}${REMOTE_API_PATH}/environments`))
@@ -324,6 +324,28 @@ describe(`pushing (${dialectUnderTest})`, () => {
     expect(job.runId).toBeDefined()
     const after = await h.json<{ variants: { name: string }[] }>(`${V1}/document/${home}`)
     expect(after.variants[0]?.name).toBe('Home')
+  })
+
+  test('a push can be checked first: what it would recycle and remove, nothing written', async () => {
+    const { h, root } = await remoteSite()
+    writeFileSync(join(root, 'css', 'old.css'), 'body {}\n')
+    const { json } = client(h, await tokenFor(h))
+    const checked = await json('environments/production/pushes/check', {
+      nodes: [],
+      files: ['schema/schema.toml', 'schema/content-types/page.toml', 'components/page.tsx'],
+    })
+    expect(checked.status).toBe(200)
+    expect(await checked.json()).toEqual({
+      environment: 'production',
+      recycles: { document: 1, media: 1 },
+      removesFiles: ['styles/old.css'],
+      keepsPeople: true,
+    })
+    const pages = await h.server.db.query(
+      "SELECT id FROM node WHERE text = 'Home' AND trashed = ?",
+      [h.server.db.dialect.boolValue(false)],
+    )
+    expect(pages).toHaveLength(1)
   })
 
   test('a protected environment needs its own permission', async () => {

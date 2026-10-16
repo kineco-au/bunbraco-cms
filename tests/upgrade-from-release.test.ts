@@ -119,7 +119,7 @@ describe('upgrading from the previous release', () => {
     expect(await readState(db)).toBe(STATE_REMOTE)
     expect(await db.query('SELECT id FROM remote_job')).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.2', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.3', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

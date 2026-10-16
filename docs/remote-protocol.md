@@ -45,6 +45,7 @@ stated otherwise. Errors are `application/problem+json` with a stable `code`
   - `protected: true` means a push there replaces something people rely on.
 - **`capabilities`:** optional features.
   - `media-fetch` means media by reference is offered (see below).
+  - `push-check` means a push can be checked before it is sent (see Pushing).
   - `approvals` means a push may wait for approval.
   - A client ignores capabilities it doesn't know.
 
@@ -162,6 +163,21 @@ before anything is replaced. Accepted, the push is a job that:
 A push to a protected environment needs the protected-push permission (403
 `forbidden-protected` otherwise).
 
+**Checking a push first** (`push-check`, optional). `POST
+<api>/environments/{id}/pushes/check` takes `{ "nodes": [keys], "files":
+[paths] }`: the file's node keys and the bundle paths of the sections it
+carries. Nothing is uploaded, and nothing is written. The answer says what
+the push would do here:
+
+```json
+{ "environment": "production", "recycles": { "document": 3, "media": 1 },
+  "removesFiles": ["styles/old.css"], "keepsPeople": true }
+```
+
+`removesFiles` is named by section, never by the remote's own paths. It needs
+the same permissions as the push. A client without it can only describe what
+it is sending.
+
 ## Approvals (optional)
 
 A remote may answer a push with a job in `approval-required`, with an
@@ -244,6 +260,18 @@ Administrators have all four.
   `maxRequestBodyBytes`; every other route keeps that limit.
 - **Audit.** Every pull, push and approval decision is written to the audit
   log.
+
+## The CLI (story 108)
+
+`crombolo remote`, `login`, `logout`, `whoami`, `pull`, `push` and `media fetch`
+are this protocol's reference client (`packages/cli/src/remote/`).
+- **Remotes** are in `remotes.toml`.
+- **Sign-ins** are in the keychain, through `Bun.secrets`, keyed by the API's
+  origin and refreshed as they run out.
+- **Passphrases:** each pull and push seals its file with a passphrase made
+  for that transfer alone.
+- **A lazily pulled site** reads media through from the remote it came from,
+  with `.crombolo/remote-media.json` saying which remote.
 
 ## Conformance
 
