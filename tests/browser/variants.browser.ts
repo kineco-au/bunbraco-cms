@@ -11,17 +11,6 @@ import { BASE_URL } from './playwright.config.ts'
 const API = '/umbraco/management/api/v1'
 const unique = (name: string) => `${name} ${Math.random().toString(36).slice(2, 7)}`
 
-async function openCreateDialog(page: Page) {
-  const dialog = page.locator('umb-document-create-options-modal')
-  await expect(async () => {
-    await page
-      .getByRole('button', { name: 'Create item for Content' })
-      .click({ force: true, timeout: 2_000 })
-    await expect(dialog).toBeVisible({ timeout: 2_000 })
-  }).toPass({ timeout: 15_000 })
-  return dialog
-}
-
 /**
  * Save and publish through the workspace's dialog, choosing exactly one culture.
  * The dialog's container reads as hidden to Playwright, so its parts are found
@@ -61,29 +50,36 @@ test('a page that varies by culture publishes English, then Danish, and renders 
   await page.reload()
   await settle(page)
 
-  // English first, through the create dialog and the workspace
-  await expect(async () => {
-    await openCreateDialog(page)
-    await page
-      .locator('uui-ref-node-document-type')
-      .filter({ hasText: 'Variant page' })
-      .click({ timeout: 3_000 })
-    await expect(page.locator('#name-input input')).toBeVisible({ timeout: 3_000 })
-  }).toPass({ timeout: 30_000 })
-  // Each field filled once it is there, and checked before saving: in CI the
-  // title's text once landed in the name, typed while the workspace was still
-  // rendering its properties, and the page was saved as name+title, title empty.
-  const name = page.locator('#name-input input')
-  const title = page.locator('umb-property-editor-ui-text-box #input').first()
-  await name.fill(`${EN} home`)
-  await expect(name).toHaveValue(`${EN} home`)
-  await expect(title).toBeVisible()
-  await title.fill(EN)
-  await expect(title).toHaveValue(EN)
-  await expect(name).toHaveValue(`${EN} home`)
+  // English content through the API, not typed into the editor: typing raced
+  // the workspace rendering its properties, and the title once landed in the
+  // name. What this test is about is the publish dialog and rendering per
+  // culture, so that is what goes through the backoffice.
+  const types = (await (
+    await page.request.get(`${API}/tree/document-type/root?take=100`)
+  ).json()) as {
+    items: Array<{ id: string; name: string }>
+  }
+  const typeId = types.items.find((t) => t.name === 'Variant page')?.id as string
+  const type = (await (await page.request.get(`${API}/document-type/${typeId}`)).json()) as {
+    defaultTemplate: { id: string } | null
+  }
+  const created = await page.request.post(`${API}/document`, {
+    data: {
+      documentType: { id: typeId },
+      template: type.defaultTemplate,
+      parent: null,
+      values: [{ alias: 'title', culture: 'en-US', segment: null, value: EN }],
+      variants: [{ culture: 'en-US', segment: null, name: `${EN} home` }],
+    },
+  })
+  expect(created.status()).toBe(201)
+  const key = created.headers()['umb-generated-resource'] as string
+
+  // Published in English through the workspace's dialog
+  await page.goto(`/crombolo/section/content/workspace/document/edit/${key}`)
+  await settle(page)
+  await expect(page.locator('#name-input input')).toHaveValue(`${EN} home`)
   await saveAndPublish(page, 'English')
-  await expect(page).toHaveURL(/\/workspace\/document\/edit\//)
-  const key = /\/edit\/([0-9a-f-]{36})/.exec(page.url())?.[1] as string
   const states = async () =>
     Object.fromEntries(
       (
