@@ -80,6 +80,7 @@ describe('the tarball', () => {
       yield new Uint8Array(3)
     }
     await expect(writer.addStream('f', 5, one())).rejects.toThrow('was 3 bytes, not 5')
+    await writer.abort()
   })
 })
 

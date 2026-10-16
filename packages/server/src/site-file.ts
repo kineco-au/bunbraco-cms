@@ -267,7 +267,7 @@ export async function exportSite(
     await writer.close()
     await rename(partial, options.out)
   } catch (error) {
-    await writer.close().catch(() => {})
+    await writer.abort()
     await rm(partial, { force: true })
     throw error
   }

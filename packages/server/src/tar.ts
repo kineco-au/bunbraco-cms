@@ -148,6 +148,15 @@ export class TarballWriter {
     this.#gzip.end()
     await this.#done
   }
+
+  /**
+   * Gives up on a half-written file: the stream ends now, and its error is
+   * swallowed, so nothing surfaces later after the caller has cleaned up.
+   */
+  async abort(): Promise<void> {
+    this.#gzip.destroy()
+    await this.#done.catch(() => {})
+  }
 }
 
 const decoder = new TextDecoder()

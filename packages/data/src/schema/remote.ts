@@ -22,7 +22,7 @@ export const remoteMigration: Migration = {
   to: STATE_REMOTE,
   name: 'AddRemote',
   kind: 'expand',
-  release: '0.14.3',
+  release: '0.14.4',
   async up(db: Db) {
     const t = db.dialect.types
     await db.exec(

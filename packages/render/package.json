@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/render",
-  "version": "0.14.3",
+  "version": "0.14.4",
   "description": "TSX server rendering and the published-content model for crombolo.",
   "license": "MIT",
   "author": "Crombolo",
