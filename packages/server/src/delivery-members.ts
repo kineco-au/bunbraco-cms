@@ -83,7 +83,7 @@ export interface DeliveryMemberSecurity {
 export function createDeliveryMemberSecurity(options: {
   db: Db
   settings: DeliveryApiSettings
-  members: Pick<MemberAuth, 'resolve' | 'signOutCookie'>
+  members: Pick<MemberAuth, 'resolve' | 'signOutCookie' | 'externalSignInUrl'>
 }): DeliveryMemberSecurity {
   const { db, settings } = options
   const tokens = new DeliveryMemberTokenRepository(db)
@@ -175,6 +175,15 @@ export function createDeliveryMemberSecurity(options: {
 
     const signedIn = await options.members.resolve(request)
     if (!signedIn) {
+      // `identity_provider` names a member provider, as Umbraco's
+      // `UmbracoMembers.{id}` scheme or by its id: straight there, then back here.
+      const named = q('identity_provider').replace(/^UmbracoMembers\./i, '')
+      if (named) {
+        const external = options.members.externalSignInUrl(named, `${url.pathname}${url.search}`)
+        if (!external)
+          return local('invalid_request', "The specified 'identity_provider' is not configured.")
+        return new Response(null, { status: 302, headers: { location: external } })
+      }
       if (!code.loginPage)
         return local(
           'login_required',

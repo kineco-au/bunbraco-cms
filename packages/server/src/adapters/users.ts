@@ -41,6 +41,8 @@ import {
 import {
   type Db,
   DbDate,
+  ExternalLoginRepository,
+  externalLoginProvider,
   type GranularPermission,
   SUPER_USER_KEY,
   UserDataRepository,
@@ -106,7 +108,12 @@ type Tree = 'document' | 'media' | 'element'
 export interface UserPortOptions {
   config: Pick<
     CromboloConfig,
-    'usernameIsEmail' | 'applicationUrl' | 'sendUserLink' | 'allowPasswordReset' | 'backOfficePath'
+    | 'usernameIsEmail'
+    | 'applicationUrl'
+    | 'sendUserLink'
+    | 'allowPasswordReset'
+    | 'backOfficePath'
+    | 'backofficeIdentityProviders'
   >
   mediaFiles: MediaFileStore
   nodes: NodeLookup
@@ -275,6 +282,21 @@ export function createUserPorts(
       allowTwoFactor: false,
     }),
     passwordConfiguration: () => DEFAULT_PASSWORD_CONFIGURATION,
+
+    // Linking happens by signing in through the provider; the profile only lists it.
+    async loginProviders(principal) {
+      const linked = await new ExternalLoginRepository(db).forOwner(principal.id)
+      return config.backofficeIdentityProviders.map((provider) => {
+        const scheme = externalLoginProvider('user', provider.oidc.id)
+        const link = linked.find((l) => l.loginProvider.toLowerCase() === scheme.toLowerCase())
+        return {
+          providerSchemeName: scheme,
+          providerKey: link?.providerKey ?? null,
+          isLinkedOnUser: Boolean(link),
+          hasManualLinkingEnabled: false,
+        }
+      })
+    },
 
     async list(principal, skip, take) {
       const admin = await adminKey()

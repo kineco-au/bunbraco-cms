@@ -12,6 +12,9 @@
  *   POST /umbraco/members/logout
  *   POST /umbraco/members/register  name, email, username, password, returnUrl?
  *   GET  /umbraco/members/current
+ *   POST /umbraco/members/login/2fa  code, returnUrl?   the second step, when 2FA is on
+ *   GET  /umbraco/members/2fa                           the signed-in member's 2FA state
+ *   POST /umbraco/members/2fa/setup | enable | disable   turning it on and off (story 032)
  *
  * A form post is answered with a redirect, a JSON post with JSON, so the same
  * endpoint serves a plain `<form>` in a TSX template and a fetch from the page.
@@ -27,8 +30,10 @@ import {
   passwordConfigJson,
   readCookie,
   readMemberTicket,
+  readShortLived,
   serializeCookie,
   signMemberTicket,
+  signShortLived,
   verifyPassword,
 } from '@crombolo/auth'
 import {
@@ -46,13 +51,24 @@ import {
   type NodeSchemaState,
   PublicAccessRepository,
 } from '@crombolo/data'
-import type { AccessDecision, PublishedContent, RequestMember } from '@crombolo/render'
+import {
+  type AccessDecision,
+  MEMBER_EXTERNAL_SIGN_IN_PATH,
+  type PublishedContent,
+  type RequestMember,
+} from '@crombolo/render'
 import type { CromboloConfig } from './config.ts'
+import { createExternalSignIn, type ExternalAccount } from './external-sign-in.ts'
+import { IdentityProviderOverrides } from './identity-provider-overrides.ts'
+import { MEMBER_TWO_FACTOR_PROVIDER, TwoFactorService } from './two-factor.ts'
 
 /** The key member tickets are signed with, generated once and shared by every node. */
 const SIGNING_KEY = 'crombolo/memberCookieKey'
 
 export const MEMBER_ROUTE_PREFIX = '/umbraco/members'
+
+/** How long a member has to enter their code after their password. */
+const TWO_FACTOR_PENDING_SECONDS = 5 * 60
 
 export interface MemberAuthOptions {
   /** The schema state this node runs at; a registration is refused without it. */
@@ -73,6 +89,11 @@ export interface MemberAuth {
   handle(request: Request, pathname: string): Promise<Response | undefined>
   /** The `Set-Cookie` value that ends a member's site session. */
   signOutCookie(): string
+  /**
+   * Where a "Sign in with …" link for a member identity provider goes, by its
+   * id; undefined for a provider the site does not configure.
+   */
+  externalSignInUrl(providerId: string, returnUrl?: string): string | undefined
 }
 
 const isFormPost = (request: Request) =>
@@ -150,6 +171,13 @@ export function createMemberAuth(
     return signingKey
   }
 
+  const twoFactor = new TwoFactorService(db, {
+    secretKey: config.secretKey,
+    issuer: config.siteName,
+  })
+  const pendingCookie = `${cookie}TwoFactor`
+  const flagged = (url: string, flags: string) => `${url}${url.includes('?') ? '&' : '?'}${flags}`
+
   const asRequestMember = (member: {
     key: string
     name: string
@@ -176,6 +204,93 @@ export function createMemberAuth(
       maxAgeSeconds: persist ? config.memberSessionMinutes * 60 : undefined,
     })
   }
+
+  /** Member group keys by name, for the names a registration or a provider names. */
+  const groupKeysFor = async (names: readonly string[]): Promise<string[]> => {
+    const keys: string[] = []
+    for (const groupName of names) {
+      const rows = await db.query<{ unique_id: string }>(
+        'SELECT unique_id FROM node WHERE text = ? AND node_object_type = ?',
+        [groupName, ObjectTypes.MemberGroup],
+      )
+      if (rows[0]) keys.push(String(rows[0].unique_id))
+    }
+    return keys
+  }
+
+  const asAccount = (member: { key: string; email: string; roles: string[] }): ExternalAccount => ({
+    key: member.key,
+    email: member.email,
+    groups: member.roles,
+  })
+
+  const MEMBER_EXTERNAL_PATH = MEMBER_EXTERNAL_SIGN_IN_PATH
+  const external =
+    config.memberIdentityProviders.length === 0
+      ? undefined
+      : createExternalSignIn(
+          db,
+          {
+            audience: 'member',
+            providers: config.memberIdentityProviders,
+            basePath: MEMBER_EXTERNAL_PATH,
+            byKey: async (key) => {
+              const member = await members.byKey(key)
+              return member ? asAccount(member) : undefined
+            },
+            byEmail: async (email) => {
+              const member = await members.byEmail(email)
+              return member ? asAccount(member) : undefined
+            },
+            create: async (identity, provider, groups) => {
+              const alias = provider.memberType ?? config.memberRegistrationType
+              const type = await memberTypes.byAlias(alias)
+              if (!type) throw new Error(`The member type "${alias}" does not exist.`)
+              const email = identity.email as string
+              // The email is the username, as registration makes it, unless
+              // someone already signs in with that name.
+              const username = (await members.taken('username', email))
+                ? `${provider.oidc.id}-${identity.subject}`
+                : email
+              const created = await members.create(
+                {
+                  key: crypto.randomUUID(),
+                  contentTypeKey: type.key,
+                  componentKey: null,
+                  parentKey: null,
+                  values: [],
+                  variants: [{ culture: null, segment: null, name: identity.name || email }],
+                },
+                {
+                  email,
+                  username,
+                  isApproved: true,
+                  isLockedOut: false,
+                  groupKeys: await groupKeysFor(groups),
+                },
+              )
+              return asAccount(created)
+            },
+            setGroups: async (account, groups) => {
+              await members.setGroups(account.key, await groupKeysFor(groups))
+            },
+            signIn: async (account) => {
+              const member = await members.byKey(account.key)
+              if (!member?.isApproved || member.isLockedOut)
+                return { refused: 'This account cannot sign in at the moment.' }
+              await members.recordLogin(member.key)
+              return { cookies: [await issue(member.key, member.securityStamp, false)] }
+            },
+            failed: (returnUrl, reason) =>
+              `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}memberLoginFailed=1&memberLoginError=${encodeURIComponent(reason)}`,
+          },
+          {
+            applicationUrl: config.applicationUrl,
+            secureCookies: config.secureCookies,
+            resolve: (provider) =>
+              new IdentityProviderOverrides(db, config.secretKey).apply('member', provider),
+          },
+        )
 
   const resolve: MemberAuth['resolve'] = async (request) => {
     const ticket = await readMemberTicket(await secret(), readCookie(request, cookie))
@@ -264,6 +379,28 @@ export function createMemberAuth(
         await hashPassword(input.password ?? ''),
         passwordConfigJson(),
       )
+    if ((await twoFactor.providers(member.key)).includes(MEMBER_TWO_FACTOR_PROVIDER)) {
+      const pending = await signShortLived(
+        await secret(),
+        { sub: member.key, persist: input.rememberMe === 'true' ? 1 : 0 },
+        TWO_FACTOR_PENDING_SECONDS,
+      )
+      return answer(
+        request,
+        { ok: true, body: { twoFactorRequired: true } },
+        {
+          returnUrl: flagged(back, 'memberTwoFactorRequired=1'),
+          cookies: [
+            serializeCookie({
+              name: pendingCookie,
+              value: pending,
+              secure: config.secureCookies,
+              maxAgeSeconds: TWO_FACTOR_PENDING_SECONDS,
+            }),
+          ],
+        },
+      )
+    }
     await members.recordLogin(member.key)
     return answer(
       request,
@@ -273,6 +410,87 @@ export function createMemberAuth(
         cookies: [await issue(member.key, member.securityStamp, input.rememberMe === 'true')],
       },
     )
+  }
+
+  /** The second step: the code from the app, or a recovery code, after the password. */
+  const verifyTwoFactor = async (request: Request): Promise<Response> => {
+    const input = await readInput(request)
+    const back = safeReturnUrl(input.returnUrl) ?? '/'
+    const pending = await readShortLived(await secret(), readCookie(request, pendingCookie))
+    const key = typeof pending?.sub === 'string' ? pending.sub : undefined
+    const member = key ? await members.byKey(key) : undefined
+    if (!member || member.isLockedOut || !member.isApproved)
+      return answer(
+        request,
+        { ok: false, status: 401, error: 'Sign in again.' },
+        {
+          returnUrl: flagged(back, 'memberLoginFailed=1'),
+          cookies: [expireCookie(pendingCookie, config.secureCookies)],
+        },
+      )
+    if (!(await twoFactor.verify(member.key, MEMBER_TWO_FACTOR_PROVIDER, input.code ?? ''))) {
+      await members.recordFailedLogin(member.key, config.maxFailedPasswordAttempts)
+      return answer(
+        request,
+        { ok: false, status: 400, error: 'That code is not right.' },
+        { returnUrl: flagged(back, 'memberTwoFactorRequired=1&memberLoginFailed=1') },
+      )
+    }
+    await members.recordLogin(member.key)
+    return answer(
+      request,
+      { ok: true, body: { member: asRequestMember(member) } },
+      {
+        returnUrl: back,
+        cookies: [
+          await issue(member.key, member.securityStamp, pending?.persist === 1),
+          expireCookie(pendingCookie, config.secureCookies),
+        ],
+      },
+    )
+  }
+
+  /** The signed-in member's own two-factor settings; JSON, as the recovery codes must be shown. */
+  const manageTwoFactor = async (request: Request, step: string): Promise<Response> => {
+    const member = await resolve(request)
+    if (!member) return Response.json({ error: 'Sign in first.' }, { status: 401 })
+    const refused = (message: string, status = 400) => Response.json({ error: message }, { status })
+    if (step === '') {
+      if (request.method !== 'GET') return new Response(null, { status: 405 })
+      return Response.json({
+        available: twoFactor.available,
+        enabled: (await twoFactor.providers(member.key)).includes(MEMBER_TWO_FACTOR_PROVIDER),
+        recoveryCodesLeft: await twoFactor.recoveryCodesLeft(member.key),
+      })
+    }
+    if (request.method !== 'POST') return new Response(null, { status: 405 })
+    if (!fromThisSite(request)) return new Response('Forbidden', { status: 403 })
+    const input = await readInput(request)
+    switch (step) {
+      case 'setup': {
+        const setup = twoFactor.setup(member.email || member.username)
+        return setup.ok ? Response.json(setup.value) : refused(setup.message)
+      }
+      case 'enable': {
+        const enabled = await twoFactor.enable(
+          member.key,
+          MEMBER_TWO_FACTOR_PROVIDER,
+          input.secret ?? '',
+          input.code ?? '',
+        )
+        return enabled.ok ? Response.json(enabled.value) : refused(enabled.message)
+      }
+      case 'disable': {
+        const disabled = await twoFactor.disable(
+          member.key,
+          MEMBER_TWO_FACTOR_PROVIDER,
+          input.code ?? '',
+        )
+        return disabled.ok ? Response.json({ ok: true }) : refused(disabled.message)
+      }
+      default:
+        return new Response(null, { status: 404 })
+    }
   }
 
   const logout = async (request: Request): Promise<Response> => {
@@ -330,14 +548,7 @@ export function createMemberAuth(
         status: 400,
         error: `A password must be at least ${DEFAULT_PASSWORD_CONFIGURATION.minimumPasswordLength} characters.`,
       })
-    const groupKeys: string[] = []
-    for (const groupName of config.memberRegistrationGroups) {
-      const rows = await db.query<{ unique_id: string }>(
-        'SELECT unique_id FROM node WHERE text = ? AND node_object_type = ?',
-        [groupName, ObjectTypes.MemberGroup],
-      )
-      if (rows[0]) groupKeys.push(String(rows[0].unique_id))
-    }
+    const groupKeys = await groupKeysFor(config.memberRegistrationGroups)
     const created = await members.create(
       {
         key: crypto.randomUUID(),
@@ -371,19 +582,29 @@ export function createMemberAuth(
     resolve,
     decide,
     signOutCookie: () => expireCookie(cookie, config.secureCookies),
+    externalSignInUrl: (providerId, returnUrl) =>
+      config.memberIdentityProviders.some((p) => p.oidc.id === providerId)
+        ? external?.startUrl(providerId, returnUrl)
+        : undefined,
     async handle(request, pathname) {
       if (!pathname.startsWith(`${MEMBER_ROUTE_PREFIX}/`)) return undefined
+      if (pathname.startsWith(`${MEMBER_EXTERNAL_PATH}/`))
+        return external?.handle(request, pathname) ?? undefined
       const action = pathname.slice(MEMBER_ROUTE_PREFIX.length + 1)
       if (action === 'current') {
         if (request.method !== 'GET') return new Response(null, { status: 405 })
         const member = await resolve(request)
         return member ? Response.json({ member }) : Response.json({ member: null }, { status: 401 })
       }
+      if (action === '2fa' || action.startsWith('2fa/'))
+        return manageTwoFactor(request, action.slice(4))
       if (request.method !== 'POST') return new Response(null, { status: 405 })
       if (!fromThisSite(request)) return new Response('Forbidden', { status: 403 })
       switch (action) {
         case 'login':
           return login(request)
+        case 'login/2fa':
+          return verifyTwoFactor(request)
         case 'logout':
           return logout(request)
         case 'register':

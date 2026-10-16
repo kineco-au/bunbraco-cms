@@ -12,6 +12,7 @@ import type {
   ServerPort,
   TemporaryFilePort,
   UserItemPort,
+  UserTwoFactorPort,
 } from '@crombolo/api-management'
 import { AuthStore, expireCookie, serializeCookie } from '@crombolo/auth'
 import {
@@ -84,6 +85,7 @@ import { createOEmbedService } from './oembed.ts'
 import { createRedirectTracker } from './redirects.ts'
 import { componentAliasesIn, type SchemaBoot } from './schema.ts'
 import { publishSchema } from './schema-store.ts'
+import { TwoFactorService, USER_TWO_FACTOR_PROVIDER } from './two-factor.ts'
 import { createWebhookService, type WebhookService } from './webhooks.ts'
 
 /** Re-exported for tests; the canonical list lives in @crombolo/core. */
@@ -492,7 +494,22 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
         await store.endAllSessionsForUser(userId)
       },
     })
-    deps.userManagement = userPorts.users
+    // Story 032: the authenticator provider, offered only where secrets can be sealed.
+    const twoFactor = new TwoFactorService(options.db, {
+      secretKey: options.config.secretKey,
+      issuer: options.config.siteName,
+    })
+    const configuration = userPorts.users.configuration
+    const currentConfiguration = userPorts.users.currentConfiguration
+    deps.userManagement = {
+      ...userPorts.users,
+      configuration: () => ({ ...configuration(), allowTwoFactor: twoFactor.available }),
+      currentConfiguration: () => ({
+        ...currentConfiguration(),
+        allowTwoFactor: twoFactor.available,
+      }),
+      twoFactor: userTwoFactorPort(twoFactor),
+    }
     deps.userGroups = userPorts.groups
     deps.userData = userPorts.userData
     deps.media = createMediaPort(options.db, mediaFiles, {
@@ -620,4 +637,41 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
     }
   }
   return deps
+}
+
+/** The user operations' view of two-factor sign-in: the one authenticator provider. */
+function userTwoFactorPort(service: TwoFactorService): UserTwoFactorPort {
+  const provider = USER_TWO_FACTOR_PROVIDER
+  return {
+    providerName: provider,
+    async list(userKey) {
+      return [
+        {
+          providerName: provider,
+          isEnabledOnUser: (await service.providers(userKey)).includes(provider),
+        },
+      ]
+    },
+    setup(account) {
+      const setup = service.setup(account)
+      return setup.ok
+        ? {
+            ok: true,
+            secret: setup.value.secret,
+            qrCodeSetupImageUrl: setup.value.qrCodeSetupImageUrl,
+          }
+        : { ok: false, message: setup.message }
+    },
+    async enable(userKey, code, secret) {
+      const enabled = await service.enable(userKey, provider, secret, code)
+      return enabled.ok
+        ? { ok: true, recoveryCodes: enabled.value.recoveryCodes }
+        : { ok: false, message: enabled.message }
+    },
+    async disable(userKey, code) {
+      const disabled = await service.disable(userKey, provider, code)
+      return disabled.ok ? { ok: true } : { ok: false, message: disabled.message }
+    },
+    reset: (userKey) => service.reset(userKey, provider),
+  }
 }

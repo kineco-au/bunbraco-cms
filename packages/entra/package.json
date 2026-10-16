@@ -1,0 +1,75 @@
+{
+  "name": "@crombolo/entra",
+  "version": "0.14.0",
+  "description": "Edit a Microsoft Entra sign-in from the Crombolo backoffice: tenant, app credentials and group mappings, over the provider the site declares in code.",
+  "license": "MIT",
+  "author": "Crombolo",
+  "homepage": "https://github.com/kineco-au/crombolo-cms#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kineco-au/crombolo-cms.git",
+    "directory": "packages/entra"
+  },
+  "bugs": {
+    "url": "https://github.com/kineco-au/crombolo-cms/issues"
+  },
+  "keywords": [
+    "crombolo",
+    "crombolo-bundle",
+    "entra",
+    "azure-ad",
+    "single-sign-on",
+    "cms"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "plugin",
+    "src",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "crombolo": {
+    "id": "entra",
+    "name": "Microsoft Entra",
+    "server": "entraSettings",
+    "extensions": [
+      {
+        "type": "menuItem",
+        "alias": "Crombolo.MenuItem.Entra",
+        "name": "Microsoft Entra Menu Item",
+        "weight": 240,
+        "meta": {
+          "label": "Microsoft Entra",
+          "icon": "icon-key",
+          "entityType": "crombolo-entra",
+          "menus": [
+            "Umb.Menu.AdvancedSettings"
+          ]
+        }
+      },
+      {
+        "type": "workspace",
+        "alias": "Crombolo.Workspace.Entra",
+        "name": "Microsoft Entra Workspace",
+        "element": "plugin/entra-workspace.js",
+        "meta": {
+          "entityType": "crombolo-entra"
+        }
+      }
+    ]
+  },
+  "dependencies": {
+    "@crombolo/server": "workspace:*"
+  },
+  "peerDependencies": {
+    "@crombolo/crombolo": ">=0.14.0"
+  }
+}

@@ -17,7 +17,11 @@ import {
 } from './cookies.ts'
 import type { AuthService } from './service.ts'
 import { BACKOFFICE_CLIENT_ID, DEFAULT_SCOPE } from './service.ts'
+import { readShortLived, signShortLived } from './short-lived.ts'
 import type { UserRow } from './store.ts'
+
+/** How long a sign-in waits for its two-factor code. */
+const TWO_FACTOR_PENDING_SECONDS = 5 * 60
 
 export const SECURITY_PREFIX = `${MANAGEMENT_API_PATH}/security/back-office`
 
@@ -27,6 +31,13 @@ export interface AuthRouteOptions {
   cookies: CookieOptions
   /** Told about every sign-in, failed sign-in and sign-out, for the audit log. */
   onAudit?: (event: AuthAuditEvent, request: Request) => Promise<void>
+  /** Two-factor sign-in (story 032): who has a provider on, and whether a code is theirs. */
+  twoFactor?: {
+    providersFor(userKey: string): Promise<string[]>
+    verify(userKey: string, provider: string, code: string): Promise<boolean>
+    /** The key the pending cookie is signed with. */
+    secret(): Promise<string>
+  }
 }
 
 export interface AuthAuditEvent {
@@ -281,6 +292,9 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
       username,
       password,
       request.headers.get('x-forwarded-for') ?? undefined,
+      options.twoFactor
+        ? async (user) => (await options.twoFactor?.providersFor(user.key)) ?? []
+        : undefined,
     )
 
     if (result.status === 'success') await audit({ action: 'SignIn', user: result.user }, request)
@@ -322,12 +336,31 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
         problemDetails({ title: 'Login not allowed', status: 403, operationStatus: result.reason }),
       )
     }
-    if (result.status === 'twoFactorRequired') {
+    if (result.status === 'twoFactorRequired' && options.twoFactor) {
+      // The password was right; the session waits for the code. The pending
+      // cookie names who is part-way in, for five minutes.
+      const pending = await signShortLived(
+        await options.twoFactor.secret(),
+        { sub: result.user.key, login: result.user.login },
+        TWO_FACTOR_PENDING_SECONDS,
+      )
       return Response.json(
         { twoFactorLoginView: null, enabledTwoFactorProviderNames: result.providers },
-        { status: 402 },
+        {
+          status: 402,
+          headers: {
+            'set-cookie': serializeCookie({
+              name: names.twoFactorPending,
+              value: pending,
+              secure,
+              maxAgeSeconds: TWO_FACTOR_PENDING_SECONDS,
+            }),
+          },
+        },
       )
     }
+    if (result.status === 'twoFactorRequired')
+      return oauthError('server_error', 'Two-factor sign-in is not set up.', 500)
 
     return new Response(null, {
       status: 200,
@@ -335,6 +368,60 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
         'set-cookie': sessionCookie(result.sessionId, service.settings.refreshTokenSeconds),
       },
     })
+  }
+
+  /** The second step of a sign-in: the code, against the pending cookie the password set. */
+  async function handleVerifyTwoFactor(request: Request): Promise<Response> {
+    const twoFactor = options.twoFactor
+    if (!twoFactor)
+      return problemResponse(
+        problemDetails({ title: 'Two-factor sign-in is not set up', status: 400 }),
+      )
+    const pending = await readShortLived(
+      await twoFactor.secret(),
+      readCookie(request, names.twoFactorPending),
+    )
+    const userKey = typeof pending?.sub === 'string' ? pending.sub : undefined
+    const login = typeof pending?.login === 'string' ? pending.login : undefined
+    if (!userKey || !login)
+      return problemResponse(
+        problemDetails({
+          title: 'Sign in again',
+          status: 401,
+          detail: 'The sign-in took too long. Enter your password again.',
+        }),
+      )
+    const body = (await request.json().catch(() => ({}))) as { provider?: unknown; code?: unknown }
+    const provider = typeof body.provider === 'string' ? body.provider : ''
+    const code = typeof body.code === 'string' ? body.code.trim() : ''
+    const ok = provider && code ? await twoFactor.verify(userKey, provider, code) : false
+    if (!ok) {
+      const { lockedOut } = await service.twoFactorFailed(login)
+      await audit({ action: 'SignInFailed', login, detail: 'Wrong two-factor code' }, request)
+      return problemResponse(
+        problemDetails({
+          title: lockedOut ? 'Login not allowed' : 'Invalid code',
+          status: lockedOut ? 403 : 400,
+          operationStatus: lockedOut ? 'lockedOut' : 'InvalidCode',
+        }),
+      )
+    }
+    const result = await service.signInExternally(
+      login,
+      request.headers.get('x-forwarded-for') ?? undefined,
+    )
+    if (result.status !== 'success')
+      return problemResponse(
+        problemDetails({ title: 'Login not allowed', status: 403, operationStatus: result.reason }),
+      )
+    await audit({ action: 'SignIn', user: result.user, detail: 'With two-factor sign-in' }, request)
+    const headers = new Headers()
+    headers.append(
+      'set-cookie',
+      sessionCookie(result.sessionId, service.settings.refreshTokenSeconds),
+    )
+    headers.append('set-cookie', expireCookie(names.twoFactorPending, secure))
+    return new Response(null, { status: 200, headers })
   }
 
   async function handleRevoke(request: Request): Promise<Response> {
@@ -371,13 +458,8 @@ export function createAuthRoutes(options: AuthRouteOptions): AuthRoutes {
       if (action === 'login' && request.method === 'POST') return handleLogin(request)
       if (action === 'revoke' && request.method === 'POST') return handleRevoke(request)
       if (action === 'signout') return handleSignOut(request, url)
-      if (action === 'verify-2fa' && request.method === 'POST') {
-        return oauthError(
-          'unsupported_grant_type',
-          'Two-factor authentication is not implemented.',
-          400,
-        )
-      }
+      if (action === 'verify-2fa' && request.method === 'POST')
+        return handleVerifyTwoFactor(request)
       return undefined
     },
   }

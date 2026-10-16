@@ -910,6 +910,38 @@ A capability is therefore the unit of negotiation. Adding one is a deliberate ac
 in core — which is the point, because it is also the moment somebody decides what
 a third party may touch.
 
+## The second bundle: Microsoft Entra
+
+`@crombolo/entra` (story 033) is a Settings screen for the Microsoft Entra
+sign-ins a site declares in code with `entra()`. It never declares one: the
+config is what makes a provider exist. What it changes are that provider's
+settings, through the `identityProviders` capability:
+- tenant, client id, client secret and button text;
+- create accounts, link by verified email, trust emails;
+- the group mappings and default groups.
+
+Core keeps those overrides in `key_value`, with the client secret sealed by
+`CROMBOLO_SECRET_KEY`, and applies them on top of the code's settings at every
+sign-in, so a change reaches every node at once. "Use the code's settings"
+deletes them.
+
+The capability lists the providers with their effective settings, and never a
+secret. It sets or clears fields, resets a provider, tests the provider's
+discovery document, and lists the groups a mapping can name. The bundle shows
+only the providers `entra()` made. Anyone with Settings can read the screen;
+only an administrator can change it, because a group mapping can grant
+administrator.
+
+```ts
+import { entraSettings } from '@crombolo/entra'
+import { defineConfig, entra } from '@crombolo/crombolo'
+
+export default defineConfig({
+  backofficeIdentityProviders: [entra({ tenantId, clientId, clientSecret })],
+  bundles: [entraSettings()],
+})
+```
+
 ## The first bundle: Simple Redirects
 
 `@crombolo/simple-redirects` adds what the Umbraco redirect packages add over

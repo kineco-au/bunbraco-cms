@@ -72,6 +72,7 @@
     "@crombolo/core": "workspace:*",
     "@crombolo/crombolo": "workspace:*",
     "@crombolo/data": "workspace:*",
+    "@crombolo/entra": "workspace:*",
     "@crombolo/import-umbraco": "workspace:*",
     "@crombolo/render": "workspace:*",
     "@crombolo/schema": "workspace:*",
@@ -80,6 +81,7 @@
     "@crombolo/transfer": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/bun": "^1.4.2",
+    "jose": "^6.2.12",
     "openapi-typescript": "^6.7.6",
     "typescript": "^7.0.2"
   },

@@ -6,6 +6,14 @@
   "allowPublicAccess": false,
   "extensions": [
     {
+      "type": "mfaLoginProvider",
+      "alias": "Crombolo.MfaLoginProvider.Authenticator",
+      "name": "Crombolo Authenticator App",
+      "forProviderName": "UmbracoUserAppAuthenticator",
+      "element": "/crombolo-plugin/two-factor-setup.js",
+      "meta": { "label": "Authenticator app" }
+    },
+    {
       "type": "sectionView",
       "alias": "Crombolo.SectionView.Bundles.Marketplace",
       "name": "Crombolo Packages Marketplace",

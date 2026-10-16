@@ -62,6 +62,7 @@ import {
 } from '@crombolo/data'
 import { normaliseRedirectPath, type PublishedCache } from '@crombolo/render'
 import type { BundleForms } from './form-types.ts'
+import type { BundleIdentityProviders } from './identity-provider-overrides.ts'
 import type { BundleEvents } from './webhooks.ts'
 
 /** The segment every bundle's routes hang below, inside the plugin API. */
@@ -142,6 +143,8 @@ export interface BundleHost {
   redirects: BundleRedirects
   documents: BundleDocuments
   log: BundleLog
+  /** The identity providers the config declares, and an administrator's overrides of their settings (story 033). */
+  identityProviders: BundleIdentityProviders
   /** The bundle's own tables, and only for a bundle that declares some. */
   tables: BundleTablesCapability
 }
@@ -182,6 +185,7 @@ export const BUNDLE_CAPABILITIES: readonly BundleCapability[] = [
   'documents',
   'log',
   'tables',
+  'identityProviders',
 ]
 
 /** What a handler is handed: the declared capabilities, with `tables` typed from the declaration. */

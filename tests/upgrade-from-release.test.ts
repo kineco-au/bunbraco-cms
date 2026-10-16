@@ -14,7 +14,7 @@ import {
   readLedger,
   readState,
   STATE_APPROVALS,
-  STATE_SITE_SEARCH,
+  STATE_TWO_FACTOR,
   schemaOps,
   seedIdentity,
 } from '@crombolo/data'
@@ -87,6 +87,9 @@ async function asPreviousRelease(db: Db): Promise<void> {
       await db.exec(`DROP TRIGGER site_search_document_${trigger}`)
     await db.exec('DROP TABLE site_search_document_fts')
   }
+  await db.exec('DROP TABLE two_factor_recovery_code')
+  await db.exec('DROP TABLE two_factor_login')
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddTwoFactorLogin'")
   await db.exec('DROP TABLE site_search_document')
   await schemaOps(db).dropColumn('property_type', 'site_search')
   await schemaOps(db).dropColumn('content_type', 'site_search')
@@ -122,14 +125,14 @@ describe('upgrading from the previous release', () => {
     expect(await readState(db)).toBe(STATE_APPROVALS)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual(['AddSiteSearch'])
-    expect(await readState(db)).toBe(STATE_SITE_SEARCH)
+    expect(result.applied).toEqual(['AddSiteSearch', 'AddTwoFactorLogin'])
+    expect(await readState(db)).toBe(STATE_TWO_FACTOR)
     const columns = await db.query<{ site_search: unknown }>(
       'SELECT site_search FROM content_type LIMIT 1',
     )
     expect(columns).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.0', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.0', steps: 2 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

@@ -204,6 +204,13 @@ export class MemberRepository {
     )
   }
 
+  /** Replaces a member's groups, by group key; what an identity provider's group sync writes. */
+  async setGroups(key: string, groupKeys: readonly string[]): Promise<void> {
+    const node = await this.#nodes.byKey(key)
+    if (!node || node.objectType !== ObjectTypes.Member) return
+    await this.#db.transaction(() => this.#writeGroups(node.id, groupKeys))
+  }
+
   async #writeGroups(nodeId: number, groupKeys: readonly string[]): Promise<void> {
     await this.#db.exec('DELETE FROM member_group_member WHERE member_id = ?', [nodeId])
     for (const key of groupKeys) {
@@ -352,6 +359,8 @@ export class MemberRepository {
       [node.key],
     )
     await this.#db.exec('DELETE FROM external_login WHERE user_or_member_key = ?', [node.key])
+    await this.#db.exec('DELETE FROM two_factor_login WHERE owner_key = ?', [node.key])
+    await this.#db.exec('DELETE FROM two_factor_recovery_code WHERE owner_key = ?', [node.key])
     await this.#db.exec('DELETE FROM member WHERE node_id = ?', [node.id])
     return this.content.delete(key)
   }

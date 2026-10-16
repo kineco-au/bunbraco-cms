@@ -26,7 +26,7 @@ tail of 1–3 each.
   v17+ behaviour; the client sends `credentials: include`)
 - Backoffice login/logout, token refresh and revocation, password reset, invite acceptance
 - `security/back-office/graphics/*` — logo/background images the login shell references
-- Per-user MFA/2FA (endpoints must exist; full implementation is story `032`)
+- Two-factor sign-in with an authenticator app and recovery codes, for users and members; administrators can turn it off for someone (story `032`, [`operations.md`](operations.md#two-factor-sign-in))
 
 ### Users & user groups
 - User CRUD, invite, enable/disable/unlock, avatar, `user/current` + resolved permissions
@@ -81,6 +81,7 @@ tail of 1–3 each.
 
 ### Members (federated)
 - Member types, member groups, member CRUD and search in the backoffice
+- Signing in through external identity providers (OpenID Connect), members and backoffice users configured separately: `entra()`, `awsIdentityCenter()`, `oidc()`, with auto-linking and groups that follow a claim (story `031`); `@crombolo/entra` edits an Entra sign-in's settings from the backoffice (story `033`)
 - Front-end member authentication (login/logout/register), password hashing
 - **External identity providers** (OIDC/OAuth) with linked external-login records and auto-link rules
 - Public-access enforcement in the rendering pipeline

@@ -46,6 +46,7 @@ import {
   hasAccessToSensitiveData,
   localReturnUrl,
   MANAGEMENT_API_PREFIX,
+  ObjectTypes,
   PREVIEW_HUB_PATH,
   SERVER_EVENT_HUB_PATH,
 } from '@crombolo/core'
@@ -53,6 +54,7 @@ import {
   appendCacheInstruction,
   createTablesCapability,
   type Db,
+  ensureKeyValue,
   FormEntryRepository,
   FormWorkflowRepository,
   PublicAccessRepository,
@@ -62,6 +64,7 @@ import {
   readUrlOptions,
   SiteSearch,
   TransferRunRepository,
+  UserGroupRepository,
   type WritesPaused,
 } from '@crombolo/data'
 import {
@@ -70,6 +73,7 @@ import {
   FORM_SCRIPT,
   FORM_SCRIPT_PATH,
   FORM_SUBMIT_PATH,
+  MEMBER_EXTERNAL_SIGN_IN_PATH,
   PublishedCache,
   Renderer,
   type SnapshotStatus,
@@ -142,6 +146,12 @@ import {
 
 export { PREVIEW_COOKIE }
 
+import { BACKOFFICE_EXTERNAL_PATH, backofficeAudience } from './backoffice-external.ts'
+import { createExternalSignIn } from './external-sign-in.ts'
+import {
+  createBundleIdentityProviders,
+  IdentityProviderOverrides,
+} from './identity-provider-overrides.ts'
 import { syncConfiguredRedirects } from './redirects.ts'
 import {
   bootSchema,
@@ -160,6 +170,7 @@ import {
 } from './server-events.ts'
 import { createSetupRoutes } from './setup.ts'
 import { siteSearchFor } from './site-search.ts'
+import { TwoFactorService, USER_TWO_FACTOR_PROVIDER } from './two-factor.ts'
 import { summariseUpgrades } from './upgrade-summary.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 import { bundleEventProblems, createWebhookService, webhookStoreView } from './webhooks.ts'
@@ -340,10 +351,29 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     clientKey: (request) =>
       peers.get(request) ?? request.headers.get('x-forwarded-for') ?? 'unknown',
   })
+  // Story 032: a user with the authenticator on is asked for a code after the password.
+  const twoFactor = new TwoFactorService(db, {
+    secretKey: config.secretKey,
+    issuer: config.siteName,
+  })
+  let twoFactorKey: Promise<string> | undefined
   const authRoutes = createAuthRoutes({
     backOfficePath: paths.backOfficePath,
     service: auth,
     cookies,
+    twoFactor: {
+      providersFor: (userKey) => twoFactor.providers(userKey),
+      verify: (userKey, provider, code) =>
+        provider === USER_TWO_FACTOR_PROVIDER
+          ? twoFactor.verify(userKey, provider, code)
+          : Promise.resolve(false),
+      secret: () => {
+        twoFactorKey ??= ensureKeyValue(db, 'crombolo/twoFactorPendingKey', () =>
+          crypto.randomUUID(),
+        )
+        return twoFactorKey
+      },
+    },
     onAudit: (event, request) =>
       recordAudit(db, {
         category: 'sign-in',
@@ -358,6 +388,47 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         ...clientAddress(request),
       }),
   })
+  // Story 031: backoffice users signing in through an identity provider, ending
+  // in the session the login endpoint would have set.
+  const backofficeExternal =
+    config.backofficeIdentityProviders.length === 0
+      ? undefined
+      : createExternalSignIn(
+          db,
+          backofficeAudience(db, {
+            auth,
+            providers: config.backofficeIdentityProviders,
+            backOfficePath: paths.backOfficePath,
+            sessionCookie: (sessionId) =>
+              serializeCookie({
+                name: names.session,
+                value: sessionId,
+                secure: config.secureCookies,
+                maxAgeSeconds: auth.settings.refreshTokenSeconds,
+              }),
+            clientAddress: (request) => clientAddress(request).ipAddress ?? undefined,
+            onSignIn: (user, request) =>
+              recordAudit(db, {
+                category: 'sign-in',
+                action: 'SignIn',
+                source: 'request',
+                userKey: user.key,
+                userName: user.userName,
+                entityType: 'User',
+                entityKey: user.key,
+                entityName: user.userName,
+                detail: 'Through an identity provider',
+                ...clientAddress(request),
+              }),
+          }),
+          {
+            applicationUrl: config.applicationUrl,
+            secureCookies: config.secureCookies,
+            log: (message) => log.warning('Backoffice sign-in: {message}', { message }),
+            resolve: (provider) =>
+              new IdentityProviderOverrides(db, config.secretKey).apply('user', provider),
+          },
+        )
 
   /**
    * Resolves the caller from the reference access token. The client sends
@@ -508,6 +579,25 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
             },
           },
           log: bundleLog('bundle'),
+          identityProviders: createBundleIdentityProviders({
+            overrides: new IdentityProviderOverrides(db, config.secretKey),
+            members: config.memberIdentityProviders,
+            backoffice: config.backofficeIdentityProviders,
+            memberCallbackPath: MEMBER_EXTERNAL_SIGN_IN_PATH,
+            backofficeCallbackPath: BACKOFFICE_EXTERNAL_PATH,
+            groups: async (audience) =>
+              audience === 'user'
+                ? (await new UserGroupRepository(db).all()).map((g) => ({
+                    value: g.alias,
+                    name: g.name,
+                  }))
+                : (
+                    await db.query<{ text: string }>(
+                      'SELECT text FROM node WHERE node_object_type = ? ORDER BY text',
+                      [ObjectTypes.MemberGroup],
+                    )
+                  ).map((g) => ({ value: String(g.text), name: String(g.text) })),
+          }),
         },
         log: (id) => bundleLog(id),
       })
@@ -1596,6 +1686,8 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       if (response) return response
     }
 
+    const externalResponse = await backofficeExternal?.handle(request, pathname)
+    if (externalResponse) return externalResponse
     const authResponse = await authRoutes.handle(request, pathname)
     if (authResponse) return authResponse
 
@@ -1626,6 +1718,14 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           // the session exists, so anything else is an open redirect at the worst
           // possible moment, and `javascript:` there would run signed in.
           returnUrl: localReturnUrl(url.searchParams.get('returnUrl')) ?? paths.backOfficePath,
+          externalProviders: config.backofficeIdentityProviders.map((provider) => ({
+            name: provider.oidc.name,
+            url:
+              backofficeExternal?.startUrl(
+                provider.oidc.id,
+                localReturnUrl(url.searchParams.get('returnUrl')) ?? paths.backOfficePath,
+              ) ?? '',
+          })),
         }),
       )
     }

@@ -66,7 +66,7 @@ export function toSaveMember(key: string, body: Record<string, unknown>): SaveMe
     oldPassword: typeof body.oldPassword === 'string' ? body.oldPassword : null,
     isApproved: body.isApproved !== false,
     isLockedOut: body.isLockedOut === true,
-    isTwoFactorEnabled: body.isTwoFactorEnabled === true,
+    isTwoFactorEnabled: body.isTwoFactorEnabled !== false,
     groupKeys: strings(body.groups),
     values: readValues(body),
     variants: readVariants(body),

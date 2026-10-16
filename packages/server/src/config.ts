@@ -7,6 +7,7 @@ import type { AssistantConfig } from './assistant.ts'
 import type { ServerBundle } from './bundles.ts'
 import type { EmailPort } from './email.ts'
 import type { GitConfig } from './git-routes.ts'
+import { checkIdentityProviders, type IdentityProvider } from './identity-providers.ts'
 import type { MediaStore } from './media-store.ts'
 import type { SchemaStore } from './schema-store.ts'
 
@@ -232,6 +233,14 @@ export interface CromboloConfig {
   memberSessionMinutes: number
   /** Failed sign-ins that lock a member out; Umbraco's default is 5. 0 never locks out. */
   maxFailedPasswordAttempts: number
+  /**
+   * Identity providers members may sign in with on the site: `entra()`,
+   * `awsIdentityCenter()`, `oidc()`. Separate from the backoffice's, so staff
+   * and members can sign in through different ones.
+   */
+  memberIdentityProviders: readonly IdentityProvider[]
+  /** Identity providers backoffice users may sign in with. `allowLocalLogin: false` makes them the only way in. */
+  backofficeIdentityProviders: readonly IdentityProvider[]
   /**
    * Redirects the site declares itself, built with `redirect()`. They are synced
    * into the database at boot, so the backoffice lists them beside the tracked
@@ -502,6 +511,9 @@ export function loadConfig(
     maxFailedPasswordAttempts: Number(
       Bun.env.CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS ?? DEFAULTS.maxFailedPasswordAttempts,
     ),
+    // No environment variable: a provider is a preset, which is code.
+    memberIdentityProviders: [],
+    backofficeIdentityProviders: [],
     redirects: [],
     trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
     applyBundleContentOnInstall: Bun.env.CROMBOLO_APPLY_BUNDLE_CONTENT !== 'false',
@@ -529,6 +541,8 @@ export function loadConfig(
     assistant: undefined,
   }
   const merged: CromboloConfig = { ...fromEnv, ...stripUndefined(overrides) }
+  checkIdentityProviders(merged.memberIdentityProviders, 'member')
+  checkIdentityProviders(merged.backofficeIdentityProviders, 'backoffice')
   // Field by field, so a site setting its title suffix keeps the environment's switches.
   merged.seo = { ...fromEnv.seo, ...stripUndefined(overrides.seo ?? {}) }
   merged.deliveryApi = {

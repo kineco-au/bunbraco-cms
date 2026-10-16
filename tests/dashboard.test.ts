@@ -80,6 +80,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(ours).toBeDefined()
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
     expect(aliases).toEqual([
+      'mfaLoginProvider:Crombolo.MfaLoginProvider.Authenticator',
       'sectionView:Crombolo.SectionView.Bundles.Marketplace',
       'sectionView:Crombolo.SectionView.Bundles.Created',
       'sectionView:Crombolo.SectionView.Bundles.Installed',

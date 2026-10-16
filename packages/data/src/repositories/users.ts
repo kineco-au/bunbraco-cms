@@ -464,6 +464,14 @@ export class UserRepository {
         'user_login_session',
       ])
         await tx.exec(`DELETE FROM ${table} WHERE user_id = ?`, [user.id])
+      // Their provider accounts too, which are keyed by the user rather than the row.
+      await tx.exec(
+        'DELETE FROM external_login_token WHERE external_login_id IN (SELECT id FROM external_login WHERE user_or_member_key = ?)',
+        [user.key],
+      )
+      await tx.exec('DELETE FROM external_login WHERE user_or_member_key = ?', [user.key])
+      await tx.exec('DELETE FROM two_factor_login WHERE owner_key = ?', [user.key])
+      await tx.exec('DELETE FROM two_factor_recovery_code WHERE owner_key = ?', [user.key])
       await tx.exec('DELETE FROM user_account WHERE id = ?', [user.id])
     })
   }

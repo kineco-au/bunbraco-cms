@@ -34,6 +34,8 @@ export interface LoginShellSettings {
    * the browser resumes the OAuth flow rather than landing on a blank editor.
    */
   returnUrl?: string
+  /** "Sign in with …" buttons, one per backoffice identity provider (story 031). */
+  externalProviders?: ReadonlyArray<{ name: string; url: string }>
 }
 
 const escapeHtml = (value: string): string =>
@@ -131,7 +133,8 @@ ${noscript(`${graphics}/login-logo-alternative`)}
   ${settings.usernameIsEmail ? 'username-is-email' : ''}
   ${settings.allowUserInvite ? 'allow-user-invite' : ''}
   ${settings.allowPasswordReset ? 'allow-password-reset' : ''}
-  ${settings.disableLocalLogin ? 'disable-local-login' : ''}>
+  ${settings.disableLocalLogin ? 'disable-local-login' : ''}
+  external-providers="${escapeHtml(JSON.stringify(settings.externalProviders ?? []))}">
 </crombolo-login>
 </body>
 </html>

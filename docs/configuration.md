@@ -151,7 +151,7 @@ would not show you your own changes.
 
 ## Settings with no environment variable
 
-Three things a site declares only in `crombolo.config.ts`, because each of them
+Five things a site declares only in `crombolo.config.ts`, because each of them
 is code rather than a value:
 
 | Setting | What it is |
@@ -159,6 +159,8 @@ is code rather than a value:
 | `assistant` | the AI helper; enabling it takes a provider ([`assistant.md`](assistant.md)) |
 | `redirects` | rules built with `redirect()`, synced into the database at boot ([`rendering.md`](rendering.md)) |
 | `bundles` | the server halves of the bundles this site runs ([`bundles.md`](bundles.md)) |
+| `memberIdentityProviders` | identity providers members sign in with on the site: `entra()`, `awsIdentityCenter()`, `oidc()` ([`operations.md`](operations.md#signing-in-through-an-identity-provider)) |
+| `backofficeIdentityProviders` | the same, for backoffice users; a separate list, so staff and members can use different providers |
 
 `deliveryApi` is the same: its switches and key have environment variables
 above, and member sign-in — clients, secrets, redirect URLs, the login page — is

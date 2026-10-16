@@ -459,7 +459,8 @@ function registerUsers(router: ManagementApiRouter, users: UserPort): void {
       }),
     )
 
-  // No two-factor providers are installed: every provider lookup finds nothing.
+  // Story 032: the authenticator provider, when the server offers one; any other
+  // provider name finds nothing, as an uninstalled provider does in Umbraco.
   const noProvider = () =>
     bad(
       'Provider not found',
@@ -467,17 +468,57 @@ function registerUsers(router: ManagementApiRouter, users: UserPort): void {
       'ProviderNameNotFound',
       404,
     )
-  router.handle('GetUserCurrent2fa', () => Response.json([]))
-  router.handle('GetUserCurrent2faByProviderName', noProvider)
-  router.handle('PostUserCurrent2faByProviderName', noProvider)
-  router.handle('DeleteUserCurrent2faByProviderName', noProvider)
+  const twoFactor = users.twoFactor
+  const provided = (ctx: RequestContext) =>
+    twoFactor && ctx.params.providerName === twoFactor.providerName ? twoFactor : undefined
+  const refused = (message: string) => bad('Invalid code', message, 'InvalidCode', 400)
+  router.handle('GetUserCurrent2fa', async (ctx) =>
+    Response.json(twoFactor ? await twoFactor.list(me(ctx).id) : []),
+  )
+  router.handle('GetUserCurrent2faByProviderName', async (ctx) => {
+    const provider = provided(ctx)
+    if (!provider) return noProvider()
+    const setup = provider.setup(me(ctx).email || me(ctx).userName)
+    return setup.ok
+      ? Response.json({
+          $type: 'TwoFactorAuthInfo',
+          secret: setup.secret,
+          qrCodeSetupImageUrl: setup.qrCodeSetupImageUrl,
+        })
+      : bad('Two-factor sign-in is not available', setup.message, 'NotAvailable', 400)
+  })
+  router.handle('PostUserCurrent2faByProviderName', async (ctx) => {
+    const provider = provided(ctx)
+    if (!provider) return noProvider()
+    const b = await body(ctx)
+    const enabled = await provider.enable(me(ctx).id, str(b.code), str(b.secret))
+    return enabled.ok
+      ? Response.json({ $type: 'TwoFactorRecoveryCodes', recoveryCodes: enabled.recoveryCodes })
+      : refused(enabled.message)
+  })
+  router.handle('DeleteUserCurrent2faByProviderName', async (ctx) => {
+    const provider = provided(ctx)
+    if (!provider) return noProvider()
+    const disabled = await provider.disable(me(ctx).id, ctx.url.searchParams.get('code') ?? '')
+    return disabled.ok ? ok() : refused(disabled.message)
+  })
   router.handle('GetUserById2fa', async (ctx) => {
     const found = await users.get(me(ctx), ctx.params.id as string)
-    return found.status === 'Success' ? Response.json([]) : status(found.status)
+    if (found.status !== 'Success') return status(found.status)
+    return Response.json(twoFactor ? await twoFactor.list(ctx.params.id as string) : [])
   })
-  router.handle('DeleteUserById2faByProviderName', noProvider)
-  // External backoffice logins arrive with story 031's providers.
-  router.handle('GetUserCurrentLoginProviders', () => Response.json([]))
+  router.handle('DeleteUserById2faByProviderName', async (ctx) => {
+    const provider = provided(ctx)
+    if (!provider) return noProvider()
+    // Who may manage this user, by the same rule every user operation follows.
+    const found = await users.get(me(ctx), ctx.params.id as string)
+    if (found.status !== 'Success') return status(found.status)
+    await provider.reset(ctx.params.id as string)
+    return ok()
+  })
+  router.handle('GetUserCurrentLoginProviders', async (ctx) =>
+    Response.json((await users.loginProviders?.(me(ctx))) ?? []),
+  )
 
   router.handle('PostSecurityForgotPassword', async (ctx) => {
     await users.forgotPassword(str((await body(ctx)).email).trim())

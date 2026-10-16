@@ -53,6 +53,13 @@ const stubHost = (): Omit<BundleHost, 'tables'> => ({
   },
   documents: { url: async () => undefined },
   log: { info: () => {}, warn: () => {}, error: () => {} },
+  identityProviders: {
+    list: async () => [],
+    update: async () => ({ ok: false, error: 'stub' }),
+    reset: async () => false,
+    test: async () => ({ ok: false, message: 'stub' }),
+    groups: async () => [],
+  },
 })
 
 const silent = () => ({ info: () => {}, warn: () => {}, error: () => {} })

@@ -52,8 +52,8 @@ not cover.
 | Order | Story | Why here |
 |---|---|---|
 | 1 | `045` — E-mail delivery | Senders exist, but the eleven content notification subscriptions are stored and never delivered |
-| 2 | `031` — External identity providers | Members and backoffice users are local-only; `external_login` is waiting |
-| 3 | `032` — Two-factor sign-in | Umbraco ships app-authenticator 2FA for users and members; the seams here are unreachable |
+| 2 | `031` — External identity providers | done |
+| 3 | `032` — Two-factor sign-in | done |
 | 4 | `044` — Webhooks | done |
 | 5 | `050` — The Delivery API | The largest absence for anyone wanting headless |
 | 6 | `060` — Provenance | A runtime install runs third-party code with the user's session, and nothing names its publisher |
@@ -103,8 +103,9 @@ not cover.
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `030` | Members and member types | must | L | done | 023, 026 |
-| `031` | External identity providers | should | M | ready | 030 |
-| `032` | Two-factor sign-in | should | M | ready | — |
+| `031` | External identity providers | should | L | done | 030 |
+| `032` | Two-factor sign-in | should | M | done | — |
+| `033` | Entra settings bundle | could | M | done | 031 |
 
 ### Epic E — Cross-cutting
 
@@ -176,6 +177,11 @@ not cover.
 | `101` | The dry run predicts publish refusals | could | S | done | — |
 | `102` | Per-property conflict resolutions | could | M | done | — |
 | `103` | Resolve transfer conflicts in the backoffice | should | M | done | — |
+| `104` | A whole site in one file | should | M | ready | 106 |
+| `105` | Start a site from a file | should | L | ready | 104, 106 |
+| `106` | An imported schema reaches the schema store | must | S | ready | — |
+| `107` | The remote protocol | should | L | ready | 104, 105, 106 |
+| `108` | crombolo pull and push | should | M | ready | 107 |
 
 ### Epic L — Routing
 

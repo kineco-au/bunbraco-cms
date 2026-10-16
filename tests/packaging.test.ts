@@ -24,10 +24,14 @@ const REPOSITORY = 'git+https://github.com/kineco-au/crombolo-cms.git'
 const packages = publishablePackages()
 
 /** Published, but installed only by a site that wants it. */
-const OPT_IN = new Set(['@crombolo/import-umbraco', '@crombolo/simple-redirects'])
+const OPT_IN = new Set([
+  '@crombolo/entra',
+  '@crombolo/import-umbraco',
+  '@crombolo/simple-redirects',
+])
 
 /** Published bundles, which npm has to be able to find by keyword. */
-const BUNDLES = new Set(['@crombolo/simple-redirects'])
+const BUNDLES = new Set(['@crombolo/entra', '@crombolo/simple-redirects'])
 
 /** A sibling package in an import or export specifier, subpath and all. */
 const SIBLING_IMPORT = /from '(@crombolo\/[^']+)'/g
@@ -70,6 +74,7 @@ describe('the published package set', () => {
       '@crombolo/core',
       '@crombolo/crombolo',
       '@crombolo/data',
+      '@crombolo/entra',
       '@crombolo/import-umbraco',
       '@crombolo/render',
       '@crombolo/schema',

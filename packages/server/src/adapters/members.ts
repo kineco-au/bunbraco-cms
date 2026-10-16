@@ -12,9 +12,9 @@
  * - **Passwords.** Plaintext arrives here and nowhere deeper; a change of one
  *   rotates the security stamp, which ends the member's sessions.
  *
- * `kind` is always `Default`: Umbraco reports `Api` only for a Delivery API
- * client-credentials member and `ExternalOnly` only for one in its lightweight
- * external-member table, and we have neither.
+ * `kind` is `Api` for a Delivery API client-credentials member, `ExternalOnly`
+ * for one with no password, who signs in only through an identity provider,
+ * and `Default` otherwise.
  */
 import type {
   MemberFilterCriteria,
@@ -37,6 +37,7 @@ import {
   type DocumentRepositoryOptions,
   type MemberCredentials,
   MemberRepository,
+  TwoFactorRepository,
   type ValueIntake,
   WriteRejectedError,
 } from '@crombolo/data'
@@ -60,10 +61,18 @@ const notFound = () => ({
 
 export function createMemberPort(db: Db, options: MemberPortOptions = {}): MemberPort {
   const apiMembers = new Set((options.apiMemberUserNames ?? []).map((n) => n.toLowerCase()))
-  const kindOf = (userName: string): 'Api' | 'Default' =>
-    apiMembers.has(userName.toLowerCase()) ? 'Api' : 'Default'
+  // A member with no password of their own signs in only through an identity
+  // provider (story 031): Umbraco's `ExternalOnly`, which the workspace shows
+  // with the username read-only and the password optional.
+  const kindOf = (member: MemberCredentials): 'Api' | 'ExternalOnly' | 'Default' =>
+    apiMembers.has(member.username.toLowerCase())
+      ? 'Api'
+      : member.passwordHash
+        ? 'Default'
+        : 'ExternalOnly'
   const members = new MemberRepository(db, options)
   const memberTypes = new ContentTypeRepository(db, { kind: 'member' })
+  const twoFactor = new TwoFactorRepository(db)
 
   const userIdOf = async (principal: Principal): Promise<number | undefined> => {
     const rows = await db.query<{ id: number }>('SELECT id FROM user_account WHERE key = ?', [
@@ -111,14 +120,13 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
       },
       isApproved: member.isApproved,
       isLockedOut: member.isLockedOut,
-      // No second factor is offered yet, so no member has one enabled.
-      isTwoFactorEnabled: false,
+      isTwoFactorEnabled: (await twoFactor.providers(member.key)).length > 0,
       failedPasswordAttempts: member.failedPasswordAttempts,
       lastLoginDate: member.lastLoginDate?.toISOString() ?? null,
       lastLockoutDate: member.lastLockoutDate?.toISOString() ?? null,
       lastPasswordChangeDate: member.lastPasswordChangeDate?.toISOString() ?? null,
       groups: await members.groupKeys(member.key),
-      kind: kindOf(member.username),
+      kind: kindOf(member),
       profileData: null,
       flags: [],
       values: content.values
@@ -144,7 +152,7 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
     id: member.key,
     memberType: { id: member.contentTypeKey, icon: member.contentTypeIcon ?? 'icon-user' },
     variants: [{ name: member.name, culture: null }],
-    kind: kindOf(member.username),
+    kind: kindOf(member),
     flags: [],
   })
 
@@ -239,7 +247,11 @@ export function createMemberPort(db: Db, options: MemberPortOptions = {}): Membe
             groupKeys: input.groupKeys,
           },
         )
-        return updated ? { ok: true as const } : notFound()
+        if (!updated) return notFound()
+        // The workspace's two-factor toggle can only be turned off: an
+        // administrator's reset for a member who lost their phone (story 032).
+        if (!input.isTwoFactorEnabled) await twoFactor.disable(key)
+        return { ok: true as const }
       } catch (error) {
         return failure(error)
       }

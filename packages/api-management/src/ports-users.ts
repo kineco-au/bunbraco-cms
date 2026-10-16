@@ -86,7 +86,26 @@ export interface UserUpdateInput {
 
 export type Result<T> = { status: 'Success'; value: T } | { status: Exclude<UserStatus, 'Success'> }
 
+/** Two-factor sign-in for users (story 032): the one authenticator provider. */
+export interface UserTwoFactorPort {
+  providerName: string
+  list(userKey: string): Promise<Array<{ providerName: string; isEnabledOnUser: boolean }>>
+  setup(
+    account: string,
+  ): { ok: true; secret: string; qrCodeSetupImageUrl: string } | { ok: false; message: string }
+  enable(
+    userKey: string,
+    code: string,
+    secret: string,
+  ): Promise<{ ok: true; recoveryCodes: string[] } | { ok: false; message: string }>
+  disable(userKey: string, code: string): Promise<{ ok: true } | { ok: false; message: string }>
+  /** An administrator turning it off for someone who lost their phone. */
+  reset(userKey: string): Promise<void>
+}
+
 export interface UserPort {
+  /** Two-factor sign-in, when the server offers it. */
+  twoFactor?: UserTwoFactorPort
   list(principal: Principal, skip: number, take: number): Promise<Page<UserResponse>>
   filter(principal: Principal, query: UserFilter): Promise<Page<UserResponse>>
   get(principal: Principal, key: string): Promise<Result<UserResponse>>
@@ -138,6 +157,8 @@ export interface UserPort {
   ): Promise<Array<{ nodeKey: string; permissions: string[] }>>
   configuration(): ResponseOf<'GetUserConfiguration'>
   currentConfiguration(): ResponseOf<'GetUserCurrentConfiguration'>
+  /** The backoffice identity providers, and which the caller has signed in with (story 031). */
+  loginProviders?(principal: Principal): Promise<ResponseOf<'GetUserCurrentLoginProviders'>>
   passwordConfiguration(): ResponseOf<'GetSecurityConfiguration'>['passwordConfiguration']
   /** Anonymous: sends a reset link when the address belongs to a user; says nothing either way. */
   forgotPassword(email: string): Promise<void>

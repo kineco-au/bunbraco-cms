@@ -17,6 +17,8 @@ export interface CookieNames {
   accessToken: string
   refreshToken: string
   session: string
+  /** A sign-in whose password was right, waiting for its two-factor code. */
+  twoFactorPending: string
 }
 
 export interface CookieOptions {
@@ -32,6 +34,7 @@ export function cookieNames(options: CookieOptions): CookieNames {
     accessToken: `${prefix}umbAccessToken${options.siteName}`,
     refreshToken: `${prefix}umbRefreshToken${options.siteName}`,
     session: `${prefix}umbSession${options.siteName}`,
+    twoFactorPending: `${prefix}umbTwoFactor${options.siteName}`,
   }
 }
 

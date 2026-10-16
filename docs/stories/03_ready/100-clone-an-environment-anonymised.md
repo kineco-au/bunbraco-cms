@@ -30,3 +30,11 @@ members, tokens and e-mail addresses must not land on a laptop.
       address or token.
 - [ ] Without `--anonymise` the command refuses unless told the destination is
       trusted.
+
+## Since: a whole site in one file (`104`, `105`)
+
+The copy this story makes is `104`'s whole-site file, written with
+`--anonymise`, and started by `105`, and fetched from a remote by `108`'s
+`pull` (`107`). So `crombolo clone --anonymise` is `pull` with anonymising
+required, and the sanitising here is the one `104`'s `--anonymise` uses:
+there is one, not two.

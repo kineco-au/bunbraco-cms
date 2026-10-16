@@ -45,7 +45,7 @@ export const DEFAULT_AUTH_SETTINGS: AuthSettings = {
 export type LoginResult =
   | { status: 'success'; user: UserRow; sessionId: string }
   | { status: 'invalid'; user?: UserRow; lockedOut?: boolean }
-  | { status: 'twoFactorRequired'; providers: string[] }
+  | { status: 'twoFactorRequired'; providers: string[]; user: UserRow }
   | { status: 'notAllowed'; reason: 'disabled' | 'lockedOut' | 'notApproved'; user?: UserRow }
 
 export interface AuthorizationRequest {
@@ -114,7 +114,17 @@ export class AuthService {
     return this.#settings
   }
 
-  async login(login: string, password: string, ipAddress?: string): Promise<LoginResult> {
+  /**
+   * `twoFactorProviders`, when given, names the two-factor providers a user has
+   * turned on (story 032): with any, a correct password stops short of a session
+   * and the caller asks for a code.
+   */
+  async login(
+    login: string,
+    password: string,
+    ipAddress?: string,
+    twoFactorProviders?: (user: UserRow) => Promise<string[]>,
+  ): Promise<LoginResult> {
     return withMinimumDuration(120, async () => {
       const user = await this.#store.findUserByLogin(login)
       if (!user) {
@@ -155,10 +165,48 @@ export class AuthService {
           passwordConfigJson(),
         )
 
+      const providers = (await twoFactorProviders?.(user)) ?? []
+      if (providers.length > 0) return { status: 'twoFactorRequired', providers, user } as const
+
       const sessionId = crypto.randomUUID()
       await this.#store.recordLoginSuccess(user.id, sessionId, ipAddress)
       return { status: 'success', user, sessionId } as const
     })
+  }
+
+  /**
+   * A wrong second factor counts as a wrong password does, towards lockout, so a
+   * stolen password cannot be followed by guessing codes for free.
+   */
+  async twoFactorFailed(login: string): Promise<{ lockedOut: boolean }> {
+    const user = await this.#store.findUserByLogin(login)
+    if (!user) return { lockedOut: false }
+    const attempts = await this.#store.recordLoginFailure(user.id)
+    const lockedOut =
+      this.#settings.maxFailedLoginAttempts > 0 && attempts >= this.#settings.maxFailedLoginAttempts
+    if (lockedOut) await this.#store.lockOut(user.id)
+    return { lockedOut }
+  }
+
+  /**
+   * Signs a user in whom an external identity provider has vouched for (story
+   * 031): no password, but the same refusals a password sign-in has — locked out
+   * or not approved — and the same session afterwards.
+   */
+  async signInExternally(
+    login: string,
+    ipAddress?: string,
+  ): Promise<
+    | { status: 'success'; user: UserRow; sessionId: string }
+    | { status: 'notAllowed'; reason: 'lockedOut' | 'notApproved' | 'unknown' }
+  > {
+    const user = await this.#store.findUserByLogin(login)
+    if (!user) return { status: 'notAllowed', reason: 'unknown' }
+    if (user.isLockedOut) return { status: 'notAllowed', reason: 'lockedOut' }
+    if (!user.isApproved) return { status: 'notAllowed', reason: 'notApproved' }
+    const sessionId = crypto.randomUUID()
+    await this.#store.recordLoginSuccess(user.id, sessionId, ipAddress)
+    return { status: 'success', user, sessionId }
   }
 
   /** Issues a single-use authorization code for an already-authenticated session. */

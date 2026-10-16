@@ -39,6 +39,8 @@ class CromboloLoginElement extends LitElement {
     logoImage: { type: String, attribute: 'logo-image-alternative' },
     usernameIsEmail: { type: Boolean, attribute: 'username-is-email' },
     allowPasswordReset: { type: Boolean, attribute: 'allow-password-reset' },
+    disableLocalLogin: { type: Boolean, attribute: 'disable-local-login' },
+    externalProviders: { type: Array, attribute: 'external-providers' },
     _busy: { state: true },
     _error: { state: true },
     _view: { state: true },
@@ -51,6 +53,8 @@ class CromboloLoginElement extends LitElement {
     this.logoImage = ''
     this.usernameIsEmail = true
     this.allowPasswordReset = false
+    this.disableLocalLogin = false
+    this.externalProviders = []
     this._busy = false
     this._error = ''
     this._notice = ''
@@ -63,6 +67,9 @@ class CromboloLoginElement extends LitElement {
           ? { kind: 'reset', user: params.get('userId'), code: params.get('resetCode') }
           : undefined
     this._view = this._link ? 'checking' : 'login'
+    // An identity provider's sign-in that came back refused says why.
+    const external = params.get('externalLoginError')
+    if (external) this._error = external
   }
 
   connectedCallback() {
@@ -182,7 +189,9 @@ class CromboloLoginElement extends LitElement {
         return
       }
       if (response.status === 402) {
-        this._error = 'This account requires two-factor authentication, which is not yet supported.'
+        const challenge = await response.json().catch(() => ({}))
+        this._twoFactorProvider = challenge.enabledTwoFactorProviderNames?.[0]
+        this._view = 'two-factor'
       } else if (response.status === 403) {
         this._error = 'This account is locked or not approved.'
       } else if (response.status === 401) {
@@ -195,6 +204,57 @@ class CromboloLoginElement extends LitElement {
     } finally {
       this._busy = false
     }
+  }
+
+  async #verifyTwoFactor(event) {
+    event.preventDefault()
+    if (this._busy) return
+    const code = event.target.elements.code.value.trim()
+    if (!code) return
+    this._busy = true
+    this._error = ''
+    try {
+      const response = await this.#post('/security/back-office/verify-2fa', {
+        provider: this._twoFactorProvider,
+        code,
+      })
+      if (response.ok) {
+        window.location.href = localTarget(this.returnUrl, '/umbraco')
+        return
+      }
+      if (response.status === 401) {
+        this._view = 'login'
+        this._error = 'That took too long. Sign in again.'
+      } else if (response.status === 403) {
+        this._view = 'login'
+        this._error = 'This account is locked or not approved.'
+      } else {
+        this._error = 'That code is not right. Try the next one.'
+      }
+    } catch {
+      this._error = 'Could not reach the server.'
+    } finally {
+      this._busy = false
+    }
+  }
+
+  #twoFactorForm() {
+    return html`
+      <h1 class="uui-h3">Enter your code</h1>
+      <p>Enter the six-digit code from your authenticator app, or one of your recovery codes.</p>
+      <form @submit=${this.#verifyTwoFactor}>
+        <uui-form-layout-item>
+          <uui-label for="code" slot="label" required>Code</uui-label>
+          <uui-input id="code" name="code" autocomplete="one-time-code" required ?disabled=${this._busy}></uui-input>
+        </uui-form-layout-item>
+        ${this.#messages()}
+        <uui-button type="submit" look="primary" color="positive" .state=${this._busy ? 'waiting' : undefined} label="Verify"></uui-button>
+        <uui-button look="link" label="Back to sign in" @click=${() => {
+          this._error = ''
+          this._view = 'login'
+        }}></uui-button>
+      </form>
+    `
   }
 
   #messages() {
@@ -245,7 +305,9 @@ class CromboloLoginElement extends LitElement {
           ? this.#newPasswordForm()
           : this._view === 'forgot'
             ? this.#resetRequestForm()
-            : this.#loginForm()
+            : this._view === 'two-factor'
+              ? this.#twoFactorForm()
+              : this.#loginForm()
     return html`
       <div id="layout">
         <uui-box id="card">
@@ -256,7 +318,25 @@ class CromboloLoginElement extends LitElement {
     `
   }
 
+  /** A button per backoffice identity provider, each returning here signed in. */
+  #providers() {
+    if (!this.externalProviders?.length) return nothing
+    return html`<div id="providers">
+      ${this.externalProviders.map(
+        (provider) =>
+          html`<uui-button look="outline" href=${provider.url} label=${`Sign in with ${provider.name}`}>Sign in with ${provider.name}</uui-button>`,
+      )}
+    </div>`
+  }
+
   #loginForm() {
+    // With local sign-in off, the providers are the only way in.
+    if (this.disableLocalLogin)
+      return html`
+          <h1 class="uui-h3">Sign in</h1>
+          ${this.#messages()}
+          ${this.#providers()}
+      `
     return html`
           <h1 class="uui-h3">Sign in</h1>
           <form @submit=${this.#submit}>
@@ -301,6 +381,7 @@ class CromboloLoginElement extends LitElement {
                 : nothing
             }
           </form>
+          ${this.#providers()}
     `
   }
 
@@ -341,6 +422,12 @@ class CromboloLoginElement extends LitElement {
     #error {
       margin: 0;
       color: var(--uui-color-danger, #d42054);
+    }
+    #providers {
+      display: flex;
+      flex-direction: column;
+      gap: var(--uui-size-space-3, 9px);
+      margin-top: var(--uui-size-space-5, 18px);
     }
     #notice {
       margin: 0;

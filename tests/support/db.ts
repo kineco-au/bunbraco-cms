@@ -94,6 +94,9 @@ export async function freshDb(): Promise<Db> {
  * replay runs its `CREATE TABLE` against a table that is already there.
  */
 export async function undoMigrationsSinceContentEditing(db: Db): Promise<void> {
+  // 040
+  await db.exec('DROP TABLE IF EXISTS two_factor_recovery_code')
+  await db.exec('DROP TABLE IF EXISTS two_factor_login')
   // 039: SQLite's FTS table, then the table its triggers are on, which takes them with it.
   await db.exec('DROP TABLE IF EXISTS site_search_document_fts')
   await db.exec('DROP TABLE IF EXISTS site_search_document')

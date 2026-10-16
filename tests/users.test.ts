@@ -367,9 +367,11 @@ describe('users', () => {
     expect((await h.del(`${V1}/user/current/avatar`)).status).toBe(200)
     expect((await h.json<UserBody>(`${V1}/user/${SUPER_USER_KEY}`)).avatarUrls).toEqual([])
 
-    expect(await h.json<unknown>(`${V1}/user/current/2fa`)).toEqual<unknown>([])
+    // The authenticator is installed but off; without CROMBOLO_SECRET_KEY it cannot be turned on.
+    const off = [{ providerName: 'UmbracoUserAppAuthenticator', isEnabledOnUser: false }]
+    expect(await h.json<unknown>(`${V1}/user/current/2fa`)).toEqual<unknown>(off)
     expect((await h.call(`${V1}/user/current/2fa/GoogleAuthenticator`)).status).toBe(404)
-    expect(await h.json<unknown>(`${V1}/user/${SUPER_USER_KEY}/2fa`)).toEqual<unknown>([])
+    expect(await h.json<unknown>(`${V1}/user/${SUPER_USER_KEY}/2fa`)).toEqual<unknown>(off)
     expect(await h.json<unknown>(`${V1}/user/current/login-providers`)).toEqual<unknown>([])
     expect(await h.json(`${V1}/user/current/configuration`)).toMatchObject({
       keepUserLoggedIn: false,

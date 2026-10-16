@@ -275,6 +275,129 @@ export default function Page({ model, member }) {
 }
 ```
 
+## Signing in through an identity provider
+
+Members and backoffice users can sign in through an OpenID Connect provider
+instead of a password (story 031). The two audiences have separate lists, so a
+site can sign staff in with Entra and members with AWS:
+
+```ts
+import { awsIdentityCenter, defineConfig, entra } from '@crombolo/crombolo'
+
+export default defineConfig({
+  backofficeIdentityProviders: [
+    entra({
+      tenantId: process.env.ENTRA_TENANT_ID!,
+      clientId: process.env.ENTRA_CLIENT_ID!,
+      clientSecret: process.env.ENTRA_CLIENT_SECRET!,
+      emailsVerified: true,
+      groups: { map: { '<entra group object id>': 'editor' } },
+    }),
+  ],
+  memberIdentityProviders: [
+    awsIdentityCenter({
+      issuer: process.env.IDC_ISSUER!,
+      clientId: process.env.IDC_CLIENT_ID!,
+      clientSecret: process.env.IDC_CLIENT_SECRET!,
+      defaultGroups: ['Members'],
+    }),
+  ],
+  allowLocalLogin: false, // staff sign in through Entra only
+})
+```
+
+**The presets.** `entra({ tenantId, clientId, clientSecret })` knows Entra's
+issuer for the tenant, `awsIdentityCenter({ issuer, clientId, clientSecret })`
+takes the instance's issuer, and `oidc({ id, name, issuer, clientId, … })`
+covers any other provider (Google, Okta, Auth0, Keycloak). They all ask for the
+`openid profile email` scopes and read `email`, `name` and, for group mapping,
+`groups`. Each one also takes:
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `id`, `name` | the preset's | the id in its URLs and in `external_login`; the button text |
+| `autoCreate` | `true` | create a member or user for an account nobody has yet |
+| `linkByEmail` | `false` | link a first sign-in to an existing account with the same email, if the provider says the email is verified |
+| `emailsVerified` | `false` | treat every email from this provider as verified. Entra sends no `email_verified` claim, so set this for a tenant whose emails are your organisation's own |
+| `groups` | none | `{ claim?, map }`: claim values mapped to member groups (members) or user group aliases (users), made to match on every sign-in; groups outside the map are left alone |
+| `defaultGroups` | none | groups a new account joins |
+| `memberType` | `memberRegistrationType` | members only: the type a new member is created as |
+
+A group map can name any user group, administrators included.
+
+**Registering the app.** Give the provider these redirect URLs, with your
+site's address (`CROMBOLO_APPLICATION_URL` when it is behind a proxy):
+
+| Audience | Redirect URL |
+| --- | --- |
+| Members | `https://<site>/umbraco/members/external/<id>/callback` |
+| Backoffice | `https://<site>/umbraco/management/api/v1/security/back-office/external/<id>/callback` |
+
+In Entra: an app registration of the web platform, with a client secret. For
+group mapping, add the `groups` claim under Token configuration. Its values are
+group object ids, which is what the `map` keys are.
+
+**What a sign-in does.**
+- The browser leaves with `state`, a `nonce` and a PKCE challenge, carried in a
+  short-lived signed cookie. The ID token that comes back is verified with
+  `jose` against the provider's published keys: signature, issuer, audience,
+  expiry and nonce.
+- The account is found by the `external_login` row (provider and subject), so
+  a changed email doesn't break it.
+- A first sign-in is linked or created as the options say, and a taken email
+  is refused rather than merged.
+- It ends exactly as a password sign-in does. A member gets the member cookie,
+  so protected pages and the Delivery API's app sign-in work unchanged; an app
+  can send `identity_provider=UmbracoMembers.<id>` to go straight to the
+  provider. A user gets the backoffice session, and the login page shows a
+  button per provider. `allowLocalLogin: false` makes those the only way in.
+- A member with no password shows as External only in the backoffice.
+
+For a site's own login form, `externalSignInUrl('<id>', returnUrl)` from
+`@crombolo/crombolo` is the link.
+
+**Changing an Entra sign-in without a deploy.** Install `@crombolo/entra` and
+add `entraSettings()` to `bundles`. Settings → Advanced → Microsoft Entra then
+edits each Entra provider the config declares: tenant, client id and secret,
+the sign-in options, group mappings and default groups. A change applies at the
+next sign-in on every node, and "Use the code's settings" puts it back. Keeping
+a client secret there needs `CROMBOLO_SECRET_KEY` ([`bundles.md`](bundles.md)).
+
+## Two-factor sign-in
+
+Backoffice users and members can turn on a second factor: an authenticator app
+(RFC 6238 — six digits, 30-second steps, which every app reads), with ten
+one-time recovery codes for a lost phone. It needs `CROMBOLO_SECRET_KEY`, since
+each secret is kept sealed with it; without the key the option is not offered.
+
+**Users** turn it on from their profile (Configure two-factor authentication):
+scan the QR code, enter the first code, and keep the recovery codes shown once.
+Signing in then asks for a code after the password; a recovery code works in its
+place, once. An administrator turns it off for someone from that user's
+two-factor settings in Users.
+
+**Members** have no screen of ours; a site builds its own from these endpoints,
+which answer JSON:
+
+|                                         |                                                         |
+| --------------------------------------- | ------------------------------------------------------- |
+| `GET /umbraco/members/2fa`              | `available`, `enabled`, `recoveryCodesLeft`             |
+| `POST /umbraco/members/2fa/setup`       | a new `secret`, its `qrCodeSetupImageUrl` and `otpauthUri` |
+| `POST /umbraco/members/2fa/enable`      | `secret`, `code` → the `recoveryCodes`, shown once      |
+| `POST /umbraco/members/2fa/disable`     | `code`, from the app or a recovery code                 |
+| `POST /umbraco/members/login/2fa`       | `code`, `returnUrl?` — the second step of signing in    |
+
+With it on, `POST /umbraco/members/login` does not sign in: a JSON post answers
+`{ "twoFactorRequired": true }`, a form post goes back to `returnUrl` with
+`memberTwoFactorRequired=1`, and the code goes to `login/2fa` within five
+minutes. A wrong code there adds `memberLoginFailed=1`. An administrator turns
+it off with the two-factor toggle in the member's workspace.
+
+A code is accepted a step either side of now, for clock drift, and never twice:
+the last step used is recorded. A wrong code counts towards lockout as a wrong
+password does. Recovery codes are kept as SHA-256 hashes; turning it on again
+replaces them.
+
 ## Security
 
 The posture is Umbraco's where the contract sets it, and stricter where the
@@ -284,7 +407,7 @@ contract says nothing. What is worth knowing as an operator:
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Backoffice sessions     | Reference tokens, stored hashed, in `__Host-` HttpOnly cookies; PKCE is mandatory; a reused refresh token or a replayed code ends the whole session                       |
 | `returnUrl`             | Reduced to a local path by `localReturnUrl`, server-side and again in the login page — resolved against an origin, so `/\host` and a tab-smuggled `//host` are caught too |
-| Lockout                 | Checked before the password, so a locked account cannot be used to confirm which guess was the real one                                                                   |
+| Lockout                 | Checked before the password, so a locked account cannot be used to confirm which guess was the real one; a wrong two-factor code counts as a wrong password               |
 | Plugin routes           | The endpoints outside the contract answer to the same authority as the operations beside them: Settings for git, schema import and the upgrade findings                    |
 | List views              | `collection/document/{id}` and `collection/media` need Read on the parent, so a start node bounds them as it bounds the tree                                               |
 | Media                   | Content types come from the file name, never from the uploader's header; served with `nosniff` and `Content-Security-Policy: sandbox`, which denies script to SVG and HTML  |
