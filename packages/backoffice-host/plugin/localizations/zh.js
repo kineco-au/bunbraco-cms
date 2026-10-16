@@ -3,12 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "paste": {
-    "errorMessage": "您所粘贴的文本含有特殊字符或格式，Crombolo将清除以适应网页。"
-  },
-  "dashboard": {
-    "nothinghappens": "如果Crombolo没有打开，您可能需要允许弹出式窗口。"
-  },
   "actions": {
     "changeDocType": "改变内容类型",
     "exportDocumentType": "导出内容类型",

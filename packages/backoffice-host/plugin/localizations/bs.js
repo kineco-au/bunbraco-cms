@@ -3,35 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "user": {
-    "changePasswordDescription": "Možete promijeniti lozinku za pristup Crombolo backofficeu popunjavanjem\n       izađite iz donjeg obrasca i kliknite na dugme 'Promijeni lozinku'\n    ",
-    "createUserHelp": "Kreirajte nove korisnike da im date pristup Crombolo. Kada se novom korisniku kreira lozinka\n       će biti generisano koje možete podijeliti s korisnikom.\n    ",
-    "inviteUserHelp": "Pozovite nove korisnike da im daju pristup Crombolo. E-mail sa pozivom će biti poslan na\n       korisnik s informacijama o tome kako se prijaviti na Crombolo. Pozivnice traju 72 sata.\n    ",
-    "noConsole": "Onemogućite pristup Crombolo-u",
-    "userCreatedSuccessHelp": "Novi korisnik je uspješno kreiran. Za prijavu na Crombolo koristite\n      lozinka ispod.\n    ",
-    "userInvitedSuccessHelp": "Novom korisniku je poslana pozivnica s detaljima o tome kako se prijaviti\n      Crombolo.\n    ",
-    "userinviteWelcomeMessage": "Pozdrav i dobrodošli u Crombolo! Za samo 1 minut možete krenuti, mi samo trebate postaviti lozinku.",
-    "userinviteExpiredMessage": "Dobrodošli u Crombolo! Nažalost, vaš poziv je istekao. Molimo kontaktirajte svoju\n      administratora i zamolite ih da ga ponovo pošalju.\n    ",
-    "documentType": "Tip sadržaja"
-  },
-  "general": {
-    "umbracoInfo": "Crombolo info"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Crombolo stranica može imati samo jedan zadani jezik."
-  },
-  "paste": {
-    "errorMessage": "Tekst koji pokušavate zalijepiti sadrži posebne znakove ili formatiranje. Ovo bi moglo biti\n       uzrokovano kopiranjem teksta iz programa Microsoft Word. Crombolo može automatski ukloniti posebne znakove ili formatiranje, tako da\n       zalijepljeni sadržaj će biti prikladniji za web.\n    "
-  },
-  "dashboard": {
-    "nothinghappens": "Ako se Crombolo ne otvara, možda ćete morati dozvoliti iskačuće prozore sa ove stranice"
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Pretraži Crombolo Source",
-    "searchWithinUmbracoSourceCodeOnGithub": "Pretraži Crombolo source code on Github-u",
-    "searchUmbracoIssues": "Pretraži Crombolo Issues",
-    "searchUmbracoIssuesOnGithub": "Pretraži Crombolo Issues na Github-u"
-  },
   "actions": {
     "changeDocType": "Promijeni Tip Sadržaja",
     "exportDocumentType": "Izvezi Tip Sadržaja",
@@ -75,6 +46,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Tipovi sadržaja"
+  },
+  "user": {
+    "documentType": "Tip sadržaja"
   },
   "references": {
     "labelUsedByDocumentTypes": "Koristi se u tipovima sadržaja"

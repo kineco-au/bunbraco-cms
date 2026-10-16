@@ -106,6 +106,14 @@ export default {
     searchUmbracoIssues: 'Search Crombolo issues',
     searchUmbracoIssuesOnGithub: 'Search Crombolo issues on GitHub',
   },
+  redirectUrls: {
+    // Followed by `CROMBOLO_TRACK_REDIRECTS`, which `vendor:backoffice` puts in
+    // place of the .NET setting; it tracks when true, the inverse of Umbraco's.
+    disableUrlTrackerInstruction:
+      "Redirect URL tracking is set in the site's environment. To turn it off, set this variable to false:",
+    enableUrlTrackerInstruction:
+      "Redirect URL tracking is set in the site's environment. To turn it on, set this variable to true, or remove it:",
+  },
   defaultdialogs: {
     linkYourConfirm:
       'You are about to link your Crombolo and {0} accounts and you will be redirected to {0} to complete the process.',

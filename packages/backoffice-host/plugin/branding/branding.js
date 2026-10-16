@@ -1,25 +1,20 @@
 /**
  * The two places the vendored client names the product in code rather than in a
- * string table, where the localisation override cannot reach.
+ * string table.
  *
- * `view.controller.js` builds the page title with a hardcoded string rather than
- * a localisation key, so the dictionary override cannot reach it. Patching the
- * vendored file would work until the next `vendor:backoffice`, which is the
- * reason nothing here patches vendored files.
- *
- * So it is corrected as it is written. The suffix is the site's own name, which
- * the shell states in `<meta name="application-name">` — so a site called
- * something other than Crombolo gets its own name rather than a second hardcoded
- * one.
+ * `view.controller.js` builds the page title with a hardcoded suffix, which
+ * `vendor:backoffice` rebrands to Crombolo. The suffix should be the site's own
+ * name, which the shell states in `<meta name="application-name">` — so a site
+ * called something other than Crombolo gets its own name rather than ours.
  *
  * Not read from `document.title`, although the shell puts the name there too.
  * This module loads after the client has started, and by then the client may
- * have written a title of its own. Taking `Content | Umbraco` for the site's
- * name makes every correction end in ` | Umbraco` again: the observer below
+ * have written a title of its own. Taking `Content | Crombolo` for the site's
+ * name makes every correction end in ` | Crombolo` again: the observer below
  * then answers its own change, forever, and the page never gets its main thread
  * back.
  */
-const CLIENT_SUFFIX = ' | Umbraco'
+const CLIENT_SUFFIX = ' | Crombolo'
 
 /** The site's name as the shell stated it. */
 export function brandName(doc = document) {
@@ -70,7 +65,7 @@ function correctLogoLink() {
   if (!anchor) return false
   anchor.href = 'https://github.com/kineco-au/crombolo-cms'
   anchor.textContent = 'Crombolo on GitHub'
-  const image = logo.shadowRoot.querySelector('img[alt="Umbraco"]')
+  const image = logo.shadowRoot.querySelector('img#logo')
   if (image) image.alt = brandName()
   return true
 }

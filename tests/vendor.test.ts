@@ -3,7 +3,14 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_DATA_TYPES } from '@crombolo/data'
 import { checkModuleGraph } from '../scripts/check-module-graph.ts'
-import { BACKOFFICE_BASE_PATH, createImportMap } from '../scripts/vendor-backoffice.ts'
+import {
+  applyPatch,
+  BACKOFFICE_BASE_PATH,
+  createImportMap,
+  rebrandDictionary,
+  rebrandModule,
+  UPSTREAM_PATCHES,
+} from '../scripts/vendor-backoffice.ts'
 
 const ROOT = join(import.meta.dir, '..')
 const VENDOR = join(ROOT, 'packages/backoffice-dist/dist')
@@ -85,6 +92,72 @@ function registeredPropertyEditorUis(): Set<string> {
   }
   return found
 }
+
+const UPSTREAM = join(ROOT, 'node_modules/@umbraco-cms/backoffice/dist-cms')
+
+describe("Umbraco's name", () => {
+  test('is replaced where a person reads it in a module', () => {
+    expect(rebrandModule("headline: 'Welcome to Umbraco'")).toBe("headline: 'Welcome to Crombolo'")
+    expect(rebrandModule("title = name + ' | Umbraco'")).toBe("title = name + ' | Crombolo'")
+    expect(rebrandModule('<h1>Installing Umbraco</h1>')).toBe('<h1>Installing Crombolo</h1>')
+  })
+
+  test('is left where code compares it or it is part of an identifier', () => {
+    for (const source of [
+      "forProviderName: 'Umbraco',",
+      "alias: 'Umb.AuthProviders.Umbraco'",
+      "alias === 'Umbraco.ContentPublish'",
+      "import '@umbraco-cms/backoffice/auth'",
+      'https://github.com/umbraco/Umbraco-CMS/issues',
+      "eventSource: 'Umbraco:CMS:Document'",
+      'UmbracoApplicationUrl',
+    ])
+      expect(rebrandModule(source)).toBe(source)
+  })
+
+  test('is replaced throughout a dictionary, whatever the grammar has done to it', () => {
+    expect(rebrandDictionary("instruction: 'Sign in to Umbraco.',")).toBe(
+      "instruction: 'Sign in to Crombolo.',",
+    )
+    expect(rebrandDictionary("a: 'set Umbraco:CMS:Global:UseHttps to true'")).toBe(
+      "a: 'set Crombolo:CMS:Global:UseHttps to true'",
+    )
+    expect(rebrandDictionary("a: 'pristup Umbraco-u i Umbracos'")).toBe(
+      "a: 'pristup Crombolo-u i Crombolos'",
+    )
+    expect(rebrandDictionary("a: 'le code source d\\'Umbraco'")).toBe(
+      "a: 'le code source de Crombolo'",
+    )
+  })
+
+  test('leaves the keys and the addresses in a dictionary', () => {
+    expect(rebrandDictionary("searchUmbracoSource: 'see https://docs.umbraco.com/x'")).toBe(
+      "searchUmbracoSource: 'see https://docs.umbraco.com/x'",
+    )
+    expect(rebrandDictionary("'umbracoInfo': 'Umbraco info'")).toBe(
+      "'umbracoInfo': 'Crombolo info'",
+    )
+  })
+})
+
+describe('upstream patches', () => {
+  test('each still applies to the pinned Umbraco release', () => {
+    for (const patch of UPSTREAM_PATCHES) {
+      const file = patch.source
+        ? join(ROOT, 'node_modules', patch.source)
+        : join(UPSTREAM, patch.file)
+      const source = readFileSync(file, 'utf8')
+      expect(applyPatch(source, patch)).toContain(patch.replace)
+    }
+  })
+
+  test('refuses a source that no longer has the code it fixes, rather than shipping it unfixed', () => {
+    const patch = UPSTREAM_PATCHES[0] as (typeof UPSTREAM_PATCHES)[number]
+    expect(() =>
+      applyPatch('export function umbIsProductionBuild() { return false }', patch),
+    ).toThrow()
+  })
+})
 
 describe.skipIf(!vendored)('what the server ships, against the vendored client', () => {
   test('every built-in data type names a property editor UI the client registers', () => {
@@ -236,6 +309,62 @@ describe.skipIf(!vendored)('vendored backoffice', () => {
       if (/^\s*import\s+[^;]*from\s*['"][^'"]+\.json['"]/m.test(source)) offenders.push(file)
     }
     expect(offenders).toEqual([])
+  }, 60_000)
+
+  test('no dictionary, in any language, names Umbraco in anything it displays', async () => {
+    const named: string[] = []
+    for (const file of new Bun.Glob('assets/lang/*.js').scanSync({ cwd: VENDOR })) {
+      const { default: dictionary } = (await import(join(VENDOR, file))) as {
+        default: Record<string, Record<string, string>>
+      }
+      for (const [section, entries] of Object.entries(dictionary))
+        for (const [key, value] of Object.entries(entries ?? {})) {
+          // Links may still point at Umbraco's documentation; what they say may not.
+          const shown = String(value)
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/https?:\/\/\S+/g, '')
+          if (/umbraco/i.test(shown)) named.push(`${file} ${section}.${key}`)
+        }
+    }
+    expect(named).toEqual([])
+  }, 60_000)
+
+  test('no module names Umbraco where a person reads it', () => {
+    // The provider name the server's authorize endpoint knows, compared and never shown.
+    const compared = new Set([
+      "packages/core/auth/auth.context.js identityProvider = 'Umbraco'",
+      "packages/core/auth/providers/manifests.js forProviderName: 'Umbraco'",
+      "packages/core/auth/umb-auth-client.js identityProvider !== 'Umbraco'",
+    ])
+    const named: string[] = []
+    for (const file of new Bun.Glob('{apps,packages,libs}/**/*.js').scanSync({ cwd: VENDOR })) {
+      const source = readFileSync(join(VENDOR, file), 'utf8')
+      if (!source.includes('Umbraco')) continue
+      for (const line of source.split('\n')) {
+        if (/^\s*(\*|\/\/|\/\*)/.test(line)) continue
+        for (const match of line.matchAll(/(?<![\w./@-])Umbraco(?![\w.:-])/g)) {
+          const around = line.slice(Math.max(0, match.index - 20), match.index + 8).trim()
+          const entry = compared
+            .values()
+            .find((c) => c.startsWith(`${file} `) && line.includes(c.slice(file.length + 1)))
+          if (!entry) named.push(`${file}: ${around}`)
+        }
+      }
+    }
+    expect(named).toEqual([])
+  }, 60_000)
+
+  test('every upstream patch is in what is served', () => {
+    for (const patch of UPSTREAM_PATCHES)
+      expect(readFileSync(join(VENDOR, patch.file), 'utf8')).toContain(patch.replace)
+  })
+
+  test("Umbraco's own deprecations stay out of the console, as in its production build", () => {
+    const chunks = [...new Bun.Glob('chunks/*.js').scanSync({ cwd: VENDOR })]
+    const unflagged = chunks.filter((file) =>
+      readFileSync(join(VENDOR, file), 'utf8').includes('import.meta.env.PROD'),
+    )
+    expect(unflagged).toEqual([])
   }, 60_000)
 
   test('the client is served as shared chunks, not one file per module', () => {

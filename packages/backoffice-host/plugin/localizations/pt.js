@@ -3,45 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "login": {
-    "instruction": "Iniciar sessão no Crombolo"
-  },
-  "user": {
-    "changePasswordDescription": "Pode alterar a sua palavra-passe para aceder ao backoffice do Crombolo preenchendo o formulário abaixo e clicando no botão 'Alterar Palavra-passe'",
-    "createUserHelp": "Crie novos utilizadores para lhes dar acesso ao Crombolo. Quando um novo utilizador é criado, será gerada uma palavra-passe que pode partilhar com o utilizador.",
-    "inviteUserHelp": "Convide novos utilizadores para lhes dar acesso ao Crombolo. Será enviado um email de convite ao utilizador com informação sobre como iniciar sessão no Crombolo. Os convites duram 72 horas.",
-    "noConsole": "Desativar Acesso Crombolo",
-    "userCreatedSuccessHelp": "O novo utilizador foi criado com sucesso. Para iniciar sessão no Crombolo, use a palavra-passe abaixo.",
-    "userInvitedSuccessHelp": "Foi enviado um convite ao novo utilizador com detalhes sobre como iniciar sessão no Crombolo.",
-    "userinviteWelcomeMessage": "Olá e bem-vindo(a) ao Crombolo! Em apenas 1 minuto estará pronto, só precisamos que configure uma palavra-passe e adicione uma imagem para o seu avatar.",
-    "userinviteExpiredMessage": "Bem-vindo(a) ao Crombolo! Infelizmente, o seu convite expirou. Por favor, contacte o seu administrador e peça-lhe para o reenviar.",
-    "documentType": "Tipo de Conteúdo"
-  },
-  "general": {
-    "umbracoInfo": "Informação Crombolo"
-  },
-  "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Pesquisar no backoffice do Crombolo"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Um site Crombolo só pode ter um idioma predefinido definido."
-  },
-  "paste": {
-    "errorMessage": "O texto que está a tentar colar contém caracteres especiais ou formatação. Isto pode ser causado pela cópia de texto do Microsoft Word. O Crombolo pode remover caracteres especiais ou formatação automaticamente, para que o conteúdo colado seja mais adequado para a web."
-  },
-  "dashboard": {
-    "nothinghappens": "Se o Crombolo não estiver a abrir, poderá ter de permitir popups deste site"
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Pesquisar Código Fonte Crombolo",
-    "searchWithinUmbracoSourceCodeOnGithub": "Pesquisar no código fonte do Crombolo no GitHub",
-    "searchUmbracoIssues": "Pesquisar Problemas Crombolo",
-    "searchUmbracoIssuesOnGithub": "Pesquisar Problemas Crombolo no GitHub"
-  },
-  "defaultdialogs": {
-    "linkYourConfirm": "Está prestes a ligar as suas contas Crombolo e {0} e será redirecionado para {0} para confirmar.",
-    "unLinkYourConfirm": "Está prestes a desligar as suas contas Crombolo e {0} e será desconectado."
-  },
   "actions": {
     "changeDocType": "Alterar Tipo de Conteúdo",
     "exportDocumentType": "Exportar Tipo de Conteúdo",
@@ -89,6 +50,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Tipos de Conteúdo"
+  },
+  "user": {
+    "documentType": "Tipo de Conteúdo"
   },
   "references": {
     "labelUsedByDocumentTypes": "Usado em Tipos de Conteúdo"

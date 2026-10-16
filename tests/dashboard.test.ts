@@ -91,12 +91,10 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'dashboard:Crombolo.Dashboard.Settings',
       'backofficeEntryPoint:Crombolo.EntryPoint.TsxEditors',
       'headerApp:Crombolo.HeaderApp.ReadOnly',
+      'headerApp:Crombolo.HeaderApp.Settings',
       'workspaceFooterApp:Crombolo.WorkspaceFooterApp.ElementTypeHint',
-      'localization:Crombolo.Localization.EN',
-      'localization:Crombolo.Localization.EN_US',
       'backofficeEntryPoint:Crombolo.EntryPoint.Branding',
       'backofficeEntryPoint:Crombolo.EntryPoint.HelpMenu',
-      'backofficeEntryPoint:Crombolo.EntryPoint.Sysinfo',
       'section:Crombolo.Section.Forms',
       'sectionView:Crombolo.SectionView.Forms.Overview',
       'sectionView:Crombolo.SectionView.Forms.Entries',
@@ -141,17 +139,24 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     const created = ours?.extensions.find((e) => e.alias === 'Crombolo.SectionView.Bundles.Created')
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
-    // Two kinds of extension have no module of their own: a `section`, which is
-    // a route and a label, and a `propertyEditorSchema`, which declares a
-    // server-side editor alias and its default UI. Everything else loads one,
+    // Three kinds of extension have no module of their own: a `section`, which is
+    // a route and a label, a `propertyEditorSchema`, which declares a
+    // server-side editor alias and its default UI; and a header app of `kind:
+    // 'button'`, whose element the client supplies. Everything else loads one,
     // under `element`, `js`, or — for a context class — `api`.
     const moduleless = ours?.extensions.filter((e) => !e.element && !e.js && !e.api) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
+      'Crombolo.HeaderApp.Settings',
       'Crombolo.Section.Forms',
       'Crombolo.FormPicker',
       'Crombolo.Section.Workflow',
     ])
-    expect(moduleless.map((e) => e.type)).toEqual(['section', 'propertyEditorSchema', 'section'])
+    expect(moduleless.map((e) => e.type)).toEqual([
+      'headerApp',
+      'section',
+      'propertyEditorSchema',
+      'section',
+    ])
 
     // Module paths follow the backoffice mount and resolve to real modules
     for (const extension of ours?.extensions ?? []) {

@@ -1,7 +1,7 @@
 /**
  * The workflow designer (story 028): stages drawn on a canvas and connected by
  * arrows, each stage's approvers and send-back beside it, and the workflow's
- * own settings above. Saving writes `schema/workflows/<alias>.toml`; before it
+ * own settings on a tab of their own. Saving writes `schema/workflows/<alias>.toml`; before it
  * does, the requests in flight that the change affects are named.
  *
  * An arrow that would close a loop is refused as it is drawn. The server holds
@@ -60,13 +60,24 @@ const blank = () => ({
   ],
 })
 
-const select = (
-  value,
-  options,
-  onChange,
-) => html`<select @change=${(e) => onChange(e.target.value)}>
-  ${Object.entries(options).map(([key, label]) => html`<option value=${key} ?selected=${key === value}>${label}</option>`)}
-</select>`
+const select = (label, value, options, onChange, disabled) => html`<uui-select
+  label=${label}
+  ?disabled=${disabled}
+  .options=${Object.entries(options).map(([key, name]) => ({ name, value: key, selected: key === value }))}
+  @change=${(e) => onChange(e.target.value)}
+></uui-select>`
+
+/** A labelled row, as every backoffice editor lays out a field. */
+const property = (
+  label,
+  description,
+  editor,
+  orientation = 'horizontal',
+) => html`<umb-property-layout
+  orientation=${orientation}
+  label=${label}
+  description=${description ?? ''}
+><div slot="editor">${editor}</div></umb-property-layout>`
 
 export default class CromboloWorkflowDesignerElement extends UmbLitElement {
   static properties = {
@@ -78,6 +89,7 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     _problems: { state: true },
     _affected: { state: true },
     _message: { state: true },
+    _tab: { state: true },
   }
 
   #drag
@@ -115,6 +127,7 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     this._problems = undefined
     this._affected = undefined
     this._message = undefined
+    this._tab = 'settings'
   }
 
   #touch() {
@@ -309,7 +322,7 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
                 <uui-table-head-cell>Workflow</uui-table-head-cell>
                 <uui-table-head-cell>Covers</uui-table-head-cell>
                 <uui-table-head-cell>Stages</uui-table-head-cell>
-                <uui-table-head-cell></uui-table-head-cell>
+                <uui-table-head-cell class="actions"></uui-table-head-cell>
               </uui-table-head>
               ${items.map(
                 (w) => html`<uui-table-row>
@@ -321,7 +334,7 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
                     .filter(Boolean)
                     .join(', ')}</uui-table-cell>
                   <uui-table-cell>${w.stages.length}</uui-table-cell>
-                  <uui-table-cell>
+                  <uui-table-cell class="actions">
                     <uui-button look="secondary" label=${editable ? 'Edit' : 'View'} @click=${() => this.#edit(w)}></uui-button>
                     ${
                       editable
@@ -340,53 +353,41 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
   #renderEditor() {
     const w = this._editing
     const editable = this._list.editable
-    const stage = this.#stage(this._selected)
     const leave = () => {
       this._editing = undefined
       this._message = undefined
       this._problems = undefined
     }
+    const tab = (id, label, icon) => html`<uui-tab
+      label=${label}
+      ?active=${this._tab === id}
+      @click=${() => {
+        this._tab = id
+      }}
+    ><umb-icon slot="icon" name=${icon}></umb-icon>${label}</uui-tab>`
     // Umbraco's own layout, so Save sits bottom right in the footer as it does
-    // in every workspace, with Back beside it.
+    // in every workspace, with Back beside it, and the tabs top right.
     return html`<umb-body-layout headline=${w.name || 'Workflow'}>
-      <uui-box>
-        ${
-          editable
-            ? html`<div class="toolbar">
-                <uui-button look="secondary" label="Add a stage" @click=${() => this.#addStage()}>Add a stage</uui-button>
-                <uui-button look=${this._connecting ? 'primary' : 'secondary'} label="Connect stages"
-                  @click=${() => {
-                    this._connecting = this._connecting ? undefined : true
-                  }}
-                >${this._connecting === true ? 'Click the stage to draw from' : this._connecting ? 'Now click the stage it leads to' : 'Connect stages'}</uui-button>
-              </div>`
-            : nothing
-        }
-        ${this._message ? html`<p class="message">${this._message}</p>` : nothing}
-        <p class="hint">Arrows run left to right: the stages an arrow leads to wait for every stage with an arrow into them, and run side by side. Click an arrow to remove it.</p>
-        <div class="canvas" @pointermove=${(e) => editable && this.#pointerMove(e)} @pointerup=${() => this.#pointerUp()} @pointerleave=${() => this.#pointerUp()}>
-          ${drawGraph(w.stages, {
-            selected: this._selected,
-            onStage: (alias) => this.#onStage(alias),
-            onArrow: (from, to) => editable && this.#onArrow(from, to),
-            onPointerDown: (alias, event) => editable && this.#pointerDown(alias, event),
-          })}
-        </div>
-      </uui-box>
-      <div class="panels">
-        ${stage ? this.#renderStage(stage, editable) : nothing}
-        ${this.#renderSettings(w, editable)}
-      </div>
-      ${this._problems ? html`<ul class="problems">${this._problems.map((p) => html`<li>${p.path ? html`<code>${p.path}</code> ` : nothing}${p.message}</li>`)}</ul>` : nothing}
+      <uui-tab-group slot="navigation">
+        ${tab('settings', 'Settings', 'icon-settings')}
+        ${tab('stages', 'Stages', 'icon-mindmap')}
+      </uui-tab-group>
+      ${this._message ? html`<uui-box class="notice"><p class="message">${this._message}</p></uui-box>` : nothing}
+      ${
+        this._problems
+          ? html`<uui-box class="notice" headline="Not saved"><ul class="problems">${this._problems.map((p) => html`<li>${p.path ? html`<code>${p.path}</code> ` : nothing}${p.message}</li>`)}</ul></uui-box>`
+          : nothing
+      }
       ${
         this._affected
-          ? html`<div class="affected">
+          ? html`<uui-box class="notice affected" headline="Pages waiting for approval">
                 <p>Saving changes the rules for ${this._affected.length} page(s) waiting for approval:</p>
                 <ul>${this._affected.map((a) => html`<li>${a.page}: ${ON_CHANGE[a.outcome]}</li>`)}</ul>
                 <uui-button look="primary" label="Save anyway" @click=${() => this.#save(true)}>Save anyway</uui-button>
-              </div>`
+              </uui-box>`
           : nothing
       }
+      ${this._tab === 'stages' ? this.#renderStages(w, editable) : this.#renderSettings(w, editable)}
       ${
         this._problems
           ? html`<span slot="footer-info" class="not-saved">Not saved: ${this._problems.length} problem(s), listed above</span>`
@@ -401,163 +402,237 @@ export default class CromboloWorkflowDesignerElement extends UmbLitElement {
     </umb-body-layout>`
   }
 
-  #renderStage(stage, editable) {
-    const earlier = [...ancestors(this._editing.stages, stage.alias)]
-    const requiredKind = typeof stage.required === 'number' ? 'number' : stage.required
-    return html`<uui-box headline=${`Stage: ${stage.name || stage.alias}`}>
-      <fieldset ?disabled=${!editable}>
-        <label>Name <uui-input label="Name" .value=${stage.name ?? ''} @change=${(e) => {
-          stage.name = e.target.value
-          this.#touch()
-        }}></uui-input></label>
-        <label>Alias <uui-input label="Alias" .value=${stage.alias} @change=${(e) => this.#renameStage(stage, e.target.value)}></uui-input></label>
-        <div class="field"><span>Approved by</span>
-          ${this._list.groups.map(
-            (g) =>
-              html`<label class="check"><input type="checkbox" .checked=${stage.approvers.includes(g.alias)} @change=${(
-                e,
-              ) => {
-                stage.approvers = e.target.checked
-                  ? [...stage.approvers, g.alias]
-                  : stage.approvers.filter((a) => a !== g.alias)
-                this.#touch()
-              }} /> ${g.name}</label>`,
-          )}
-        </div>
-        <label>How many must approve
-          ${select(
-            requiredKind,
-            {
-              one: 'Any one of them',
-              majority: 'A majority',
-              all: 'All of them',
-              number: 'A number of them',
-            },
-            (value) => {
-              stage.required = value === 'number' ? 2 : value
-              this.#touch()
-            },
-          )}
-          ${
-            typeof stage.required === 'number'
-              ? html`<input type="number" min="1" .value=${String(stage.required)} @change=${(
-                  e,
-                ) => {
-                  stage.required = Math.max(1, Number(e.target.value) || 1)
-                  this.#touch()
-                }} />`
-              : nothing
-          }
-        </label>
-        <label>Sending back goes to
-          ${select(
-            stage.sendBack,
-            {
-              editor: 'The editor (the request ends)',
-              ...Object.fromEntries(earlier.map((a) => [a, `The ${a} stage`])),
-            },
-            (value) => {
-              stage.sendBack = value
-              this.#touch()
-            },
-          )}
-        </label>
+  #renderStages(w, editable) {
+    const stage = this.#stage(this._selected)
+    // One box, two columns: the graph, and the stage selected in it.
+    return html`<uui-box headline="Stages">
         ${
-          editable && this._editing.stages.length > 1
-            ? html`<uui-button look="secondary" color="danger" label="Remove stage" @click=${() => this.#removeStage(stage.alias)}>Remove this stage</uui-button>`
+          editable
+            ? html`<div slot="header-actions" class="toolbar">
+                <uui-button look="secondary" compact label="Add a stage" @click=${() => this.#addStage()}>Add a stage</uui-button>
+                <uui-button look=${this._connecting ? 'primary' : 'secondary'} compact label="Connect stages"
+                  @click=${() => {
+                    this._connecting = this._connecting ? undefined : true
+                  }}
+                >${this._connecting === true ? 'Click the stage to draw from' : this._connecting ? 'Now click the stage it leads to' : 'Connect stages'}</uui-button>
+              </div>`
             : nothing
         }
-      </fieldset>
+      <div class="stages">
+      <div class="graph">
+        <p class="hint">Arrows run left to right: the stages an arrow leads to wait for every stage with an arrow into them, and run side by side. Click an arrow to remove it.</p>
+        <div class="canvas" @pointermove=${(e) => editable && this.#pointerMove(e)} @pointerup=${() => this.#pointerUp()} @pointerleave=${() => this.#pointerUp()}>
+          ${drawGraph(w.stages, {
+            selected: this._selected,
+            onStage: (alias) => this.#onStage(alias),
+            onArrow: (from, to) => editable && this.#onArrow(from, to),
+            onPointerDown: (alias, event) => editable && this.#pointerDown(alias, event),
+          })}
+        </div>
+      </div>
+      <div class="stage">
+        ${stage ? this.#renderStage(stage, editable) : html`<p class="hint">Select a stage to change it.</p>`}
+      </div>
+      </div>
     </uui-box>`
   }
 
+  #renderStage(stage, editable) {
+    const earlier = [...ancestors(this._editing.stages, stage.alias)]
+    const requiredKind = typeof stage.required === 'number' ? 'number' : stage.required
+    return html`<div class="stage-header">
+        <h4>${stage.name || stage.alias}</h4>
+      ${
+        editable && this._editing.stages.length > 1
+          ? html`<uui-button look="secondary" color="danger" compact label="Remove this stage" @click=${() => this.#removeStage(stage.alias)}>Remove</uui-button>`
+          : nothing
+      }
+      </div>
+      ${property(
+        'Name',
+        undefined,
+        html`<uui-input label="Name" ?readonly=${!editable} .value=${stage.name ?? ''} @change=${(
+          e,
+        ) => {
+          stage.name = e.target.value
+          this.#touch()
+        }}></uui-input>`,
+        'vertical',
+      )}
+      ${property(
+        'Alias',
+        'How the stage is named in the file and in other stages',
+        html`<uui-input label="Alias" ?readonly=${!editable} .value=${stage.alias} @change=${(e) => this.#renameStage(stage, e.target.value)}></uui-input>`,
+        'vertical',
+      )}
+      ${property(
+        'Approved by',
+        'The user groups whose members decide this stage',
+        html`<div class="checks">${this._list.groups.map(
+          (g) =>
+            html`<uui-checkbox label=${g.name} ?disabled=${!editable} ?checked=${stage.approvers.includes(g.alias)} @change=${(
+              e,
+            ) => {
+              stage.approvers = e.target.checked
+                ? [...stage.approvers, g.alias]
+                : stage.approvers.filter((a) => a !== g.alias)
+              this.#touch()
+            }}>${g.name}</uui-checkbox>`,
+        )}</div>`,
+        'vertical',
+      )}
+      ${property(
+        'How many must approve',
+        undefined,
+        html`${select(
+          'How many must approve',
+          requiredKind,
+          {
+            one: 'Any one of them',
+            majority: 'A majority',
+            all: 'All of them',
+            number: 'A number of them',
+          },
+          (value) => {
+            stage.required = value === 'number' ? 2 : value
+            this.#touch()
+          },
+          !editable,
+        )}
+        ${
+          typeof stage.required === 'number'
+            ? html`<uui-input class="count" type="number" min="1" label="How many" ?readonly=${!editable} .value=${String(stage.required)} @change=${(
+                e,
+              ) => {
+                stage.required = Math.max(1, Number(e.target.value) || 1)
+                this.#touch()
+              }}></uui-input>`
+            : nothing
+        }`,
+        'vertical',
+      )}
+      ${property(
+        'Sending back goes to',
+        undefined,
+        select(
+          'Sending back goes to',
+          stage.sendBack,
+          {
+            editor: 'The editor (the request ends)',
+            ...Object.fromEntries(
+              earlier.map((a) => [a, `The ${this.#stage(a)?.name || a} stage`]),
+            ),
+          },
+          (value) => {
+            stage.sendBack = value
+            this.#touch()
+          },
+          !editable,
+        ),
+        'vertical',
+      )}`
+  }
+
   #renderSettings(w, editable) {
-    return html`<uui-box headline="Settings">
-      <fieldset ?disabled=${!editable}>
-        <label>Name <uui-input label="Name" .value=${w.name} @change=${(e) => {
-          w.name = e.target.value
-          this.#touch()
-        }}></uui-input></label>
-        <label>Alias <uui-input label="Alias" .value=${w.alias} @change=${(e) => {
-          w.alias = e.target.value.trim()
-          this.#touch()
-        }}></uui-input></label>
-        <div class="field"><span>Covers the pages under</span>
-          <umb-input-document
+    const set = (key) => (value) => {
+      w[key] = value
+      this.#touch()
+    }
+    return html`<div class="settings">
+      ${editable ? nothing : html`<uui-box class="notice"><p>Workflows are kept with the site's files, which cannot be changed on this server.</p></uui-box>`}
+      <uui-box headline="Workflow">
+        ${property(
+          'Name',
+          undefined,
+          html`<uui-input label="Name" ?readonly=${!editable} .value=${w.name} @change=${(e) => set('name')(e.target.value)}></uui-input>`,
+        )}
+        ${property(
+          'Alias',
+          'The name of its file',
+          html`<uui-input label="Alias" ?readonly=${!editable} .value=${w.alias} @change=${(e) => set('alias')(e.target.value.trim())}></uui-input>`,
+        )}
+        ${property(
+          'Covers the pages under',
+          'Each page and everything below it',
+          html`<umb-input-document
+            ?readonly=${!editable}
             .selection=${w.appliesTo.branches}
             @change=${(e) => {
               w.appliesTo.branches = [...(e.target.selection ?? [])]
               this.#touch()
             }}
-          ></umb-input-document>
-        </div>
-        <div class="field"><span>And every page of these types</span>
-          ${this._list.contentTypes.map(
+          ></umb-input-document>`,
+        )}
+        ${property(
+          'And every page of these types',
+          'Wherever they are, unless a branch above is covered by another workflow',
+          html`<div class="checks">${this._list.contentTypes.map(
             (t) =>
-              html`<label class="check"><input type="checkbox" .checked=${w.appliesTo.contentTypes.includes(t.alias)} @change=${(
+              html`<uui-checkbox label=${t.name} ?disabled=${!editable} ?checked=${w.appliesTo.contentTypes.includes(t.alias)} @change=${(
                 e,
               ) => {
                 w.appliesTo.contentTypes = e.target.checked
                   ? [...w.appliesTo.contentTypes, t.alias]
                   : w.appliesTo.contentTypes.filter((a) => a !== t.alias)
                 this.#touch()
-              }} /> ${t.name}</label>`,
-          )}
-        </div>
-        <label class="check"><input type="checkbox" .checked=${w.publishersMaySkip} @change=${(
-          e,
-        ) => {
-          w.publishersMaySkip = e.target.checked
-          this.#touch()
-        }} /> People who may publish can publish directly</label>
-        <label class="check"><input type="checkbox" .checked=${w.unpublish} @change=${(e) => {
-          w.unpublish = e.target.checked
-          this.#touch()
-        }} /> Taking a page down needs approval too</label>
-        <label>When a waiting page is changed ${select(w.onEdit, ON_EDIT, (v) => {
-          w.onEdit = v
-          this.#touch()
-        })}</label>
-        <label>When the person who made the change could approve it ${select(
-          w.selfApproval,
-          SELF,
-          (v) => {
-            w.selfApproval = v
-            this.#touch()
-          },
-        )}</label>
-        <label>Comments ${select(w.comments, COMMENTS, (v) => {
-          w.comments = v
-          this.#touch()
-        })}</label>
-        <label>When this workflow changes, pages waiting on it ${select(
-          w.onChange,
-          ON_CHANGE,
-          (v) => {
-            w.onChange = v
-            this.#touch()
-          },
-        )}</label>
-      </fieldset>
-    </uui-box>`
+              }}>${t.name}</uui-checkbox>`,
+          )}</div>`,
+        )}
+      </uui-box>
+      <uui-box headline="Rules">
+        ${property(
+          'Publishers may skip it',
+          'People who may publish a page publish it directly',
+          html`<uui-toggle label="Publishers may skip it" ?disabled=${!editable} ?checked=${w.publishersMaySkip} @change=${(e) => set('publishersMaySkip')(e.target.checked)}></uui-toggle>`,
+        )}
+        ${property(
+          'Unpublishing needs approval',
+          'Taking a page down goes through the workflow too',
+          html`<uui-toggle label="Unpublishing needs approval" ?disabled=${!editable} ?checked=${w.unpublish} @change=${(e) => set('unpublish')(e.target.checked)}></uui-toggle>`,
+        )}
+        ${property('When a waiting page is changed', undefined, select('When a waiting page is changed', w.onEdit, ON_EDIT, set('onEdit'), !editable))}
+        ${property(
+          'When the person who made the change could approve it',
+          undefined,
+          select('Self-approval', w.selfApproval, SELF, set('selfApproval'), !editable),
+        )}
+        ${property('Comments on a decision', undefined, select('Comments', w.comments, COMMENTS, set('comments'), !editable))}
+        ${property(
+          'When this workflow changes',
+          'What happens to pages already waiting on it',
+          select('When this workflow changes', w.onChange, ON_CHANGE, set('onChange'), !editable),
+        )}
+      </uui-box>
+    </div>`
   }
 
   static styles = css`
-    :host { display: block; height: 100%; }
+    :host { display: block; height: 100%; container-type: inline-size; }
     .list { padding: var(--uui-size-layout-1); }
     .create { margin-bottom: var(--uui-size-space-5); }
-    .toolbar { display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); margin-bottom: var(--uui-size-space-4); }
-    .canvas { overflow: auto; border: 1px dashed var(--uui-color-border); border-radius: 6px; padding: var(--uui-size-space-5); min-height: 200px; touch-action: none; }
-    .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--uui-size-space-5); margin-top: var(--uui-size-space-5); }
-    fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--uui-size-space-4); }
-    label, .field { display: flex; flex-direction: column; gap: var(--uui-size-space-2); }
-    label.check { flex-direction: row; align-items: center; }
-    .field > span { font-weight: 700; }
-    .hint { opacity: 0.8; font-size: 0.9em; }
-    .message { color: var(--uui-color-warning-emphasis, #9e7300); }
-    .problems { color: var(--uui-color-danger); margin-top: var(--uui-size-space-5); }
+    .actions { text-align: right; white-space: nowrap; }
+    uui-tab-group { --uui-tab-divider: var(--uui-color-border); border-left: 1px solid var(--uui-color-border); border-right: 1px solid var(--uui-color-border); }
+    .notice { margin-bottom: var(--uui-size-layout-1); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--uui-size-space-3); }
+    .stages { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: var(--uui-size-layout-1); }
+    .stage { border-left: 1px solid var(--uui-color-border); padding-left: var(--uui-size-layout-1); }
+    .stage-header { display: flex; align-items: center; justify-content: space-between; gap: var(--uui-size-space-3); margin-bottom: var(--uui-size-space-3); }
+    .stage-header h4 { margin: 0; }
+    @container (max-width: 640px) {
+      .stages { grid-template-columns: minmax(0, 1fr); }
+      .stage { border-left: 0; padding-left: 0; border-top: 1px solid var(--uui-color-border); padding-top: var(--uui-size-layout-1); }
+    }
+    .settings { display: flex; flex-direction: column; gap: var(--uui-size-layout-1); }
+    .canvas { overflow: auto; border: 1px dashed var(--uui-color-border); border-radius: var(--uui-border-radius); padding: var(--uui-size-space-5); min-height: 240px; touch-action: none; }
+    umb-property-layout:first-of-type { padding-top: 0; }
+    uui-input, uui-select { width: 100%; }
+    uui-input.count { margin-top: var(--uui-size-space-3); max-width: 8em; }
+    .checks { display: flex; flex-direction: column; gap: var(--uui-size-space-2); }
+    .hint { margin-top: 0; color: var(--uui-color-text-alt); }
+    .message { margin: 0; color: var(--uui-color-warning-emphasis, #9e7300); }
+    .problems { color: var(--uui-color-danger); margin: 0; }
     .not-saved { color: var(--uui-color-danger); }
-    .affected { margin-top: var(--uui-size-space-5); border: 1px solid var(--uui-color-warning); padding: var(--uui-size-space-4); border-radius: 6px; margin-bottom: var(--uui-size-space-4); }
+    .affected { border: 1px solid var(--uui-color-warning); }
     ${unsafeCSS(GRAPH_STYLES)}
   `
 }

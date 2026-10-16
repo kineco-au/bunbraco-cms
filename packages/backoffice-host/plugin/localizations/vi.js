@@ -3,48 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "login": {
-    "instruction": "Đăng nhập vào Crombolo"
-  },
-  "user": {
-    "changePasswordDescription": "Bạn có thể thay đổi mật khẩu của mình để truy cập vào Crombolo backoffice bằng cách điền vào mẫu dưới đây và nhấp vào nút 'Đổi mật khẩu'",
-    "createUserHelp": "Tạo người dùng mới để cấp quyền truy cập cho họ vào Crombolo. Khi một người dùng mới được tạo, một mật khẩu sẽ được tạo ra mà bạn có thể chia sẻ với người dùng đó.",
-    "inviteUserHelp": "Mời người dùng mới để cấp quyền truy cập cho họ vào Crombolo. Một email mời sẽ được gửi đến người dùng với thông tin về cách đăng nhập vào Crombolo. Thời gian hiệu lực của lời mời là 72 giờ.",
-    "noConsole": "Vô hiệu hóa quyền truy cập Crombolo",
-    "userCreatedSuccessHelp": "Người dùng mới đã được tạo thành công. Để đăng nhập vào Crombolo, hãy sử dụng mật khẩu bên dưới.",
-    "userInvitedSuccessHelp": "Một lời mời đã được gửi đến người dùng mới với thông tin chi tiết về cách đăng nhập vào Crombolo.",
-    "userinviteWelcomeMessage": "Xin chào và chào mừng bạn đến với Crombolo! Chỉ trong 1 phút, bạn sẽ sẵn sàng sử dụng. Chúng tôi chỉ cần bạn tạo mật khẩu và thêm hình đại diện cho tài khoản.",
-    "userinviteExpiredMessage": "Chào mừng bạn đến với Crombolo! Rất tiếc, lời mời của bạn đã hết hạn. Vui lòng liên hệ với quản trị viên của bạn và yêu cầu họ gửi lại lời mời.",
-    "documentType": "Loại nội dung"
-  },
-  "general": {
-    "umbracoInfo": "Thông tin Crombolo"
-  },
-  "buttons": {
-    "viewSystemDetails": "Xem thông tin hệ thống Crombolo CMS và số phiên bản"
-  },
-  "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Tìm kiếm trong Crombolo backoffice"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Một trang Crombolo chỉ có thể có một ngôn ngữ mặc định được thiết lập."
-  },
-  "paste": {
-    "errorMessage": "Văn bản bạn đang cố dán chứa các ký tự hoặc định dạng đặc biệt. Điều này có thể do việc sao chép văn bản từ Microsoft Word. Crombolo có thể tự động loại bỏ các ký tự hoặc định dạng đặc biệt, vì vậy nội dung được dán sẽ phù hợp hơn với web."
-  },
-  "dashboard": {
-    "nothinghappens": "Nếu Crombolo không mở, bạn có thể cần cho phép cửa sổ bật lên từ trang này"
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Tìm kiếm mã nguồn Crombolo",
-    "searchWithinUmbracoSourceCodeOnGithub": "Tìm trong mã nguồn Crombolo trên GitHub",
-    "searchUmbracoIssues": "Tìm kiếm vấn đề của Crombolo",
-    "searchUmbracoIssuesOnGithub": "Tìm vấn đề của Crombolo trên GitHub"
-  },
-  "defaultdialogs": {
-    "linkYourConfirm": "Bạn sắp liên kết tài khoản Crombolo và {0} của mình và bạn sẽ được chuyển hướng đến {0} để xác nhận.",
-    "unLinkYourConfirm": "Bạn sắp hủy liên kết tài khoản Crombolo và {0} của mình và bạn sẽ bị đăng xuất."
-  },
   "actions": {
     "changeDocType": "Thay đổi loại nội dung",
     "exportDocumentType": "Xuất khẩu loại nội dung",
@@ -93,6 +51,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Loại nội dung"
+  },
+  "user": {
+    "documentType": "Loại nội dung"
   },
   "references": {
     "labelUsedByDocumentTypes": "Được sử dụng trong các Loại Nội dung"

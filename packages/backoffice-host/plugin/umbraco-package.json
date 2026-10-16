@@ -181,6 +181,24 @@
       "weight": 1000
     },
     {
+      "type": "headerApp",
+      "kind": "button",
+      "alias": "Crombolo.HeaderApp.Settings",
+      "name": "Crombolo Settings Header App",
+      "weight": 300,
+      "meta": {
+        "label": "Settings",
+        "icon": "icon-settings",
+        "href": "section/settings"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionUserPermission",
+          "match": "Umb.Section.Settings"
+        }
+      ]
+    },
+    {
       "type": "workspaceFooterApp",
       "alias": "Crombolo.WorkspaceFooterApp.ElementTypeHint",
       "name": "Crombolo Element Type Library Hint",
@@ -194,26 +212,6 @@
       ]
     },
     {
-      "type": "localization",
-      "alias": "Crombolo.Localization.EN",
-      "name": "Crombolo English Overrides",
-      "weight": 0,
-      "meta": {
-        "culture": "en"
-      },
-      "js": "/crombolo-plugin/branding/localization-en.js"
-    },
-    {
-      "type": "localization",
-      "alias": "Crombolo.Localization.EN_US",
-      "name": "Crombolo English (United States) Overrides",
-      "weight": 0,
-      "meta": {
-        "culture": "en-us"
-      },
-      "js": "/crombolo-plugin/branding/localization-en.js"
-    },
-    {
       "type": "backofficeEntryPoint",
       "alias": "Crombolo.EntryPoint.Branding",
       "name": "Crombolo Branding",
@@ -224,12 +222,6 @@
       "alias": "Crombolo.EntryPoint.HelpMenu",
       "name": "Crombolo Help Menu",
       "js": "/crombolo-plugin/branding/help-menu.js"
-    },
-    {
-      "type": "backofficeEntryPoint",
-      "alias": "Crombolo.EntryPoint.Sysinfo",
-      "name": "Crombolo System Information Branding",
-      "js": "/crombolo-plugin/branding/sysinfo.js"
     },
     {
       "type": "section",

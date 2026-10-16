@@ -90,10 +90,11 @@ reason, rather than sitting approved and unpublished.
 - **The Workflows section** — *Waiting for me* (stages the reader may decide),
   *In flight*, *Decided*, and, for administrators, *Workflows*: the list and the
   designer. Admin, Editors and Writers have the section; any group can be given it.
-- **The designer** — stages as boxes on a canvas, dragged into place; *Connect
-  stages* draws an arrow, clicking one removes it; beside the canvas, the
-  selected stage's approvers, required count and send-back, and the workflow's
-  settings. Read-only where the schema directory is.
+- **The designer** — two tabs. *Settings*, which opens first: what the workflow
+  covers and its rules. *Stages*: stages as boxes on a canvas, dragged into
+  place; *Connect stages* draws an arrow, clicking one removes it; beside the
+  canvas, the selected stage's approvers, required count and send-back.
+  Read-only where the schema directory is.
 - **A page's Workflow tab** — which workflow covers it, the graph coloured by
   where a request stands, *Send for approval* and *Request unpublish*, *Approve*
   and *Send back* for the approvers of a waiting stage, *Withdraw* for the

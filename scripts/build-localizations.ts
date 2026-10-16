@@ -298,7 +298,20 @@ export async function buildLocalizations(): Promise<number> {
   rmSync(OUT_DIR, { recursive: true, force: true })
   mkdirSync(OUT_DIR, { recursive: true })
 
-  const extensions: unknown[] = []
+  // The hand-written English override, here rather than in the plugin's own
+  // manifest so that it too is public: the sign-in dialog renders before a
+  // private manifest has loaded.
+  const extensions: unknown[] = [
+    ['en', 'EN', 'English'],
+    ['en-us', 'EN_US', 'English (United States)'],
+  ].map(([culture, alias, language]) => ({
+    type: 'localization',
+    alias: `Crombolo.Localization.${alias}`,
+    name: `Crombolo ${language} Overrides`,
+    weight: 0,
+    meta: { culture },
+    js: `${PLUGIN_PATH_PLACEHOLDER}/branding/localization-en.js`,
+  }))
   for (const { culture, file } of vendoredCultures()) {
     const module = (await import(join(LANG_DIR, `${file}.js`))) as {
       default: Record<string, Record<string, string> | undefined>
@@ -334,7 +347,8 @@ export async function buildLocalizations(): Promise<number> {
         name: 'Crombolo Localizations',
         id: 'Crombolo.Localizations',
         version,
-        allowPublicAccess: false,
+        // Before sign-in too, so the sign-in dialog reads as the rest of the backoffice does.
+        allowPublicAccess: true,
         extensions,
       },
       null,

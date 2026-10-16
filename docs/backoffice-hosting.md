@@ -157,6 +157,34 @@ plugin translates both: each worker is built separately into
 `exports` map in 0.57 rewrites the deep worker paths, so they are resolved from
 the package directory instead.
 
+**Upstream patches.** `UPSTREAM_PATCHES` in `scripts/vendor-backoffice.ts` fixes
+Umbraco bugs that are still open upstream (still present in 18.3.0-rc). Each patch is a find-and-replace on one module, and
+vendoring fails if the code it targets has moved, so an upgrade cannot quietly
+ship the bug again. `tests/vendor.test.ts` checks each patch still applies to the
+pinned release.
+
+- `umbIsProductionBuild()` answers true. Umbraco's Vite build sets
+  `import.meta.env.PROD` and our bundler does not, so without the patch Umbraco's
+  own deprecation warnings reach the console. In production Umbraco hides only
+  warnings from its own code, so warnings from the plugin still show.
+- `umb-app-auth-modal` closes once on sign-in. A sign-in reports success twice:
+  once through the auth context and once through the view's callback. The second
+  call hits a modal that has already closed and logs
+  `[AuthView] Error submitting auth request … _subject is undefined`.
+- A tab's keyboard focus outline is drawn inside the tab, in the theme's focus
+  colour, as UUI's other controls draw theirs. Left to the browser, it was blue
+  and drawn outside the tab, across the header above it.
+- The header gives its active-section marker its own colour,
+  `--crombolo-header-current` (terracotta brown in `theme.css`). Otherwise it uses Umbraco's
+  pale "current" colour, which disappears against the white submenu below.
+- Settings is left out of the section tabs. It opens from a gear among the
+  header's buttons instead (`Crombolo.HeaderApp.Settings`, a `headerApp` of kind
+  `button`, shown to anyone with access to Settings). Its routes are unchanged.
+- The redirect dashboard names `CROMBOLO_TRACK_REDIRECTS` instead of Umbraco's
+  .NET setting. The header logo's alternative text and the sign-in provider's
+  label say Crombolo. See [Keeping Umbraco's name out](brand.md#keeping-umbracos-name-out),
+  which also covers how every vendored module and dictionary is rebranded.
+
 `$UMBRACO_SRC` defaults to `../Umbraco-CMS` and is read only by
 `vendor:refresh-static` — never during an ordinary build, test or run.
 

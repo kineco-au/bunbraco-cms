@@ -3,47 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "login": {
-    "instruction": "Log ind på Crombolo",
-    "userInviteWelcomeMessage": "Hej og velkommen til Crombolo! På bare 1 minut vil du være klar til at komme i gang, vi skal bare have dig til at oprette en adgangskode.",
-    "userInviteExpiredMessage": "Velkommen til Crombolo! Desværre er din invitation udløbet. Kontakt din administrator og bed om at gensende invitationen."
-  },
-  "user": {
-    "changePasswordDescription": "Du kan ændre dit kodeord, som giver dig adgang til Crombolo backoffice ved at\n      udfylde formularen og klikke på knappen 'Skift dit kodeord'\n    ",
-    "createUserHelp": "Opret nye brugere for at give dem adgang til Crombolo. Når en ny bruger oprettes,\n      genereres der en adgangskode, som du kan dele med brugeren.\n    ",
-    "inviteUserHelp": "Invitér nye brugere til at give dem adgang til Crombolo. En invitation vil blive sendt\n      via e-mail til brugeren med oplysninger om, hvordan man logger ind i Crombolo.\n    ",
-    "noConsole": "Deaktivér adgang til Crombolo",
-    "userCreatedSuccessHelp": "Den nye bruger er blevet oprettet. For at logge ind i Crombolo skal du bruge\n      adgangskoden nedenfor.\n    ",
-    "userInvitedSuccessHelp": "En invitation er blevet sendt til den nye bruger med oplysninger om, hvordan man\n      logger ind i Crombolo.\n    ",
-    "userinviteWelcomeMessage": "Hej og velkommen til Crombolo! På bare 1 minut vil du være klar til at komme i\n      gang, vi skal bare have dig til at oprette en adgangskode og tilføje et billede til din avatar.\n    ",
-    "userinviteExpiredMessage": "Velkommen til Crombolo! Desværre er din invitation udløbet. Kontakt din\n      administrator og bed om at gensende invitationen.\n    ",
-    "documentType": "Indholdstype"
-  },
-  "general": {
-    "umbracoInfo": "Crombolo info"
-  },
-  "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Søg i Crombolo backoffice"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Et Crombolo-site kan kun have ét standardsprog."
-  },
-  "paste": {
-    "errorMessage": "Den tekst du er ved at indsætte indeholder specialtegn eller formatering. Dette kan\n      skyldes at du kopierer fra f.eks. Microsoft Word. Crombolo kan fjerne denne specialformatering automatisk så\n      indholdet er mere velegnet til visning på en webside.\n    "
-  },
-  "dashboard": {
-    "nothinghappens": "Hvis Crombolo ikke starter, kan det skyldes at din browser ikke tillader pop-up vinduer\n    "
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Søg i Crombolo kildekoden",
-    "searchWithinUmbracoSourceCodeOnGithub": "Søg i Crombolo kildekoden på Github",
-    "searchUmbracoIssues": "Søg i Crombolo issues",
-    "searchUmbracoIssuesOnGithub": "Søg i Crombolo issues på Github"
-  },
-  "defaultdialogs": {
-    "linkYourConfirm": "For at linke dine Crombolo og {0} konti, vil du blive sendt til {0} for at bekræfte.",
-    "unLinkYourConfirm": "Du er ved at fjerne linket mellem dine Crombolo og {0} konti og du vil blive logget ud."
-  },
   "actions": {
     "changeDocType": "Skift indholdstype",
     "exportDocumentType": "Eksportér indholdstype",
@@ -90,6 +49,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Indholdstyper"
+  },
+  "user": {
+    "documentType": "Indholdstype"
   },
   "references": {
     "labelUsedByDocumentTypes": "Brugt i indholdstyper"

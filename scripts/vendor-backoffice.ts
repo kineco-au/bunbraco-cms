@@ -265,6 +265,161 @@ function inlineJsonImports(): number {
   return rewritten
 }
 
+/** A fix to one vendored module, for a bug Umbraco ships and has not fixed upstream. */
+export interface UpstreamPatch {
+  file: string
+  find: string
+  replace: string
+  /** Where the pinned code is under `node_modules`, when `file` is bundled from another package. */
+  source?: string
+}
+
+export const UPSTREAM_PATCHES: UpstreamPatch[] = [
+  // Umbraco's Vite build substitutes `import.meta.env.PROD`; left false, every
+  // deprecation in Umbraco's own code is logged to the console, where nobody can act on it.
+  {
+    file: 'packages/core/utils/is-production-build.function.js',
+    find: "typeof import.meta.env !== 'undefined' && import.meta.env.PROD === true",
+    replace: 'true',
+  },
+  // A sign-in reports success twice, through the auth context and through the
+  // view's callback; the second lands on a closed modal and throws "_subject is undefined".
+  {
+    file: 'packages/core/auth/modals/umb-app-auth-modal.element.js',
+    find: '    #onSuccess = () => {\n        this.value = { success: true };',
+    replace:
+      '    #succeeded = false;\n    #onSuccess = () => {\n        if (this.#succeeded)\n            return;\n        this.#succeeded = true;\n        this.value = { success: true };',
+  },
+  // The redirect dashboard names Umbraco's .NET setting; here it is an environment variable.
+  {
+    file: 'packages/documents/document-redirect-management/dashboard-redirect-management.element.js',
+    find: '<code>Umbraco:CMS:WebRouting:DisableRedirectUrlTracking</code>',
+    replace: '<code>CROMBOLO_TRACK_REDIRECTS</code>',
+  },
+  // A tab leaves focus to the browser's default ring, which is blue and drawn
+  // outside the tab, across the header above it. Drawn inside, the way UUI's other
+  // controls draw theirs: the theme's colour, and hidden after a mouse click.
+  {
+    file: 'external/uui/index.js',
+    source: '@umbraco-ui/uui/dist/components/tabs/tab.element.js',
+    find: '      :host(:not([disabled])) #button:hover {\n        color: var(--uui-tab-text-hover,',
+    replace:
+      '      #button:focus-visible {\n        outline: calc(2px * var(--uui-show-focus-outline, 1)) solid\n          var(--uui-focus-outline-color, var(--uui-color-focus));\n        outline-offset: -2px;\n      }\n\n      :host(:not([disabled])) #button:hover {\n        color: var(--uui-tab-text-hover,',
+  },
+  // The active section's marker takes the "current" colour, which is pale and
+  // vanishes against the submenu below; a hook lets the theme give the header its own.
+  {
+    file: 'apps/backoffice/components/backoffice-header-sections.element.js',
+    find: '\t\t\t\t--uui-tab-group-dropdown-background: var(--uui-color-header-surface);',
+    replace:
+      '\t\t\t\t--uui-tab-group-dropdown-background: var(--uui-color-header-surface);\n\t\t\t\t--uui-color-current: var(--crombolo-header-current, var(--uui-palette-spanish-pink));\n\t\t\t\t--uui-color-current-emphasis: var(--crombolo-header-current, var(--uui-palette-spanish-pink-light));',
+  },
+  // Settings opens from the gear among the header's buttons (`Crombolo.HeaderApp.Settings`),
+  // so it is left out of the section tabs; the section and its routes are untouched.
+  {
+    file: 'apps/backoffice/components/backoffice-header-sections.element.js',
+    find: 'this._sections = allowedSections.map((section) => section.manifest).filter((section) => section !== undefined);',
+    replace:
+      "this._sections = allowedSections.map((section) => section.manifest).filter((section) => section !== undefined && section.alias !== 'Umb.Section.Settings');",
+  },
+  // The two places the name alone is read rather than compared, which `rebrandModule` leaves.
+  {
+    file: 'apps/backoffice/components/backoffice-header-logo.element.js',
+    find: 'alt="Umbraco"',
+    replace: 'alt="Crombolo"',
+  },
+  {
+    file: 'packages/core/auth/providers/manifests.js',
+    find: "label: 'Umbraco',",
+    replace: "label: 'Crombolo',",
+  },
+]
+
+/**
+ * Umbraco's name where a person reads it. Not part of an alias (`Umb.X.Umbraco`,
+ * `Umbraco.ContentPublish`), a path, a package (`@umbraco-cms`), a URL
+ * (`Umbraco-CMS`) or a .NET setting (`Umbraco:CMS:…`).
+ */
+const PRODUCT_NAME = /(?<![\w./@-])Umbraco(?![\w.:-])/g
+
+/** A string literal, its quote and its contents; escapes included. */
+const STRING_LITERAL = /(['"`])((?:\\[\s\S]|(?!\1)[^\\])*)\1(\s*:)?/g
+
+/** An address in a dictionary string, which is followed rather than read. */
+const ADDRESS = /(https?:\/\/[^\s'"<>]+)/
+
+/** French elides `de` before a vowel; Crombolo opens on a consonant. */
+const ELIDED = /\bd(?:'|\\'|\u2019|\\u2019)(?=[Uu]mbraco)/g
+
+/** One dictionary string with the name replaced in every grammatical form. */
+function rebrandProse(text: string): string {
+  return text
+    .split(ADDRESS)
+    .map((part, index) =>
+      index % 2 === 1
+        ? part
+        : part
+            .replace(ELIDED, 'de ')
+            .replace(/UMBRACO/g, 'CROMBOLO')
+            .replace(/Umbraco/g, 'Crombolo')
+            .replace(/umbraco/g, 'crombolo'),
+    )
+    .join('')
+}
+
+/**
+ * A literal that is the name alone — `'Umbraco'` — is a value code compares
+ * against, such as the provider name the server's authorize endpoint knows, so
+ * it is left; every visible use of it is replaced where it renders.
+ */
+function isWholeLiteral(source: string, start: number, length: number): boolean {
+  const before = source[start - 1]
+  return (before === "'" || before === '"' || before === '`') && source[start + length] === before
+}
+
+/** A vendored module with Umbraco's name replaced wherever a person reads it. */
+export function rebrandModule(source: string): string {
+  return source.replace(PRODUCT_NAME, (match, offset: number) =>
+    isWholeLiteral(source, offset, match.length) ? match : 'Crombolo',
+  )
+}
+
+/**
+ * A vendored dictionary with Umbraco's name replaced in every string it
+ * displays, whatever the grammar has done to it ("Umbraco-a", "Umbracos"). The
+ * keys are the client's identifiers and are left, as are addresses.
+ */
+export function rebrandDictionary(source: string): string {
+  return source.replace(STRING_LITERAL, (literal, quote: string, text: string, key?: string) =>
+    key ? literal : `${quote}${rebrandProse(text)}${quote}`,
+  )
+}
+
+/** Rebrands every vendored module and dictionary in place; returns how many files changed. */
+function rebrandVendored(): number {
+  let changed = 0
+  const rewrite = (pattern: string, rebrand: (source: string) => string) => {
+    for (const file of new Bun.Glob(pattern).scanSync({ cwd: OUT })) {
+      const path = join(OUT, file)
+      const source = readFileSync(path, 'utf8')
+      const updated = rebrand(source)
+      if (updated === source) continue
+      writeFileSync(path, updated)
+      changed += 1
+    }
+  }
+  rewrite('{apps,packages,libs}/**/*.js', rebrandModule)
+  rewrite('assets/lang/*.js', rebrandDictionary)
+  return changed
+}
+
+/** Applies a patch, refusing a source that no longer has the code it fixes. */
+export function applyPatch(source: string, patch: UpstreamPatch): string {
+  if (!source.includes(patch.find))
+    throw new Error(`upstream changed; patch no longer applies: ${patch.file}`)
+  return source.replace(patch.find, patch.replace)
+}
+
 /** Whether a module exports a default, following `export * from` chains. */
 function hasDefaultExport(file: string, seen = new Set<string>()): boolean {
   if (seen.has(file) || !existsSync(file)) return false
@@ -586,6 +741,11 @@ async function main(): Promise<void> {
   }
 
   const jsonImportsInlined = inlineJsonImports()
+  const rebranded = rebrandVendored()
+  for (const patch of UPSTREAM_PATCHES) {
+    const file = join(OUT, patch.file)
+    writeFileSync(file, applyPatch(readFileSync(file, 'utf8'), patch))
+  }
 
   // 5. the import map manifest upstream generates at build time
   const packageJson = JSON.parse(readFileSync(join(PKG, 'package.json'), 'utf8'))
@@ -622,6 +782,7 @@ async function main(): Promise<void> {
   )
   console.log(`  non-runtime files pruned: ${pruned}`)
   console.log(`  json imports inlined: ${jsonImportsInlined}`)
+  console.log(`  files rebranded: ${rebranded}`)
   console.log(`  externals bundled: ${externals.length - failed.length}/${externals.length}`)
   console.log(`  bare deps bundled: ${bundled.length}`)
   if (reExported > 0) console.log(`  wholesale re-exports made explicit: ${reExported}`)

@@ -3,32 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "user": {
-    "changePasswordDescription": "Aşağıdaki formu doldurarak ve 'Şifreyi Değiştir' düğmesini tıklayarak Crombolo Arka Ofisine erişim şifrenizi değiştirebilirsiniz",
-    "createUserHelp": "Crombolo'ya erişim sağlamak için yeni kullanıcılar oluşturun. Yeni bir kullanıcı oluşturulduğunda, kullanıcıyla paylaşabileceğiniz bir şifre oluşturulacaktır.",
-    "inviteUserHelp": "Yeni kullanıcıları Crombolo'ya erişim vermeleri için davet edin. Kullanıcıya, Crombolo'da nasıl oturum açılacağına dair bilgiler içeren bir davet e-postası gönderilecektir. Davetler 72 saat sürer.",
-    "noConsole": "Crombolo Erişimini Devre Dışı Bırak",
-    "userCreatedSuccessHelp": "Yeni kullanıcı başarıyla oluşturuldu. Crombolo'da oturum açmak için aşağıdaki şifreyi kullanın.",
-    "userInvitedSuccessHelp": "Yeni kullanıcıya, Crombolo'da nasıl oturum açılacağına ilişkin ayrıntıları içeren bir davetiye gönderildi.",
-    "userinviteWelcomeMessage": "Merhabalar, Crombolo'ya hoş geldiniz! Sadece 1 dakika içinde hazır olacaksınız, sadece bir şifre belirlemeniz.",
-    "userinviteExpiredMessage": "Crombolo'ya hoş geldiniz! Maalesef davetinizin süresi doldu. Lütfen yöneticinizle iletişime geçin ve yeniden göndermesini isteyin.",
-    "documentType": "İçerik Türü"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Bir Crombolo sitesinde yalnızca bir varsayılan dil ayarı olabilir."
-  },
-  "paste": {
-    "errorMessage": "Yapıştırmaya çalıştığınız metin özel karakterler veya biçimlendirme içeriyor. Bunun nedeni Microsoft Word'den metin kopyalanması olabilir. Crombolo, özel karakterleri veya biçimlendirmeyi otomatik olarak kaldırabilir, böylece yapıştırılan içerik web için daha uygun olacaktır."
-  },
-  "dashboard": {
-    "nothinghappens": "Crombolo açılmıyorsa, bu siteden pop-up'lara izin vermeniz gerekebilir"
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Crombolo Kaynağını Ara",
-    "searchWithinUmbracoSourceCodeOnGithub": "Github'da Crombolo kaynak kodu içinde arama",
-    "searchUmbracoIssues": "Crombolo Sorunlarını Ara",
-    "searchUmbracoIssuesOnGithub": "Github'da Crombolo Sorunlarını Ara"
-  },
   "actions": {
     "changeDocType": "İçerik Türünü Değiştir",
     "exportDocumentType": "İçerik Türünü Dışa Aktar",
@@ -69,6 +43,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "İçerik Türleri"
+  },
+  "user": {
+    "documentType": "İçerik Türü"
   },
   "references": {
     "labelUsedByDocumentTypes": "İçerik Türlerinde Kullanılır"

@@ -1,5 +1,5 @@
 /**
- * `bun run site <id>`: one command that runs a site from `sites/` in place, or
+ * `bun run site <id>`: one command that runs a copy of a site from `sites/`, or
  * scaffolds a starter template and runs that, on localhost or in the compose stack.
  *
  * The property worth holding is the safety one. A demo must never write to a
@@ -13,6 +13,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ROOT } from '../scripts/packages.ts'
+import { copySite } from '../scripts/sites.ts'
 
 const SCRIPT = join(ROOT, 'scripts/start-site.ts')
 const SANDBOX = join(ROOT, 'output', 'start-site-sites')
@@ -80,29 +81,64 @@ describe('choosing a site or a template', () => {
 })
 
 describe('a site in sites/', () => {
-  test('runs in place, by id or by directory, and imports its own bundle', () => {
+  const copy = join(SANDBOX, 'demo-example')
+
+  test('runs from a copy, by id or by directory, and imports its own bundle', () => {
     const dir = repoSite()
     for (const name of ['demo/example', 'example']) {
       const { code, out } = run([name, '--dry-run'])
       expect(code).toBe(0)
-      expect(out).toContain('in place')
-      expect(out).toContain(join(dir, 'crombolo.sqlite'))
+      expect(out).toContain('would copy')
+      expect(out).toContain(join(copy, 'crombolo.sqlite'))
+      expect(out).not.toContain(join(dir, 'crombolo.sqlite'))
       expect(out).toContain('--bundle bundles/demo-example --publish')
     }
-    expect(existsSync(join(SANDBOX, 'demo-example'))).toBe(false)
+    expect(existsSync(copy)).toBe(false)
   })
 
-  test('starts against its own database without asking for --reuse', () => {
-    // It is meant to be run again and again; only a scaffold expects to be empty.
-    repoSite()
-    const { code, out } = run(['demo/example', '--dry-run'])
-    expect(code).toBe(0)
-    expect(out).toContain('holds 1 node(s), reused')
-  })
-
-  test('--fresh under --dry-run says what it would clear, and clears nothing', () => {
+  test('copies the files but not what running it left behind', () => {
     const dir = repoSite()
-    const { code, out } = run(['demo/example', '--fresh', '--dry-run'])
+    mkdirSync(join(dir, 'node_modules', 'crombolo'), { recursive: true })
+    writeFileSync(join(dir, 'crombolo.sqlite.content-import.bak'), '')
+    copySite(dir, copy)
+    for (const kept of ['site.json', 'components/home.tsx', 'bundles/demo-example'])
+      expect(existsSync(join(copy, kept))).toBe(true)
+    for (const left of [
+      'crombolo.sqlite',
+      'media',
+      'node_modules',
+      'crombolo.sqlite.content-import.bak',
+    ])
+      expect(existsSync(join(copy, left))).toBe(false)
+  })
+
+  test('keeps the copy between runs, and --fresh replaces it', () => {
+    repoSite()
+    mkdirSync(copy, { recursive: true })
+    writeFileSync(join(copy, 'made-in-the-backoffice.toml'), '')
+    const kept = run(['demo/example', '--dry-run'])
+    expect(kept.out).toContain('reusing')
+    expect(kept.out).not.toContain('would copy')
+    const fresh = run(['demo/example', '--fresh', '--dry-run'])
+    expect(fresh.out).toContain('would remove')
+    expect(fresh.out).toContain('would copy')
+    expect(existsSync(join(copy, 'made-in-the-backoffice.toml'))).toBe(true)
+  })
+
+  test('--in-place runs the site itself, against its own database', () => {
+    // It is meant to be run again and again; only a scaffold expects to be empty.
+    const dir = repoSite()
+    const { code, out } = run(['demo/example', '--in-place', '--dry-run'])
+    expect(code).toBe(0)
+    expect(out).toContain('in place')
+    expect(out).toContain(join(dir, 'crombolo.sqlite'))
+    expect(out).toContain('holds 1 node(s), reused')
+    expect(existsSync(copy)).toBe(false)
+  })
+
+  test('--in-place --fresh under --dry-run says what it would clear, and clears nothing', () => {
+    const dir = repoSite()
+    const { code, out } = run(['demo/example', '--in-place', '--fresh', '--dry-run'])
     expect(code).toBe(0)
     expect(out).toContain('would remove')
     expect(existsSync(join(dir, 'crombolo.sqlite'))).toBe(true)

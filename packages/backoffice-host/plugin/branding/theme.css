@@ -68,6 +68,8 @@
   --uui-color-header-surface: var(--crombolo-orange);
   --uui-color-header-contrast: rgb(84 50 31 / 80%);
   --uui-color-header-contrast-emphasis: var(--crombolo-cocoa);
+  /* The active section's marker, dark so it stands out from the white submenu below. */
+  --crombolo-header-current: var(--crombolo-orange-text);
 
   /* Pure white panels on a warm off-white page, so cards still separate. */
   --uui-color-background: var(--crombolo-cream);

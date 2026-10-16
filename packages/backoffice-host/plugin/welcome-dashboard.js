@@ -13,8 +13,7 @@ const STEPS = [
   {
     title: 'Model the content',
     body: html`Open <strong>Settings → Content Types</strong> and describe a page: its
-      properties, its tabs, and which types may sit beneath it. This is the same
-      editor Umbraco ships, so anything you know about Umbraco document types applies.`,
+      properties, its tabs, and which types may sit beneath it.`,
   },
   {
     title: 'Write a template',
@@ -44,9 +43,7 @@ export default class CromboloWelcomeDashboardElement extends UmbLitElement {
       <uui-box headline="Welcome to Crombolo">
         <p class="lede">
           Crombolo is a content management system that runs on
-          <strong>Bun and TypeScript</strong>. It serves the real Umbraco backoffice you
-          are looking at now and follows Umbraco's API contract, so the editing
-          experience is Umbraco's — while the server, the templates and the schema are
+          <strong>Bun and TypeScript</strong>: the server, the templates and the schema are
           TypeScript, and the database is SQLite or Postgres.
         </p>
         <p class="lede">

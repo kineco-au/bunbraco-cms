@@ -138,6 +138,12 @@ export async function signIn(
 
 /** A section by its label in the header. */
 export async function goToSection(page: Page, name: string): Promise<void> {
+  // Settings opens from the gear among the header's buttons, not from a tab.
+  if (name === 'Settings') {
+    await page.locator('umb-backoffice-header-apps').getByRole('link', { name: 'Settings' }).click()
+    await settle(page)
+    return
+  }
   const tab = page.locator('umb-backoffice-header-sections').getByRole('tab', { name })
   // Clicking the open section's tab navigates again, closing whatever a test opens next
   if ((await tab.getAttribute('active')) === null) await tab.click()

@@ -82,8 +82,7 @@ defaults are chosen so that a clone runs with nothing set.
 
 ## The sites in this repository
 
-`sites/` holds the sites this repository builds, one directory each, committed and
-run in place:
+`sites/` holds the sites this repository builds, one directory each, committed:
 
 | Site | Id | Ships with the CLI |
 | --- | --- | --- |
@@ -96,7 +95,8 @@ Each is a real site — `package.json`, `crombolo.config.ts`, `server.ts`, `sche
 `bundles/<slug>`. Each `package.json` is a private workspace depending on
 `crombolo: workspace:*`, so after `bun install` it runs the working tree. What it
 writes as it runs — the database, its backups, media, logs, the view cache — is
-gitignored, and is what `bun run site <id> --fresh` clears.
+gitignored. `bun run site <id>` runs a copy of it rather than the site itself
+(below), so the committed files change only when you mean them to.
 
 None is published by default. A site whose `site.json` says `"distribute": true`
 is staged into `@crombolo/cli`'s `templates/` only while the CLI is packed
@@ -112,8 +112,9 @@ content in a throwaway database from the site's own schema and exports it, so
 ## The demo command and the database it may touch
 
 `bun run site <id>` exists so running one of the sites in `sites/`, or trying a
-template the CLI ships, is one command rather than four. A site in `sites/` runs
-in place; a CLI template is scaffolded first. Two decisions in it are worth
+template the CLI ships, is one command rather than four. A site in `sites/` is
+copied into `.scaffolds/<slug>` on its first run and runs from there; a CLI
+template is scaffolded first. Two decisions in it are worth
 stating, because both are about not damaging anything:
 
 - **The database is forced, not defaulted.** The dialect is SQLite and the file
@@ -122,7 +123,14 @@ stating, because both are about not damaging anything:
   rather than honoured. A demo cannot migrate or seed a live database even by
   accident. If a scaffold's own file already holds content the run stops and
   names the two flags that continue it; a site in `sites/` carries on with its
-  own, and `--fresh` clears only what it wrote as it ran.
+  own.
+- **A site runs from a copy.** What the backoffice writes — a form, a workflow,
+  a content type, a bundle — goes to the site's files, and in `sites/` those are
+  committed. The copy leaves out the database, media, logs, view cache and
+  `node_modules`, is kept between runs so content made in it survives, and is
+  replaced by `--fresh`. `--in-place` runs the committed site, for changing it
+  through the backoffice on purpose; there `--fresh` clears only what it wrote as
+  it ran.
 - **A scaffold lives in `.scaffolds/<template>`**, not `output/`. The compose stack
   mounts `cms_output:/app/output`, which masks the host directory inside the
   container, so a site scaffolded there would be invisible to `--docker`.
@@ -298,7 +306,7 @@ when a link can actually be delivered.
 | `bun run start:local`                                 | **local development**: `crombolo start` in `apps/site` — migrate, seed, reset and print the admin password, serve                                             |
 | `bun run start:local:watch`                           | as above, reloading on change                                                                                                                                 |
 | `bun run dev`                                         | `apps/site/server.ts` under `bun --watch`, with no password handling                                                                                          |
-| `bun run site <id>`                                   | **a site, running**: a site in `sites/` in place, or a CLI template scaffolded into `.scaffolds/<template>` first. `--docker` in the compose stack, `--fresh` to clear its database and media (or scaffold again), `--reuse` to accept a scaffold whose database holds content, `--dry-run` to say what it would do. Runs the working tree, not the published packages |
+| `bun run site <id>`                                   | **a site, running**: a copy of a site in `sites/`, or a CLI template scaffolded, in `.scaffolds/`. `--docker` in the compose stack, `--fresh` to copy or scaffold again, `--in-place` to run a site in `sites/` itself, `--reuse` to accept a scaffold whose database holds content, `--dry-run` to say what it would do. Runs the working tree, not the published packages |
 | `bunx crombolo <cmd>`                                 | the CLI: `start [--bundle <dir>]`, `init [--name\|--postgres\|--template]`, `status [--json]`, `admin reset-password`, `schema check\|sync\|export\|rewrite\|purge\|new\|add-property`, `generate`, `components check\|list\|new`, `assets list\|new`, `content export\|check\|import\|runs\|revert\|publish\|unpublish`, `domains [set\|clear\|apply\|undo]`, `dictionary export\|import`, `upgrade [check [--fix]\|--plan\|ledger\|schema]` |
 | `bun add -g @crombolo/cli`                            | the same CLI without a site: `init` somewhere new, or run commands against a site this machine does not serve                                                  |
 | `bun run build:template`                              | regenerate a starter template's content bundle and images (`scripts/build-template.ts`); no argument does every template                                       |

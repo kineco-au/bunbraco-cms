@@ -3,8 +3,28 @@
   "name": "Crombolo Localizations",
   "id": "Crombolo.Localizations",
   "version": "0.13.2",
-  "allowPublicAccess": false,
+  "allowPublicAccess": true,
   "extensions": [
+    {
+      "type": "localization",
+      "alias": "Crombolo.Localization.EN",
+      "name": "Crombolo English Overrides",
+      "weight": 0,
+      "meta": {
+        "culture": "en"
+      },
+      "js": "/crombolo-plugin/branding/localization-en.js"
+    },
+    {
+      "type": "localization",
+      "alias": "Crombolo.Localization.EN_US",
+      "name": "Crombolo English (United States) Overrides",
+      "weight": 0,
+      "meta": {
+        "culture": "en-us"
+      },
+      "js": "/crombolo-plugin/branding/localization-en.js"
+    },
     {
       "type": "localization",
       "alias": "Crombolo.Localization.Overrides.AR",

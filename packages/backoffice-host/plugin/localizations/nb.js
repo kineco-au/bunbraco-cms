@@ -3,24 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "login": {
-    "userInviteWelcomeMessage": "Hei og velkommen til Crombolo! Om bare 1 minutt er du klar til å starte, vi trenger bare at du setter et passord.",
-    "userInviteExpiredMessage": "Velkommen til Crombolo! Dessverre har invitasjonen din utløpt. Kontakt administratoren din og be dem sende den på nytt."
-  },
-  "user": {
-    "changePasswordDescription": "Du kan endre passordet til Crombolo ved å fylle ut skjemaet under og klikke \"Bytt passord\" knappen.",
-    "noConsole": "Deaktiver tilgang til Crombolo",
-    "documentType": "Innholdstype"
-  },
-  "general": {
-    "umbracoInfo": "Crombolo-info"
-  },
-  "paste": {
-    "errorMessage": "Teksten du er i ferd med å lime inn, inneholder spesialtegn eller formattering. Dette kan skyldes at du kopierer fra f.eks. Microsoft Word. Crombolo kan fjerne denne spesialformatteringen automatisk slik at innholdet er mer velegnet for visning på en webside."
-  },
-  "dashboard": {
-    "nothinghappens": "Hvis Crombolo ikke starter, kan det skyldes at pop-up vinduer ikke er tillatt"
-  },
   "actions": {
     "changeDocType": "Skift innholdstype",
     "exportDocumentType": "Eksporter innholdstype",
@@ -37,6 +19,9 @@ export default {
   },
   "settings": {
     "importDocumentTypeHelp": "For å importere en innholdstype, finn \".udt\" filen på datamaskinen din ved å klikke \"Utforsk\" knappen og klikk \"Importer\" (du vil bli spurt om bekreftelse i det neste skjermbildet)"
+  },
+  "user": {
+    "documentType": "Innholdstype"
   },
   "references": {
     "labelUsedByDocumentTypes": "Referert av følgende innholdstyper"

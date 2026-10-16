@@ -3,32 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "user": {
-    "changePasswordDescription": "Vous pouvez changer votre mot de passe d'accès au backoffice Crombolo en remplissant le formulaire ci-dessous puis en cliquant sur le bouton \"Changer le mot de passe\"",
-    "createUserHelp": "Créer de nouveaux utilisateurs pour leur donner accès à Crombolo. Lors de la création d'un nouvel utilisateur, un mot de passe est généré que vous pouvez partager avec ce dernier.",
-    "inviteUserHelp": "Inviter de nouveaux utilisateurs pour leur donner accès à Crombolo. Un email d'invitation sera envoyé à chaque utilisateur avec des informations concernant la connexion à Crombolo. Les invitations sont valables pendant 72 heures.",
-    "noConsole": "Désactiver l'accès Crombolo",
-    "userCreatedSuccessHelp": "Le nouvel utilisateur a été créé avec succès. Utilisez le mot de passe ci-dessous pour la connexion à Crombolo.",
-    "userInvitedSuccessHelp": "Une invitation a été envoyée au nouvel utilisateur avec les détails concernant la connexion à Crombolo.",
-    "userinviteWelcomeMessage": "Bien le bonjour et bienvenue dans Crombolo! Vous serez prêt.e dans moins d'1 minute, vous devez encore simplement configurer votre mot de passe.",
-    "userinviteExpiredMessage": "Bienvenue dans Crombolo! Malheureusement, votre invitation a expiré. Veuillez contacter votre administrateur et demandez-lui de vous l'envoyer à nouveau.",
-    "documentType": "Type de contenu"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Un site Crombolo ne peut avoir qu'une seule langue par défaut définie."
-  },
-  "paste": {
-    "errorMessage": "Le texte que vous tentez de coller contient des caractères spéciaux ou du formatage. Cela peut être dû à une copie d'un texte depuis Microsoft Word. Crombolo peut supprimer automatiquement les caractères spéciaux et le formatage, de manière à ce que le texte collé convienne mieux pour le Web."
-  },
-  "dashboard": {
-    "nothinghappens": "Si Crombolo ne s'ouvre pas, peut-être devez-vous autoriser l'ouverture des popups pour ce site."
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Chercher dans les Sources Crombolo",
-    "searchWithinUmbracoSourceCodeOnGithub": "Chercher dans le code source de Crombolo sur Github",
-    "searchUmbracoIssues": "Chercher dans les Crombolo Issues",
-    "searchUmbracoIssuesOnGithub": "Chercher dans les Crombolo Issues sur Github"
-  },
   "actions": {
     "changeDocType": "Changer le type de contenu",
     "exportDocumentType": "Exporter le type de contenu",
@@ -71,6 +45,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Types de contenu"
+  },
+  "user": {
+    "documentType": "Type de contenu"
   },
   "references": {
     "labelUsedByDocumentTypes": "Utilisé dans des Types de Contenu"

@@ -1,7 +1,7 @@
 /**
  * The sites this repository builds: one directory each under `sites/`.
  *
- * A site here is a real site, run in place — its own `package.json` (a private
+ * A site here is a real site — its own `package.json` (a private
  * workspace, so `@crombolo/crombolo` resolves to the working tree), config, schema,
  * components and committed content bundle — and is not published by default.
  * One that sets `"distribute": true` in its `site.json` is staged into
@@ -24,7 +24,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join, relative, sep } from 'node:path'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import { siteMediaTypeFiles } from '@crombolo/schema'
 import { VERSION } from '@crombolo/server'
 import { type BundlePackageInfo, bundleIdFor } from '@crombolo/transfer'
@@ -184,3 +184,16 @@ export function runState(dir: string): string[] {
 }
 
 const RUN_STATE = new Set(['media', 'logs', '.crombolo'])
+
+/**
+ * A site's files without what running it leaves behind: its database, media,
+ * logs and view cache, and the workspace link in `node_modules` — the copy
+ * resolves the packages from the repository's own, as a scaffold does.
+ */
+export function copySite(from: string, into: string): void {
+  const leftBehind = new Set([...runState(from), join(from, 'node_modules')])
+  cpSync(from, into, {
+    recursive: true,
+    filter: (path) => !leftBehind.has(path) && !basename(path).endsWith('.content-import.bak'),
+  })
+}

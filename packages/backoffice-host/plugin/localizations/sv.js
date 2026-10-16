@@ -3,26 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "login": {
-    "userInviteWelcomeMessage": "Hej och välkommen till Crombolo! Inom bara 1 minut är du redo att börja, vi behöver bara att du ställer in ett lösenord.",
-    "userInviteExpiredMessage": "Välkommen till Crombolo! Tyvärr har din inbjudan gått ut. Vänligen kontakta din administratör och be dem skicka den igen."
-  },
-  "user": {
-    "changePasswordDescription": "Du kan byta ditt lösenord för Crombolo backoffice genom att fylla i nedanstående formulär och klicka på knappen \"Ändra lösenord\".",
-    "createUserHelp": "Skapa nya användare för att ge dom åtkomst till Crombolo. När en ny användare skapas kommer ett lösenord genereras som du kan dela med användaren.",
-    "inviteUserHelp": "Bjud in nya användare för att ge dom åtkomst till Crombolo. Ett e-postmeddelande kommer skikcas till användaren med information om hur man loggar in i Crombolo. Inbjudningar är giltiga i 72 timmar.",
-    "noConsole": "Inaktivera tillgång till Crombolo",
-    "documentType": "Innehållstyp"
-  },
-  "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Sök i Crombolo backoffice"
-  },
-  "paste": {
-    "errorMessage": "Texten du försöker klistra in innehåller specialtecken och/eller formateringstaggar. Detta kan bero på att texten kommer från t.ex. Microsoft Word. Crombolo kan ta bort specialtecken och formateringstaggar automatiskt så att innehållet lämpar sig bättre för webbpublicering."
-  },
-  "dashboard": {
-    "nothinghappens": "Om Crombolo inte öppnas kan det bero på att du måste tillåta poppuppfönster att öppnas från denna webbplats"
-  },
   "actions": {
     "changeDocType": "Ändra innehållstyp",
     "exportDocumentType": "Exportera innehållstyp",
@@ -42,5 +22,8 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Innehållstyper"
+  },
+  "user": {
+    "documentType": "Innehållstyp"
   }
 }

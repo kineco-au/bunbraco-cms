@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
+  "name": "Crombolo Sign-in Dialog",
+  "id": "Crombolo.SignInDialog",
+  "version": "0.13.2",
+  "allowPublicAccess": true,
+  "extensions": [
+    {
+      "type": "appEntryPoint",
+      "alias": "Crombolo.AppEntryPoint.SignInDialog",
+      "name": "Crombolo Sign-in Dialog",
+      "js": "/crombolo-plugin/sign-in/entry.js"
+    }
+  ]
+}

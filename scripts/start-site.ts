@@ -5,14 +5,17 @@
  *   bun run site                            the catalogue
  *   bun run site demo/harbourstone          on localhost
  *   bun run site demo/harbourstone --docker in the compose stack
- *   bun run site demo/harbourstone --fresh  clear its database and media, and begin again
+ *   bun run site demo/harbourstone --fresh  copy it again, with an empty database and media
+ *   bun run site demo/harbourstone --in-place  run the committed site itself
  *   bun run site demo/harbourstone --dry-run  say what it would do, start nothing
  *
  * Ctrl-C ends it, including the container `--docker` runs it in: see
  * `runToCompletion` for why that needs a handler rather than bun's default.
  *
- * A site in `sites/` runs in place: it is a private workspace, so its `@crombolo/crombolo`
- * is a symlink to the working tree, and what it writes as it runs is gitignored.
+ * A site in `sites/` runs from a copy in `.scaffolds/<slug>`, made on its first run
+ * and kept until `--fresh`: what the backoffice writes — a form, a workflow, a
+ * content type — lands in the copy, never in the committed site. `--in-place`
+ * runs the site itself, for changing it through the backoffice on purpose.
  * A template the CLI ships (`basic`) is scaffolded first, exactly as `crombolo
  * init` would, into `.scaffolds/<slug>` — gitignored, disposable, and
  * deliberately **not** under `output/`: the compose stack mounts a named volume
@@ -28,7 +31,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { findTemplate, listTemplates, type SiteTemplate, scaffoldFiles } from '@crombolo/cli'
 import { connect } from '@crombolo/data'
 import { portInUse } from '@crombolo/server'
-import { findSite, listSites, runState, SITES_DIR, slugOf } from './sites.ts'
+import { copySite, findSite, listSites, runState, SITES_DIR, slugOf } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
 /**
@@ -66,7 +69,8 @@ if (!site && !template) {
 
 const id = (site ?? template)?.id as string
 const slug = slugOf(id)
-const siteDir = site ? site.dir : join(SCAFFOLDS, slug)
+const inPlace = Boolean(site) && flags.has('--in-place')
+const siteDir = site && inPlace ? site.dir : join(SCAFFOLDS, slug)
 const bundle = site ? site.bundle : template?.bundle
 
 /** Writes the template out, exactly as `crombolo init` does. */
@@ -79,16 +83,31 @@ function scaffold(into: string, which: SiteTemplate): void {
   }
 }
 
-if (site) {
+const dryRun = flags.has('--dry-run')
+if (site && inPlace) {
   if (flags.has('--fresh'))
     for (const path of runState(siteDir)) {
       // A dry run says what it would clear; the database may be someone's afternoon.
-      if (!flags.has('--dry-run')) rmSync(path, { recursive: true, force: true })
-      console.log(
-        `  ${flags.has('--dry-run') ? 'would remove' : 'removed'}  ${relative(ROOT, path)}`,
-      )
+      if (!dryRun) rmSync(path, { recursive: true, force: true })
+      console.log(`  ${dryRun ? 'would remove' : 'removed'}  ${relative(ROOT, path)}`)
     }
   console.log(`  running  ${relative(ROOT, siteDir)} in place`)
+} else if (site) {
+  if (flags.has('--fresh') && existsSync(siteDir)) {
+    if (!dryRun) rmSync(siteDir, { recursive: true, force: true })
+    console.log(`  ${dryRun ? 'would remove' : 'removed'}  ${relative(ROOT, siteDir)}`)
+  }
+  if (!existsSync(siteDir) || (flags.has('--fresh') && dryRun)) {
+    if (!dryRun) copySite(site.dir, siteDir)
+    console.log(
+      `  ${dryRun ? 'would copy' : 'copied'}  ${relative(ROOT, site.dir)} to ${relative(ROOT, siteDir)}`,
+    )
+  } else {
+    console.log(
+      `  reusing  ${relative(ROOT, siteDir)} (--fresh to copy ${relative(ROOT, site.dir)} again)`,
+    )
+  }
+  console.log(`  running  ${relative(ROOT, siteDir)}, a copy of ${relative(ROOT, site.dir)}`)
 } else if (template) {
   if (flags.has('--fresh') && existsSync(siteDir)) {
     rmSync(siteDir, { recursive: true, force: true })
@@ -149,7 +168,9 @@ console.log(
 /** `--bundle` is idempotent: the CLI imports once per bundle and says so. */
 const startArgs = bundle ? ['--bundle', bundle, '--publish'] : []
 const passThrough = args.filter(
-  (arg) => arg.startsWith('--') && !['--docker', '--fresh', '--reuse', '--dry-run'].includes(arg),
+  (arg) =>
+    arg.startsWith('--') &&
+    !['--docker', '--fresh', '--reuse', '--dry-run', '--in-place'].includes(arg),
 )
 
 /** How long a child gets to stop on its own before Ctrl-C stops meaning please. */

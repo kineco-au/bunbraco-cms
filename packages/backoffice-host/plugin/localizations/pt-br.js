@@ -3,16 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "user": {
-    "changePasswordDescription": "você pode alterar sua senha para acessar a área administrativa do Crombolo preenchendo o formulário abaixo e clicando no botão 'Alterar Senha'",
-    "noConsole": "Desabilitar Acesso Crombolo"
-  },
-  "paste": {
-    "errorMessage": "O texto que você está tentando colar contém caracteres ou formatação especial. Isto pode ser causado ao copiar textos diretamente do Microsoft Word. Crombolo pode remover os caracteres ou formatação especial automaticamente para que o conteúdo colado seja mais adequado para a internet."
-  },
-  "dashboard": {
-    "nothinghappens": "Se Crombolo não estiver abrindo talvez você precise hablitar pop-ups para este site"
-  },
   "settings": {
     "importDocumentTypeHelp": "Para importar um tipo de conteúdo encontre o arquivo \".udt\" em seu computador clicando em \"Navegar\" e depois clicando em \"Importar\"(você pode confirmar na próxima tela)"
   },

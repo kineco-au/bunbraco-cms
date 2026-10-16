@@ -3,35 +3,6 @@
 // plugin/branding/localization-en.js curates, and "content type" where
 // Umbraco says "document type".
 export default {
-  "user": {
-    "changePasswordDescription": "È possibile modificare la password di accesso al backoffice Crombolo compilando il form sottostante e clicca sul pulsante 'Modifica password'",
-    "createUserHelp": "Crea nuovi utenti per dar loro accesso a Crombolo. Quando un nuovo utente viene creato,\n      una nuova password da condividere con l'utente viene generata.\n    ",
-    "inviteUserHelp": "Invita nuovi utenti per dar loro l'accesso a Crombolo. Un'email contenente le informazioni su come effettuare l'accesso in Crombolo verrà inviata all'utente. Un invito dura per 72 ore.",
-    "noConsole": "Disabilita l'accesso ad Crombolo",
-    "userCreatedSuccessHelp": "Il nuovo utente è stato creato correttamente. Per effettuare il login in Crombolo utilizza la password sottostante.",
-    "userInvitedSuccessHelp": "Un invito è stato invitato al nuovo utente con le istruzioni su come effettuare il login in Crombolo.",
-    "userinviteWelcomeMessage": "Ciao e benvenuto su Crombolo! In solo 1 minuto sarai pronto a partire, dovrai\n      solamente impostare una password.\n    ",
-    "userinviteExpiredMessage": "Benvenuto su Crombolo! Purtroppo il tuo invito è scaduto. Per favore contatta l'amministratore e chiedigli di rispedirlo.",
-    "documentType": "Tipo di Contenuto"
-  },
-  "visuallyHiddenTexts": {
-    "searchOverlayTitle": "Cerca nel backoffice di Crombolo"
-  },
-  "languages": {
-    "defaultLanguageHelp": "Un sito web Crombolo può avere solo una lingua di default."
-  },
-  "paste": {
-    "errorMessage": "Il testo che stai cercando di incollare contiene caratteri speciali o una formattazione. Questo potrebbe essere causato da Microsoft Word. Crombolo può rimuovere carattere speciali o formattazioni automaticamente, per rendere il contenuto da incollare più adatto per il web."
-  },
-  "dashboard": {
-    "nothinghappens": "se Crombolo non si sta aprendo, potresti aver bisogno di rimuovere il blocco popup"
-  },
-  "logViewer": {
-    "searchUmbracoSource": "Ricerca nel codice sorgente di Crombolo",
-    "searchWithinUmbracoSourceCodeOnGithub": "Ricerca nel codice sorgente di Crombolo su GitHub",
-    "searchUmbracoIssues": "Ricerca tra i problemi di Crombolo",
-    "searchUmbracoIssuesOnGithub": "Ricerca tra i problemi di Crombolo su GitHub"
-  },
   "actions": {
     "changeDocType": "Cambia tipo di contenuto",
     "exportDocumentType": "Esporta il tipo di contenuto",
@@ -75,6 +46,9 @@ export default {
   },
   "treeHeaders": {
     "documentTypes": "Tipi di contenuto"
+  },
+  "user": {
+    "documentType": "Tipo di Contenuto"
   },
   "references": {
     "labelUsedByDocumentTypes": "Usato nei tipi di contenuto"

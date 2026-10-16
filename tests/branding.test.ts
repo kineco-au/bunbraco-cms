@@ -41,10 +41,6 @@ import {
   rebrandSearchMenu,
 } from '../packages/backoffice-host/plugin/branding/log-viewer-menu.js'
 import {
-  isSysinfoClipboardText,
-  rebrandSysinfo,
-} from '../packages/backoffice-host/plugin/branding/sysinfo.js'
-import {
   aliasOf,
   brandDictionary,
   curatedKeys,
@@ -80,21 +76,21 @@ const doc = (html: string) =>
 
 describe('the title the client writes', () => {
   test('gets the site’s name in place of the client’s', () => {
-    expect(brandedTitle('Content | Umbraco', 'Crombolo')).toBe('Content | Crombolo')
-    expect(brandedTitle('Settings | Templates | Umbraco', 'Acme')).toBe(
+    expect(brandedTitle('Content | Crombolo', 'Crombolo')).toBe('Content | Crombolo')
+    expect(brandedTitle('Settings | Templates | Crombolo', 'Acme')).toBe(
       'Settings | Templates | Acme',
     )
     // Not the client's suffix: left alone.
-    expect(brandedTitle('Crombolo', 'Crombolo')).toBe('Crombolo')
-    expect(brandedTitle('Umbraco rocks', 'Acme')).toBe('Umbraco rocks')
+    expect(brandedTitle('Crombolo', 'Acme')).toBe('Crombolo')
+    expect(brandedTitle('Crombolo rocks', 'Acme')).toBe('Crombolo rocks')
   })
 
   test('is never corrected twice, whatever the site is called', () => {
     // Each of these names makes a naive correction produce something it would
     // correct again. The last is what the entry point once took for the site's
     // name, by reading a title the client had already written.
-    const names = ['Crombolo', 'Umbraco', 'Acme | Umbraco', 'Content | Umbraco', ' | Umbraco', '']
-    const titles = ['Content | Umbraco', 'A | B | Umbraco', 'Umbraco', ' | Umbraco', '']
+    const names = ['Crombolo', 'Acme', 'Acme | Crombolo', 'Content | Crombolo', ' | Crombolo', '']
+    const titles = ['Content | Crombolo', 'A | B | Crombolo', 'Crombolo', ' | Crombolo', '']
     for (const name of names) {
       for (const title of titles) {
         const once = brandedTitle(title, name)
@@ -105,10 +101,10 @@ describe('the title the client writes', () => {
 
   test('cannot grow without bound under an observer of its own writes', () => {
     // The loop as the page runs it: write, observe, write again.
-    let title = 'Content | Umbraco'
+    let title = 'Content | Crombolo'
     let writes = 0
     for (let i = 0; i < 50; i++) {
-      const corrected = brandedTitle(title, 'Content | Umbraco')
+      const corrected = brandedTitle(title, 'Content | Crombolo')
       if (corrected === title) break
       title = corrected
       writes++
@@ -134,7 +130,7 @@ describe('the site’s name', () => {
   })
 
   test('falls back to Crombolo when the shell does not say', () => {
-    expect(brandName(doc('<title>Content | Umbraco</title>'))).toBe('Crombolo')
+    expect(brandName(doc('<title>Content | Acme</title>'))).toBe('Crombolo')
     expect(brandName(doc('<meta name="application-name" content="  " />'))).toBe('Crombolo')
   })
 
@@ -291,47 +287,6 @@ describe('the section Umbraco calls Packages', () => {
   })
 })
 
-describe('the System information modal', () => {
-  test('renames the product in the rows and the copied heading', () => {
-    expect(rebrandSysinfo('Umbraco build version: 18.2.0')).toBe('Crombolo build version: 18.2.0')
-    expect(rebrandSysinfo('Umbraco assembly version: ')).toBe('Crombolo assembly version: ')
-    expect(rebrandSysinfo('Umbraco client version: 18.2.0')).toBe('Crombolo client version: 18.2.0')
-    expect(rebrandSysinfo('Umbraco system information')).toBe('Crombolo system information')
-  })
-
-  test('is a fixed point, so re-applying it to its own output changes nothing', () => {
-    const once = rebrandSysinfo('Umbraco build version: 1\nUmbraco client version: 2')
-    expect(rebrandSysinfo(once)).toBe(once)
-  })
-
-  test('leaves the rows that are the browser’s own words, not the client’s', () => {
-    // The same text carries the user agent and the current URL, so a blanket
-    // replacement would rewrite whatever a site happens to have in its address.
-    for (const row of [
-      'Browser location: https://example.com/umbraco/section/settings',
-      'Browser (user agent): Mozilla/5.0 Umbraco-Crawler/1.0',
-      'User sections: Umb.Section.Content',
-      'Runtime mode: Production',
-    ]) {
-      expect([row, rebrandSysinfo(row)]).toEqual([row, row])
-    }
-  })
-
-  test('only claims the modal’s own clipboard payload', () => {
-    expect(isSysinfoClipboardText('```\nUmbraco system information\n---\nx')).toBe(true)
-    expect(isSysinfoClipboardText('a paragraph a user copied out of an editor')).toBe(false)
-    expect(isSysinfoClipboardText(undefined)).toBe(false)
-  })
-
-  test('patches the row property rather than the shadow DOM it renders into', async () => {
-    // Walking the shadow root would need an observer and would miss the copy
-    // button; the reactive property is upstream of both.
-    const source = await Bun.file(`${BRANDING_DIR}/sysinfo.js`).text()
-    expect(source).toContain("'_systemInformation'")
-    expect(source).toContain("whenDefined('umb-sysinfo')")
-  })
-})
-
 describe('the client credential dialog’s prefix label', () => {
   test('says what the server now requires', () => {
     // The dialog submits the typed value whole, so this label is the only thing
@@ -397,16 +352,21 @@ describe('the generated language overrides', () => {
 
   test('leaves the dictionary keys alone, because those are Umbraco’s identifiers', async () => {
     // `general.umbracoInfo` is the key the client asks for by name. Renaming it
-    // would make the override miss, and nobody reads a key.
-    const { default: dictionary } = await import(join(process.cwd(), LOCALIZATIONS_DIR, 'da.js'))
+    // would make the lookup miss, and nobody reads a key. The vendored
+    // dictionaries are rebranded where they are vendored, keys untouched.
+    const { default: dictionary } = await import(join(process.cwd(), LANG_DIR, 'da.js'))
     const general = (dictionary as Record<string, Record<string, string>>).general ?? {}
-    expect(Object.keys(general)).toContain('umbracoInfo')
+    expect(general.umbracoInfo).toBe('Crombolo info')
   })
 
   test('the generated manifest registers each one against its own culture', async () => {
     const manifest = await Bun.file(join(LOCALIZATIONS_DIR, 'umbraco-package.json')).json()
-    expect(manifest.extensions).toHaveLength(generated.length)
-    for (const extension of manifest.extensions) {
+    // The hand-written English override is registered beside them, for en and en-us.
+    const overrides = manifest.extensions.filter(
+      (e: { alias: string }) => !e.alias.startsWith('Crombolo.Localization.EN'),
+    )
+    expect(overrides).toHaveLength(generated.length)
+    for (const extension of overrides) {
       expect(extension.type).toBe('localization')
       // Lowest weight wins: the registry sorts highest-to-lowest and applies in
       // that order, so 0 lands after the core dictionary's 100.
@@ -505,6 +465,82 @@ describe('the client’s own sign-in screen', () => {
     )
     expect(entry?.type).toBe('backofficeEntryPoint')
     expect(entry?.js).toBe(`${PLUGIN_PATH_PLACEHOLDER}/branding/sign-in.js`)
+  })
+})
+
+describe('the sign-in dialog a timed-out session shows', () => {
+  const DIALOG_DIR = 'packages/backoffice-host/plugin/sign-in'
+
+  test('is public, so it is in place before any private manifest loads', async () => {
+    const manifest = await Bun.file(`${DIALOG_DIR}/umbraco-package.json`).json()
+    expect(manifest.allowPublicAccess).toBe(true)
+    expect(manifest.extensions.map((e: { type: string; js: string }) => [e.type, e.js])).toEqual([
+      ['appEntryPoint', `${PLUGIN_PATH_PLACEHOLDER}/sign-in/entry.js`],
+    ])
+  })
+
+  test("takes the client's place under the alias the client opens", async () => {
+    const { onInit, DIALOG_ALIAS } = await import(`../${DIALOG_DIR}/entry.js`)
+    const calls: string[] = []
+    let registered: { type: string; alias: string } | undefined
+    onInit(undefined, {
+      unregister: (alias: string) => calls.push(`unregister ${alias}`),
+      register: (manifest: { type: string; alias: string }) => {
+        calls.push(`register ${manifest.alias}`)
+        registered = manifest
+      },
+    })
+    expect(DIALOG_ALIAS).toBe('Umb.Modal.AppAuth')
+    expect(calls).toEqual(['unregister Umb.Modal.AppAuth', 'register Umb.Modal.AppAuth'])
+    expect(registered?.type).toBe('modal')
+  })
+
+  test('says nothing about Umbraco', async () => {
+    const source = await Bun.file(`${DIALOG_DIR}/sign-in-dialog.js`).text()
+    const shown = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/const PROVIDER = 'Umbraco'/, '')
+      .replace(/\/umbraco\/management\/api\/[^']*/g, '')
+      .replace(/@umbraco-cms\/backoffice\/[\w-/]+/g, '')
+    expect(shown).not.toMatch(/umbraco/i)
+  })
+})
+
+describe('what crombolo itself displays', () => {
+  test('never names Umbraco, in the plugin or the server', () => {
+    const named: string[] = []
+    const files = [
+      ...new Bun.Glob('packages/backoffice-host/{plugin,assets}/**/*.js').scanSync({ cwd: '.' }),
+      ...new Bun.Glob('packages/{server,backoffice-host}/src/**/*.ts').scanSync({ cwd: '.' }),
+    ]
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+      for (const match of source.matchAll(/(?<![\w./@-])Umbraco(?![\w.:-])/g)) {
+        const before = source[match.index - 1]
+        // The name alone in quotes is a value compared, such as the provider the
+        // authorize endpoint knows; every displayed use has words around it.
+        if ((before === "'" || before === '"') && source[match.index + 7] === before) continue
+        named.push(
+          `${file}: ${source.slice(match.index - 30, match.index + 15).replace(/\s+/g, ' ')}`,
+        )
+      }
+    }
+    expect(named).toEqual([])
+  })
+
+  test("the members API's password prompt names crombolo", async () => {
+    const source = await Bun.file('packages/server/src/delivery-members.ts').text()
+    expect(source).toContain('Basic realm="Crombolo"')
+  })
+
+  test('the language overrides are public, so the sign-in dialog reads as the rest does', async () => {
+    const manifest = await Bun.file(`${LOCALIZATIONS_DIR}/umbraco-package.json`).json()
+    expect(manifest.allowPublicAccess).toBe(true)
+    const aliases = manifest.extensions.map((e: { alias: string }) => e.alias)
+    expect(aliases).toContain('Crombolo.Localization.EN')
+    expect(aliases).toContain('Crombolo.Localization.EN_US')
   })
 })
 

@@ -39,7 +39,7 @@ const tokenError = (error: string, description: string, status = 400) =>
     { error, error_description: description },
     {
       status,
-      headers: status === 401 ? { 'www-authenticate': 'Basic realm="Umbraco"' } : undefined,
+      headers: status === 401 ? { 'www-authenticate': 'Basic realm="Crombolo"' } : undefined,
     },
   )
 
