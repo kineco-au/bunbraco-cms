@@ -70,8 +70,17 @@ test('a page that varies by culture publishes English, then Danish, and renders 
       .click({ timeout: 3_000 })
     await expect(page.locator('#name-input input')).toBeVisible({ timeout: 3_000 })
   }).toPass({ timeout: 30_000 })
-  await page.locator('#name-input input').fill(`${EN} home`)
-  await page.locator('umb-property-editor-ui-text-box #input').first().fill(EN)
+  // Each field filled once it is there, and checked before saving: in CI the
+  // title's text once landed in the name, typed while the workspace was still
+  // rendering its properties, and the page was saved as name+title, title empty.
+  const name = page.locator('#name-input input')
+  const title = page.locator('umb-property-editor-ui-text-box #input').first()
+  await name.fill(`${EN} home`)
+  await expect(name).toHaveValue(`${EN} home`)
+  await expect(title).toBeVisible()
+  await title.fill(EN)
+  await expect(title).toHaveValue(EN)
+  await expect(name).toHaveValue(`${EN} home`)
   await saveAndPublish(page, 'English')
   await expect(page).toHaveURL(/\/workspace\/document\/edit\//)
   const key = /\/edit\/([0-9a-f-]{36})/.exec(page.url())?.[1] as string

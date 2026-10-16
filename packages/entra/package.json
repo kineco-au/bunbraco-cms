@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/entra",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Edit a Microsoft Entra sign-in from the Crombolo backoffice: tenant, app credentials and group mappings, over the provider the site declares in code.",
   "license": "MIT",
   "author": "Crombolo",
@@ -70,6 +70,6 @@
     "@crombolo/server": "workspace:*"
   },
   "peerDependencies": {
-    "@crombolo/crombolo": ">=0.14.0"
+    "@crombolo/crombolo": ">=0.14.1"
   }
 }

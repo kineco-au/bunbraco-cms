@@ -31,10 +31,12 @@ test('the title carries the site’s name, and correcting it settles', async ({ 
   await settle(page)
   await expect(page).toHaveTitle(/ \| Crombolo$/)
 
-  // What the client does on every navigation: write its own suffix. The
-  // correction must land once and leave the page its main thread.
+  // What the client does on every navigation: write its own suffix, which
+  // `vendor:backoffice` has rebranded to ` | Crombolo`. The correction to the
+  // site's name must land once and leave the page its main thread — here the
+  // site is called Crombolo, so it is a fixed point the observer must not chase.
   await page.evaluate(() => {
-    document.title = 'Somewhere | Umbraco'
+    document.title = 'Somewhere | Crombolo'
   })
   await expect(page).toHaveTitle('Somewhere | Crombolo')
   expect(await page.evaluate(() => 1 + 1)).toBe(2)
