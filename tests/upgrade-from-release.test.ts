@@ -1,5 +1,5 @@
 /**
- * Story 080: a database as the previous release (0.12.1) left it upgrades to
+ * Story 080: a database as the previous release (0.13.2) left it upgrades to
  * this one, and the Changes dashboard says so. The ledger summary it reads is
  * pure, so its rules are tested on hand-made rows.
  */
@@ -14,7 +14,8 @@ import {
   readLedger,
   readState,
   STATE_APPROVALS,
-  STATE_DELIVERY_MEMBER_TOKENS,
+  STATE_SITE_SEARCH,
+  schemaOps,
   seedIdentity,
 } from '@crombolo/data'
 import { summariseUpgrades, VERSION } from '@crombolo/server'
@@ -79,14 +80,19 @@ describe('summarising the ledger', () => {
   })
 })
 
-/** Puts a current database back the way 0.12.1 left it, a day ago. */
+/** Puts a current database back the way 0.13.2 left it, a day ago. */
 async function asPreviousRelease(db: Db): Promise<void> {
-  for (const table of ['approval_history', 'approval_step', 'approval_request'])
-    await db.exec(`DROP TABLE ${table}`)
-  await db.exec("DELETE FROM user_group_section WHERE app_alias = 'workflow'")
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddApprovals'")
+  if (db.dialect.name === 'sqlite') {
+    for (const trigger of ['ai', 'ad', 'au'])
+      await db.exec(`DROP TRIGGER site_search_document_${trigger}`)
+    await db.exec('DROP TABLE site_search_document_fts')
+  }
+  await db.exec('DROP TABLE site_search_document')
+  await schemaOps(db).dropColumn('property_type', 'site_search')
+  await schemaOps(db).dropColumn('content_type', 'site_search')
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddSiteSearch'")
   await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [
-    STATE_DELIVERY_MEMBER_TOKENS,
+    STATE_APPROVALS,
     MIGRATION_STATE_KEY,
   ])
   const yesterday = new Date(Date.now() - 24 * 3600_000).toISOString()
@@ -113,17 +119,17 @@ describe('upgrading from the previous release', () => {
       passwordConfig: passwordConfigJson(),
     })
     await asPreviousRelease(db)
-    expect(await readState(db)).toBe(STATE_DELIVERY_MEMBER_TOKENS)
+    expect(await readState(db)).toBe(STATE_APPROVALS)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual(['AddApprovals'])
-    expect(await readState(db)).toBe(STATE_APPROVALS)
-    const sections = await db.query<{ alias: string }>(
-      "SELECT g.alias FROM user_group_section s JOIN user_group g ON g.id = s.user_group_id WHERE s.app_alias = 'workflow' ORDER BY g.alias",
+    expect(result.applied).toEqual(['AddSiteSearch'])
+    expect(await readState(db)).toBe(STATE_SITE_SEARCH)
+    const columns = await db.query<{ site_search: unknown }>(
+      'SELECT site_search FROM content_type LIMIT 1',
     )
-    expect(sections.map((r) => r.alias)).toEqual(['admin', 'editor', 'writer'])
+    expect(columns).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.13.1', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.0', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

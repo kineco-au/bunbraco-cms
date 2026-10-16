@@ -1,12 +1,14 @@
-# Backoffice search
+# Search
+
+Two searches share one queue and one indexer: **backoffice search**, over drafts,
+for editors, and **site search**, over published pages, for visitors. Both live
+in the database: **FTS5 on SQLite, `tsvector` on Postgres**. Umbraco keeps
+Examine (Lucene) indexes on disk instead. Stories
+[`043`](stories/05_completed/043-search-over-content.md) and `140`.
 
 Backoffice search finds a page, media item or member by the words in any of its
-text properties, not only its name. The index lives in the database:
-**FTS5 on SQLite, `tsvector` on Postgres**. Umbraco keeps Examine (Lucene) indexes
-on disk instead. Story [`043`](stories/05_completed/043-search-over-content.md).
-
-Site search for visitors is a separate decision and is not built.
-Templates may read the index later.
+text properties, not only its name. Site search is
+[below](#site-search-for-visitors).
 
 ## What is indexed
 
@@ -132,17 +134,19 @@ commits with the change or not at all. The writes that queue an item are:
   or retirement). All of its items are queued, plus those of every type
   composing it.
 
-Some changes need no queueing. **Move** and **trash** change what a search
-filters on, not what the index holds. **Delete** cascades: index rows and
-queue rows reference `node` with `ON DELETE CASCADE`. On SQLite, a trigger
-keeps the FTS table in step.
+- **Unpublish**, and **trash** with the whole branch: what site search holds
+  is published values, and these take them away.
+
+**Move** needs no queueing: it changes what a search filters on, not what the
+index holds. **Delete** cascades: index rows and queue rows reference `node`
+with `ON DELETE CASCADE`. On SQLite, a trigger keeps the FTS table in step.
 
 The indexer (`SearchIndex.indexQueued`) takes queued items oldest first. Each
 item gets its own transaction:
 
 1. It locks the item's queue row with `FOR UPDATE SKIP LOCKED` on Postgres.
    A second indexer passes over a row that is already locked.
-2. It rewrites the item's rows.
+2. It rewrites the item's rows, backoffice and site search both.
 3. It deletes the queue row, but **only at the generation it read**. If a
    write queues the item again meanwhile, it bumps `generation`, so the row
    survives and the item is indexed once more.
@@ -190,3 +194,44 @@ added its statements to the request's transaction.
 `SqliteDb.transaction` now queues top-level transactions behind each other. A
 chain that is already inside one joins it (`packages/data/src/database.ts`).
 Postgres gives each transaction its own pooled connection and needed nothing.
+
+## Site search for visitors
+
+`search()` in a component and `GET …/delivery/api/v2/search` answer visitors from
+`site_search_document` (migration 039, `packages/data/src/site-search.ts`).
+
+**What is indexed.** One row per published page and culture, `''` when
+invariant, from the values that culture shows visitors. Drafts never count.
+A page is left out when it is unpublished or trashed, when its content type has
+no component (it has no address), or when the type says `site-search = false`.
+A property is left out when it says `site-search = false` or
+`searchable = false`; inside blocks, the element type's properties decide.
+
+**How it ranks.** Each row holds the page name and three columns of text,
+`high`, `normal` and `low`, by each property's `site-search` level, all folded
+as backoffice search folds. Every word of the query must be in a page as a word
+prefix. The name counts 10, then 5, 2 and 1: `bm25` column weights on SQLite,
+the four `tsvector` weights (A to D) on Postgres. The two dialects rank the
+same.
+
+**Who sees a result.** Access is checked when someone searches, not stored in
+the index. `branchAccess` (`@crombolo/core`) splits the protected nodes into
+those the person searching may open and may not, and the query leaves out every
+page whose nearest protected node is denied. An allowed branch inside a denied
+one stays open. Because this happens in the query, `total` counts only what the
+person may see. A change to the rules, or a page moved into or out of a protected
+branch, applies on the next search. Page rendering and the Delivery API use the
+same check, `memberMayOpen`.
+
+**Excerpts.** The index keeps each page's text as written beside the folded
+text. An excerpt (`excerpt` in `@crombolo/render`) is about 200 characters
+around the first matching word, from the highest-weighted text that has one.
+Each word that starts with a query word is marked. Components get segments;
+the Delivery API gets escaped HTML with `<mark>`.
+
+**Results are checked against the published cache.** A hit whose page is no
+longer published in that culture is dropped, and the cache supplies the page
+and its URL.
+
+Not built: stemming, synonyms, typo tolerance, facets, and searching media files
+or members.

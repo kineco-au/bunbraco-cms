@@ -3,13 +3,13 @@
   "id": "af030aee-ba70-4bed-8a27-a3806a79100d",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-dda870bf7e8fadb391bcadc9e75a5721cfe209a9e8aa794df2801e0b17d8e958",
+  "integrity": "sha256-d5915f80be85d8eb3aca0488721ea3b7884e6649049cd6261ced0e7f58d44c80",
   "snapshot": "published",
   "provenance": {
     "siteName": "Harbourstone Distillery",
     "schemaVersion": "1.0.0",
     "schemaRevision": "0",
-    "schemaHash": "9c729977ea20bcaca36022f92fd57b76321825b82d817f7e688bd8dc6b7ba289"
+    "schemaHash": "ac93ee497083881b983ce2f3e305e8d450a31ca1d27203223d8472fd247cae66"
   },
   "selector": {
     "roots": [
@@ -47,7 +47,8 @@
       "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
       "cd681b4b-9c4e-4624-9c13-450aa6a9c135",
       "40107d59-f3e9-4592-aee8-5b03d4586cbd",
-      "3d312cc8-2937-40e1-ba14-fd781c9a862d"
+      "3d312cc8-2937-40e1-ba14-fd781c9a862d",
+      "9468d1b4-f521-48ef-b044-2ab07b461b96"
     ],
     "descendants": true,
     "asGiven": [
@@ -57,7 +58,7 @@
   "counts": {
     "media": 7,
     "element": 20,
-    "document": 8
+    "document": 9
   },
   "dependencies": {
     "carried": [
@@ -83,6 +84,7 @@
       "6d8d6398-738f-4f38-ad3c-e5d6e9a971fe",
       "7b4713f8-d917-457d-a9d8-7dd01a3617b4",
       "88ec1185-53b5-439a-a2ce-3f56603be4ff",
+      "9468d1b4-f521-48ef-b044-2ab07b461b96",
       "97469df2-107c-4010-8c14-4de88f735529",
       "a2eb439f-71d9-4ea6-89d7-c5bc72618281",
       "a562f0a2-cb6e-4ead-a1ce-4d180632419f",
@@ -125,6 +127,10 @@
           "alias": "Image"
         },
         {
+          "key": "4308082e-5024-47fc-950d-1ee93a3e304f",
+          "alias": "searchPage"
+        },
+        {
           "key": "55138391-faf2-4795-9ed6-43d581d350a4",
           "alias": "tastingNote"
         },
@@ -138,6 +144,7 @@
         "pages/contentPage",
         "pages/expression",
         "pages/homePage",
+        "pages/searchPage",
         "pages/whiskyList"
       ],
       "languages": []

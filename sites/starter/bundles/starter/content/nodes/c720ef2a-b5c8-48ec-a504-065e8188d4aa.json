@@ -1,0 +1,28 @@
+{
+  "key": "c720ef2a-b5c8-48ec-a504-065e8188d4aa",
+  "kind": "document",
+  "contentType": {
+    "key": "938c7f88-8df2-45d2-a4a2-49ecb3e68db7",
+    "alias": "searchPage"
+  },
+  "parent": "64d95359-d91a-4050-b440-3e5124a74999",
+  "sortOrder": 2,
+  "template": "pages/searchPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Search",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Search"
+    }
+  ]
+}

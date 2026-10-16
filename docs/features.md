@@ -92,6 +92,7 @@ tail of 1–3 each.
 ### Cross-cutting
 - Relations and relation types: Umbraco's nine, read-only, their relations derived from the values and the recycle bin rather than stored; the bins' "referenced by" warnings; tags; redirect management — the URL tracker, rules declared in code, and a Settings screen for the ones an administrator writes ([`bundles.md`](bundles.md))
 - Backoffice search over every text property, not only names: `searcher`, `indexer`, `filter` over FTS5/`tsvector` ([`search.md`](search.md))
+- Site search for visitors over published pages, per culture, weighted per property in `schema/`, members-only pages left out: `search()` for components, `GET delivery/api/v2/search`, and a results page in the starter template (story `140`); Umbraco leaves this to Examine and code
 - Audit log: every backoffice change, sign-in and failed sign-in, and what the command line and scheduled publishing changed — who, what, when, from where — read on an item's Info tab and on a Settings dashboard, aged out after a configurable period ([`audit-log.md`](audit-log.md))
 - Package manifest discovery (`manifest/*`) so installed npm extensions and the core manifest reach the client ([`bundles.md`](bundles.md))
 - Bundles: exporting a slice of the site — schema, files, content, media — as a zip, and installable bundles added as npm dependencies. A bundle may carry server endpoints too, which the site opts into by importing them ([`bundles.md`](bundles.md))

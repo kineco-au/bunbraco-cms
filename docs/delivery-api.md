@@ -127,11 +127,23 @@ An unresolvable target is an empty page. Without a sort the order is the tree's.
 names), filters `mediaType:` and `name:`, and the last sort wins — Umbraco's own
 media rules.
 
+## Search
+
+`GET search?term=…` is a Crombolo addition; Umbraco's Delivery API has no search.
+It answers published pages matching every word of `term`, best first, as content
+items with two more fields: `score`, and `excerpt`, which is HTML with each
+matching word in `<mark>` and everything else escaped. `contentType` (repeatable)
+keeps to those types; `skip` (0) and `take` (10, at most 100) page through; the
+culture is `Accept-Language`. `total` counts only what the caller may open: a
+members-only page is left out unless the bearer token's member may see it. An
+empty `term` answers no items. How the index works is in
+[`search.md`](search.md#site-search-for-visitors).
+
 ## Members-only pages
 
 The nearest protected ancestor governs, as on the site: a member is let in by
-user name (any case) or by a group (exactly), and must be approved and not
-locked out. An item endpoint answers **401** to a caller who is not signed in and
+user name or by a group, both in any case, and must be approved and not locked
+out. The check is the site's own (`memberMayOpen` in `@crombolo/core`). An item endpoint answers **401** to a caller who is not signed in and
 **403** to a member not allowed. A members-only page is **never listed** in a
 query for a caller who cannot open it — Umbraco lists them when member sign-in
 is off. An expanded reference to one keeps its route but not its properties.

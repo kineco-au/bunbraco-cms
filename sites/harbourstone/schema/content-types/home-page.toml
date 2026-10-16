@@ -5,7 +5,7 @@ name = "Home Page"
 description = "The site's landing page"
 icon = "icon-home"
 allow-at-root = true
-allow-children = ["contentPage", "whiskyList", "contactPage"]
+allow-children = ["contentPage", "whiskyList", "contactPage", "searchPage"]
 components = ["pages/homePage"]
 default-component = "pages/homePage"
 
@@ -18,6 +18,7 @@ alias = "eyebrow"
 name = "Eyebrow"
 description = "The small line above the heading"
 type = "textstring"
+site-search = "low"
 
 [[tab.property]]
 key = "be74a0df-3e9d-47f3-b60e-778a89682a80"
@@ -26,6 +27,7 @@ name = "Title"
 description = "Shown as the page heading"
 type = "textstring"
 mandatory = true
+site-search = "high"
 
 [[tab.property]]
 key = "a540c93a-228b-49f6-931a-be1b986bedd1"
@@ -46,6 +48,7 @@ alias = "heroCtaLabel"
 name = "Hero button"
 description = "Links to the range. Leave empty for no button."
 type = "textstring"
+site-search = false
 
 [[tab]]
 name = "House style"
@@ -102,3 +105,4 @@ alias = "rangeCtaLabel"
 name = "Button"
 description = "Links to the range. Leave empty for no button."
 type = "textstring"
+site-search = false

@@ -84,6 +84,7 @@ function siteFromGuide(): string {
 describe('docs/writing-components.md', () => {
   test('has the components the page it builds imports', () => {
     expect([...examples().keys()].sort()).toEqual([
+      'components/pages/searchPage.tsx',
       'components/shared/arrow-icon.tsx',
       'components/shared/badge.tsx',
       'components/shared/breadcrumbs.tsx',

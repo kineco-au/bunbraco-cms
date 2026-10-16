@@ -1,0 +1,21 @@
+[content-type]
+key = "938c7f88-8df2-45d2-a4a2-49ecb3e68db7"
+alias = "searchPage"
+name = "Search Page"
+description = "Lists the pages matching what a visitor searched for"
+icon = "icon-search"
+compositions = ["seoFields"]
+components = ["pages/searchPage"]
+default-component = "pages/searchPage"
+site-search = false
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "324e2bbc-2c0e-4984-a5d0-37032a5bec74"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true

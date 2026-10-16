@@ -35,6 +35,7 @@ import {
   DEFAULT_PASSWORD_CONFIGURATION,
   isValidPassword,
   localReturnUrl,
+  memberMayOpen,
   ObjectTypes,
 } from '@crombolo/core'
 import {
@@ -196,12 +197,7 @@ export function createMemberAuth(
     // branch they serve, or the substitution would never terminate.
     if (here === entry.loginNodeKey || here === entry.errorNodeKey) return { status: 'allowed' }
     if (!member) return { status: 'substitute', contentKey: entry.loginNodeKey }
-    const allowed =
-      entry.memberUserNames.some((name) => name.toLowerCase() === member.username.toLowerCase()) ||
-      entry.memberGroupNames.some((name) =>
-        member.roles.some((role) => role.toLowerCase() === name.toLowerCase()),
-      )
-    return allowed
+    return memberMayOpen(entry, { username: member.username, groups: member.roles })
       ? { status: 'allowed' }
       : { status: 'substitute', contentKey: entry.errorNodeKey }
   }

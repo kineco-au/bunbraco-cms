@@ -454,6 +454,7 @@ export async function syncSchema(
                 memberCanEdit: p.memberCanEdit === true,
                 isSensitive: p.sensitive === true,
                 searchable: p.searchable !== false,
+                siteSearch: p.siteSearch ?? 'normal',
               }
             }
             // Groups have no key in the file; they match an existing group of the same name.
@@ -524,6 +525,7 @@ export async function syncSchema(
                 allowedInLibrary: t.allowInLibrary,
                 collectionKey: t.collection ? (dataTypeKeyByAlias.get(t.collection) ?? null) : null,
                 sinceVersion: t.since ?? null,
+                siteSearch: t.siteSearch !== false,
                 cleanup: {
                   preventCleanup: t.cleanup.prevent,
                   keepAllVersionsNewerThanDays: t.cleanup.keepAllNewerThanDays ?? null,

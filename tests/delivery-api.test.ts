@@ -156,12 +156,13 @@ describe('members-only pages', () => {
     lockedOut: false,
     ...over,
   })
-  test('the nearest protected ancestor governs, by name in any case or by group exactly', () => {
+  test('the nearest protected ancestor governs, by name or by group, both in any case', () => {
     expect(accessTo('-1,5', rules, undefined)).toBe('allowed')
     expect(accessTo('-1,12,30', rules, undefined)).toBe('unauthorized')
     expect(accessTo('-1,12,30', rules, member({ userName: 'ADA' }))).toBe('allowed')
     expect(accessTo('-1,12,30', rules, member({ groups: ['Staff'] }))).toBe('allowed')
-    expect(accessTo('-1,12,30', rules, member({ groups: ['staff'] }))).toBe('forbidden')
+    expect(accessTo('-1,12,30', rules, member({ groups: ['staff'] }))).toBe('allowed')
+    expect(accessTo('-1,12,30', rules, member({ groups: ['Guests'] }))).toBe('forbidden')
     expect(accessTo('-1,12,30', rules, member({ userName: 'ada', lockedOut: true }))).toBe(
       'unauthorized',
     )

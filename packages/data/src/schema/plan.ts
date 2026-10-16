@@ -44,6 +44,7 @@ import { richTextUiMigration } from './rich-text-ui.ts'
 import { searchIndexMigration } from './search-index.ts'
 import { serverRoleMigration } from './server-role.ts'
 import { sinceVersionMigration } from './since-version.ts'
+import { siteSearchMigration } from './site-search.ts'
 import { transferAnswersMigration } from './transfer-answers.ts'
 import { transferRunPackageMigration } from './transfer-run-package.ts'
 import { transferRunsMigration } from './transfer-runs.ts'
@@ -91,4 +92,5 @@ export const cromboloPlan = new MigrationPlan([
   transferAnswersMigration,
   deliveryMemberTokensMigration,
   approvalsMigration,
+  siteSearchMigration,
 ])

@@ -3,6 +3,7 @@
  * the most common mistake a non-developer makes and silently ignoring it would
  * hide the thing they were trying to do.
  */
+import { SITE_SEARCH_LEVELS, type SiteSearchLevel } from '@crombolo/core'
 import {
   type SchemaContentType,
   type SchemaDataType,
@@ -23,6 +24,7 @@ const PROPERTY_KEYS = [
   'member-can-edit',
   'sensitive',
   'searchable',
+  'site-search',
   'key',
   'alias',
   'name',
@@ -61,6 +63,7 @@ const TYPE_KEYS = [
   'folder',
   'cleanup',
   'since',
+  'site-search',
 ] as const
 const CLEANUP_KEYS = [
   'prevent',
@@ -104,9 +107,20 @@ function property(r: Reader, t: Toml, path: string): SchemaProperty {
       : {}),
     ...(t.sensitive !== undefined ? { sensitive: r.bool(t, 'sensitive', path, false) } : {}),
     ...(t.searchable !== undefined ? { searchable: r.bool(t, 'searchable', path, true) } : {}),
+    ...(t['site-search'] !== undefined ? { siteSearch: siteSearchLevel(r, t, path) } : {}),
     default: t.default,
     since: r.str(t, 'since', path),
   }
+}
+
+/** `site-search` on a property: a level, or false to leave it out. */
+function siteSearchLevel(r: Reader, t: Toml, path: string): SiteSearchLevel | false {
+  const value = t['site-search']
+  if (value === false) return false
+  if (typeof value === 'string' && (SITE_SEARCH_LEVELS as readonly string[]).includes(value))
+    return value as SiteSearchLevel
+  r.problem(`${path}.site-search`, `expected false or one of ${SITE_SEARCH_LEVELS.join(', ')}`)
+  return 'normal'
 }
 
 function group(r: Reader, t: Toml, path: string): SchemaGroup {
@@ -132,9 +146,9 @@ function tab(r: Reader, t: Toml, path: string): SchemaTab {
   }
 }
 
-/** Media types have no templates and no version cleanup policy. */
+/** Media types have no templates, no version cleanup policy, and are not pages to search. */
 const MEDIA_TYPE_KEYS = TYPE_KEYS.filter(
-  (k) => k !== 'components' && k !== 'default-component' && k !== 'cleanup',
+  (k) => k !== 'components' && k !== 'default-component' && k !== 'cleanup' && k !== 'site-search',
 )
 /** Member types, besides, allow no children: members are not a tree. */
 const MEMBER_TYPE_KEYS = MEDIA_TYPE_KEYS.filter((k) => k !== 'allow-children')
@@ -190,11 +204,21 @@ export function parseContentType(
         : undefined,
     },
     since: r.str(t, 'since', path),
+    ...(t['site-search'] !== undefined && typeSiteSearch(r, t, path) === false
+      ? { siteSearch: false as const }
+      : {}),
     properties: r.tables(root.property, 'property').map((p, i) => property(r, p, `property[${i}]`)),
     tabs: r.tables(root.tab, 'tab').map((x, i) => tab(r, x, `tab[${i}]`)),
     groups: r.tables(root.group, 'group').map((g, i) => group(r, g, `group[${i}]`)),
   }
   return { value: r.problems.length === 0 ? value : undefined, problems: r.problems }
+}
+
+/** `site-search` on a content type: only false, which leaves its pages out. */
+function typeSiteSearch(r: Reader, t: Toml, path: string): false | undefined {
+  if (t['site-search'] === false) return false
+  r.problem(`${path}.site-search`, 'expected false; a page type is searchable unless it says so')
+  return undefined
 }
 
 export function parseMediaType(file: string, source: string): ParseResult<SchemaContentType> {

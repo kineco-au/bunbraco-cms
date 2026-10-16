@@ -44,6 +44,12 @@ export interface Dialect {
    * prefix. Its one parameter is `fullTextQuery(terms)`. docs/search.md.
    */
   readonly fullTextHits: string
+  /**
+   * Site search's matching rows of `site_search_document`, as `row_id` and
+   * `score`, weighted name 10, high 5, normal 2, low 1 on both engines. Its one
+   * parameter is `fullTextQuery(terms)`.
+   */
+  readonly siteSearchHits: string
   /** Terms are already folded words: letters and digits only. */
   fullTextQuery(terms: readonly string[]): string
   /**
@@ -90,6 +96,8 @@ export const sqliteDialect: Dialect = {
           FROM search_document_fts WHERE search_document_fts MATCH ? LIMIT -1) f
     JOIN search_document sd ON sd.id = f.id GROUP BY sd.node_id`,
   fullTextQuery: (terms) => terms.map((term) => `"${term}"*`).join(' AND '),
+  siteSearchHits: `SELECT rowid AS row_id, -bm25(site_search_document_fts, 10.0, 5.0, 2.0, 1.0) AS score
+    FROM site_search_document_fts WHERE site_search_document_fts MATCH ? LIMIT -1`,
   syncIdentity: () => undefined,
 }
 
@@ -126,6 +134,9 @@ export const postgresDialect: Dialect = {
     FROM search_document sd, to_tsquery('simple', ?) q
     WHERE sd.terms @@ q GROUP BY sd.node_id`,
   fullTextQuery: (terms) => terms.map((term) => `${term}:*`).join(' & '),
+  // ts_rank's weights run D, C, B, A: the same 1, 2, 5, 10 as SQLite's bm25 weights.
+  siteSearchHits: `SELECT s.id AS row_id, ts_rank('{0.1, 0.2, 0.5, 1.0}', s.terms, q) AS score
+    FROM site_search_document s, to_tsquery('simple', ?) q WHERE s.terms @@ q`,
   syncIdentity: (table) =>
     `SELECT setval(pg_get_serial_sequence('${table}', 'id'), (SELECT COALESCE(MAX(id), 1) FROM ${table}))`,
 }

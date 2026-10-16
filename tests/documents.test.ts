@@ -6,7 +6,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ComponentRepository, ContentTypeRepository, DocumentRepository } from '@crombolo/data'
+import {
+  ComponentRepository,
+  ContentTypeRepository,
+  cacheInstructionsAfter,
+  DocumentRepository,
+} from '@crombolo/data'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
 const open: Harness[] = []
@@ -266,6 +271,18 @@ describe('documents', () => {
     expect(document.variants[0]?.state).toBe('Trashed')
     // A trashed page must not remain reachable on the site.
     expect((await h.call('/')).status).toBe(404)
+  })
+
+  test('tells the other nodes when a published page goes to the recycle bin', async () => {
+    const { h, typeKey, componentKey } = await scaffold()
+    const key = await createPage(h, typeKey, componentKey, 'Home')
+    await h.put(`${V1}/document/${key}/publish`, { publishSchedules: [] })
+    const before = (await cacheInstructionsAfter(h.server.db, 0)).length
+
+    await h.put(`${V1}/document/${key}/move-to-recycle-bin`, {})
+
+    const added = (await cacheInstructionsAfter(h.server.db, 0)).slice(before)
+    expect(added.map((i) => [i.kind, i.payload.key])).toContainEqual(['content', key])
   })
 
   test('refuses to publish a page while it is in the recycle bin', async () => {

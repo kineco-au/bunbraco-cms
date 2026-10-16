@@ -16,12 +16,20 @@ alias = "title"
 name = "Title"
 type = "textstring"
 mandatory = true
+site-search = "high"
 
 [[tab.property]]
 key = "25738367-ed14-4985-9843-04716417c88a"
 alias = "kind"
 name = "Kind"
 description = "House malt, Lightly peated, Sherry matured, Cask strength"
+type = "textstring"
+
+[[tab.property]]
+key = "96f868bf-a368-4457-843a-1f38accf6cc1"
+alias = "productType"
+name = "Product type"
+description = "What the bottling is, e.g. Whisky"
 type = "textstring"
 
 [[tab.property]]

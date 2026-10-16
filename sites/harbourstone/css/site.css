@@ -162,6 +162,27 @@ main > article,
   color: var(--brass-deep);
 }
 
+/* The search box sits after the links, as small and quiet as they are. */
+.masthead__search input {
+  width: 9rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  transition:
+    border-color var(--ease),
+    width var(--ease);
+}
+
+.masthead__search input:focus-visible {
+  outline: none;
+  width: 13rem;
+  border-color: var(--brass);
+}
+
 .site-footer {
   margin-top: 5rem;
   border-top: 1px solid var(--line);
@@ -717,4 +738,96 @@ main > article,
   .band--dark .split {
     padding-block: 0;
   }
+}
+
+/* -------------------------------------------------------------- search */
+
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: stretch;
+  margin-top: 2rem;
+  max-width: 36rem;
+}
+
+.search-form input {
+  flex: 1;
+  min-width: 12rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color var(--ease);
+}
+
+.search-form input:focus-visible {
+  outline: none;
+  border-color: var(--brass);
+}
+
+.search-form .button {
+  margin-top: 0;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.search-results {
+  margin: 0;
+  padding: 0;
+  max-width: 44rem;
+  list-style: none;
+}
+
+.search-results li {
+  padding-block: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.search-results h2 {
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
+}
+
+.search-results h2 a {
+  text-decoration: none;
+  transition: color var(--ease);
+}
+
+.search-results h2 a:hover {
+  color: var(--brass-deep);
+}
+
+.search-results p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+}
+
+.search-results mark {
+  background: none;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.search-pages {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  max-width: 44rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+nav.search-pages a {
+  color: var(--brass-deep);
+  text-decoration: none;
 }

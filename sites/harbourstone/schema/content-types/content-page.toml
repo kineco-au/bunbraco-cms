@@ -17,6 +17,7 @@ alias = "eyebrow"
 name = "Eyebrow"
 description = "The small line above the heading"
 type = "textstring"
+site-search = "low"
 
 [[tab.property]]
 key = "4501d20d-3b78-40a4-97e4-dd25b2d8535a"
@@ -24,6 +25,7 @@ alias = "title"
 name = "Title"
 type = "textstring"
 mandatory = true
+site-search = "high"
 
 [[tab.property]]
 key = "33199ac7-8128-4dc4-bae1-554b2a622447"

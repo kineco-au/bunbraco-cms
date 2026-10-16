@@ -217,6 +217,45 @@ export async function UpcomingEvents({ feedUrl }: { feedUrl: string }) {
   page. Catch the ones that should leave the rest of the page standing, and let an
   abort through.
 
+## Searching the site
+
+`search()` finds the site's published pages by what they say, best match first.
+It's what a search results page is written with:
+
+```tsx
+// components/pages/searchPage.tsx
+import { type PageProps, search } from '@crombolo/crombolo'
+
+export default async function SearchPage({ request }: PageProps) {
+  const query = new URL(request.url).searchParams.get('q') ?? ''
+  const results = query ? await search(query, { take: 10 }) : { total: 0, items: [] }
+  return (
+    <ol>
+      {results.items.map((item) => (
+        <li>
+          <a href={item.url}>{item.name}</a>
+          <p>{item.excerpt.map((s) => (s.match ? <mark>{s.text}</mark> : s.text))}</p>
+        </li>
+      ))}
+    </ol>
+  )
+}
+```
+
+- **Options:** `culture` (the page's own by default), `types` (content type
+  aliases), `skip` and `take` (10, at most 100).
+- **Each item** is the published page as `content`, with its `url`, `name`,
+  `score`, and an `excerpt`: the text around the words searched for, in
+  segments, with `match` set on each word that matched. Render the segments as
+  above, rather than as HTML.
+- **`total`** counts every match the person searching may open, for paging.
+- **Members-only pages** are left out unless the signed-in member may open
+  them.
+
+What is searchable, and how much each property counts, is set in the schema
+(`site-search`, [`schema-as-code.md`](schema-as-code.md)). The starter template's
+`pages/searchPage.tsx` is a complete results page, with paging.
+
 ## Context: values without props
 
 Any component can read the page being rendered with `usePage()`, and a template's

@@ -67,6 +67,7 @@ function writeProperty(out: string[], header: string, p: SchemaProperty): void {
   line(out, 'member-can-edit', true, p.memberCanEdit === true)
   line(out, 'sensitive', true, p.sensitive === true)
   line(out, 'searchable', false, p.searchable === false)
+  line(out, 'site-search', p.siteSearch, p.siteSearch !== 'normal')
   line(out, 'default', p.default)
   line(out, 'since', p.since)
 }
@@ -91,6 +92,7 @@ export function writeContentType(t: SchemaContentType, kind: SchemaTypeKind = 'd
   line(out, 'collection', t.collection)
   line(out, 'folder', t.folder)
   line(out, 'since', t.since)
+  line(out, 'site-search', false, t.siteSearch === false)
   if (
     t.cleanup.prevent ||
     t.cleanup.keepAllNewerThanDays !== undefined ||

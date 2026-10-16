@@ -11,12 +11,17 @@ import type { Navigation, PublishedContent } from '@crombolo/crombolo'
  * There is no hamburger because there is no client-side JavaScript on this
  * site: below the breakpoint the links wrap under the wordmark instead, which
  * `site.css` does with flex-wrap alone.
+ *
+ * A Search Page among the children is the search box at the end instead of a
+ * link: a plain GET form, which needs no script either.
  */
 export function SiteHeader({ model, nav }: { model: PublishedContent; nav: Navigation }) {
   const home = nav.root()[0]
   if (!home) return null
   const ancestry = model.path.split(',')
-  const links = [home, ...nav.children(home)]
+  const children = nav.children(home)
+  const searchPage = children.find((child) => child.contentType.alias === 'searchPage')
+  const links = [home, ...children.filter((child) => child !== searchPage)]
   return (
     <header class="masthead">
       <div class="masthead__inner">
@@ -38,6 +43,13 @@ export function SiteHeader({ model, nav }: { model: PublishedContent; nav: Navig
             )
           })}
         </nav>
+        {searchPage ? (
+          <search class="masthead__search">
+            <form action={searchPage.url} method="get">
+              <input type="search" name="q" placeholder="Search" aria-label="Search the site" />
+            </form>
+          </search>
+        ) : null}
       </div>
     </header>
   )

@@ -69,6 +69,7 @@ function toSchemaProperty(p: PropertyTypeModel, ctx: ExportContext): SchemaPrope
   if (p.memberCanEdit) property.memberCanEdit = true
   if (p.isSensitive) property.sensitive = true
   if (p.searchable === false) property.searchable = false
+  if (p.siteSearch !== undefined && p.siteSearch !== 'normal') property.siteSearch = p.siteSearch
   return property
 }
 
@@ -109,6 +110,7 @@ export function toSchemaContentType(
     tabs: [],
   }
   if (aggregate.description) type.description = aggregate.description
+  if (aggregate.siteSearch === false) type.siteSearch = false
   if (aggregate.defaultComponentKey) {
     const alias = ctx.componentAlias(aggregate.defaultComponentKey)
     if (alias) type.defaultComponent = alias

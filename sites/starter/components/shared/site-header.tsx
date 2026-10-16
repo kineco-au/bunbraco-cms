@@ -2,7 +2,7 @@ import type { Navigation, PublishedContent } from '@crombolo/crombolo'
 
 /**
  * The site name, from the config, and the primary nav: the home page followed by its children, so
- * adding a page in the backoffice adds it here.
+ * adding a page in the backoffice adds it here. A Search Page among them is the search box instead.
  */
 export function SiteHeader({
   model,
@@ -16,7 +16,9 @@ export function SiteHeader({
   const home = nav.root()[0]
   if (!home) return null
   const ancestry = model.path.split(',')
-  const links = [home, ...nav.children(home, { visibleOnly: true })]
+  const children = nav.children(home, { visibleOnly: true })
+  const searchPage = children.find((child) => child.contentType.alias === 'searchPage')
+  const links = [home, ...children.filter((child) => child !== searchPage)]
   return (
     <header class="site-header">
       <div class="container site-header__inner">
@@ -34,6 +36,13 @@ export function SiteHeader({
             )
           })}
         </nav>
+        {searchPage ? (
+          <search>
+            <form class="site-search" action={searchPage.url} method="get">
+              <input type="search" name="q" placeholder="Search" aria-label="Search the site" />
+            </form>
+          </search>
+        ) : null}
       </div>
     </header>
   )

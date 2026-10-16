@@ -12,9 +12,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Child } from './jsx-runtime.ts'
 import type { PageProps } from './model.ts'
+import type { SiteSearchPort } from './search.ts'
 
 interface RenderScope {
   page: PageProps | undefined
+  /** The site search the server scoped to the person asking, when it provides one. */
+  search?: SiteSearchPort
   contexts: ReadonlyMap<symbol, unknown>
   /** Shared by every scope a provider opens inside one render, so ids stay unique. */
   ids: { next: number }
@@ -30,8 +33,8 @@ if (!shared[KEY]) shared[KEY] = new AsyncLocalStorage<RenderScope>()
 const store = shared[KEY] as AsyncLocalStorage<RenderScope>
 
 /** Runs a render with `page` available to `usePage()`, and ids counted from zero. */
-export function renderScope<T>(page: PageProps, render: () => T): T {
-  return store.run({ page, contexts: new Map(), ids: { next: 0 } }, render)
+export function renderScope<T>(page: PageProps, render: () => T, search?: SiteSearchPort): T {
+  return store.run({ page, search, contexts: new Map(), ids: { next: 0 } }, render)
 }
 
 function within(caller: string): RenderScope {
@@ -54,6 +57,14 @@ export function usePage<Properties = any>(): PageProps<Properties> {
   if (!page)
     throw new Error('usePage() was called inside a context Provider rendered outside a page.')
   return page as PageProps<Properties>
+}
+
+/** The page and the site search for `search()`, which lives in `search.ts`. */
+export function currentSiteSearch(): { page: PageProps; search: SiteSearchPort | undefined } {
+  const scope = within('search()')
+  if (!scope.page)
+    throw new Error('search() was called inside a context Provider rendered outside a page.')
+  return { page: scope.page, search: scope.search }
 }
 
 /**
@@ -100,7 +111,10 @@ export function createContext<T>(defaultValue: T): Context<T> {
     const outer = store.getStore()
     const contexts = new Map(outer?.contexts)
     contexts.set(key, value)
-    return store.run({ page: outer?.page, contexts, ids: outer?.ids ?? { next: 0 } }, children)
+    return store.run(
+      { page: outer?.page, search: outer?.search, contexts, ids: outer?.ids ?? { next: 0 } },
+      children,
+    )
   }
   return Object.assign(Provider, { Provider, defaultValue, key }) as Context<T>
 }

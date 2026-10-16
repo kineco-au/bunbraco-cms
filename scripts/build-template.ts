@@ -341,6 +341,13 @@ const STARTER: Builder = async (site) => {
       bodyText: richtext(LOREM),
     },
   })
+  await page({
+    key: 'c720ef2a-b5c8-48ec-a504-065e8188d4aa',
+    type: 'searchPage',
+    parent: home,
+    name: 'Search',
+    values: { title: 'Search' },
+  })
 }
 
 /** The photographs this template ships, at the size they ship at. */
@@ -572,6 +579,7 @@ const HARBOURSTONE: Builder = async (site) => {
     values: {
       title: 'The Cove',
       kind: 'House malt',
+      productType: 'Whisky',
       abv: '46%',
       age: 12,
       summary: 'Ex-bourbon and refill hogsheads. The everyday dram from the shore.',
@@ -592,6 +600,7 @@ const HARBOURSTONE: Builder = async (site) => {
     values: {
       title: 'Brine & Kiln',
       kind: 'Lightly peated',
+      productType: 'Whisky',
       abv: '46%',
       age: 14,
       summary: 'Coastal peat at 18 ppm. Smoke that tastes of weather, not a bonfire.',
@@ -612,6 +621,7 @@ const HARBOURSTONE: Builder = async (site) => {
     values: {
       title: 'Oloroso Pier',
       kind: 'Sherry matured',
+      productType: 'Whisky',
       abv: '46%',
       age: 18,
       summary: 'First-fill oloroso butts. 1,800 bottles from the boat-green warehouses.',
@@ -632,6 +642,7 @@ const HARBOURSTONE: Builder = async (site) => {
     values: {
       title: 'Neap Tide',
       kind: 'Cask strength',
+      productType: 'Whisky',
       abv: '58.4%',
       batch: '07',
       summary: 'Unreduced vatting of first-fill bourbon. Add water when you are ready.',
@@ -668,6 +679,17 @@ const HARBOURSTONE: Builder = async (site) => {
           '<p>visitors@harbourstone.scot<br />+44 (0)1847 555 014</p>',
       ),
       asideImage: pick(warehouse),
+    },
+  })
+  await page({
+    key: '9468d1b4-f521-48ef-b044-2ab07b461b96',
+    type: 'searchPage',
+    parent: home,
+    name: 'Search',
+    values: {
+      eyebrow: 'Search',
+      title: 'Find it in the cove.',
+      standfirst: 'Search the range, the tasting notes and the story of the distillery.',
     },
   })
 }

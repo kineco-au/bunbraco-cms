@@ -465,7 +465,7 @@ Design documents, in reading order; planned work is in the stories:
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |
 | [forms](docs/forms.md) | form building in core: the TOML definition, entries, workflows, and the e-mail port; approval before publishing, as graphs of stages, in [workflows](docs/workflows.md) |
 | [audit-log](docs/audit-log.md) | who did what, when and from where: what writes an entry, the Info tab and the dashboard, retention |
-| [search](docs/search.md) | backoffice search: the index on both dialects, the queue that keeps it current, who sees a result |
+| [search](docs/search.md) | backoffice and site search: the indexes on both dialects, the queue that keeps them current, who sees a result |
 | [seo](docs/seo.md) | search & sharing in core: the `seoFields` type, `<SeoHead>`, sitemap, robots, the not-found page |
 | [adding-a-page](docs/adding-a-page.md) | a walkthrough: the content type, its component (with an async example), the content, shipping it |
 | [writing-components](docs/writing-components.md) | the component cookbook: props, lists, styles and SVG, forms and ids, async, context, layouts, interactive parts |

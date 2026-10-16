@@ -967,6 +967,8 @@ export class DocumentRepository {
           node.id,
         ])
       }
+      // Site search holds published values only; what this took offline leaves it.
+      await queueForSearch(tx, [node.id])
       await repo.#instructContent(node.key)
       return repo.#load(node)
     })
@@ -1060,6 +1062,13 @@ export class DocumentRepository {
         const node = await repo.nodes.byKey(key)
         if (!node) return false
         if (node.parentId === bin) return true
+        // Read before the move, while the branch's paths are still under the node's own.
+        const branch = (
+          await tx.query<{ id: number }>('SELECT id FROM node WHERE id = ? OR path LIKE ?', [
+            node.id,
+            `${node.path},%`,
+          ])
+        ).map((row) => Number(row.id))
         const t = tx.dialect.boolValue(true)
         const f = tx.dialect.boolValue(false)
         await tx.exec('UPDATE document SET original_parent_id = ? WHERE node_id = ?', [
@@ -1081,6 +1090,9 @@ export class DocumentRepository {
           await repo.#nextSortOrder(bin, node.id),
           node.id,
         ])
+        // The branch is no longer published: other nodes drop it, and so does site search.
+        await queueForSearch(tx, branch)
+        await repo.#instructContent(node.key)
         return true
       }),
     )

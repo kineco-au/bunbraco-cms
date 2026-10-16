@@ -18,6 +18,7 @@ import {
   type PropertyGroupModel,
   PropertyGroupType,
   type PropertyTypeModel,
+  type SiteSearchLevel,
   SystemNodes,
   variationFlags,
   variesByCulture,
@@ -32,19 +33,36 @@ import { NodeRepository } from './nodes.ts'
 
 const GROUP_TYPE_NAMES = ['Group', 'Tab'] as const
 
-/** The live properties of a type, by alias, variation and storage: what its items are indexed by. */
+/**
+ * The live properties of a type, by alias, variation, storage and search
+ * settings, and whether the type is in site search: what its items are indexed by.
+ */
 async function propertySignature(db: Db, contentTypeNodeId: number): Promise<string> {
   const rows = await db.query<Record<string, unknown>>(
-    `SELECT p.id, p.alias, p.variations, p.data_type_id, p.searchable FROM property_type p
+    `SELECT p.id, p.alias, p.variations, p.data_type_id, p.searchable, p.site_search FROM property_type p
      WHERE p.content_type_id = ? AND p.retired_at IS NULL ORDER BY p.id`,
     [contentTypeNodeId],
   )
-  return rows
-    .map(
+  const [type] = await db.query<{ site_search: unknown }>(
+    'SELECT site_search FROM content_type WHERE node_id = ?',
+    [contentTypeNodeId],
+  )
+  return [
+    `site:${type ? fromDbBool(type.site_search) : true}`,
+    ...rows.map(
       (row) =>
-        `${row.id}:${row.alias}:${row.variations}:${row.data_type_id}:${fromDbBool(row.searchable)}`,
-    )
-    .join('|')
+        `${row.id}:${row.alias}:${row.variations}:${row.data_type_id}:${fromDbBool(row.searchable)}:${row.site_search}`,
+    ),
+  ].join('|')
+}
+
+/** How a property's site-search setting is stored: its level, or `off`. */
+function siteSearchColumn(value: SiteSearchLevel | false | undefined): string {
+  return value === false ? 'off' : (value ?? 'normal')
+}
+
+function siteSearchFromColumn(value: unknown): SiteSearchLevel | false {
+  return value === 'off' ? false : value === 'high' || value === 'low' ? value : 'normal'
 }
 
 export interface SaveContentTypeOptions {
@@ -295,6 +313,12 @@ export class ContentTypeRepository {
           [nodeId, ...typeValues, options.sinceStateId ?? null],
         )
       }
+      // As for a property's flags: only a schema sync says.
+      if (aggregate.siteSearch !== undefined)
+        await tx.exec('UPDATE content_type SET site_search = ? WHERE node_id = ?', [
+          bool(aggregate.siteSearch),
+          nodeId,
+        ])
 
       // ---- groups: upsert by key
       const groupIdByKey = new Map<string, number>()
@@ -386,18 +410,24 @@ export class ContentTypeRepository {
               bool(property.searchable),
               Number(found[0].id),
             ])
+          if (property.siteSearch !== undefined)
+            await tx.exec('UPDATE property_type SET site_search = ? WHERE id = ?', [
+              siteSearchColumn(property.siteSearch),
+              Number(found[0].id),
+            ])
         } else {
           await tx.exec(
             `INSERT INTO property_type
                (unique_id, content_type_id, data_type_id, property_type_group_id, alias, name, description, sort_order,
-                mandatory, mandatory_message, validation_reg_exp, validation_reg_exp_message, label_on_top, variations, since_version, since_state_id, searchable)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                mandatory, mandatory_message, validation_reg_exp, validation_reg_exp_message, label_on_top, variations, since_version, since_state_id, searchable, site_search)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               key,
               nodeId,
               ...columns,
               options.sinceStateId ?? null,
               bool(property.searchable !== false),
+              siteSearchColumn(property.siteSearch),
             ],
           )
         }
@@ -747,7 +777,7 @@ export class ContentTypeRepository {
     const typeRows = await this.#db.query(
       `SELECT ct.alias, ct.icon, ct.description, ct.list_view, ct.is_element, ct.allow_in_library, ct.allow_at_root, ct.variations,
               ct.prevent_cleanup, ct.keep_all_versions_newer_than_days, ct.keep_latest_version_per_day_for_days,
-              ct.since_version, ss.version AS since_v, ss.revision AS since_r
+              ct.since_version, ct.site_search, ss.version AS since_v, ss.revision AS since_r
        FROM content_type ct LEFT JOIN schema_state ss ON ss.id = ct.since_state_id WHERE ct.node_id = ?`,
       [nodeId],
     )
@@ -775,7 +805,7 @@ export class ContentTypeRepository {
               p.validation_reg_exp, p.validation_reg_exp_message, p.label_on_top, p.variations,
               dtn.unique_id AS data_type_key, g.unique_id AS container_key,
               p.since_version, ss.version AS since_v, ss.revision AS since_r,
-              m.member_can_edit, m.member_can_view, m.is_sensitive, p.searchable
+              m.member_can_edit, m.member_can_view, m.is_sensitive, p.searchable, p.site_search
        FROM property_type p
        JOIN node dtn ON dtn.id = p.data_type_id
        LEFT JOIN property_type_group g ON g.id = p.property_type_group_id
@@ -803,6 +833,7 @@ export class ContentTypeRepository {
       sinceVersion: (row.since_version as string | null) ?? null,
       pending: this.#pending(row),
       ...(fromDbBool(row.searchable) ? {} : { searchable: false }),
+      siteSearch: siteSearchFromColumn(row.site_search),
       ...(this.#kind === 'member'
         ? {
             memberCanEdit: fromDbBool(row.member_can_edit),
@@ -839,6 +870,7 @@ export class ContentTypeRepository {
       variesBySegment: variesBySegment(flags),
       isElement: fromDbBool(type.is_element),
       allowedInLibrary: fromDbBool(type.allow_in_library),
+      siteSearch: fromDbBool(type.site_search),
       collectionKey: type.list_view ? normaliseUuid(String(type.list_view)) : null,
       cleanup: {
         preventCleanup: fromDbBool(type.prevent_cleanup),

@@ -75,6 +75,72 @@ main {
   font-weight: 600;
 }
 
+.site-search input,
+.search-form input {
+  font: inherit;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-form input {
+  flex: 1;
+  max-width: 32rem;
+}
+
+.search-form button {
+  font: inherit;
+  padding: 0.4rem 1rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.search-summary {
+  color: var(--muted);
+}
+
+.search-results {
+  list-style: none;
+  padding: 0;
+}
+
+.search-results li {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-results li > a {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.search-results p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.search-results mark {
+  background: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.search-pages {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
 h1 {
   font-size: 2.25rem;
   line-height: 1.2;

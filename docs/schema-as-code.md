@@ -241,15 +241,22 @@ Reference:
 | `collection` | Alias of a data type used as the list view | none |
 | `cleanup.prevent`, `cleanup.keep-all-newer-than-days`, `cleanup.keep-latest-per-day-for-days` | Version cleanup policy | global |
 | `since` | The schema version this type goes live in; pending until then — see below | stamped by tooling |
+| `site-search` | `false` leaves every page of the type out of site search | searchable |
 
 A property: `alias`, `name` required; `description`, `notes`, `type` (a data type
 alias, required), `mandatory`, `mandatory-message`, `regex`, `regex-message`,
-`varies-by-culture`, `varies-by-segment`, `label-on-top`, `searchable`, and **`default`**.
+`varies-by-culture`, `varies-by-segment`, `label-on-top`, `searchable`,
+`site-search`, and **`default`**.
 
 `searchable = false` keeps a property's values out of backoffice search, on any
 kind of type. On an element type, it keeps those values out of the blocks that
 use it. Properties are searchable unless they say otherwise
 ([`search.md`](search.md)).
+
+`site-search` says how much a property counts when visitors search the site:
+`"high"`, `"normal"` (the default) or `"low"`, or `false` to leave it out. A
+property with `searchable = false` is left out of site search too. A page's
+name always counts most ([`search.md`](search.md#site-search-for-visitors)).
 
 `default` matters beyond convenience. When a required property is added to a
 type that already has content, existing pages have no value for it. With a

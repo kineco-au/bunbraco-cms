@@ -456,9 +456,15 @@ describe('the starter', () => {
     expect(page).toContain('<aside>')
   })
 
-  test('ships placeholder pages that show both layouts', () => {
-    const pages = nodes.filter((node) => node.kind === 'document')
-    expect(pages.map((node) => node.variants[0]?.name).sort()).toEqual(['About', 'Contact', 'Home'])
+  test('ships placeholder pages that show both layouts, and a search page', () => {
+    const documents = nodes.filter((node) => node.kind === 'document')
+    expect(documents.map((node) => node.variants[0]?.name).sort()).toEqual([
+      'About',
+      'Contact',
+      'Home',
+      'Search',
+    ])
+    const pages = documents.filter((node) => node.variants[0]?.name !== 'Search')
     const withSidebar = pages.filter((node) =>
       node.values.some((value) => value.property === 'sidebarText'),
     )

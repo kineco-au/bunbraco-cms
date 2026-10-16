@@ -1,12 +1,13 @@
 /**
  * The backoffice search index: what a write queues, how the indexer turns a
- * queued item into rows, and the two indexes the Examine dashboard shows.
- * docs/search.md.
+ * queued item into rows, and the two indexes the Examine dashboard shows. The
+ * same indexer writes a page's site-search rows (`site-search.ts`). docs/search.md.
  */
 import { ObjectTypes } from '@crombolo/core'
 import type { Db } from './database.ts'
 import { DbDate, fromDbBool } from './dialect.ts'
 import { searchTerms, searchWords, type UnsearchableProperty, valueText } from './search-text.ts'
+import { siteEntriesFor, writeSiteEntries } from './site-search.ts'
 
 /** Umbraco's names for the two backoffice indexes, which the dashboard shows. */
 export type SearchIndexName = 'InternalIndex' | 'MembersIndex'
@@ -156,6 +157,7 @@ export class SearchIndex {
         )
         if (claimed.length === 0) return false
         await writeEntries(tx, nodeId, await entriesFor(tx, nodeId))
+        await writeSiteEntries(tx, nodeId, await siteEntriesFor(tx, nodeId))
         await tx.exec('DELETE FROM search_index_queue WHERE node_id = ? AND generation = ?', [
           nodeId,
           generation,
@@ -272,11 +274,23 @@ const folded = (texts: readonly string[]) => texts.flatMap(searchWords).join(' '
  * alias, for the blocks inside a value. A property a composition contributes
  * counts on every type composing it, which is the key a block carries.
  */
-async function unsearchableElementProperties(db: Db): Promise<UnsearchableProperty> {
+function unsearchableElementProperties(db: Db): Promise<UnsearchableProperty> {
+  return hiddenElementProperties(db, 'p.searchable = ?', [db.dialect.boolValue(false)])
+}
+
+/**
+ * The properties a condition on `property_type p` picks out, as a test by type
+ * key and alias: what a block's text is checked against. Shared with site search.
+ */
+export async function hiddenElementProperties(
+  db: Db,
+  condition: string,
+  params: readonly unknown[],
+): Promise<UnsearchableProperty> {
   const rows = await db.query<{ type_id: number; alias: string }>(
     `SELECT p.content_type_id AS type_id, p.alias FROM property_type p
-     WHERE p.searchable = ? AND p.retired_at IS NULL`,
-    [db.dialect.boolValue(false)],
+     WHERE (${condition}) AND p.retired_at IS NULL`,
+    [...params],
   )
   if (rows.length === 0) return () => false
   const composedBy = new Map<number, number[]>()

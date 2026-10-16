@@ -15,6 +15,7 @@ import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
 import type { PageProps, PublishedContent, RequestMember } from './model.ts'
 import { type PublishedCache, translate, urlsIn } from './published-cache.ts'
+import type { SiteSearchPort } from './search.ts'
 import { absoluteUrl, type SeoSiteDefaults } from './seo.ts'
 import type { ViewSnapshots } from './snapshots.ts'
 
@@ -95,6 +96,8 @@ export interface RenderRequest {
   seo?: SeoSiteDefaults
   /** Aborts when nobody is waiting for the page any more: the visitor disconnected. */
   signal?: AbortSignal
+  /** Site search scoped to whoever is asking, for `search()`. */
+  search?: SiteSearchPort
 }
 
 /**
@@ -322,7 +325,7 @@ export class Renderer {
     }
 
     // Inside the page's scope, so any component can ask for it with `usePage()`.
-    return renderScope(props, () => this.#renderLayouts(alias, props, rendering))
+    return renderScope(props, () => this.#renderLayouts(alias, props, rendering), request.search)
   }
 
   async #renderLayouts(

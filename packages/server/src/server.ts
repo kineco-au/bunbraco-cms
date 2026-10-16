@@ -60,6 +60,7 @@ import {
   readLedger,
   readReport,
   readUrlOptions,
+  SiteSearch,
   TransferRunRepository,
   type WritesPaused,
 } from '@crombolo/data'
@@ -158,6 +159,7 @@ import {
   type ServerEventHub,
 } from './server-events.ts'
 import { createSetupRoutes } from './setup.ts'
+import { siteSearchFor } from './site-search.ts'
 import { summariseUpgrades } from './upgrade-summary.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 import { bundleEventProblems, createWebhookService, webhookStoreView } from './webhooks.ts'
@@ -589,6 +591,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
           protection: () => new PublicAccessRepository(db).allRules(),
           member: (token) => deliveryMembers.member(token),
           security: (request, action) => deliveryMembers.handle(request, action),
+          search: (term, options) => new SiteSearch(db).query(term, options),
         })
 
   /** A document's latest saved version, as preview shows it, in the published tree's context. */
@@ -1731,7 +1734,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     if (!key) return undefined
     const draft = await draftModel(key, new URL(request.url).searchParams.get('culture'))
     if (!draft) return undefined
-    return renderer.renderModel(draft.content, draft.culture, await pageRequest(request))
+    return renderer.renderModel(draft.content, draft.culture, {
+      ...(await pageRequest(request)),
+      search: siteSearchFor(db, cache, undefined),
+    })
   }
 
   /** What every rendered page is told about the request and the site's search defaults. */
@@ -1880,6 +1886,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         member,
         submission,
         access: (content) => members.decide(content, member),
+        search: siteSearchFor(db, cache, member),
         ...(await pageRequest(request)),
       }))
     const cleared: Record<string, string> = cookie

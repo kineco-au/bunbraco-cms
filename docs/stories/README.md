@@ -200,7 +200,7 @@ not cover.
 
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
-| `140` | Site search for visitors | should | M | ready | — |
+| `140` | Site search for visitors | should | M | done | — |
 | `141` | Navigation menus | should | M | ready | — |
 | `142` | Blogging basics: taxonomies, archives and feeds | should | M | ready | — |
 | `143` | Comments with moderation | could | M | ready | — |

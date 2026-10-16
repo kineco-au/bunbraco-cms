@@ -1,0 +1,33 @@
+[content-type]
+key = "4308082e-5024-47fc-950d-1ee93a3e304f"
+alias = "searchPage"
+name = "Search Page"
+description = "Lists the pages matching what a visitor searched for"
+icon = "icon-search"
+components = ["pages/searchPage"]
+default-component = "pages/searchPage"
+site-search = false
+
+[[tab]]
+name = "Header"
+
+[[tab.property]]
+key = "3a5d2f03-8bf6-41e2-9971-3848df983f0a"
+alias = "eyebrow"
+name = "Eyebrow"
+description = "The small line above the heading"
+type = "textstring"
+
+[[tab.property]]
+key = "e5be09c2-12bd-4647-a6c9-2549459d97b4"
+alias = "title"
+name = "Title"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "16eab79f-e753-48ca-a3f8-7e326a3f513f"
+alias = "standfirst"
+name = "Standfirst"
+description = "A sentence under the heading, shown before anyone has searched"
+type = "textarea"

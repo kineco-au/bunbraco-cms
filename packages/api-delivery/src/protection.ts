@@ -1,8 +1,10 @@
 /**
  * Members-only content: the nearest protected ancestor governs, as on the
- * site, and a member is let in by name or by one of their groups. Umbraco's
- * `PublicAccessChecker`, over rules read once per request.
+ * site, and a member is let in by name or by one of their groups
+ * (`memberMayOpen`, shared with the site). Umbraco's `PublicAccessChecker`,
+ * over rules read once per request.
  */
+import { memberMayOpen } from '@crombolo/core'
 
 export interface ProtectionRule {
   /** The protected node's id: its own, or the ancestor whose rule covers it. */
@@ -35,7 +37,7 @@ export function ruleFor(
   return undefined
 }
 
-/** What a caller may do with a node: a user name matches in any case, a group exactly. Pure. */
+/** What a caller may do with a node: a user name and a group both match in any case. Pure. */
 export function accessTo(
   path: string,
   rules: ReadonlyMap<number, ProtectionRule>,
@@ -44,8 +46,7 @@ export function accessTo(
   const rule = ruleFor(path, rules)
   if (!rule) return 'allowed'
   if (!member?.approved || member.lockedOut) return 'unauthorized'
-  const name = member.userName.toLowerCase()
-  if (rule.memberUserNames.some((n) => n.toLowerCase() === name)) return 'allowed'
-  if (rule.memberGroupNames.some((g) => member.groups.includes(g))) return 'allowed'
-  return 'forbidden'
+  return memberMayOpen(rule, { username: member.userName, groups: member.groups })
+    ? 'allowed'
+    : 'forbidden'
 }

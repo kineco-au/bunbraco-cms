@@ -5,7 +5,7 @@ name = "Content Page"
 description = "A page with a main column and a sidebar"
 icon = "icon-document"
 allow-at-root = true
-allow-children = ["contentPage"]
+allow-children = ["contentPage", "searchPage"]
 compositions = ["seoFields"]
 components = ["pages/contentPage"]
 default-component = "pages/contentPage"
@@ -20,6 +20,7 @@ name = "Title"
 description = "Shown as the page heading"
 type = "textstring"
 mandatory = true
+site-search = "high"
 
 [[tab.property]]
 key = "7028eeb8-9739-4cc9-b3e1-8b424dd1e929"
@@ -42,6 +43,7 @@ key = "d049eba5-ae38-4fe9-9b05-64d1fa50b35e"
 alias = "sidebarHeading"
 name = "Heading"
 type = "textstring"
+site-search = "low"
 
 [[tab.property]]
 key = "fff4d170-e192-419a-9490-59affd2f6148"
@@ -49,3 +51,4 @@ alias = "sidebarText"
 name = "Text"
 description = "Leave empty for a single-column page"
 type = "richtext"
+site-search = "low"

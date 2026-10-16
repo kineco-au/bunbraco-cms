@@ -19,6 +19,7 @@ key = "13785a42-6d0a-4152-89ec-c765db766547"
 alias = "eyebrow"
 name = "Eyebrow"
 type = "textstring"
+site-search = "low"
 
 [[tab.property]]
 key = "727804c0-7d4a-43d9-a473-71c9e27397c0"
@@ -26,6 +27,7 @@ alias = "title"
 name = "Title"
 type = "textstring"
 mandatory = true
+site-search = "high"
 
 [[tab.property]]
 key = "9c83bcea-a70e-4a3f-8185-ad04ddec55f1"

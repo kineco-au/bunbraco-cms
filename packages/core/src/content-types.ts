@@ -36,7 +36,17 @@ export interface PropertyTypeModel {
    * unchanged on a save, which is what a backoffice save sends.
    */
   searchable?: boolean
+  /**
+   * How much the property counts in site search, or false to leave it out.
+   * Absent means unchanged on a save, as for `searchable`.
+   */
+  siteSearch?: SiteSearchLevel | false
 }
+
+/** A property's weight in site search; the page name always ranks above all three. */
+export type SiteSearchLevel = 'high' | 'normal' | 'low'
+
+export const SITE_SEARCH_LEVELS: readonly SiteSearchLevel[] = ['high', 'normal', 'low']
 
 export interface PropertyGroupModel {
   key: string
@@ -89,6 +99,8 @@ export interface ContentTypeAggregate {
   parentKey: string | null
   sinceVersion?: string | null
   pending?: { version: string; revision: string } | null
+  /** False leaves every page of the type out of site search. Absent means unchanged on a save. */
+  siteSearch?: boolean
 }
 
 /**

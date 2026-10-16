@@ -1,4 +1,4 @@
-import type { SchemaForm, SchemaWorkflow } from '@crombolo/core'
+import type { SchemaForm, SchemaWorkflow, SiteSearchLevel } from '@crombolo/core'
 
 /**
  * The schema-as-code model: what a site's `schema/*.toml` files describe.
@@ -28,6 +28,8 @@ export interface SchemaProperty {
   sensitive?: boolean
   /** False keeps the property's values out of backoffice search; searchable when absent. */
   searchable?: boolean
+  /** Its weight in site search, or false to leave it out; `normal` when absent. */
+  siteSearch?: SiteSearchLevel | false
   /** Fills existing content when a required property is added to a type with pages. */
   default?: unknown
   since?: string
@@ -73,6 +75,8 @@ export interface SchemaContentType {
   folder?: string
   cleanup: SchemaCleanup
   since?: string
+  /** False leaves every page of the type out of site search. */
+  siteSearch?: false
   /** Properties outside any tab. */
   properties: SchemaProperty[]
   /** Groups outside any tab — `[[group]]`; Umbraco's built-in media types use one. */

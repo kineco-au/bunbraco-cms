@@ -4,8 +4,14 @@
  * Every answer is read from memory, so it scales with the nodes that render.
  * docs/delivery-api.md.
  */
-import type { PublishedCache, PublishedContent, PublishedMedia } from '@crombolo/render'
-import { isRightToLeft } from '@crombolo/render'
+import { branchAccess } from '@crombolo/core'
+import type {
+  PublishedCache,
+  PublishedContent,
+  PublishedMedia,
+  SearchableText,
+} from '@crombolo/render'
+import { excerpt, excerptHtml, isRightToLeft } from '@crombolo/render'
 import {
   ALL_FIELDS,
   type ExpansionNode,
@@ -46,6 +52,20 @@ export interface DeliveryApiPorts {
   member(token: string): Promise<DeliveryMember | undefined>
   /** The member sign-in endpoints under `v1/security/member/`, when built. */
   security?(request: Request, action: string): Promise<Response | undefined>
+  /**
+   * Site search over published pages (story 140), behind `v2/search`: a
+   * Crombolo addition, which Umbraco's Delivery API has no equivalent of.
+   */
+  search?(
+    term: string,
+    options: {
+      culture: string
+      types: readonly string[]
+      skip: number
+      take: number
+      access: { denied: readonly number[]; allowed: readonly number[] }
+    },
+  ): Promise<{ total: number; items: Array<{ key: string; score: number; text: SearchableText }> }>
 }
 
 export interface DeliveryApi {
@@ -258,6 +278,7 @@ export function createDeliveryApi(ports: DeliveryApiPorts): DeliveryApi {
       nav,
       roots,
       member,
+      rules: [...loadedRules.values()],
       ctx,
       byPath,
       startItem,
@@ -451,6 +472,44 @@ export function createDeliveryApi(ports: DeliveryApiPorts): DeliveryApi {
     })
   }
 
+  /**
+   * `v2/search?term=&contentType=&skip=&take=`: published pages matching every
+   * word, best first, as content items with `score` and an `excerpt` in HTML.
+   * A members-only page is left out, and not counted, for a caller who cannot
+   * open it.
+   */
+  async function contentSearch(r: ContentRequest, url: URL) {
+    if (!ports.search) return bare(404)
+    const skip = intParam(url, 'skip', 0)
+    if (skip instanceof Response) return skip
+    const take = intParam(url, 'take', 10)
+    if (take instanceof Response) return take
+    const term = url.searchParams.get('term')?.trim() ?? ''
+    if (!term || !r.known) return json({ total: 0, items: [] })
+    // A member who may not sign in now opens nothing a visitor could not.
+    const member =
+      r.member?.approved && !r.member.lockedOut
+        ? { username: r.member.userName, groups: r.member.groups }
+        : undefined
+    const hits = await ports.search(term, {
+      culture: r.culture ?? '',
+      types: url.searchParams.getAll('contentType').filter(Boolean),
+      skip,
+      take: Math.min(take, 100),
+      access: branchAccess(r.rules, member),
+    })
+    const items = []
+    for (const hit of hits.items) {
+      const content = r.servable(r.nav.byKey(hit.key))
+      if (!content || r.ctx.access(content) !== 'allowed') continue
+      const body = await r.respond(content, url)
+      if (body instanceof Response) return body
+      if (body)
+        items.push({ ...body, score: hit.score, excerpt: excerptHtml(excerpt(hit.text, term)) })
+    }
+    return json({ total: hits.total, items })
+  }
+
   return {
     async handle(request) {
       const url = new URL(request.url)
@@ -459,6 +518,12 @@ export function createDeliveryApi(ports: DeliveryApiPorts): DeliveryApi {
 
       const security = /^v1\/security\/member\/(.+)$/.exec(rest)
       if (security) return ports.security?.(request, security[1] as string)
+
+      if (/^v2\/search\/?$/.test(rest)) {
+        if (request.method !== 'GET' && request.method !== 'HEAD') return bare(405)
+        if (!contentAccess(settings, request)) return bare(401)
+        return contentSearch(await contentRequest(request), url)
+      }
 
       const match = /^v2\/(content|media)(?:\/(.*))?$/.exec(rest)
       if (!match) return undefined
