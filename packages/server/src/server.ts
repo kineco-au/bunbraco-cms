@@ -160,7 +160,7 @@ import {
   type SchemaBoot,
   watchSchema,
 } from './schema.ts'
-import { materialiseSchema, publishSchema, type SchemaStore } from './schema-store.ts'
+import { publishSchema, type SchemaStore, useSchemaStore } from './schema-store.ts'
 import { createSeoHost, originOf } from './seo.ts'
 import {
   combineHubs,
@@ -318,15 +318,13 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   // A configured schema store is copied down before anything reads `schema/`, and
   // becomes the schema directory for this boot. Everything after here — loading,
   // validation, hashing, sync, the writer — works on files exactly as it always has.
-  if (config.schemaStore) {
-    const copied = await materialiseSchema(config.schemaStore, config.schemaCacheDir)
-    config.schemaDir = config.schemaCacheDir
+  const copied = await useSchemaStore(config)
+  if (config.schemaStore)
     schemaLog.info('Schema read from {store}: {count} files in {dir}', {
       store: config.schemaStore.description,
-      count: copied.length,
+      count: copied,
       dir: config.schemaCacheDir,
     })
-  }
   // A node that does not own the schema still loads it — the renderer needs the
   // property definitions — but writes none of it.
   const schema = await bootSchema(db, owns ? config : { ...config, syncSchemaAtBoot: false })

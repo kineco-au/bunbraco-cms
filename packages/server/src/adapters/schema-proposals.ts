@@ -36,6 +36,7 @@ import type { CromboloConfig } from '../config.ts'
 import { formTypesFor } from '../form-types.ts'
 import { logger } from '../logging.ts'
 import { componentAliasesIn, importSchema } from '../schema.ts'
+import { publishSchema, useSchemaStore } from '../schema-store.ts'
 
 const log = logger('schema')
 
@@ -124,6 +125,9 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
         return { ok: false, error: problems.map((problem) => problem.message).join('; ') }
       }
 
+      // Fresh from the store first, then written, imported and published without
+      // materialising again, which would lay the store's copy over this write.
+      await useSchemaStore(config)
       const path = pathFor(kind, alias)
       const versionFile = join(config.schemaDir, 'schema.toml')
       const previous = existsSync(path) ? await readFile(path, 'utf8') : undefined
@@ -143,14 +147,17 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
       // is nothing left to compare. The version moves in the same breath, or the
       // import lands at a version the other nodes already have and they never
       // learn they are behind.
-      const ahead = await importSchema(options.db, config, options.boot, { dryRun: true })
+      const ahead = await importSchema(options.db, config, options.boot, {
+        dryRun: true,
+        materialise: false,
+      })
       const { version, urls } = loadSchemaDirectory(config.schemaDir, {
         formTypes: formTypesFor(config),
       }).set
       const next = nextSchemaVersion(version, ahead.classification)
       if (next !== version) await writeFile(versionFile, writeSchemaVersion(next, urls), 'utf8')
 
-      const result = await importSchema(options.db, config, options.boot)
+      const result = await importSchema(options.db, config, options.boot, { materialise: false })
       if (result.report && result.report.action !== 'applied') {
         // Put the files back: a refused import leaves the site with a file it will
         // not accept, which is worse than the change not having happened.
@@ -160,6 +167,7 @@ export function createSchemaProposals(options: SchemaProposalOptions): SchemaPro
           error: result.report.reason ?? `the import was ${result.report.action}`,
         }
       }
+      if (config.schemaStore) await publishSchema(config.schemaStore, config.schemaDir)
       await options.afterSync?.(result.report)
       log.info('{alias} applied from a proposal: {classification}, schema at {version}', {
         alias,

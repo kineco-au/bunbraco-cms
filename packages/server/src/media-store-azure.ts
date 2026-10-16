@@ -156,6 +156,12 @@ export function azureMediaStore(options: AzureMediaStoreOptions): MediaStore {
           if (!response.ok) throw new Error(`Azure GET ${key} failed with ${response.status}.`)
           return new Uint8Array(await response.arrayBuffer())
         },
+        stream: async () => {
+          const response = await send('GET', url)
+          if (!response.ok || !response.body)
+            throw new Error(`Azure GET ${key} failed with ${response.status}.`)
+          return response.body
+        },
       }
     },
 

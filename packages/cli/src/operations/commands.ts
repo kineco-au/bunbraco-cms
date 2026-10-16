@@ -5,7 +5,10 @@
  * a platform's own tooling — gets the same results as data. One implementation,
  * so the two can never disagree about what an import or an upgrade does.
  */
+import { existsSync } from 'node:fs'
+import { rm } from 'node:fs/promises'
 import { userInfo } from 'node:os'
+import { basename, join, resolve } from 'node:path'
 import { ROOT_ACCESS } from '@crombolo/core'
 import {
   type AuditCategory,
@@ -46,6 +49,8 @@ import {
   checkSchemaDirectory,
   createFileIntake,
   createMediaPort,
+  exportSite,
+  extractTarball,
   formTypesFor,
   installBundleContent,
   installDatabase,
@@ -53,11 +58,18 @@ import {
   mediaStoreFor,
   pendingBundleSteps,
   planBundleUpgrades,
+  type ReplaceMode,
+  type ReplaceSummary,
+  RUN_BACKUP_DIR,
   readBlobs,
   readBundle,
   recordAudit,
+  replaceSummary,
+  type SiteExportOptions,
+  type SiteExportResult,
   syncOptionsFor,
   type TransferInput,
+  useSchemaStore,
   VERSION,
 } from '@crombolo/server'
 import {
@@ -95,6 +107,7 @@ export {
   readBundle,
   replacementsNeedingPermission,
   restoreSectionFiles,
+  revertSections,
   type SectionFile,
   type SectionOptions,
   type SectionPlan,
@@ -109,16 +122,39 @@ export {
   type Resolution,
   type TransferCheck,
 } from '@crombolo/transfer'
-export type { BackupResult, WritesPaused }
+export type { BackupResult, ReplaceMode, ReplaceSummary, WritesPaused }
+
+/**
+ * A bundle file (`.tgz`, as `export --site` writes) unpacked under the site's
+ * transfer directory, where an import can read it; a directory or a package
+ * name is a bundle as it is.
+ */
+export async function unpackBundle(target: string, siteDir: string): Promise<string> {
+  if (!/\.(tgz|tar\.gz)$/i.test(target)) return target
+  const file = resolve(siteDir, target)
+  if (!existsSync(file)) throw new CommandError(`${target} does not exist.`)
+  const dir = join(
+    siteDir,
+    RUN_BACKUP_DIR,
+    'incoming',
+    basename(file).replace(/\.(tgz|tar\.gz)$/i, ''),
+  )
+  await rm(dir, { recursive: true, force: true })
+  await extractTarball(file, dir)
+  return dir
+}
 
 /** Read-only: what installing a bundle here would do. Its findings go to the Changes dashboard. */
 export async function contentCheck(
   config: CromboloConfig,
   input: TransferInput,
 ): Promise<ContentCheckResult> {
+  // Against the store's schema, not whatever local directory there is (story 106).
+  await useSchemaStore(config)
+  const bundle = await unpackBundle(input.bundle, config.siteDir)
   const { db } = await bootstrapDatabase(config)
   try {
-    return await checkBundleContent(db, config, input)
+    return await checkBundleContent(db, config, { ...input, bundle })
   } finally {
     await db.close()
   }
@@ -129,12 +165,80 @@ export async function contentImport(
   config: CromboloConfig,
   input: ContentImportInput,
 ): Promise<ContentImportResult> {
+  const bundle = await unpackBundle(input.bundle, config.siteDir)
   // Read before anything is opened or backed up, so a bundle that is not one is
   // refused before a backup is taken on its behalf.
-  readBundle(input.bundle, config.siteDir)
+  readBundle(bundle, config.siteDir)
+  await useSchemaStore(config)
   const { db } = await bootstrapDatabase(config)
   try {
-    return await installBundleContent(db, config, input)
+    return await installBundleContent(db, config, { ...input, bundle })
+  } finally {
+    await db.close()
+  }
+}
+
+export interface SiteReplaceCheck {
+  check: ContentCheckResult
+  summary: ReplaceSummary
+}
+
+/**
+ * Read-only: what `crombolo import <file>` would do (story 105) — the content
+ * check a replace runs with, and what it would take out of this site.
+ */
+export async function siteReplaceCheck(
+  config: CromboloConfig,
+  input: TransferInput & { replace: ReplaceMode },
+): Promise<SiteReplaceCheck> {
+  await useSchemaStore(config)
+  const bundle = await unpackBundle(input.bundle, config.siteDir)
+  const resolved = readBundle(bundle, config.siteDir, input.passphrase)
+  const { db } = await bootstrapDatabase(config)
+  try {
+    const check = await checkBundleContent(db, config, {
+      ...input,
+      bundle,
+      resolveAll: 'take-bundle',
+      replaceFiles: true,
+    })
+    const summary = await replaceSummary(
+      db,
+      resolved.set,
+      new Set(resolved.carried.files.keys()),
+      [
+        { section: 'schema', dir: config.schemaDir },
+        { section: 'components', dir: config.componentsDir },
+        { section: 'styles', dir: config.stylesheetsDir },
+        { section: 'scripts', dir: config.scriptsDir },
+      ],
+      input.replace,
+    )
+    return { check, summary }
+  } finally {
+    await db.close()
+  }
+}
+
+export type SiteExportInput = SiteExportOptions
+
+/**
+ * Writes the whole site to one file (story 104), streaming its media from the
+ * store. Unlike `contentExport` this writes: a site's media does not fit in a
+ * returned value.
+ */
+export async function siteExport(
+  config: CromboloConfig,
+  input: SiteExportInput,
+): Promise<SiteExportResult> {
+  await useSchemaStore(config)
+  const { db } = await bootstrapDatabase(config)
+  try {
+    return await exportSite(db, config, input)
+  } catch (error) {
+    if (error instanceof Error && !(error instanceof CommandError))
+      throw new CommandError(error.message)
+    throw error
   } finally {
     await db.close()
   }

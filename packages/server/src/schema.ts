@@ -43,7 +43,7 @@ import { listComponents } from './components.ts'
 import { type CromboloConfig, VERSION } from './config.ts'
 import { formTypesFor } from './form-types.ts'
 import { logger } from './logging.ts'
-import { materialiseSchema } from './schema-store.ts'
+import { useSchemaStore } from './schema-store.ts'
 
 export interface SchemaBoot {
   /** The state this node runs at: the files' version, the deploy's revision. */
@@ -397,13 +397,11 @@ export async function importSchema(
   db: Db,
   config: CromboloConfig,
   boot: { nodeId: string; nodeState: NodeSchemaState },
-  options: { dryRun?: boolean } = {},
+  options: { dryRun?: boolean; materialise?: boolean } = {},
 ): Promise<SchemaImportResult> {
-  let materialised: number | undefined
-  if (config.schemaStore) {
-    materialised = (await materialiseSchema(config.schemaStore, config.schemaCacheDir)).length
-    config.schemaDir = config.schemaCacheDir
-  }
+  // A caller that has just written into the directory says not to, or the store's
+  // older copy would be laid over its write.
+  const materialised = options.materialise === false ? undefined : await useSchemaStore(config)
   if (!existsSync(config.schemaDir)) {
     return { materialised, classification: 'none', findings: [], report: undefined }
   }

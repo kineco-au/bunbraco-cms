@@ -111,6 +111,22 @@ export async function materialiseSchema(store: SchemaStore, dir: string): Promis
   return keys
 }
 
+/**
+ * Points a config at its store's schema: materialises the store into
+ * `schemaCacheDir` and makes that the schema directory. A no-op without a store;
+ * answers how many files were copied.
+ */
+export async function useSchemaStore(config: {
+  schemaStore: SchemaStore | undefined
+  schemaCacheDir: string
+  schemaDir: string
+}): Promise<number | undefined> {
+  if (!config.schemaStore) return undefined
+  const copied = await materialiseSchema(config.schemaStore, config.schemaCacheDir)
+  config.schemaDir = config.schemaCacheDir
+  return copied.length
+}
+
 export interface PublishReport {
   written: string[]
   removed: string[]

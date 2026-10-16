@@ -26,7 +26,7 @@ the file complete, not a connection between two sites.
 
 ## Acceptance criteria
 
-- [ ] `crombolo export --site [--out <file>]` writes one bundle holding:
+- [x] `crombolo export --site [--out <file>]` writes one bundle holding:
       - the schema;
       - components, styles and scripts;
       - the dictionary;
@@ -36,19 +36,19 @@ the file complete, not a connection between two sites.
       It does this from either database dialect and any media store.
       Domains are left out: they belong to where a site runs, and never
       travel (decided 2026-10-16, keeping `content-transfer.md`'s rule).
-- [ ] People are left out by default: members, back-office users, tokens,
+- [x] People are left out by default: members, back-office users, tokens,
       sessions and external logins. `--with-members` and `--with-users` carry
       them, sealed, as `content export` does today. `--anonymise` carries the
       structure with every personal value replaced, using `100`'s sanitising.
-- [ ] Media can be left out (`--no-media`), for a quick copy of the code and
+- [x] Media can be left out (`--no-media`), for a quick copy of the code and
       content alone. The bundle then says so, and importing it without the
       media is a decision rather than a surprise.
-- [ ] The bundle records the CMS version that wrote it and the package
+- [x] The bundle records the CMS version that wrote it and the package
       versions it needs, so importing it on an older CMS refuses with the
       version named (`070`'s compatibility rules).
-- [ ] The export streams. A site with gigabytes of media is written without
+- [x] The export streams. A site with gigabytes of media is written without
       holding it in memory, and the integrity hash covers every part.
-- [ ] A test round-trips a site:
+- [x] A test round-trips a site:
       - export it;
       - start it elsewhere (`105`);
       - export it again;
@@ -112,3 +112,45 @@ before either track starts, with a fixture file that both test against.
 - Moving a site somewhere it is already running, with changes on both sides.
   That is merging, and `content import`'s conflict resolutions (`101`–`103`)
   cover the parts that can be merged.
+
+## Implementation (2026-10-16)
+
+- **Format** (`transfer/src/model.ts`, `write.ts`, `load.ts`): new manifest fields
+  `scope: 'site'`, `media: 'omitted'`, `requires` and `provenance.cmsVersion`.
+  The format stays 3: the fields are optional, and an older CMS is refused by
+  the package's `>=` peer range.
+- **`siteSections()`** (`server/src/site-sections.ts`) composes a bundle's
+  sections.
+  - It holds what the Packages builder did, and the builder now calls it with
+    its picks.
+  - Its `'all'` mode reads the schema directory whole (every `.toml`), every
+    file in the components, styles and scripts areas, and every dictionary
+    root.
+- **The sanitiser** is `transfer/src/sanitise.ts`, and story `100` reuses it.
+  - It removes users and turns members into placeholders.
+  - It replaces every email address in content, people and the dictionary,
+    consistently.
+  - Tokens, sessions, external logins and form entries never travel, so there
+    is nothing of theirs to remove.
+- **Streaming:**
+  - `TarballWriter` and `extractTarball` in `server/src/tar.ts` use `node:zlib`
+    streams.
+  - `StoredFile.stream()` comes from the file-system, S3 and Azure stores, and
+    `streamOf` falls back to `bytes()`. The story planned this on the store as
+    `MediaStore.stream(key)`; on the stored file, one lookup gives both the
+    size and the stream.
+  - `planStreamedBundle` builds the manifest from sizes alone.
+  - `exportSite` (`server/src/site-file.ts`) hashes each file as it passes, in
+    `bundleIntegrity`'s path order, writes to `<out>.partial` and renames it
+    when complete.
+- **CLI:** `crombolo export --site [--out] [--no-media] [--drafts]
+  [--with-members] [--with-users] [--anonymise]`, which calls
+  `ops.siteExport`. Content travels in the open; people travel sealed.
+- **Docs:** `docs/content-transfer.md` § A whole site in one file, plus
+  `docs/bundles.md` and the README.
+- **Tests:**
+  - `tests/site-file.test.ts`: the tarball round trip, the sanitiser, and
+    exports with and without media, with members, and anonymised, each read
+    back through `loadBundle`.
+  - `tests/site-replace.test.ts`: the round trip (export, start elsewhere,
+    export again, compare).

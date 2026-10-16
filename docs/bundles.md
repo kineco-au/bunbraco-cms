@@ -584,9 +584,12 @@ That is why the check runs against an **overlay**: a copy of the site's
 touched until it is known the schema can apply. An install whose schema would
 need data work is refused with nothing written.
 
-Then: schema files → `schema/`, then the sync a deploy already runs → views,
-components, styles and scripts into the site's configured directories → dictionary
-items → content, through the importer that already existed.
+Then three phases (story `105`): every carried section is **staged** into a copy
+under `.crombolo/transfer/pending-…/next/`; **one transaction** syncs the staged
+schema, imports the dictionary items and the content; and once it commits the
+staged folders **swap** into the site's configured directories. A refusal at any
+point leaves the site's files and database as they were
+([`content-transfer.md`](content-transfer.md), "Replacing a site").
 
 Schema is applied by **writing the files and syncing**, never by writing the
 database directly. The file is the truth and the database follows it
@@ -612,21 +615,17 @@ file is not a replacement.
 
 The content half is a transfer run, so `content revert <run>` takes it back as
 any import. The files are not in that ledger — but they are not left to git
-either. Before replacing a file, the install copies the original to
-`.crombolo/transfer/<runId>/replaced/<bundle path>`, with a record of which
-files it created rather than replaced, and `content revert` puts the replaced
-ones back and removes the created ones.
+either. The swap keeps what each staged folder replaced under
+`.crombolo/transfer/<runId>/previous/<section>`, with `swap.json` naming the
+sections, and the dictionary as it was in `dictionary-before.udt`. `content
+revert` swaps the folders back, re-syncs the schema and restores the dictionary
+(`revertSections`).
 
-Two details that make that work:
-
-- The copies are keyed by the file's **bundle** path, not its path on this site,
-  so a revert re-derives the destination through the same section mapping and
-  restores to where the file would go *now*.
-- The run id does not exist until the content has imported, so the backups are
-  staged under `pending-…` and moved once it has. A staging directory that was
-  never promoted is an install whose content was refused after its files landed:
-  it is left alone, because it holds the only copy of what was replaced, and the
-  CLI prints where it is.
+The run id does not exist until the content has imported, so the staging
+directory is `pending-…` until the transaction commits and is renamed to the run
+then. A refused install removes its staging directory: nothing of the site was
+moved into it. Runs from before the staged install kept single replaced files
+under `replaced/` with `files.json`; those still revert as they did.
 
 `.crombolo/transfer/` is a sibling of `.crombolo/components`, never inside it:
 the components cache is rebuilt from `components/` and cleared at boot, and these
@@ -635,7 +634,10 @@ have to outlive a restart to be worth taking.
 ### Known rough edge
 
 A re-install rewrites a schema file that the sync had annotated with assigned
-keys, so the sync runs again and re-assigns them from the database. It converges
+keys, so the sync runs again and re-assigns them from the database. A file whose
+type carries a key this site has never had, for an alias it has, is matched by
+the alias and given the site's key (story `105`), so a bundle from a site whose
+types were created separately updates them rather than clashing. It converges
 — the type is matched by alias when the file carries no key, so it is updated
 and never duplicated, which `tests/bundle-install.test.ts` holds it to — but a
 repeat install is not a silent no-op the way re-importing unchanged content is.

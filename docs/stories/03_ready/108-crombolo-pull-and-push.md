@@ -54,3 +54,64 @@ handful of commands that speak the protocol.
 - [ ] **Tested** against the CMS's own server as a remote, end to end:
       pull, change, push to an unprotected environment, then a refused
       protected push without `--force`.
+
+## Plan (2026-10-16, after 107's decisions)
+
+Defaults to confirm before building:
+- **Where remotes are kept: `remotes.toml` at the site's root,** committed.
+  It holds names and URLs only, no credentials, so a team shares where its
+  environments are. This differs from git, which keeps remotes uncommitted in
+  `.git/config`. The other choice is `.crombolo/remotes.toml`, which isn't
+  committed.
+- **Pulling into a folder that already holds a site** replaces it as
+  `import --replace` does: the summary is shown first, it asks unless `--yes`
+  is given, and it can be undone with `content revert`. In an empty folder it
+  is `start --from`.
+
+**Commands** (`packages/cli`, on a small protocol client in
+`packages/cli/src/remote/`):
+1. `remote add <name> <url>`, `remote list` and `remote remove`. Adding reads
+   the discovery document, refuses a protocol version it doesn't speak, and
+   lists the environments.
+2. `login <remote>`, `logout` and `whoami`.
+   - Login runs the device flow: it prints the code, opens the browser and
+     polls.
+   - Tokens are kept with `Bun.secrets` (macOS Keychain, Windows Credential
+     Manager, libsecret on Linux), keyed by the remote's URL, and never written
+     to the folder.
+   - A refresh token keeps a sign-in going until it is revoked.
+3. `pull [<remote>] [--env <name>] [--full] [--no-media] [--yes]`:
+   1. starts a pull job and reports its stages;
+   2. downloads the file;
+   3. runs `start --from`, or the replace into the current site.
+
+   It's anonymised unless `--full`. A passphrase is generated for each pull
+   and kept only in memory, since the same command both asks for the file and
+   opens it.
+4. `push [<remote>] [--env <name>] [--force] [--auto-approve]`:
+   - exports the local site with sealed content and a passphrase generated for
+     the push;
+   - refuses a protected environment without `--force`;
+   - with `--force`, shows the remote's dry-run summary and asks for the
+     environment's name to be typed back unless `--auto-approve` is given;
+   - then uploads and follows the job.
+
+   An `approval-required` state opens the approval link and waits, whatever
+   flags were given.
+5. **Exit codes:** 0 done; 1 the remote refused or failed; 2 refused before
+   anything was sent; 3 gave up waiting (`--timeout`, default 30 minutes).
+6. **`clone --anonymise <remote> [dir]`** is `pull` into a new folder with
+   anonymising required. Without `--anonymise` it refuses unless `--trusted`
+   is given, which closes story `100`.
+
+**Tests** (`tests/remote-cli.test.ts`): the CMS server is started as a remote
+with `remote.enabled`, and the CLI's operations are driven against it, with
+the device approval done through the back-office endpoint:
+1. pull into an empty folder;
+2. change a page;
+3. push to an unprotected environment, and check the remote has the change;
+4. a protected push refused without `--force` (exit 2);
+5. one with `--force --auto-approve` stopping at approval.
+
+`Bun.secrets` is stubbed in tests behind a small keychain interface, since CI
+has no keychain.

@@ -32,19 +32,19 @@ are read as removed and refused.
 
 ## Acceptance criteria
 
-- [ ] `content import` publishes every schema change it applies to the
+- [x] `content import` publishes every schema change it applies to the
       schema store, as a back-office edit does.
-- [ ] Every way of running an import materialises the schema store before
+- [x] Every way of running an import materialises the schema store before
       it reads the schema: the server, and the CLI's `content import` and
       `content check`.
-- [ ] A test, with a schema store configured:
+- [x] A test, with a schema store configured:
       - imports a bundle carrying a new content type;
       - restarts the site against the same store;
       - finds the type there.
-- [ ] A second test runs the CLI's `content import` with a store configured
+- [x] A second test runs the CLI's `content import` with a store configured
       and an empty local directory, and checks that the diff is against the
       store's schema.
-- [ ] **Schema proposals** (`adapters/schema-proposals.ts`), which also write
+- [x] **Schema proposals** (`adapters/schema-proposals.ts`), which also write
       into the schema directory without publishing, publish as an edit does.
       Their write is not lost to the next materialise either: `importSchema`
       re-materialises the store over the directory the proposal just wrote.
@@ -69,3 +69,22 @@ the same store) for the import, and a CLI case with an empty local directory.
 
 - Moving schema-store behaviour out of the CMS. The store is the CMS's, and
   so is this fix.
+
+## Implementation (2026-10-16)
+
+- **`useSchemaStore(config)`** (`schema-store.ts`): materialises the store into
+  `schemaCacheDir` and points `schemaDir` at it. It is a no-op without a store,
+  and the boot path, `importSchema`, and the CLI's `content import` and
+  `content check` all use it.
+- **`applySections`** publishes to the store after a sync that applied, or
+  found the database already matching (`skipped-same`).
+- **Schema proposals** materialise first, then write. They import with
+  `importSchema(…, { materialise: false })` and publish after a successful
+  import.
+- **Docs:** `docs/schema-at-runtime.md`.
+- **Tests:**
+  - `tests/schema-store-import.test.ts`:
+    - an import with a store survives a restart on a fresh cache;
+    - the CLI's check reads the store, not an empty local directory, and its
+      import publishes.
+  - `tests/assistant-schema.test.ts`: an approved proposal reaches the store.

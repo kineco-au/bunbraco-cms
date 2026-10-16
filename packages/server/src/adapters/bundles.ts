@@ -8,7 +8,6 @@
  * items as the `.udt` the dictionary already exports. The build is composition,
  * which is why a bundle can carry everything the builder UI offers.
  */
-import { join } from 'node:path'
 import {
   type BuiltPackage,
   type FileSystemPort,
@@ -23,31 +22,15 @@ import {
   type Bundle,
   BundleRepository,
   type ComponentFileStore,
-  ComponentRepository,
-  currentSchemaState,
   type Db,
-  DictionaryRepository,
   type NodeRow,
   resolveNodeRef,
 } from '@crombolo/data'
 import {
-  exportSchemaSet,
-  fileNameFor,
-  type SchemaSet,
-  writeContentType,
-  writeDataType,
-  writeLanguages,
-  writeMediaType,
-  writeSchemaVersion,
-} from '@crombolo/schema'
-import {
-  BUNDLE_SECTIONS,
   type BundleBlob,
   type BundleDependency,
-  type BundleFile,
   type BundleKind,
   type BundleNode,
-  type BundleSection,
   bundleIdFor,
   bundlePeerRange,
   type ContentSet,
@@ -58,9 +41,9 @@ import {
   writeBundlePackage,
 } from '@crombolo/transfer'
 import { VERSION } from '../config.ts'
-import { dictionaryToUdt, writeDictionaryUdt } from '../dictionary-transfer.ts'
 import { readBlobs } from '../media-files.ts'
 import type { MediaStore } from '../media-store.ts'
+import { siteSections } from '../site-sections.ts'
 import { writeNpmTarball } from '../tar.ts'
 
 /** The npm package a definition is built as: what was set on it, or what its name gives. */
@@ -118,48 +101,6 @@ const stored = <T extends PackageDefinitionInput>(input: T) => ({
   ...input,
   components: [...input.templates, ...input.partialViews],
 })
-
-/** Matches a selection against a type's key or its alias, since the UI sends either. */
-const picks = (selected: readonly string[]) => {
-  const wanted = new Set(selected.map((value) => value.trim().toLowerCase()))
-  return (type: { key?: string; alias: string }): boolean =>
-    wanted.has(type.alias.toLowerCase()) ||
-    (type.key !== undefined && wanted.has(type.key.toLowerCase()))
-}
-
-/** The selected slice of the site's schema, as the files `schema/` would hold. */
-function schemaEntries(set: SchemaSet, from: PackageDefinition): BundleFile[] {
-  const entries: BundleFile[] = []
-  const put = (path: string, text: string) =>
-    entries.push({ path: `${BUNDLE_SECTIONS.schema}/${path}`, text })
-
-  const contentTypes = set.contentTypes.filter(picks(from.contentTypes))
-  const mediaTypes = (set.mediaTypes ?? []).filter(picks(from.mediaTypes))
-  // Member types have no picker in the builder, and the contract's definition
-  // has no field for them, so a bundle never carries one.
-  const dataTypes = set.dataTypes.filter(picks(from.dataTypes))
-  const languages = set.languages.filter((language) =>
-    from.languages.some((pick) => pick.toLowerCase() === language.iso.toLowerCase()),
-  )
-
-  if (
-    contentTypes.length === 0 &&
-    mediaTypes.length === 0 &&
-    dataTypes.length === 0 &&
-    languages.length === 0
-  )
-    return entries
-
-  put('schema.toml', writeSchemaVersion(set.version))
-  for (const type of contentTypes)
-    put(join('content-types', fileNameFor(type.alias)), writeContentType(type))
-  for (const type of mediaTypes)
-    put(join('media-types', fileNameFor(type.alias)), writeMediaType(type))
-  for (const type of dataTypes)
-    put(join('data-types', fileNameFor(type.alias)), writeDataType(type))
-  if (languages.length > 0) put('languages.toml', writeLanguages(languages))
-  return entries
-}
 
 /**
  * Several exports as one bundle: the nodes deduped by key, the counts summed,
@@ -226,73 +167,6 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
 
   const validate = (input: PackageDefinitionInput): PackageWriteResult | undefined =>
     input.name.length === 0 ? { ok: false, status: 'InvalidName' } : undefined
-
-  /**
-   * The files a selection of file-system paths resolves to, under one section.
-   *
-   * The section is a logical name — `styles`, not `css` — because a site holds
-   * these wherever it is configured to, and the importer is what maps a section
-   * onto a directory.
-   */
-  const fileEntries = async (
-    port: FileSystemPort | undefined,
-    paths: readonly string[],
-    section: BundleSection,
-  ): Promise<BundleFile[]> => {
-    if (!port) return []
-    const files: BundleFile[] = []
-    for (const path of paths) {
-      const file = await port.read(path)
-      if (!file) continue
-      const relative = file.path.replace(/^\/+/, '')
-      files.push({ path: `${BUNDLE_SECTIONS[section]}/${relative}`, text: file.content })
-    }
-    return files
-  }
-
-  const componentEntries = async (keys: readonly string[]): Promise<BundleFile[]> => {
-    if (keys.length === 0) return []
-    const templates = new ComponentRepository(db, options.componentFiles)
-    const all = await templates.all()
-    const wanted = new Set(keys.map((key) => key.trim().toLowerCase()))
-    const files: BundleFile[] = []
-    for (const template of all) {
-      if (!wanted.has(template.key.toLowerCase()) && !wanted.has(template.alias.toLowerCase()))
-        continue
-      files.push({
-        path: `${BUNDLE_SECTIONS.components}/${template.alias}.tsx`,
-        text: template.content ?? '',
-      })
-    }
-    return files
-  }
-
-  /**
-   * The components a bundle carries, from one list that holds two kinds of
-   * name.
-   *
-   * The contract has `templates` and `partialViews`; this side has one list, so
-   * a picked component arrives either as a template alias — a row in
-   * `template`, whose file is read through the alias — or as a path in the
-   * components tree. Both are tried and the results are keyed by path, so a
-   * component picked both ways is carried once.
-   */
-  const componentSection = async (picked: readonly string[]): Promise<BundleFile[]> => {
-    const byPath = new Map<string, BundleFile>()
-    for (const file of await componentEntries(picked)) byPath.set(file.path, file)
-    for (const file of await fileEntries(options.components, picked, 'components'))
-      byPath.set(file.path, file)
-    return [...byPath.values()]
-  }
-
-  const dictionaryEntries = async (keys: readonly string[]): Promise<BundleFile[]> => {
-    if (keys.length === 0) return []
-    const repo = new DictionaryRepository(db)
-    const items = []
-    for (const key of keys) items.push(...(await dictionaryToUdt(repo, key)))
-    if (items.length === 0) return []
-    return [{ path: `${BUNDLE_SECTIONS.dictionary}.udt`, text: writeDictionaryUdt(items) }]
-  }
 
   /**
    * The content, media and element picks as one transfer bundle, blobs included.
@@ -404,18 +278,25 @@ export function createPackagePort(db: Db, options: PackagePortOptions): PackageP
       const from = definition(row)
       const pkg = bundlePackageOf(row)
 
-      // The schema version the site is actually at, so the files a package
-      // carries say where they came from rather than claiming version 0.
-      const state = await currentSchemaState(db).catch(() => undefined)
-      const schema = await exportSchemaSet(db, state?.version ?? '0')
-
-      const sections: BundleFile[] = [
-        ...schemaEntries(schema, from),
-        ...(await componentSection([...from.templates, ...from.partialViews])),
-        ...(await fileEntries(options.stylesheets, from.stylesheets, 'styles')),
-        ...(await fileEntries(options.scripts, from.scripts, 'scripts')),
-        ...(await dictionaryEntries(from.dictionaryItems)),
-      ]
+      const sections = await siteSections(
+        {
+          db,
+          componentFiles: options.componentFiles,
+          components: options.components,
+          stylesheets: options.stylesheets,
+          scripts: options.scripts,
+        },
+        {
+          contentTypes: from.contentTypes,
+          mediaTypes: from.mediaTypes,
+          dataTypes: from.dataTypes,
+          languages: from.languages,
+          components: [...from.templates, ...from.partialViews],
+          stylesheets: from.stylesheets,
+          scripts: from.scripts,
+          dictionaryItems: from.dictionaryItems,
+        },
+      )
 
       const content = await contentEntries(from)
       // A package with nothing picked is still a bundle: an empty selection

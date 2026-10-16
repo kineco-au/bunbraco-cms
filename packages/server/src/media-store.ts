@@ -31,6 +31,8 @@ export interface StoredFile {
   etag: string
   contentType: string
   bytes(): Promise<Uint8Array>
+  /** The bytes as a stream, for a file too big to hold (story 104); `streamOf` falls back to `bytes()`. */
+  stream?(): Promise<ReadableStream<Uint8Array>>
   /** A path on this machine, when the store has one; lets the server stream it. */
   localPath?: string
 }
@@ -49,6 +51,24 @@ export interface MediaStore {
    * which is what the file system store always does.
    */
   publicUrl?(key: string): string | undefined
+}
+
+/** A stored file's bytes in chunks: streamed where the store can, whole where it cannot. */
+export async function* streamOf(file: StoredFile): AsyncIterable<Uint8Array> {
+  if (!file.stream) {
+    yield await file.bytes()
+    return
+  }
+  const reader = (await file.stream()).getReader()
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) return
+      yield value
+    }
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 /** Content types by extension, for stores that do not infer one. */
@@ -139,6 +159,7 @@ export function fileSystemMediaStore(
         etag: `${stat.size.toString(16)}-${Math.trunc(stat.mtimeMs).toString(16)}`,
         contentType: file.type || contentTypeFor(key),
         bytes: () => file.bytes(),
+        stream: async () => file.stream(),
         localPath: path,
       }
     },

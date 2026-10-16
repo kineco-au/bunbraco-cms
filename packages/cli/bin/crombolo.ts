@@ -6,6 +6,7 @@
  *   crombolo start                  boot the site; resets and prints the admin password
  *   crombolo start --keep-admin     boot without touching the admin password
  *   crombolo start --bundle <pkg>   apply a bundle's content, once, then serve
+ *   crombolo start --from <file>    in an empty folder: a working site from a whole-site file
  *   crombolo init                   scaffold a site in the current directory
  *   crombolo init --template <id>   …from a starter template, content included
  *   crombolo status                 what this environment is, without starting it
@@ -20,6 +21,7 @@
  *   crombolo components check       compile every component before a visitor does
  *   crombolo assets list            the stylesheets and scripts beside them
  *
+ *   crombolo export --site          write the whole site to one file, to move it to another machine or host
  *   crombolo content export         write a subtree as a private bundle package, to move to another environment
  *   crombolo content check          read-only: what installing a bundle's content here would do
  *   crombolo content import         apply a bundle's content, in one transaction, and record the run
@@ -29,6 +31,7 @@
  *   crombolo domains                the hostnames this site answers on
  *   crombolo domains set            write domains.toml and apply it
  *
+ *   crombolo import <file>          replace this site with a whole-site file; says what first
  *   crombolo import umbraco report  read-only: what importing an Umbraco backup would and would not bring
  *   crombolo import umbraco apply   write a crombolo site from an Umbraco backup
  *
@@ -213,7 +216,91 @@ function stopOnSignal(
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => stop(signal))
 }
 
+/**
+ * `start --from <file>` (story 105): an empty folder in, a working site out —
+ * scaffolded as `init` scaffolds one, its packages installed, and the file
+ * imported as a replace so nothing of the scaffold's own starting point stays.
+ * The new administrator's password is printed here, once.
+ */
+async function startFromFile(from: string): Promise<void> {
+  const file = resolve(cwd, from)
+  if (!existsSync(file)) {
+    console.error(`${from} does not exist.`)
+    process.exit(1)
+  }
+  if (existsSync(join(cwd, 'crombolo.config.ts'))) {
+    console.error(
+      'There is a site here already. `crombolo import <file> --replace` replaces it; start --from starts a new one in an empty folder.',
+    )
+    process.exit(1)
+  }
+  const dir = await ops.unpackBundle(file, cwd)
+  const manifest = ops.readBundle(dir, cwd).set.manifest
+  if (manifest.scope !== 'site') {
+    console.error(`${from} is not a whole-site file: write one with \`crombolo export --site\`.`)
+    process.exit(1)
+  }
+  const passphrase = manifest.people
+    ? (process.env[PASSPHRASE_ENV] ??
+      (process.stdin.isTTY ? await readSecret('  Passphrase for its people: ') : undefined))
+    : undefined
+  if (manifest.people && !passphrase) {
+    console.error(`${from} carries people, sealed: set ${PASSPHRASE_ENV} to its passphrase.`)
+    process.exit(1)
+  }
+
+  for (const scaffolded of scaffoldFiles({
+    siteName: flagValue('--name') ?? manifest.provenance.siteName,
+    postgres: flags.has('--postgres'),
+  })) {
+    const target = join(cwd, scaffolded.path)
+    if (existsSync(target)) continue
+    await mkdir(join(target, '..'), { recursive: true })
+    if (scaffolded.copyFrom === undefined) await writeFile(target, scaffolded.text ?? '')
+    else await Bun.write(target, Bun.file(scaffolded.copyFrom))
+  }
+  console.log(`  scaffolded a site for ${manifest.provenance.siteName || 'the file'}`)
+  if (!flags.has('--no-install')) {
+    const install = Bun.spawnSync(['bun', 'install'], { cwd, stdout: 'inherit', stderr: 'inherit' })
+    if (install.exitCode !== 0) {
+      console.error('`bun install` failed; run it, then `crombolo import <file> --replace`.')
+      process.exit(1)
+    }
+  }
+
+  const config = await siteConfig()
+  const { db, seededAdminPassword } = await bootstrapDatabase(config)
+  await db.close()
+  const result = await ops.contentImport(config, {
+    bundle: dir,
+    passphrase,
+    replace: 'replace',
+    allowMissingBlobs: flags.has('--allow-missing-media'),
+    backupTaken: true,
+    label: `start --from ${basename(file)}`,
+  })
+  for (const problem of result.problems) console.error(`  ${problem}`)
+  if (!result.runId) {
+    printTransferFindings(result.check)
+    console.error('\nThe file could not be imported; the scaffolded site is left as it is.')
+    process.exit(1)
+  }
+  console.log(`  imported ${result.check.counts.create} item(s), run ${result.runId}`)
+  const placed = describePlaced(result.blobs)
+  if (placed) console.log(`  media    ${placed}`)
+  if (seededAdminPassword)
+    banner([
+      'Sign in with (shown once)',
+      `  username  ${config.adminLogin}`,
+      `  password  ${seededAdminPassword}`,
+    ])
+  // The password above is the one to use: this first start leaves it alone.
+  flags.add('--keep-admin')
+}
+
 async function start(): Promise<void> {
+  const from = flagValue('--from')
+  if (from) await startFromFile(from)
   const config = await siteConfig()
   // Before the migration and the seed, so a clash with the container stack is
   // reported in a second rather than after the database work.
@@ -1145,10 +1232,12 @@ async function contentRevert(config: CromboloConfig): Promise<void> {
     // The files an install replaced come back from the run's own copies, not
     // from git: these files are editable in the backoffice, so a site need not
     // be a checkout at all.
-    const files = ops.restoreSectionFiles(config, runId)
+    const files = await ops.revertSections(db, config, runId)
     for (const file of files.restored) console.log(`  restored ${relative(cwd, file)}`)
     for (const file of files.removed)
       console.log(`  removed  ${relative(cwd, file)}  (created by that run)`)
+    if (files.schema) console.log(`  schema   ${files.schema}`)
+    if (files.dictionary) console.log('  restored the dictionary')
 
     for (const key of result.restored) console.log(`  restored ${key}`)
     for (const key of result.recycled) console.log(`  recycled ${key}  (created by that run)`)
@@ -1269,27 +1358,10 @@ async function contentImport(config: CromboloConfig): Promise<void> {
 
   if (!result.runId) {
     printTransferFindings(result.check)
-    // Sections are applied before the content is checked, because content
-    // naming a type the bundle brings cannot pass a check until that type
-    // exists. So a refusal here may still have written files, and saying
-    // otherwise would send somebody looking in the wrong place.
-    if (result.sections) {
-      console.error(
-        `\nimport refused, but this bundle's structure was already applied: ` +
-          `${result.sections.written.length} file(s) written${
-            result.sections.schema ? `, schema ${result.sections.schema.action}` : ''
-          }.`,
-      )
-      for (const file of result.sections.written) console.error(`    ${relative(cwd, file)}`)
-      if (result.sections.replaced.length > 0)
-        console.error(
-          `  the originals are under ${relative(cwd, join(config.siteDir, ops.RUN_BACKUP_DIR))}`,
-        )
-    } else {
-      console.error(
-        `\nimport refused: ${result.check.outstanding.length} finding(s) outstanding. Nothing was written.`,
-      )
-    }
+    // Staged, then applied in one transaction: a refusal leaves nothing behind.
+    console.error(
+      `\nimport refused: ${result.check.outstanding.length || result.problems.length} finding(s) outstanding. Nothing was written.`,
+    )
     process.exit(1)
   }
 
@@ -1612,6 +1684,62 @@ async function contentExport(config: CromboloConfig): Promise<void> {
   if (counts.length === 0) process.exit(1)
 }
 
+/** `crombolo export --site`: the whole site as one file (story 104). */
+async function exportCommand(): Promise<void> {
+  if (!flags.has('--site')) {
+    console.error(
+      'export needs --site: the whole site, as one file. For a part of it, use content export.',
+    )
+    process.exit(1)
+  }
+  const config = await siteConfig()
+  const withPeople = flags.has('--with-members') || flags.has('--with-users')
+  const anonymise = flags.has('--anonymise')
+  const out = resolve(
+    flagValue('--out') ??
+      `${packageNameFor(`${config.siteName}-site`)}-${new Date().toISOString().slice(0, 10)}.tgz`,
+  )
+  const result = await ops.siteExport(config, {
+    out,
+    media: !flags.has('--no-media'),
+    drafts: flags.has('--drafts'),
+    withMembers: flags.has('--with-members'),
+    withUsers: flags.has('--with-users'),
+    anonymise,
+    passphrase:
+      withPeople && !(anonymise && !flags.has('--with-members'))
+        ? await passphraseToSeal()
+        : undefined,
+    package: { name: flagValue('--name'), version: flagValue('--package-version') },
+  })
+  const counts = Object.entries(result.counts)
+  console.log(`  wrote    ${relative(cwd, result.out) || result.out}`)
+  console.log(`  package  ${result.package.name}@${result.package.version} (private)`)
+  console.log(
+    `  content  ${counts.length > 0 ? counts.map(([kind, n]) => `${n} ${kind}`).join(', ') : 'none'}, unencrypted`,
+  )
+  const sections = Object.entries(result.sections)
+  if (sections.length > 0)
+    console.log(`  files    ${sections.map(([section, n]) => `${n} ${section}`).join(', ')}`)
+  if (result.media.omitted)
+    console.log(
+      '  media    left out (--no-media): importing it brings the media items without their files',
+    )
+  else
+    console.log(`  media    ${result.media.carried} file(s), ${describeBytes(result.media.bytes)}`)
+  for (const key of result.media.missing)
+    console.error(`  missing  ${key} is not in this environment's media store`)
+  if (result.people.members + result.people.users > 0)
+    console.log(
+      `  people   ${result.people.members} member(s), ${result.people.users} user(s), encrypted`,
+    )
+  else console.log('  people   left out: pass --with-members or --with-users to bring them')
+  if (result.anonymised !== undefined)
+    console.log(
+      `  anonymised  ${result.anonymised} email address(es) replaced; no back-office users`,
+    )
+}
+
 /**
  * `schema-as-code.md` leaves the dictionary in the database, because
  * translators work in production where `schema/` is read-only — so this is how
@@ -1805,6 +1933,117 @@ async function applyDomains(config: CromboloConfig): Promise<void> {
 }
 
 /**
+ * `crombolo import <file>`: replace this site with a whole-site file (story
+ * 105). It always says first what would be replaced, and changes nothing
+ * without `--replace` or `--replace-all`.
+ */
+async function importFile(file: string): Promise<void> {
+  const config = await siteConfig()
+  const replace: ops.ReplaceMode | undefined = flags.has('--replace-all')
+    ? 'replace-all'
+    : flags.has('--replace')
+      ? 'replace'
+      : undefined
+  const dir = await ops.unpackBundle(file, config.siteDir)
+  let carriesPeople = false
+  try {
+    carriesPeople = ops.readBundle(dir, config.siteDir).set.manifest.people !== undefined
+  } catch (error) {
+    console.error(`  ${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
+  }
+  const passphrase = carriesPeople
+    ? (process.env[PASSPHRASE_ENV] ??
+      (process.stdin.isTTY ? await readSecret('  Passphrase for its people: ') : undefined))
+    : await passphraseToOpen(dir, config)
+  const allowMissingBlobs = flags.has('--allow-missing-media')
+
+  const { check, summary } = await ops.siteReplaceCheck(config, {
+    bundle: dir,
+    passphrase,
+    replace: replace ?? 'replace',
+    allowMissingBlobs,
+  })
+  describeBundle(check.bundle)
+  const c = check.check.counts
+  console.log(`  brings   ${c.create} new, ${c.update} changed, ${c.unchanged} unchanged`)
+  const leaving = Object.entries(summary.leaving)
+  const fate = replace === 'replace-all' ? 'deleted' : 'recycled'
+  if (leaving.length > 0)
+    console.log(
+      `  ${fate.padEnd(8)} ${leaving.map(([kind, n]) => `${n} ${kind}`).join(', ')} not in the file`,
+    )
+  if (summary.filesRemoved.length > 0) {
+    console.log(
+      `  removes  ${summary.filesRemoved.length} file(s) not in the file, kept for a revert:`,
+    )
+    for (const path of summary.filesRemoved.slice(0, 20)) console.log(`    ${relative(cwd, path)}`)
+    if (summary.filesRemoved.length > 20)
+      console.log(`    … and ${summary.filesRemoved.length - 20} more`)
+  }
+  if (replace === 'replace-all' && summary.people.members + summary.people.users > 0)
+    console.log(
+      `  deletes  ${summary.people.members} member(s) and ${summary.people.users} user(s) not in the file`,
+    )
+  console.log("  keeps    domains, the secret key and this environment's settings")
+  for (const problem of check.problems) console.error(`  ${problem}`)
+
+  if (!replace) {
+    console.error(
+      '\nNothing was changed. Pass --replace to replace this site (what it loses is recycled, people kept), or --replace-all to make it exactly the file (deleted, people too).',
+    )
+    process.exit(1)
+  }
+  if (replace === 'replace-all' && !flags.has('--yes')) {
+    if (!process.stdin.isTTY) {
+      console.error(
+        '\n--replace-all deletes what the file does not have: pass --yes to confirm it.',
+      )
+      process.exit(1)
+    }
+    const answer = prompt(
+      `  This deletes for good. Type the site's name (${config.siteName}) to go on:`,
+    )
+    if (answer?.trim() !== config.siteName) {
+      console.error('  Nothing was changed.')
+      process.exit(1)
+    }
+  }
+
+  const result = await ops.contentImport(config, {
+    bundle: dir,
+    passphrase,
+    replace,
+    allowMissingBlobs,
+    label: `${replace} from ${basename(file)}`,
+    backupTaken: flags.has('--backup-taken'),
+  })
+  for (const problem of result.problems) console.error(`  ${problem}`)
+  if (result.backup.path) console.log(`  backup   ${result.backup.path}`)
+  if (!result.runId) {
+    printTransferFindings(result.check)
+    console.error('\nreplace refused. Nothing was changed.')
+    process.exit(1)
+  }
+  const counts = result.check.counts
+  console.log(`  run      ${result.runId}`)
+  console.log(
+    `  applied  ${counts.create} created, ${counts.update} updated, ${counts.unchanged} unchanged`,
+  )
+  const placed = describePlaced(result.blobs)
+  if (placed) console.log(`  media    ${placed}`)
+  if (result.sections?.schema) console.log(`  schema   ${result.sections.schema.action}`)
+  if (result.published > 0) console.log(`  published ${result.published} page(s)`)
+  for (const failure of result.publishFailures)
+    console.error(`  not published  ${failure.key}: ${failure.reason}`)
+  console.log(
+    replace === 'replace-all'
+      ? `\nDone. \`crombolo content revert ${result.runId}\` puts the files and the pages it changed back; what was deleted is in the backup.`
+      : `\nDone. \`crombolo content revert ${result.runId}\` puts it back.`,
+  )
+}
+
+/**
  * `crombolo import umbraco`: a compatibility report for an Umbraco backup, and
  * then a crombolo site written from it.
  *
@@ -1825,7 +2064,13 @@ async function importSite(): Promise<void> {
     else if (!arg.startsWith('--')) args.push(arg)
   }
   const [kind, sub, backup] = args
+  if (kind && kind !== 'umbraco') return importFile(kind)
   if (kind !== 'umbraco' || (sub !== 'report' && sub !== 'apply')) return help()
+  // Not into --json output, which a machine reads.
+  if (!flags.has('--json'))
+    console.error(
+      '  deprecated  `crombolo import umbraco` is going away: an Umbraco extension will write a crombolo file that `crombolo import <file>` reads (story 074)',
+    )
   if (!backup) {
     console.error(`import umbraco ${sub} needs the backup: a .bacpac, or Umbraco's SQLite file.`)
     process.exit(1)
@@ -2272,6 +2517,10 @@ function help(): void {
   start [--keep-admin]        boot the site in the current directory
         [--bundle <pkg>]      apply a bundle's content first, once per bundle, then serve;
                               takes the \`content import\` flags (--publish, --under, …)
+        [--from <file>]       in an empty folder: scaffold a site, install it, import a
+                              whole-site file (crombolo export --site) and serve it; the
+                              new administrator's password is printed once
+                              [--postgres] [--name <site name>] [--no-install]
   init [--force] [--name <site name>] [--postgres] [--template <id>]
                               scaffold a site here; --template list prints the
                               starter templates, which bring schema, views and content
@@ -2298,6 +2547,12 @@ function help(): void {
   assets list                 the stylesheets and scripts this site has
   assets new <stylesheet|script> <name>
                               write an empty one in the place the backoffice edits
+  export --site [--out <file.tgz>]
+                              the whole site in one file: schema, components, styles,
+                              scripts, dictionary, every page and media item and their
+                              files. Domains and people stay behind
+                              [--no-media] [--drafts] [--with-members] [--with-users]
+                              [--anonymise] replaces every personal value as it writes
   content export --root <path|uuid> --out <dir>
                               write a private bundle package: the subtree, its
                               dependencies and what the destination must already have
@@ -2351,6 +2606,15 @@ function help(): void {
   domains clear <path|uuid|/> unbind that page, in the file and in the database
   domains apply               apply domains.toml here, as a boot does
   domains undo                put back the file the last write replaced, and apply it
+  import <file> [--replace | --replace-all]
+                              replace this site with a whole-site file. Says first what
+                              would be replaced, and changes nothing without a mode:
+                              --replace recycles content and media the file lacks and
+                              keeps this site's people; --replace-all deletes them, and
+                              people the file lacks (typed confirmation, or --yes).
+                              Domains, the secret key and settings always stay.
+                              Undone with \`content revert <run>\`
+                              [--allow-missing-media] [--backup-taken]
   import umbraco report <backup> [--site <dir>] [--media <dir>] [--out <dir>] [--json]
                               read-only: what importing an Umbraco backup would bring,
                               and what it would not — packages, Razor, custom code.
@@ -2489,6 +2753,9 @@ async function dispatch(): Promise<void> {
       break
     case 'assets':
       await assets()
+      break
+    case 'export':
+      await exportCommand()
       break
     case 'import':
       await importSite()

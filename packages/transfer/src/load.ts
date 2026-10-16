@@ -257,6 +257,7 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
       schemaVersion: str(provenance.schemaVersion) ?? '',
       schemaRevision: str(provenance.schemaRevision) ?? '',
       schemaHash: nullableStr(provenance.schemaHash) ?? null,
+      ...(str(provenance.cmsVersion) ? { cmsVersion: str(provenance.cmsVersion) as string } : {}),
     },
     selector: {
       roots: keys(selector.roots),
@@ -313,7 +314,18 @@ function parseManifest(text: string, problems: BundleProblem[]): BundleManifest 
       : {}),
     ...(parseSealParameters(raw.seal) ? { seal: parseSealParameters(raw.seal) } : {}),
     ...(raw.content === 'sealed' || raw.content === 'omitted' ? { content: raw.content } : {}),
+    ...(raw.scope === 'site' ? { scope: 'site' as const } : {}),
+    ...(raw.media === 'omitted' ? { media: 'omitted' as const } : {}),
+    ...(isRecord(raw.requires) ? { requires: parseRequires(raw.requires) } : {}),
   }
+}
+
+/** Package names to versions, keeping only string pairs. */
+function parseRequires(raw: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [name, version] of Object.entries(raw))
+    if (typeof version === 'string') out[name] = version
+  return out
 }
 
 /**

@@ -20,6 +20,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -33,6 +34,7 @@ import { BUNDLE_SECTIONS } from '@crombolo/transfer'
 import type { CromboloConfig } from './config.ts'
 import { importDictionaryUdt } from './dictionary-transfer.ts'
 import { checkSchemaDirectory, syncSchemaDirectory } from './schema.ts'
+import { publishSchema } from './schema-store.ts'
 
 /** What applying one carried file would do to the destination. */
 export type FileAction = 'create' | 'overwrite' | 'unchanged'
@@ -277,6 +279,10 @@ export async function applySections(
       revision: config.schemaRevision,
     })
     schema = { action: report.action }
+    // The store is the truth where there is one, as for a backoffice edit: the
+    // next boot materialises it over this directory (story 106).
+    if (config.schemaStore && (report.action === 'applied' || report.action === 'skipped-same'))
+      await publishSchema(config.schemaStore, config.schemaDir)
   }
 
   if (!options.withoutFiles) {
@@ -377,6 +383,23 @@ export interface RestoredFiles {
  */
 export function restoreSectionFiles(config: CromboloConfig, runId: string): RestoredFiles {
   const dir = join(config.siteDir, RUN_BACKUP_DIR, runId)
+  // A staged install swapped whole sections in; reverting swaps them back, and
+  // keeps what it takes out beside them so the revert can itself be reverted.
+  const swapped = swappedSections(config, runId)
+  if (swapped.length > 0) {
+    const restored: string[] = []
+    for (const section of swapped) {
+      const destination = destinationOf(config, section)
+      if (!destination) continue
+      const previous = join(dir, PREVIOUS_DIR, section)
+      const reverted = join(dir, 'reverted', section)
+      rmSync(reverted, { recursive: true, force: true })
+      moveContents(destination, reverted)
+      moveContents(previous, destination)
+      restored.push(destination)
+    }
+    return { restored, removed: [] }
+  }
   const record = join(dir, RECORD_FILE)
   if (!existsSync(record)) return { restored: [], removed: [] }
 
@@ -421,4 +444,141 @@ function sectionFor(path: string): BundleSection | undefined {
   for (const [section, dir] of Object.entries(BUNDLE_SECTIONS))
     if (top === dir) return section as BundleSection
   return undefined
+}
+
+/** Which sections an install staged, and where each one's current files went. */
+interface SwapRecord {
+  sections: BundleSection[]
+}
+
+const SWAP_FILE = 'swap.json'
+const NEXT_DIR = 'next'
+const PREVIOUS_DIR = 'previous'
+const DICTIONARY_BEFORE = 'dictionary-before.udt'
+
+export interface StagedSections {
+  /** The run's directory: staged files, then the swapped-out originals. */
+  dir: string
+  /** Each staged section's directory under `dir`. */
+  next: Partial<Record<BundleSection, string>>
+  /** The files the bundle brought, by where they will land. */
+  written: string[]
+}
+
+/**
+ * Moves what a directory holds, not the directory: a site's folders can be
+ * mount points, which cannot be renamed. A move across file systems copies.
+ */
+function moveContents(from: string, to: string): void {
+  if (!existsSync(from)) return
+  mkdirSync(to, { recursive: true })
+  for (const entry of readdirSync(from)) {
+    const source = join(from, entry)
+    const target = join(to, entry)
+    rmSync(target, { recursive: true, force: true })
+    try {
+      renameSync(source, target)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw error
+      cpSync(source, target, { recursive: true })
+      rmSync(source, { recursive: true, force: true })
+    }
+  }
+}
+
+/**
+ * Stage, the first of an install's three phases (story 105): every carried
+ * section written into a copy under the run's directory, the site untouched.
+ *
+ * Overlaid, a staged section is the site's directory with the bundle's files
+ * laid over it, and only a section the bundle carries is staged. Replacing, a
+ * staged section is the bundle's files alone, and every section is staged — so
+ * what the file does not have is gone once the copies swap in.
+ */
+export function stageSections(
+  config: CromboloConfig,
+  carried: CarriedSections,
+  options: SectionOptions & { replace?: boolean },
+  dir: string,
+): StagedSections {
+  const staged: StagedSections = { dir, next: {}, written: [] }
+  for (const section of ['schema', ...FILE_SECTIONS] as BundleSection[]) {
+    if (section === 'schema' ? options.withoutSchema : options.withoutFiles) continue
+    const destination = destinationOf(config, section)
+    if (!destination) continue
+    const paths = carried.carries[section] ?? []
+    if (!options.replace && paths.length === 0) continue
+    const next = join(dir, NEXT_DIR, section)
+    mkdirSync(next, { recursive: true })
+    if (!options.replace && existsSync(destination)) cpSync(destination, next, { recursive: true })
+    for (const path of paths) {
+      const inside = withinSection(path, section)
+      const target = join(next, inside)
+      mkdirSync(dirname(target), { recursive: true })
+      writeFileSync(target, read(carried, path))
+      staged.written.push(join(destination, inside))
+    }
+    staged.next[section] = next
+  }
+  return staged
+}
+
+/** A config whose section directories are the staged copies, for the sync inside the transaction. */
+export function stagedConfig(config: CromboloConfig, staged: StagedSections): CromboloConfig {
+  return {
+    ...config,
+    schemaDir: staged.next.schema ?? config.schemaDir,
+    componentsDir: staged.next.components ?? config.componentsDir,
+    stylesheetsDir: staged.next.styles ?? config.stylesheetsDir,
+    scriptsDir: staged.next.scripts ?? config.scriptsDir,
+  }
+}
+
+/**
+ * Swap, the third phase, once the transaction has committed: each staged
+ * section moves into place and what it replaces is kept under the run, for its
+ * revert.
+ */
+export function swapSections(config: CromboloConfig, staged: StagedSections): void {
+  const sections = Object.keys(staged.next) as BundleSection[]
+  for (const section of sections) {
+    const destination = destinationOf(config, section) as string
+    moveContents(destination, join(staged.dir, PREVIOUS_DIR, section))
+    moveContents(staged.next[section] as string, destination)
+  }
+  rmSync(join(staged.dir, NEXT_DIR), { recursive: true, force: true })
+  const record: SwapRecord = { sections }
+  writeFileSync(join(staged.dir, SWAP_FILE), `${JSON.stringify(record, null, 2)}\n`)
+}
+
+/** Keeps the dictionary as it was, for a revert to put back. */
+export function keepDictionary(dir: string, udt: string): void {
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, DICTIONARY_BEFORE), udt)
+}
+
+/** The dictionary a run kept, when it kept one. */
+export function keptDictionary(config: CromboloConfig, runId: string): string | undefined {
+  const file = join(config.siteDir, RUN_BACKUP_DIR, runId, DICTIONARY_BEFORE)
+  return existsSync(file) ? readFileSync(file, 'utf8') : undefined
+}
+
+/** Whether a run swapped whole sections, so that reverting it swaps them back. */
+export function swappedSections(config: CromboloConfig, runId: string): BundleSection[] {
+  const file = join(config.siteDir, RUN_BACKUP_DIR, runId, SWAP_FILE)
+  if (!existsSync(file)) return []
+  try {
+    return (JSON.parse(readFileSync(file, 'utf8')) as SwapRecord).sections
+  } catch {
+    return []
+  }
+}
+
+/** Moves a staging directory to be the run's, once the run exists. */
+export function promoteStaged(config: CromboloConfig, dir: string, runId: string): string {
+  const target = join(config.siteDir, RUN_BACKUP_DIR, runId)
+  rmSync(target, { recursive: true, force: true })
+  mkdirSync(dirname(target), { recursive: true })
+  renameSync(dir, target)
+  return target
 }

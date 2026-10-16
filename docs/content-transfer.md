@@ -664,10 +664,105 @@ rather than leaving it to be discovered at the other end. `--with-blobs` needs
 
 ### Still open
 
-- **The down direction.** `crombolo clone --anonymise`: a whole-environment copy
-  for developing against, which is mostly orchestration over `pg_dump` or a file
-  copy plus a media sync — but needs a sanitise step, because production users,
-  members, tokens and e-mail addresses must not land on a laptop. Story `100`.
+- **The down direction.** `crombolo clone --anonymise` (story `100`) is `export
+  --site --anonymise` fetched from a remote (`107`, `108`); the sanitising it
+  needs is the one below.
+
+## A whole site in one file
+
+Stories `104`–`106`. A bundle with **every** section and every node is a whole
+site, and moving one is two commands:
+
+```bash
+bunx crombolo export --site --out site.tgz     # [--no-media] [--drafts] [--with-members] [--with-users] [--anonymise]
+bunx crombolo start --from site.tgz            # in an empty folder: scaffold, bun install, import, serve
+bunx crombolo import site.tgz --replace        # or replace a site that already exists
+```
+
+**The file** is the bundle format — a private npm package, `.tgz` — with three
+manifest fields beyond the usual:
+
+| Field | Means |
+| --- | --- |
+| `scope: "site"` | a whole site: `import` replaces with it, and refuses to replace with anything else |
+| `media: "omitted"` | written with `--no-media`: importing it needs `--allow-missing-media`, so arriving without the files is a decision |
+| `requires` | the server bundles the site wires, by package name and version; an import refuses while one is missing or older here |
+
+`provenance.cmsVersion` records the CMS that wrote it, and the package's peer range
+(`>=` that version) is what makes an older CMS refuse it with the version named.
+
+**What it carries:** the schema directory as it stands (every `.toml`, member
+types and forms included), every component, stylesheet and script, the whole
+dictionary, every document, media item, element and blueprint with their values
+(published by default, `--drafts` for the latest), and the media files. It never
+carries domains, the secret key, sessions, tokens, external logins, form entries
+or anything in the recycle bin. Content travels in the open; members and users
+only with `--with-members` / `--with-users`, sealed under a passphrase.
+
+**It streams.** `exportSite` (`packages/server/src/site-file.ts`) writes the
+tarball as it goes (`TarballWriter`, `tar.ts`): each media file streams from the
+store (`StoredFile.stream()`, implemented by the file system, S3 and Azure stores)
+into the gzip, and the integrity hash is computed as files pass in the path order
+`bundleIntegrity` defines, so it matches what the reader recomputes. Only the small
+files are held. The file is written to `<out>.partial` and renamed once complete.
+`extractTarball` reads one back the same way, and `content check` / `content
+import` accept a `.tgz` too, unpacked under `.crombolo/transfer/incoming/`.
+
+**`--anonymise`** runs `sanitise` (`packages/transfer/src/sanitise.ts`) over what
+was gathered, before anything is written: back-office users are removed (the
+destination makes one fresh administrator), members become placeholders — type,
+groups and approval kept, name, username and email replaced, password and values
+gone — and every email address in content, people and the dictionary is replaced,
+the same address by the same `person-N@example.invalid` each time. Code and schema
+are left alone.
+
+### Replacing a site
+
+`crombolo import <file>` first prints what would change — what the file brings,
+what this site has that the file does not, and the files that would go — and
+changes nothing without a mode:
+
+| | Content and media the file lacks | Files the file lacks | People |
+| --- | --- | --- | --- |
+| `--replace` | recycled, so a revert brings them back | removed, kept for the revert | kept, unless the file carries them |
+| `--replace-all` | deleted | removed, kept for the revert | those the file lacks are deleted |
+
+`--replace-all` asks for the site's name typed back (or `--yes`), and refuses
+outright when the file carries no enabled back-office administrator. Both take the
+file's side of every difference, make each node's values exactly the file's, and
+publish what the file says was live. Neither touches domains: `domains.toml`, when
+the site has one, is re-applied afterwards; a domain bound only in the backoffice
+to a page the file does not carry goes with that page.
+
+**All or nothing.** Every import — a replace or an ordinary `content import` — now
+runs in three phases (`installBundleContent`):
+
+1. **Stage.** Each carried section is written into a copy under
+   `.crombolo/transfer/pending-…/next/` — overlaid onto the site's directory for an
+   ordinary import, the file's alone for a replace — and the media files are placed
+   under their own keys.
+2. **One transaction:** the prune, the schema sync against the staged copy, the
+   dictionary and the content. A refusal anywhere rolls all of it back.
+3. **Swap.** Once committed, each staged folder's contents move into place, and
+   what they replace is kept under the run (`previous/`). Contents move rather than
+   folders, since a site folder can be a mount point.
+
+A failure before the swap leaves the site's files untouched and deletes the media
+files it placed. A schema type the file names by a key this site has never had,
+for an alias it has, is that same type: the sync keeps the row's key and writes it
+into the file, as it already did for properties, so two sites whose types were
+created separately can replace one another.
+
+**Reverting** (`content revert <run>`) puts the content back as for any import —
+recycled nodes come out of the bin — then swaps the folders back, re-syncs the
+schema and restores the dictionary as the run found it (`revertSections`). What
+`--replace-all` deleted is not in a run; it is in the backup taken first.
+
+**Starting from a file.** `start --from <file>` refuses in a folder that already
+holds a site. Otherwise it scaffolds one as `init` does (named from the file),
+runs `bun install` (`--no-install` skips it), creates the database — printing the
+new administrator's password once — imports the file as a replace, and serves
+without resetting that password. A file carrying people asks for their passphrase.
 
 ## Moving content between environments
 

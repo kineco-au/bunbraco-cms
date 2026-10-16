@@ -61,6 +61,7 @@ export function s3MediaStore(options: S3MediaStoreOptions): MediaStore {
           etag: stat.etag.replaceAll('"', ''),
           contentType: stat.type || contentTypeFor(key),
           bytes: async () => new Uint8Array(await file.arrayBuffer()),
+          stream: async () => file.stream(),
         }
       } catch {
         // A missing object is a thrown NoSuchKey, not a null stat.

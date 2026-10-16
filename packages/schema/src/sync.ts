@@ -240,8 +240,15 @@ export async function syncSchema(
         for (const d of set.dataTypes) {
           const existing = await dataTypes.byAlias(d.alias)
           const builtin = BUILTIN_DATA_TYPES.find((b) => b.alias === d.alias)
-          const key = d.key ?? existing?.key ?? crypto.randomUUID()
-          if (!d.key && !existing)
+          // A key this site has never had, for an alias it has, is that data
+          // type: the row keeps its key and the file is given it (story 105).
+          const rekeyed =
+            d.key !== undefined &&
+            existing !== undefined &&
+            existing.key.toLowerCase() !== d.key.toLowerCase() &&
+            !(await dataTypes.byKey(d.key))
+          const key = (rekeyed ? existing?.key : d.key) ?? existing?.key ?? crypto.randomUUID()
+          if ((!d.key && !existing) || rekeyed)
             report.assignedKeys.push({
               file: loaded.files.get(`data-type:${d.alias}`) ?? '',
               typeAlias: d.alias,
@@ -370,17 +377,35 @@ export async function syncSchema(
             type: SchemaContentType
             aggregate: ContentTypeAggregate
           }> = []
+          const fileTypeKeys = new Set(
+            kind.types.flatMap((t) => (t.key ? [t.key.toLowerCase()] : [])),
+          )
           for (const t of inCompositionOrder(kind.types)) {
             const file = loaded.files.get(typeFileKey(kind.name, t.alias)) ?? ''
-            const existing = t.key
+            let existing = t.key
               ? await kind.repo.byKey(t.key)
               : await kind.repo.byAlias(t.alias, { includeRetired: true })
+            // A key this site has never had, for an alias it has and no other
+            // file claims, is that type — as a property's is: the row keeps its
+            // key, and the file is given it (story 105).
+            let rekeyed = false
+            if (!existing && t.key) {
+              const sameAlias = await kind.repo.byAlias(t.alias, { includeRetired: true })
+              if (sameAlias && !fileTypeKeys.has(sameAlias.key.toLowerCase())) {
+                existing = sameAlias
+                rekeyed = true
+              }
+            }
             const shippedKey =
               kind.name === 'document'
                 ? SYSTEM_CONTENT_TYPES.find((d) => d.alias === t.alias)?.key
                 : undefined
-            const key = t.key ?? existing?.key ?? shippedKey ?? crypto.randomUUID()
-            if (!t.key && !existing)
+            const key =
+              (rekeyed ? existing?.key : t.key) ??
+              existing?.key ??
+              shippedKey ??
+              crypto.randomUUID()
+            if ((!t.key && !existing) || rekeyed)
               report.assignedKeys.push({ file, typeAlias: t.alias, key, revived: false })
             typeKeyByAlias.set(t.alias, key)
             const retired = existing ? await kind.repo.retiredProperties(existing.key) : []

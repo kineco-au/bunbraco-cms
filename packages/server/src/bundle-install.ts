@@ -12,7 +12,7 @@
  * with the connection it already has: the CLI's `content check` and
  * `content import` open a database and call these.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
   type BundlePackage,
@@ -27,7 +27,9 @@ import { ObjectTypes } from '@crombolo/core'
 import {
   answersByNode,
   type Db,
+  DictionaryRepository,
   describeRefFailure,
+  Locks,
   type NodeRow,
   recordInLedger,
   resolveNodeRef,
@@ -35,9 +37,11 @@ import {
   writeReport,
 } from '@crombolo/data'
 import {
+  BUNDLE_SECTIONS,
   type CheckOptions,
   type ContentSet,
   checkBundle,
+  type ImportResult,
   importBundle,
   isPackageName,
   loadBundle,
@@ -54,22 +58,40 @@ import {
 } from '@crombolo/transfer'
 import { type BackupResult, backupBefore } from './backup.ts'
 import {
-  applySections,
   type CarriedSections,
   carriedSections,
   carriesSections,
+  keepDictionary,
+  keptDictionary,
   planSections,
-  promoteBackups,
+  promoteStaged,
+  type RestoredFiles,
   replacementsNeedingPermission,
+  restoreSectionFiles,
   type SectionFile,
   type SectionOptions,
   type SectionPlan,
   type SectionResult,
   stageBackups,
+  stagedConfig,
+  stageSections,
+  swappedSections,
+  swapSections,
 } from './bundle-sections.ts'
 import { type CromboloConfig, VERSION } from './config.ts'
+import { dictionaryToUdt, importDictionaryUdt, writeDictionaryUdt } from './dictionary-transfer.ts'
+import { syncDomainsFile } from './domains.ts'
 import { mediaStoreFor, placeBlobs } from './media-files.ts'
-import { componentAliasesIn } from './schema.ts'
+import { componentAliasesIn, syncSchemaDirectory } from './schema.ts'
+import { publishSchema } from './schema-store.ts'
+import {
+  carriesAdministrator,
+  prunePeople,
+  pruneSite,
+  type ReplaceMode,
+  recordPruned,
+  requiresProblems,
+} from './site-replace.ts'
 
 /** The trees a content selector or placement may name. */
 export const CONTENT_OBJECT_TYPES = [ObjectTypes.Document, ObjectTypes.Media, ObjectTypes.Element]
@@ -364,6 +386,12 @@ export async function checkBundleContent(
 }
 
 export interface ContentImportInput extends TransferInput {
+  /**
+   * Make the site the file's (story 105). `replace` recycles content and media
+   * the file lacks and keeps the site's people; `replace-all` deletes them, and
+   * the people the file lacks.
+   */
+  replace?: ReplaceMode
   publish?: boolean
   label?: string
   /** Postgres: the caller has taken a backup itself. */
@@ -438,7 +466,28 @@ export async function pendingResolutionsFile(
   })
 }
 
-/** Back up, re-check, then apply in one transaction and record the run. */
+/** Thrown inside the import's transaction to roll everything back, carrying why. */
+class InstallRefused extends Error {
+  constructor(
+    readonly problems: string[],
+    readonly result?: ImportResult,
+  ) {
+    super(problems[0] ?? 'the import was refused')
+  }
+}
+
+/**
+ * Back up, re-check, then apply all or nothing and record the run (story 105).
+ *
+ * Three phases. **Stage**: every carried section is written into a copy under
+ * the run's directory, and the media files are placed under their own keys.
+ * **One transaction**: the prune a replace asks for, the schema sync against
+ * the staged copy, the dictionary and the content — so a refusal anywhere
+ * leaves the database as it was. **Swap**: once it commits, the staged folders
+ * move into place and what they replace is kept for the run's revert. A
+ * failure before the swap leaves the site's files untouched and removes the
+ * media files it placed.
+ */
 export async function installBundleContent(
   db: Db,
   config: CromboloConfig,
@@ -452,31 +501,13 @@ export async function installBundleContent(
     throw new PassphraseError(
       'This bundle is encrypted: give the passphrase it was exported with. Nothing was written.',
     )
-  // The coarse layer, under the fine-grained revert: in-place conversion is not
-  // reversible by itself, so the same rule as `upgrade` applies here.
-  const backup = await backupBefore(config, {
-    reason: 'content-import',
-    backupTaken: input.backupTaken,
-  })
-  const prepared = await transferOptions(db, config, bundle, input)
-  const started = performance.now()
-
-  /**
-   * Structure first, but planned before anything is written.
-   *
-   * The order is forced: content naming a type this bundle brings cannot pass
-   * a check until that type exists, so the schema has to land before the
-   * content is checked. Which means a blocking schema change has to be caught
-   * *before* the first file is written — otherwise a refused install leaves a
-   * half-applied site behind. `planSections` answers that from an overlay
-   * copy, so the site is untouched until it is known the schema can apply.
-   */
-  const plan = carriesSections(carried) ? await planSections(db, config, carried, input) : undefined
-  const refuse = (problems: string[]): ContentImportResult => ({
+  const manifest = set.manifest
+  const replace = input.replace
+  const refuse = (problems: string[], backup?: BackupResult): ContentImportResult => ({
     bundle: summarise(bundle),
-    backup,
+    backup: backup ?? { kind: 'none' },
     runId: undefined,
-    check: emptyCheck(set.manifest.id),
+    check: emptyCheck(manifest.id),
     blobs: null,
     published: 0,
     publishFailures: [],
@@ -484,69 +515,222 @@ export async function installBundleContent(
     sections: undefined,
   })
 
-  if (plan?.schema?.classification === 'breaking')
+  // What has to be true before anything is backed up or written.
+  if (replace && manifest.scope !== 'site')
+    return refuse(['only a whole-site file (crombolo export --site) can replace a site'])
+  const missing = requiresProblems(manifest, config.siteDir)
+  if (missing.length > 0) return refuse(missing)
+  if (manifest.media === 'omitted' && !input.allowMissingBlobs)
     return refuse([
-      'the schema this bundle carries cannot be applied here without data work',
-      ...plan.schema.findings,
+      'this file was written without its media files (--no-media); pass --allow-missing-media to import the media items without them',
     ])
+  if (replace === 'replace-all' && !carriesAdministrator(set.people))
+    return refuse([
+      'this file carries no back-office administrator, so replacing everything would leave nobody able to sign in; export it with --with-users, or use --replace',
+    ])
+
+  // A replace takes the file's side of every difference, and replaces files.
+  const effective: ContentImportInput = replace
+    ? { ...input, resolveAll: 'take-bundle', replaceFiles: true, publish: input.publish ?? true }
+    : input
+
+  // The coarse layer, under the fine-grained revert: in-place conversion is not
+  // reversible by itself, so the same rule as `upgrade` applies here.
+  const backup = await backupBefore(config, {
+    reason: 'content-import',
+    backupTaken: input.backupTaken,
+  })
+  const prepared = await transferOptions(db, config, bundle, effective)
+  const started = performance.now()
 
   /**
-   * A file this site already has is not replaced without being asked.
-   *
-   * Every section is editable in the backoffice — a stylesheet, a template, a
-   * content type — so an overwrite destroys somebody's work, and the site
-   * may have no git to recover it from. Refused by name, like any other
-   * finding a person has to answer.
+   * Structure first, but planned before anything is written: a blocking
+   * schema change is caught from an overlay copy, and a file an editor may
+   * have changed is not replaced without being asked.
    */
-  const needingPermission = plan ? replacementsNeedingPermission(plan, input) : []
-  if (needingPermission.length > 0)
-    return refuse([
-      `${needingPermission.length} file(s) here would be replaced; pass --replace-files to allow it`,
-      ...needingPermission.map((file: SectionFile) => file.path),
-    ])
-
-  // Staged whenever something *will* be replaced — which is decided by the
-  // plan, not by the permission check: by this point permission has been
-  // given, so the files needing it are exactly the ones to back up.
-  const willReplace = (plan?.files ?? []).some((file) => file.action === 'overwrite')
-  const staging = plan && willReplace ? stageBackups(config) : undefined
-  const sections = plan
-    ? await applySections(db, config, carried, { ...input, backupDir: staging })
+  const plan = carriesSections(carried)
+    ? await planSections(db, config, carried, effective)
     : undefined
-  const result = await importBundle(db, set, {
-    ...prepared.options,
-    publish: input.publish ?? false,
-    nodeId: config.nodeId,
-    label: input.label,
-    package: { name: bundle.package.packageName, version: bundle.package.version },
-  })
-  await writeReport(db, result.check.findings, { source: 'transfer', scope: set.manifest.id })
-  const outcome: ContentImportResult = {
-    bundle: summarise(bundle),
-    backup,
-    runId: result.runId,
-    check: result.check,
-    blobs: null,
-    published: result.published.length,
-    publishFailures: result.publishFailures,
-    problems: prepared.problems,
-    sections,
+  if (plan?.schema?.classification === 'breaking')
+    return refuse(
+      [
+        'the schema this bundle carries cannot be applied here without data work',
+        ...plan.schema.findings,
+      ],
+      backup,
+    )
+  const needingPermission = plan ? replacementsNeedingPermission(plan, effective) : []
+  if (needingPermission.length > 0)
+    return refuse(
+      [
+        `${needingPermission.length} file(s) here would be replaced; pass --replace-files to allow it`,
+        ...needingPermission.map((file: SectionFile) => file.path),
+      ],
+      backup,
+    )
+
+  // ---- 1. Stage
+  const runDir = stageBackups(config)
+  const staged =
+    plan || replace
+      ? stageSections(config, carried, { ...effective, replace: Boolean(replace) }, runDir)
+      : undefined
+  const store = blobs.size > 0 ? await mediaStoreFor(config) : undefined
+  const placedHere: string[] = []
+  let placed: ContentImportResult['blobs'] = null
+  if (store) {
+    for (const key of blobs.keys()) if (!(await store.get(key))) placedHere.push(key)
+    placed = await placeBlobs(store, blobs, bundle.openBlob)
   }
-  if (!result.runId) {
+  const undoStage = async () => {
+    for (const key of placedHere) await store?.delete(key).catch(() => {})
+    rmSync(runDir, { recursive: true, force: true })
+  }
+
+  // ---- 2. One transaction
+  let schemaAction: string | undefined
+  let dictionary: SectionResult['dictionary']
+  let result: ImportResult
+  try {
+    result = await db.locks.withLock(Locks.Schema, () =>
+      db.locks.withLock(Locks.ContentTree, () =>
+        db.transaction(async (tx) => {
+          const pruned = replace ? await pruneSite(tx, set, replace, config.nodeId) : []
+          if (replace === 'replace-all') await prunePeople(tx, set.people)
+          if (staged?.next.schema) {
+            const report = await syncSchemaDirectory(
+              tx,
+              stagedConfig(config, staged),
+              { nodeId: config.nodeId, revision: config.schemaRevision },
+              { forceRetireTypes: Boolean(replace) },
+            )
+            if (report.action === 'refused' || report.action === 'skipped-older')
+              throw new InstallRefused([
+                `the schema this bundle carries was not applied: ${report.reason ?? report.action}`,
+              ])
+            schemaAction = report.action
+          }
+          const udtPath = `${BUNDLE_SECTIONS.dictionary}.udt`
+          const carriesDictionary = (carried.carries.dictionary ?? []).includes(udtPath)
+          if (carriesDictionary || replace) {
+            const repo = new DictionaryRepository(tx)
+            keepDictionary(runDir, writeDictionaryUdt(await dictionaryToUdt(repo)))
+            if (replace) for (const root of await repo.children(null)) await repo.delete(root.key)
+            for (const path of carried.carries.dictionary ?? []) {
+              const file = carried.files.get(path)
+              if (!file) continue
+              const outcome = await importDictionaryUdt(tx, readFileSync(file, 'utf8'))
+              dictionary = {
+                imported: (dictionary?.imported ?? 0) + outcome.imported,
+                skipped: [...(dictionary?.skipped ?? []), ...outcome.skipped],
+              }
+            }
+          }
+          const imported = await importBundle(tx, set, {
+            ...prepared.options,
+            publish: effective.publish ?? false,
+            nodeId: config.nodeId,
+            label: input.label,
+            package: { name: bundle.package.packageName, version: bundle.package.version },
+            exact: Boolean(replace),
+          })
+          if (!imported.runId) throw new InstallRefused([], imported)
+          await recordPruned(tx, imported.runId, pruned)
+          return imported
+        }),
+      ),
+    )
+  } catch (error) {
+    await undoStage()
+    if (!(error instanceof InstallRefused)) throw error
+    if (!error.result) return refuse(error.problems, backup)
+    await writeReport(db, error.result.check.findings, { source: 'transfer', scope: manifest.id })
     await recordPending(db, bundle, input, prepared.options.allowMissingBlobs ?? false)
-    return outcome
+    return {
+      ...refuse(prepared.problems, backup),
+      check: error.result.check,
+    }
   }
-  await new TransferAnswerRepository(db).clear(set.manifest.id)
-  // The backups become the run's, so `content revert` can find them.
-  if (staging) outcome.replacedFilesKept = promoteBackups(config, staging, result.runId)
-  if (blobs.size > 0)
-    outcome.blobs = await placeBlobs(await mediaStoreFor(config), blobs, bundle.openBlob)
+  const runId = result.runId as string
+
+  // ---- 3. Swap
+  if (staged) {
+    swapSections(config, staged)
+    if (staged.next.schema && config.schemaStore)
+      await publishSchema(config.schemaStore, config.schemaDir)
+  }
+  const kept = promoteStaged(config, runDir, runId)
+  // Domains belong to where the site runs, never to the file: rebound by the
+  // site's own `domains.toml` onto the pages now in its tree.
+  if (replace) await syncDomainsFile(db, config.siteDir)
+  await writeReport(db, result.check.findings, { source: 'transfer', scope: manifest.id })
+  await new TransferAnswerRepository(db).clear(manifest.id)
   await recordInLedger(db, {
-    name: `content import ${set.manifest.id}`,
+    name: `content import ${manifest.id}`,
     kind: 'transfer',
     durationMs: Math.round(performance.now() - started),
     appliedBy: config.nodeId,
-    note: `run ${result.runId}, ${bundle.package.packageName}@${bundle.package.version}`,
+    note: `run ${runId}, ${bundle.package.packageName}@${bundle.package.version}${replace ? `, --${replace}` : ''}`,
   })
-  return outcome
+  return {
+    bundle: summarise(bundle),
+    backup,
+    runId,
+    check: result.check,
+    blobs: placed,
+    published: result.published.length,
+    publishFailures: result.publishFailures,
+    problems: prepared.problems,
+    sections: staged
+      ? {
+          written: staged.written,
+          replaced: [],
+          schema: schemaAction ? { action: schemaAction } : undefined,
+          dictionary,
+        }
+      : undefined,
+    replacedFilesKept: staged ? kept : undefined,
+  }
+}
+
+export interface RevertedSections extends RestoredFiles {
+  /** The schema sync after the swap back, when the run swapped schema in. */
+  schema: string | undefined
+  /** Whether the dictionary was put back as the run found it. */
+  dictionary: boolean
+}
+
+/**
+ * What an install did beyond its content, undone once `revertRun` has put the
+ * content back (story 105): the folders swapped back, the schema re-synced to
+ * them, and the dictionary restored as the run found it.
+ */
+export async function revertSections(
+  db: Db,
+  config: CromboloConfig,
+  runId: string,
+): Promise<RevertedSections> {
+  const swapped = swappedSections(config, runId)
+  const files = restoreSectionFiles(config, runId)
+  let schema: string | undefined
+  if (swapped.includes('schema')) {
+    // A type the install brought has content only in the bin by now, which is
+    // what retiring it here is for.
+    const report = await syncSchemaDirectory(
+      db,
+      config,
+      { nodeId: config.nodeId, revision: config.schemaRevision },
+      { forceRetireTypes: true },
+    )
+    schema = report.action
+    if (config.schemaStore) await publishSchema(config.schemaStore, config.schemaDir)
+  }
+  const kept = keptDictionary(config, runId)
+  if (kept !== undefined)
+    await db.transaction(async (tx) => {
+      const repo = new DictionaryRepository(tx)
+      for (const root of await repo.children(null)) await repo.delete(root.key)
+      await importDictionaryUdt(tx, kept)
+    })
+  return { ...files, schema, dictionary: kept !== undefined }
 }

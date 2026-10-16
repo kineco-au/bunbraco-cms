@@ -71,6 +71,11 @@ export interface ImportOptions extends CheckOptions {
   label?: string | undefined
   /** The npm package the bundle arrived in, recorded on the run. */
   package?: { name: string; version: string } | undefined
+  /**
+   * A node's values become exactly the bundle's, rather than the bundle's laid
+   * over what is here: a whole-site replace (story 105).
+   */
+  exact?: boolean
 }
 
 export interface ImportResult {
@@ -342,7 +347,7 @@ async function applyBundle(tx: Db, set: ContentSet, options: ImportOptions): Pro
           ? ((await templates.byAlias(node.template))?.key ?? current.componentKey)
           : current.componentKey,
         parentKey: current.parentKey,
-        values: overlay(current.values, taken),
+        values: overlay(options.exact ? [] : current.values, taken),
         variants: keepNames
           ? current.variants.map((v) => ({
               culture: v.culture,

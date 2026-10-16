@@ -319,29 +319,22 @@ both the dependency and the `bundles: [redirects()]` line into the site's own
 `crombolo.config.ts` — visible, and removable, from the first commit
 ([`docs/bundles.md`](docs/bundles.md)).
 
-### Bring an existing Umbraco site
-
-An Umbraco 15 or later site can be imported from a backup: its database as a
-`.bacpac` (or Umbraco's own SQLite file), and its files if you have them.
+### Move a whole site
 
 ```bash
-bun add -d @crombolo/crombolo @crombolo/import-umbraco     # the importer is opt-in
-bunx crombolo import umbraco report site.bacpac --site ./site-files
-bunx crombolo import umbraco apply  site.bacpac --site ./site-files --out my-site
-cd my-site && bun install && bun start
+bunx crombolo export --site --out my-site.tgz     # schema, files, content, media; not domains or people
+bunx crombolo start --from my-site.tgz            # in an empty folder: scaffold, install, import, serve
+bunx crombolo import my-site.tgz --replace        # replace an existing site; says what first
 ```
 
-`report` is read-only, and is the thing to run first: it says what will come
-across and what will not. Content types, data types, content, media and
-languages migrate. Packages, plugins and custom C# do not, and are listed by
-name. Every Razor template becomes a TSX stub that renders the page's name, with
-the original kept beside the report for whoever rewrites it.
+[`docs/content-transfer.md`](docs/content-transfer.md) has the detail.
 
-`apply` writes a site directory, not a database: schema files, the view stubs,
-the media, and the content as a bundle that `bun start` imports on the first
-boot. Members, users, redirects and protected pages are counted in the report
-and not imported yet. [`docs/umbraco-import.md`](docs/umbraco-import.md)
-has the detail and what is left.
+### Bring an existing Umbraco site
+
+`crombolo import umbraco report|apply` converts an Umbraco 15+ backup (`.bacpac` or
+its SQLite file) into a crombolo site, and reports what cannot come across —
+[`docs/umbraco-import.md`](docs/umbraco-import.md). It is deprecated: an Umbraco
+extension writing a whole-site file for `crombolo import` will replace it (story `074`).
 
 ### Walk the slice in the editor
 

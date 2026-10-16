@@ -144,6 +144,22 @@ describe(`schema sync (${dialectUnderTest})`, () => {
     expect(languages.find((l) => l.isoCode === 'da-DK')?.fallbackIsoCode).toBe('en-US')
   })
 
+  test('a key this site never had, for an alias it has, is the same type and keeps its key', async () => {
+    const db = await prepared()
+    await sync(db, schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE() }))
+    const before = await new ContentTypeRepository(db).byAlias('article')
+    // The same type from a site that minted its own keys.
+    const dir = schemaDir('1.0.1', { 'content-types/article.toml': KEYED(SUMMARY) })
+    const report = await sync(db, dir, { ...NODE, version: '1.0.1' })
+    expect(report.action).toBe('applied')
+    const after = await new ContentTypeRepository(db).byAlias('article')
+    expect(after?.key).toBe(before?.key as string)
+    expect(after?.properties.map((p) => p.alias)).toEqual(['title', 'summary'])
+    expect(report.assignedKeys).toContainEqual(
+      expect.objectContaining({ typeAlias: 'article', key: before?.key }),
+    )
+  })
+
   test('the same files a second time change nothing', async () => {
     const db = await prepared()
     const dir = schemaDir('1.0.0', { 'content-types/article.toml': ARTICLE() })

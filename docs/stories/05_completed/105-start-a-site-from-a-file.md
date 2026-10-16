@@ -21,7 +21,7 @@ than replacing a site. Two things are missing:
 
 ## Acceptance criteria
 
-- [ ] `crombolo start --from <file> [--postgres]` in an empty folder:
+- [x] `crombolo start --from <file> [--postgres]` in an empty folder:
       - scaffolds the site as `crombolo init` does;
       - applies the file's schema, components, styles, scripts and
         dictionary;
@@ -30,34 +30,37 @@ than replacing a site. Two things are missing:
 
       A typical site is ready to browse in under five minutes, on SQLite
       unless told otherwise.
-- [ ] A file without back-office users starts with one fresh local
+- [x] A file without back-office users starts with one fresh local
       administrator, whose sign-in is printed once. A file that carries
       them, sealed, asks for its passphrase.
-- [ ] `crombolo import --site <file>` replaces an existing site's schema,
+- [x] `crombolo import <file>` replaces an existing site's schema,
       code, content and media with the file's:
       - it runs `content check`'s dry run first and says what will be
         replaced;
       - it refuses without `--replace` or `--replace-all`;
       - it never removes the site's domains, its secret key, or settings that
         belong to where it runs.
-- [ ] **`--replace`** (decided 2026-10-16) keeps the site's people: users
+- [x] `crombolo import umbraco …` prints a deprecation notice and keeps
+      working; it is removed by `074`, which moves Umbraco sites through an
+      extension that writes this file (decided 2026-10-16).
+- [x] **`--replace`** (decided 2026-10-16) keeps the site's people: users
       and members are untouched unless the file carries them.
       - Content and media not in the file go to the recycle bin, so a
         revert brings them back.
       - Code, schema and dictionary files not in the file are removed, with
         copies kept for the revert.
-- [ ] **`--replace-all`** makes the site exactly the file's:
+- [x] **`--replace-all`** makes the site exactly the file's:
       - content, media, files and people not in the file are deleted, not
         recycled;
       - it asks for a typed confirmation first, unless `--yes` is given;
       - it refuses outright when the file carries no back-office
         administrator, because that would leave nobody able to sign in.
-- [ ] Replacing is all or nothing. A failure part-way leaves the site as it
+- [x] Replacing is all or nothing. A failure part-way leaves the site as it
       was, not half-replaced, and the run is recorded with `content runs` so
       it can be reverted (`content revert`).
-- [ ] Media in a file goes to whichever media store the destination uses, so
+- [x] Media in a file goes to whichever media store the destination uses, so
       a file from one store starts on another (filesystem, S3 or Azure).
-- [ ] A test:
+- [x] A test:
       - starts a site from a file;
       - changes it;
       - exports it (`104`);
@@ -109,3 +112,73 @@ This is the second of three tracks; `104` holds the format they share, and
 
 - Connecting two running sites. The file is the interface, as everywhere in
   content transfer.
+
+## Implementation (2026-10-16)
+
+- **Three phases** (`server/src/bundle-install.ts`, `installBundleContent`),
+  for every import:
+  1. **Stage** (`stageSections`): each section is written into
+     `pending-…/next/`, overlaid for an ordinary import and the file's alone
+     for a replace. Media files are placed under their own keys.
+  2. **One transaction**, under the Schema and ContentTree locks: the prune,
+     `syncSchemaDirectory` against the staged copy, the dictionary, then
+     `importBundle`. Nested transactions join this one, so a refusal rolls all
+     of it back.
+  3. **Swap** (`swapSections`): folder contents move into place, and what they
+     replace goes to `<run>/previous`. Then the schema store is published to.
+
+  A failure before the swap removes the staging directory and the media files
+  it placed.
+- **Replace** (`server/src/site-replace.ts`):
+  - **Prune:** `pruneSite` recycles content and media the file lacks (or, for
+    `--replace-all`, deletes them). Recycled branches are recorded as
+    `recycle` changes, so `content revert` brings them back.
+  - **People:** `prunePeople` deletes the members and users the file lacks
+    (`--replace-all` only).
+  - **Checks before anything is written:**
+    - `requiresProblems` checks the server bundles the file needs.
+    - `carriesAdministrator` guards `--replace-all`.
+    - A file written with `--no-media` needs `--allow-missing-media`.
+    - Only `scope: 'site'` replaces.
+  - **Values:** `importBundle` gains `exact`, so a node's values become exactly
+    the file's.
+  - **Domains:** `domains.toml` is re-applied afterwards.
+- **Schema sync matches by alias** (`schema/src/sync.ts`). A type or data type
+  whose file key this site has never had, but whose alias it has, keeps its row
+  and key, and the key is written into the file, as properties already did.
+  Without this, two separately created sites could not replace one another.
+- **Revert** (`revertSections`) runs after `revertRun`: it swaps the folders
+  back, re-syncs the schema and restores `dictionary-before.udt`.
+- **CLI:**
+  - `crombolo import <file> [--replace | --replace-all] [--yes]
+    [--allow-missing-media]` prints a dry-run summary first (`siteReplaceCheck`,
+    `replaceSummary`). `--replace-all` asks for the site name to be typed back.
+  - `crombolo import umbraco …` prints a deprecation notice (removed by `074`).
+  - `crombolo start --from <file> [--postgres] [--name] [--no-install]`:
+    1. scaffolds;
+    2. runs `bun install`;
+    3. creates the database and prints the new administrator's password once;
+    4. imports the file as a replace;
+    5. starts with `--keep-admin`.
+  - `content check` / `content import` accept a `.tgz` (`unpackBundle`).
+- **Docs:** `docs/content-transfer.md` § Replacing a site, `docs/bundles.md`
+  § The order is forced and § Undoing one, `docs/configuration.md`, the README.
+- **Tests** (`tests/site-replace.test.ts`, both dialects):
+  - the dry run changes nothing;
+  - `--replace`, then reverting it;
+  - `--replace-all` with and without an administrator;
+  - `--no-media` refused unless allowed;
+  - a refusal inside the transaction leaves files, schema and media untouched;
+  - the round trip.
+
+  `tests/schema-sync.test.ts` covers the alias matching.
+- **Not covered by a test:** `start --from`'s scaffold and `bun install` step,
+  since it runs a package install. Its import is the replace path that the
+  round trip exercises.
+- **The five-minute target** was not timed. The import step for the test sites
+  takes about a second; `bun install` dominates in practice.
+- **The story's test sequence** (start, change, export, replace a second site,
+  compare) is covered by two tests rather than one:
+  - the round trip: export, start elsewhere, export again, compare;
+  - `--replace`: a second site becomes the first site's content, files, schema,
+    dictionary and media.

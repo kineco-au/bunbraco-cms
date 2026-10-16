@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import type { AssistantProvider, ConverseResult, MessagePart } from '@crombolo/assistant'
 import { DEFAULT_BACKOFFICE_PATH } from '@crombolo/core'
 import { ContentTypeRepository } from '@crombolo/data'
+import { fileSystemMediaStore, schemaStoreOver } from '@crombolo/server'
 import { type Harness, signedInServer, signIn, V1 } from './support/harness.ts'
 
 const dirs: string[] = []
@@ -73,7 +74,7 @@ name = "Home Page"
 allow-at-root = true
 `
 
-async function site() {
+async function site(options: { store?: boolean } = {}) {
   const schemaDir = mkdtempSync(join(process.cwd(), 'output', 'assistant-schema-'))
   dirs.push(schemaDir)
   mkdirSync(join(schemaDir, 'content-types'), { recursive: true })
@@ -81,11 +82,17 @@ async function site() {
   writeFileSync(join(schemaDir, 'content-types', 'home-page.toml'), HOME)
 
   const model = programmable()
+  // With a store, the directory above is the store and the site reads a copy of it.
+  const store = options.store ? schemaStoreOver(fileSystemMediaStore(schemaDir)) : undefined
+  const cache = mkdtempSync(join(process.cwd(), 'output', 'assistant-schema-cache-'))
+  dirs.push(cache)
   const h = await signedInServer({
-    config: { schemaDir, schemaWritable: true, assistant: { provider: model.provider } },
+    config: store
+      ? { schemaStore: store, schemaCacheDir: cache, assistant: { provider: model.provider } }
+      : { schemaDir, schemaWritable: true, assistant: { provider: model.provider } },
   })
   open.push(h)
-  return { h, model, schemaDir }
+  return { h, model, schemaDir, store }
 }
 
 const chat = (h: Harness, message: string) =>
@@ -123,6 +130,24 @@ describe('proposing a type as TOML', () => {
     const seen = JSON.stringify(answer.history)
     expect(seen).toContain('schema/content-types/home-page.toml')
     expect(seen).toContain('alias = \\"homePage\\"')
+  })
+
+  test('with a schema store, an approved type is published to it', async () => {
+    const { h, model, store } = await site({ store: true })
+    model.program(
+      uses({
+        name: 'propose_content_type',
+        input: { alias: 'article', toml: ARTICLE, summary: 'Add an Article type' },
+      }),
+    )
+    await chat(h, 'add an article type')
+    const change = (await review(h))[0]?.changes[0]
+    const approved = await h.post(`${ASSISTANT}/changes/${change?.key}/approve`, {})
+    expect(approved.status).toBe(200)
+    // Not laid over by the store's older copy, and in the store for the next boot.
+    expect(await new ContentTypeRepository(h.server.db).byAlias('article')).toBeDefined()
+    expect(await store?.list()).toContain('content-types/article.toml')
+    expect(await store?.read('schema.toml')).not.toContain('version = "1.0.0"')
   })
 
   test('a new type is proposed as its file, and approving writes and imports it', async () => {

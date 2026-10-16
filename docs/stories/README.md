@@ -144,6 +144,7 @@ not cover.
 | `071` | Import members, users, redirects, protected pages and schedules | should | L | done | 070 |
 | `072` | Proven on real exports from Umbraco 15, 16 and 18 | should | M | ready | 070 |
 | `073` | Import a WordPress site | should | L | backlog | 141, 142 |
+| `074` | An Umbraco extension exports a crombolo bundle | should | L | ready | 104, 105 |
 
 ### Epic I — Hardening
 
@@ -177,9 +178,9 @@ not cover.
 | `101` | The dry run predicts publish refusals | could | S | done | — |
 | `102` | Per-property conflict resolutions | could | M | done | — |
 | `103` | Resolve transfer conflicts in the backoffice | should | M | done | — |
-| `104` | A whole site in one file | should | M | ready | 106 |
-| `105` | Start a site from a file | should | L | ready | 104, 106 |
-| `106` | An imported schema reaches the schema store | must | S | ready | — |
+| `104` | A whole site in one file | should | M | done | 106 |
+| `105` | Start a site from a file | should | L | done | 104, 106 |
+| `106` | An imported schema reaches the schema store | must | S | done | — |
 | `107` | The remote protocol | should | L | ready | 104, 105, 106 |
 | `108` | crombolo pull and push | should | M | ready | 107 |
 

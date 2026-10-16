@@ -172,6 +172,8 @@ export interface BundleProvenance {
   schemaRevision: string
   schemaHash: string | null
   siteName: string
+  /** The CMS version that wrote the bundle (story 104). Absent on bundles written before it. */
+  cmsVersion?: string
 }
 
 export interface BundleSelector {
@@ -228,6 +230,20 @@ export interface BundleManifest {
    * Absent: in the open.
    */
   content?: BundleContentMode
+  /**
+   * `site`: a whole site (story 104) — every node, the whole schema and every
+   * file — which an import replaces a site with rather than overlays. Absent: a
+   * selection, overlaid as always.
+   */
+  scope?: 'site'
+  /** `omitted`: a whole-site file written without its media files (`--no-media`). */
+  media?: 'omitted'
+  /**
+   * The server bundles the site wires, by package name, at the versions that
+   * wrote it. An import refuses when the destination lacks one or has an older
+   * version, naming it.
+   */
+  requires?: Record<string, string>
 }
 
 export type BundleContentMode = 'sealed' | 'omitted'

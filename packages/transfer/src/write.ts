@@ -157,6 +157,7 @@ export function writeManifest(manifest: BundleManifest): string {
       schemaVersion: manifest.provenance.schemaVersion,
       schemaRevision: manifest.provenance.schemaRevision,
       schemaHash: manifest.provenance.schemaHash,
+      ...(manifest.provenance.cmsVersion ? { cmsVersion: manifest.provenance.cmsVersion } : {}),
     },
     selector: {
       roots: manifest.selector.roots,
@@ -193,6 +194,11 @@ export function writeManifest(manifest: BundleManifest): string {
     ...(manifest.people ? { people: manifest.people } : {}),
     ...(manifest.seal ? { seal: manifest.seal } : {}),
     ...(manifest.content ? { content: manifest.content } : {}),
+    ...(manifest.scope ? { scope: manifest.scope } : {}),
+    ...(manifest.media ? { media: manifest.media } : {}),
+    ...(manifest.requires && Object.keys(manifest.requires).length > 0
+      ? { requires: Object.fromEntries(Object.entries(manifest.requires).sort()) }
+      : {}),
   })
 }
 
@@ -289,13 +295,56 @@ export function writeBundle(
   sections: readonly BundleFile[] = [],
   options: WriteOptions = {},
 ): BundleFile[] {
+  const sizes = new Map([...blobs].map(([key, bytes]) => [key, bytes.length]))
+  const planned = planBundle(set, sizes, sections, options)
+  const carried: BundleFile[] = planned.blobs.map((key) => {
+    const path = blobPath(key)
+    const bytes = blobs.get(key) as Uint8Array
+    return {
+      path,
+      bytes: planned.sealing && options.seal ? sealBytes(options.seal.key, path, bytes) : bytes,
+    }
+  })
+  const manifest = {
+    ...planned.manifest,
+    integrity: bundleIntegrity([...planned.files, ...carried]),
+  }
+  return [{ path: MANIFEST_FILE, text: writeManifest(manifest) }, ...planned.files, ...carried]
+}
+
+/**
+ * A bundle whose media files the caller streams (story 104): the manifest and
+ * every other file, from each carried file's size alone. The caller writes
+ * `blobs` at `blobPath`, computes `bundleIntegrity` over those and `files` in
+ * path order, and writes the manifest with it. Open content only: sealing a
+ * file needs all of it at once.
+ */
+export function planStreamedBundle(
+  set: ContentSet,
+  blobSizes: ReadonlyMap<string, number>,
+  sections: readonly BundleFile[] = [],
+  options: Omit<WriteOptions, 'content'> & { content?: 'open' | 'omitted' } = {},
+): { manifest: BundleManifest; files: BundleFile[]; blobs: string[] } {
+  const planned = planBundle(set, blobSizes, sections, {
+    ...options,
+    content: options.content ?? 'open',
+  })
+  return { manifest: planned.manifest, files: planned.files, blobs: planned.blobs }
+}
+
+function planBundle(
+  set: ContentSet,
+  blobSizes: ReadonlyMap<string, number>,
+  sections: readonly BundleFile[],
+  options: WriteOptions,
+): { manifest: BundleManifest; files: BundleFile[]; blobs: string[]; sealing: boolean } {
   const seal = options.seal
   const content = options.content ?? (seal ? 'sealed' : 'open')
   if ((content === 'sealed' || options.people) && !seal)
     throw new Error('Sealed content and people need a seal: give a passphrase.')
   const sealing = content === 'sealed'
   const source = content === 'omitted' ? set.nodes.map(withoutContent) : set.nodes
-  const carriedBlobs: ReadonlyMap<string, Uint8Array> = content === 'omitted' ? new Map() : blobs
+  const carriedSizes: ReadonlyMap<string, number> = content === 'omitted' ? new Map() : blobSizes
 
   const sorted = [...source].sort((a, b) => a.key.localeCompare(b.key))
   const nodes: BundleFile[] = sorted.map((node) => ({
@@ -309,12 +358,6 @@ export function writeBundle(
           return { path, bytes: sealBytes(seal.key, path, Buffer.from(json(sealedValues(node)))) }
         })
       : []
-  const carried: BundleFile[] = [...carriedBlobs]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, bytes]) => {
-      const path = blobPath(key)
-      return { path, bytes: sealing && seal ? sealBytes(seal.key, path, bytes) : bytes }
-    })
 
   // A file in no known section would travel without being declared, so it
   // would not be hashed and a reader would never look for it. Refused here
@@ -345,27 +388,19 @@ export function writeBundle(
           : CONTENT_ONLY_FORMAT_VERSION,
     // Without values nothing names a media file, so none is expected either.
     blobs: (content === 'omitted' ? [] : set.manifest.blobs).map((blob) => {
-      const bytes = carriedBlobs.get(blob.key)
-      return bytes ? { ...blob, included: true, size: bytes.length } : { ...blob, included: false }
+      const size = carriedSizes.get(blob.key)
+      return size !== undefined ? { ...blob, included: true, size } : { ...blob, included: false }
     }),
     carries: extra.length > 0 ? carries : undefined,
     people: people?.block,
     seal: seal && (sealing || people) ? seal.params : undefined,
     content: content === 'open' ? undefined : content,
-    integrity: bundleIntegrity([
-      ...nodes,
-      ...sealedFiles,
-      ...carried,
-      ...extra,
-      ...(people?.files ?? []),
-    ]),
+    integrity: '',
   }
-  return [
-    { path: MANIFEST_FILE, text: writeManifest(manifest) },
-    ...nodes,
-    ...sealedFiles,
-    ...carried,
-    ...extra,
-    ...(people?.files ?? []),
-  ]
+  return {
+    manifest,
+    files: [...nodes, ...sealedFiles, ...extra, ...(people?.files ?? [])],
+    blobs: [...carriedSizes.keys()].sort((a, b) => a.localeCompare(b)),
+    sealing,
+  }
 }
