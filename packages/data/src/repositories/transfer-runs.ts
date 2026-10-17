@@ -138,12 +138,17 @@ export class TransferRunRepository {
   }
 
   /** Runs, newest first. */
-  async recent(limit = 20): Promise<TransferRun[]> {
+  async recent(limit = 20, offset = 0): Promise<TransferRun[]> {
     const rows = await this.#db.query(
-      'SELECT * FROM content_transfer_run ORDER BY started_at DESC, id DESC LIMIT ?',
-      [limit],
+      'SELECT * FROM content_transfer_run ORDER BY started_at DESC, id DESC LIMIT ? OFFSET ?',
+      [limit, offset],
     )
     return rows.map(mapRun)
+  }
+
+  async count(): Promise<number> {
+    const rows = await this.#db.query('SELECT COUNT(*) AS n FROM content_transfer_run')
+    return Number(rows[0]?.n ?? 0)
   }
 
   async changes(runId: string): Promise<TransferChange[]> {

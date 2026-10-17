@@ -127,8 +127,8 @@ calls the functions directly.
   written by the test, because the point is that what `init` writes is what
   boots. It asserts the holding page a site with nothing published serves, the
   pages a template's content produces, the order they sit in, and that the image
-  bytes the template shipped are the ones the site serves back. `schema new` and
-  `schema add-property` are covered here too, against a site with no types at
+  bytes the template shipped are the ones the site serves back. `types new` and
+  `types add-property` are covered here too, against a site with no types at
   all, through to `generate` typing the property they added — and `views
   check|list|new` and `assets list|new`, including a deliberately broken view
   and a template whose file is missing, and `status` both before a site has a

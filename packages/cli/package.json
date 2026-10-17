@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/cli",
-  "version": "0.14.4",
+  "version": "0.15.0",
   "description": "The crombolo command line: scaffolding a site, schema, views, domains, content transfer and upgrades.",
   "license": "MIT",
   "author": "Crombolo",
@@ -28,6 +28,7 @@
     "src",
     "bin",
     "templates",
+    "oclif.manifest.json",
     "NOTICE"
   ],
   "publishConfig": {
@@ -39,6 +40,56 @@
     "@crombolo/data": "workspace:*",
     "@crombolo/schema": "workspace:*",
     "@crombolo/server": "workspace:*",
-    "@crombolo/transfer": "workspace:*"
+    "@crombolo/transfer": "workspace:*",
+    "@oclif/core": "^5.1.8"
+  },
+  "oclif": {
+    "bin": "crombolo",
+    "commands": "./src/commands",
+    "topicSeparator": " ",
+    "helpOptions": {
+      "flagSortOrder": "none"
+    },
+    "topics": {
+      "admin": {
+        "description": "the administrator's account"
+      },
+      "assets": {
+        "description": "the stylesheets and scripts beside the components"
+      },
+      "bundle": {
+        "description": "bundles: install, check, and purge their tables"
+      },
+      "components": {
+        "description": "the components in components/: check, list, new"
+      },
+      "content": {
+        "description": "move content between environments as bundles, and publish it"
+      },
+      "dictionary": {
+        "description": "the dictionary as Umbraco .udt files"
+      },
+      "domains": {
+        "description": "the hostnames this site answers on (domains.toml)"
+      },
+      "import": {
+        "description": "replace this site with a whole-site file; import an Umbraco backup"
+      },
+      "maintenance": {
+        "description": "pause and resume editors' saves, cluster-wide"
+      },
+      "media": {
+        "description": "a pulled site's media files"
+      },
+      "remote": {
+        "description": "the remotes this site pulls from and pushes to (remotes.toml)"
+      },
+      "types": {
+        "description": "schema-as-code: the content types, data types and languages in schema/"
+      },
+      "upgrade": {
+        "description": "framework migrations: check, plan, apply, ledger"
+      }
+    }
   }
 }

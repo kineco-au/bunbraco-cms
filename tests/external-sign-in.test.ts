@@ -344,6 +344,55 @@ describe(`members signing in through a provider (${process.env.CROMBOLO_DB ?? 's
     expect((await linking.page('/', yes.member)).who).toBe('ada')
   })
 
+  test('a member created with no password is linked at their first sign-in through the provider', async () => {
+    const { h, fake, signIn } = await memberSite({ linkByEmail: true })
+    const created = await h.post(`${V1}/member`, {
+      memberType: { id: SYSTEM_MEMBER_TYPE.key },
+      email: 'grace@example.test',
+      username: 'grace',
+      isApproved: true,
+      groups: [],
+      values: [],
+      variants: [{ culture: null, segment: null, name: 'Grace' }],
+    })
+    expect(created.status).toBe(201)
+    const key = created.headers.get('umb-generated-resource') as string
+    fake.as({ sub: 'grace-1', email: 'grace@example.test', email_verified: true })
+    expect((await signIn('/')).member).toBeDefined()
+    const logins = await new ExternalLoginRepository(h.server.db).forOwner(key)
+    expect(logins).toHaveLength(1)
+    expect(
+      (await new MemberRepository(h.server.db).byUsername('grace'))?.passwordHash ?? null,
+    ).toBeNull()
+  })
+
+  test('the login form refuses a member with no password, and guesses never lock them out', async () => {
+    const { h, fake, signIn, visit } = await memberSite({ linkByEmail: true })
+    await h.post(`${V1}/member`, {
+      memberType: { id: SYSTEM_MEMBER_TYPE.key },
+      email: 'alan@example.test',
+      username: 'alan',
+      isApproved: true,
+      groups: [],
+      values: [],
+      variants: [{ culture: null, segment: null, name: 'Alan' }],
+    })
+    const formLogin = (password: string) =>
+      visit('/umbraco/members/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ username: 'alan', password }),
+      })
+    for (const password of ['', 'guess', 'another guess', 'x', 'y', 'z', 'still guessing'])
+      expect((await formLogin(password)).status).toBe(401)
+    const stored = await new MemberRepository(h.server.db).byUsername('alan')
+    expect(stored?.isLockedOut).toBe(false)
+    expect(stored?.failedPasswordAttempts ?? 0).toBe(0)
+    // The provider sign-in still works, which a lockout would have stopped.
+    fake.as({ sub: 'alan-1', email: 'alan@example.test', email_verified: true })
+    expect((await signIn('/')).member).toBeDefined()
+  })
+
   test('a forged, stale or misdirected token signs nobody in', async () => {
     const { fake, signIn } = await memberSite()
     fake.as({ sub: 'eve', email: 'eve@example.test' })

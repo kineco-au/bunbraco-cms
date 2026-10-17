@@ -286,7 +286,7 @@ template is left out, because Umbraco does not serve one either.
 | **WP-I.0** | Fixtures and measurement | **partly**: one real export, the Umbraco Commerce demo store at 17. No 15, 16 or 18 export, and no native Umbraco SQLite file; story `072` |
 | **WP-I.1** | Source reader and version detection | **done** |
 | **WP-I.2** | Inventory and report | **done** |
-| **WP-I.3** | Schema conversion | **done**; `schema check --static` passes on the output |
+| **WP-I.3** | Schema conversion | **done**; `types check --static` passes on the output |
 | **WP-I.4** | Content conversion | **done**; the bundle imports whole on SQLite and Postgres |
 | **WP-I.5** | Site data | **done**: dictionary and hostnames are written as files; members, users, redirects, protected pages and schedules travel in the bundle (story `071`) |
 | **WP-I.6** | Views and assets | **done**; every stub passes `components check` |

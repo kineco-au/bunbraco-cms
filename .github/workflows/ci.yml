@@ -77,6 +77,37 @@ jobs:
             - run: bun run generate:types
             - run: bun run check
 
+    # The CLI against The CLI Spec (story 150), scored by the spec's own checker
+    # from outside: every check must pass. The binary is pinned by version and
+    # hash, not built, so the job takes seconds.
+    clispec:
+        name: CLI spec
+        runs-on: ubuntu-latest
+        env:
+            CLISPEC_VERSION: v0.3.0
+            CLISPEC_SHA256: 0507415598c04a65dd6d8212d7774040e0f66dcd465589243b617351dc620d6b
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+            - run: bun install --frozen-lockfile
+            - name: Fetch the checker
+              run: |
+                  mkdir -p "$RUNNER_TEMP/clispec" && cd "$RUNNER_TEMP/clispec"
+                  archive="clispec-${CLISPEC_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+                  curl -sfLO "https://github.com/rvben/clispec-cli/releases/download/${CLISPEC_VERSION}/${archive}"
+                  echo "${CLISPEC_SHA256}  ${archive}" | sha256sum -c -
+                  tar xzf "${archive}"
+            - name: Score the CLI
+              run: |
+                  printf '#!/bin/sh\nexec bun "%s/packages/cli/bin/crombolo.ts" "$@"\n' "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/crombolo"
+                  chmod +x "$RUNNER_TEMP/crombolo"
+                  mkdir -p "$RUNNER_TEMP/empty" && cd "$RUNNER_TEMP/empty"
+                  "$RUNNER_TEMP/clispec/clispec" score "$RUNNER_TEMP/crombolo" -o text
+                  "$RUNNER_TEMP/clispec/clispec" score "$RUNNER_TEMP/crombolo" -o json > score.json
+                  bun -e 'const s = await Bun.file("score.json").json(); if (s.score !== s.max) { console.error(`clispec: ${s.score}/${s.max}`); process.exit(1) }'
+
     test:
         name: test (${{ matrix.dialect }})
         needs: [client, check]

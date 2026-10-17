@@ -1,0 +1,6 @@
+/*
+ * "Match my system" (story 049): the dark mode while the computer asks for
+ * dark, and the light one otherwise — including a change made while the back
+ * office is open, which the media query follows by itself.
+ */
+@import url("./theme-dark.css") (prefers-color-scheme: dark);

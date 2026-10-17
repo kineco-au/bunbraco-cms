@@ -16,19 +16,19 @@ components/shared/layout.tsx             the layout it renders inside
 
 ## 1. The content type
 
-`schema new` writes the type file, with its keys already filled in, and the
+`types new` writes the type file, with its keys already filled in, and the
 component it points at:
 
 ```bash
-bunx crombolo schema new content-type eventsPage --name "Events Page" --icon icon-calendar
-bunx crombolo schema add-property eventsPage intro --name "Introduction" --type richtext
-bunx crombolo schema add-property eventsPage feedUrl --name "Events feed URL" --type textstring --mandatory
+bunx crombolo types new content-type eventsPage --name "Events Page" --icon icon-calendar
+bunx crombolo types add-property eventsPage intro --name "Introduction" --type richtext
+bunx crombolo types add-property eventsPage feedUrl --name "Events feed URL" --type textstring --mandatory
 ```
 
 A new type starts with a mandatory `title` on a Content tab. `--type` names a data
 type by alias; the built-in ones include `textstring`, `textarea`, `richtext`,
 `numeric`, `trueFalse`, `datePicker`, `contentPicker` and `mediaPicker`, and a site
-can add its own under `schema/data-types/`. `schema add-property --dry-run` prints
+can add its own under `schema/data-types/`. `types add-property --dry-run` prints
 the file instead of writing it.
 
 The result is `schema/content-types/events-page.toml`:
@@ -78,7 +78,7 @@ it. Add it to the parent's `allow-children`, here the home page's:
 allow-children = ["contentPage", "eventsPage"]
 ```
 
-or pass `--at-root` to `schema new` (`allow-at-root = true` in the file) for a
+or pass `--at-root` to `types new` (`allow-at-root = true` in the file) for a
 page that sits at the top of the tree. To share fields between types, such as the
 Search & sharing tab, list them in `compositions = ["seoFields"]`.
 
@@ -88,7 +88,7 @@ Types. In development, saving it there writes the same file.
 
 ## 2. The component
 
-`schema new` wrote a starter `components/eventsPage.tsx`. A component is a
+`types new` wrote a starter `components/eventsPage.tsx`. A component is a
 function from the page's props to markup. `model` is the page being rendered, and
 `model.text('alias')` reads a property as text.
 
@@ -210,7 +210,7 @@ Some things to know:
 ## 3. Check it
 
 ```bash
-bunx crombolo schema check --static   # the files parse and agree with each other
+bunx crombolo types check --static   # the files parse and agree with each other
 bunx crombolo components check        # every component compiles and imports; every named one exists
 ```
 

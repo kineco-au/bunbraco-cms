@@ -51,7 +51,8 @@ function readVariants(body: Record<string, unknown>) {
 }
 
 /**
- * A member save request. Create carries `password` and `memberType`; update
+ * A member save request. Create carries `memberType`, and `password` unless the
+ * member will only sign in through an identity provider (story 035); update
  * carries `newPassword` with `oldPassword` and neither of the other two, since
  * a member's type never changes.
  */
@@ -84,7 +85,6 @@ function missingFields(input: SaveMember, forCreate: boolean): string | undefine
   if (!input.username) return 'A username is required'
   if (input.variants.length === 0 || !input.variants[0]?.name) return 'A name is required'
   if (forCreate && !input.memberTypeKey) return 'A member type is required'
-  if (forCreate && !input.password) return 'A password is required'
   return undefined
 }
 

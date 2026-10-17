@@ -57,7 +57,8 @@
     "test:sqlite": "CROMBOLO_DB=sqlite CROMBOLO_SQLITE_FILE=:memory: CROMBOLO_ADMIN_PASSWORD=test-password CROMBOLO_COMPONENTS_DIR=output/test-views CROMBOLO_MEDIA_DIR=output/test-media CROMBOLO_LOGS_DIR=output/test-logs CROMBOLO_LOG_TO_CONSOLE=false bun test",
     "typecheck": "tsc --noEmit",
     "vendor:backoffice": "bun run scripts/vendor-backoffice.ts",
-    "vendor:refresh-static": "bun run scripts/vendor-backoffice.ts --refresh-static"
+    "vendor:refresh-static": "bun run scripts/vendor-backoffice.ts --refresh-static",
+    "cli:manifest": "bun run scripts/cli-manifest.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
@@ -73,8 +74,8 @@
     "@crombolo/crombolo": "workspace:*",
     "@crombolo/data": "workspace:*",
     "@crombolo/entra": "workspace:*",
-    "@crombolo/remote-conformance": "workspace:*",
     "@crombolo/import-umbraco": "workspace:*",
+    "@crombolo/remote-conformance": "workspace:*",
     "@crombolo/render": "workspace:*",
     "@crombolo/schema": "workspace:*",
     "@crombolo/server": "workspace:*",
@@ -82,6 +83,7 @@
     "@crombolo/transfer": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/bun": "^1.4.2",
+    "ajv": "^8.17.1",
     "jose": "^6.2.12",
     "openapi-typescript": "^6.7.6",
     "typescript": "^7.0.2"

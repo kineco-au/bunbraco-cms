@@ -7,8 +7,9 @@
  * Only the store the site serves from is wrapped. An export reads the plain
  * store, so pushing a lazily-pulled site never downloads what it never used.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { writeFileAtomic } from './atomic-write.ts'
 import { logger } from './logging.ts'
 import type { MediaStore, StoredFile } from './media-store.ts'
 import { freshAccessToken, type Keychain, osKeychain } from './remote-credentials.ts'
@@ -36,8 +37,7 @@ export function readRemoteMedia(siteDir: string): RemoteMediaSource | undefined 
 
 export function writeRemoteMedia(siteDir: string, source: RemoteMediaSource): void {
   const file = join(siteDir, REMOTE_MEDIA_FILE)
-  mkdirSync(dirname(file), { recursive: true })
-  writeFileSync(file, `${JSON.stringify(source, null, 2)}\n`)
+  writeFileAtomic(file, `${JSON.stringify(source, null, 2)}\n`)
 }
 
 /** The site's store, reading through to its remote when the site was pulled lazily. */

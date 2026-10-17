@@ -9,6 +9,7 @@
 import { MANAGEMENT_API_PATH } from '@crombolo/core'
 import type { PackageManifestImportmap } from './manifests.ts'
 import type { BackOfficePaths } from './paths.ts'
+import { earlyThemeScript } from './theme-early.ts'
 
 export interface ShellSettings {
   /** GlobalSettings.DefaultUILanguage — the initial UI language. */
@@ -81,6 +82,7 @@ export function renderBackOfficeShell(
   <link rel="stylesheet" href="${assets}/css/umb-css.css" />
   <link rel="stylesheet" href="${assets}/css/light.css" />
   <link rel="stylesheet" href="${paths.pluginPath}/branding/theme.css" />
+  <script>${earlyThemeScript(paths)}</script>
   <script type="importmap">
 ${JSON.stringify(importmap, null, 2)}
   </script>
@@ -117,7 +119,8 @@ export function renderLoginShell(
   <title>${escapeHtml(settings.title)}</title>
   <link rel="stylesheet" href="${assets}/css/light.css" />
   <link rel="stylesheet" href="${paths.pluginPath}/branding/theme.css" />
-  <style>body { margin: 0; padding: 0; background-color: #fff7ea; }</style>
+  <script>${earlyThemeScript(paths)}</script>
+  <style>body { margin: 0; padding: 0; background-color: var(--uui-color-background, #fff7ea); }</style>
   <script type="importmap">
 ${JSON.stringify(importmap, null, 2)}
   </script>
@@ -163,7 +166,8 @@ export function renderStandaloneShell(
   <title>${escapeHtml(settings.title)}</title>
   <link rel="stylesheet" href="${assets}/css/light.css" />
   <link rel="stylesheet" href="${paths.pluginPath}/branding/theme.css" />
-  <style>body { margin: 0; padding: 0; background-color: #fff7ea; }</style>
+  <script>${earlyThemeScript(paths)}</script>
+  <style>body { margin: 0; padding: 0; background-color: var(--uui-color-background, #fff7ea); }</style>
   <script type="importmap">
 ${JSON.stringify(importmap, null, 2)}
   </script>

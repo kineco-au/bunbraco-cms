@@ -82,7 +82,7 @@ no user.
 **The command line.** Each command that changes the environment writes one
 entry after it succeeds:
 
-- `schema sync` and `schema purge`
+- `types sync` and `types purge`
 - `content import`, `content publish`, `content unpublish`, `content revert`, and `bundle install`
 - `bundle purge`
 - `dictionary import`

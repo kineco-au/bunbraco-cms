@@ -83,7 +83,7 @@ of the framework, not the site; a site never generates or vendors anything.
 | `start` | run the site (what `start:local` does today, minus the password reset by default) |
 | `upgrade check` / `upgrade check --fix` | the pre-upgrade report; with `--fix`, apply its additive part to the live site — Part 2 |
 | `upgrade` / `upgrade --plan` | run the upgrade, gated on a clean check; `--plan` prints the DDL and conversions without executing |
-| `schema sync` / `schema check [--static]` / `schema export` | apply `schema/`, validate it (and report what a sync would do), or write the database out as files |
+| `types sync` / `types check [--static]` / `types export` | apply `schema/`, validate it (and report what a sync would do), or write the database out as files |
 | `generate` | emit TypeScript types from `schema/` |
 | `admin reset-password` | what `start:local` does for the administrator |
 
@@ -168,7 +168,7 @@ an **expand**:
 | a new table, column or index | dropping a table, column or index |
 | a new nullable column, or one with a default | renaming a table or column (an expand adds the new one; the contract drops the old) |
 | widening a type (`varchar(50)` → `varchar(255)`, `integer` → `bigint`) | narrowing a type, or adding `NOT NULL` to a column old code leaves empty |
-| a backfill that only adds data | a purge of retired data (`schema purge`) |
+| a backfill that only adds data | a purge of retired data (`types purge`) |
 
 So the previous release always keeps working against a database the next one
 has migrated, and a cluster can be rolled one node at a time. A contract may
@@ -275,7 +275,7 @@ So the upgrade splits along the expand/contract line *in time*:
 | Removed or renamed property editors still in use | with the editor to migrate to |
 | Site schema changes (`schema/*.toml`) | the same categories, over the site's own diff |
 
-The last row is the point: `crombolo schema check` for a site's own schema diff
+The last row is the point: `crombolo types check` for a site's own schema diff
 and `crombolo upgrade check` for a framework release are **one mechanism** —
 "what would this change do to the data, and what does it need?"
 
@@ -358,7 +358,7 @@ file is written and nothing is committed.
 #### The promotion pipeline
 
 ```
-PR              crombolo schema check --static    parse; keys present; classify expand/contract;
+PR              crombolo types check --static    parse; keys present; classify expand/contract;
                                                   a migration accompanies any rename or split
 merge -> dev    boot sync applies; the developer fixes the three pages, or writes a migration
 deploy -> test  check --fix runs the migrations against test content; the dashboard lists
@@ -462,10 +462,10 @@ release that carried no value conversion rolls back cleanly — most releases.
 
 A site's `schema/` files are code, so a change to them is a deploy and gets the
 same discipline: removing a property leaves its values in place (expand), and a
-later cleanup removes them (contract). `crombolo schema check` is the same pre-upgrade
+later cleanup removes them (contract). `crombolo types check` is the same pre-upgrade
 check run over a site's own diff, with the same `--fix`, and refuses a change
 that would orphan content. And when a framework release changes the file vocabulary,
-`crombolo upgrade schema` rewrites every file canonically — a reviewable commit,
+`crombolo types rewrite` rewrites every file canonically — a reviewable commit,
 because we own the writer.
 
 ## Part 3 — Decisions taken when stories `012`–`015` were planned against story `011`'s code
@@ -533,9 +533,9 @@ These refine Part 2 rather than change it; stories `012`–`015` are the slices.
 - **`/health`** answers 503 once the poll sees the database ahead of the node,
   and the document API answers 409 to its writes.
 - **Backups**: SQLite is copied beside the file before `check --fix`,
-  `upgrade` and `schema purge`; Postgres runs `CROMBOLO_PG_DUMP` or refuses
+  `upgrade` and `types purge`; Postgres runs `CROMBOLO_PG_DUMP` or refuses
   without `--backup-taken`.
-- **`schema purge --older-than <days>`** is the only thing that deletes
+- **`types purge --older-than <days>`** is the only thing that deletes
   values; it is ledgered as a contract step.
 - **The framework's steps run before the site check** in `check --fix` and
   `upgrade` — they are expand-only and ledgered, so applying them ahead of a
@@ -585,7 +585,7 @@ bunx crombolo upgrade check --set article.summary="tbc"   # one value everywhere
 bunx crombolo upgrade                       # re-check, backup, framework steps, cut over, ledger
 bunx crombolo upgrade --plan                # the DDL pending framework migrations would run
 bunx crombolo upgrade ledger                # migration_history
-bunx crombolo schema purge --older-than 90  # delete long-retired properties and their values
+bunx crombolo types purge --older-than 90  # delete long-retired properties and their values
 ```
 
 Templates are type-checked tag by tag in releases after 0.7.0: each tag's

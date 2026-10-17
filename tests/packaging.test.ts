@@ -148,7 +148,7 @@ describe('the published package set', () => {
       for (const name of Object.keys(pkg.manifest.dependencies ?? {}))
         expect(OPT_IN.has(name), `${pkg.name} depends on ${name}`).toBe(false)
     }
-    const cli = readFileSync(join(ROOT, 'packages/cli/bin/crombolo.ts'), 'utf8')
+    const cli = readFileSync(join(ROOT, 'packages/cli/src/support/umbraco.ts'), 'utf8')
     expect(cli).toContain("await import('@crombolo/import-umbraco')")
     expect(cli).not.toMatch(/^import .* from '@crombolo\/import-umbraco'/m)
   })

@@ -6,8 +6,9 @@
  *   url = "https://example.com"
  *   environment = "production"
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { writeFileAtomic } from '@crombolo/server'
 
 export const REMOTES_FILE = 'remotes.toml'
 
@@ -50,7 +51,7 @@ export function writeRemotes(siteDir: string, remotes: readonly RemoteEntry[]): 
     lines.push('', `[remotes.${remote.name}]`, `url = ${quote(remote.url)}`)
     if (remote.environment) lines.push(`environment = ${quote(remote.environment)}`)
   }
-  writeFileSync(join(siteDir, REMOTES_FILE), `${lines.join('\n')}\n`)
+  writeFileAtomic(join(siteDir, REMOTES_FILE), `${lines.join('\n')}\n`)
 }
 
 /** Adds or replaces one, refusing a name that would not survive as a TOML key. */

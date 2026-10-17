@@ -3,7 +3,7 @@
   "id": "2de473a2-d391-4161-801e-e34b202759b8",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-5e0caa815b7238c8f691bb51692c4b222e8d564fd6490366752f80b98bbd9c70",
+  "integrity": "sha256-fa7b7651e0726518570df713624c1ab29af47f7f04a615b514e29d47de301b97",
   "snapshot": "published",
   "provenance": {
     "siteName": "Basic",

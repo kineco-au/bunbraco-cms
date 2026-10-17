@@ -14,6 +14,7 @@
  */
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { CLI_MANIFEST, writeCliManifest } from './cli-manifest.ts'
 import {
   GENERATED,
   type Manifest,
@@ -129,6 +130,7 @@ for (const pkg of packages) {
   for (const file of LICENCE_FILES) copyFileSync(join(ROOT, file), join(pkg.dir, file))
   const templates = join(pkg.dir, 'templates')
   const staged = name === CLI ? stageTemplates(templates) : []
+  if (name === CLI) await writeCliManifest()
 
   try {
     await run(['bun', 'pm', 'pack', '--destination', OUT], pkg.dir, true)
@@ -173,6 +175,7 @@ for (const pkg of packages) {
   } finally {
     for (const file of LICENCE_FILES) rmSync(join(pkg.dir, file), { force: true })
     unstage(staged, templates)
+    if (name === CLI) rmSync(CLI_MANIFEST, { force: true })
   }
 }
 

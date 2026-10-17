@@ -5,7 +5,7 @@
  * new site with nothing to copy from, and leaves adding a property a matter of
  * remembering the vocabulary and inventing a uuid. These build the model; the
  * canonical writer turns it into the file, so what the CLI writes is byte for
- * byte what `schema rewrite` would.
+ * byte what `types rewrite` would.
  */
 import type { SchemaContentType, SchemaProperty, SchemaTab, SchemaTypeKind } from './model.ts'
 import { allProperties } from './model.ts'

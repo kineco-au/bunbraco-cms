@@ -10,6 +10,14 @@ We serve our copy at **`GET /umbraco/management/api/openapi.json`**, which is
 where Umbraco serves the committed contract unconditionally (the reflection-generated
 `/umbraco/openapi/management.json` is a dev-only Swagger concern we skip).
 
+The file is never edited. Where crombolo differs from it on purpose — today only
+`CreateMemberRequestModel`, whose `password` is optional (story `035`) — the
+difference is an entry in `packages/contracts/src/overrides.ts`, with its reason,
+applied by `loadSpec()` and by the served document. `loadUmbracoSpec()` reads the
+file untouched, and `tests/contract.test.ts` holds both: the file stays Umbraco's,
+and each override takes effect. The `@crombolo/contracts/OpenApi.json` export is
+the raw file.
+
 ## Routing
 
 ```

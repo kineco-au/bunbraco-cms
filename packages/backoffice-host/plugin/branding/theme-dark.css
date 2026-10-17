@@ -1,0 +1,61 @@
+/*
+ * Crombolo's dark mode (story 049): the vendored `dark.css` for every token,
+ * warmed to the brand — cocoa surfaces, cream text, terracotta accents.
+ *
+ * The theme context appends this after `theme.css` when Dark is chosen, so it
+ * overrides the light palette. `/umbraco/backoffice/…` is served wherever the
+ * back office is mounted, which is why the import can name it outright.
+ * `tests/theme.test.ts` checks the contrast of every pair below.
+ */
+@import url("/umbraco/backoffice/css/dark.css");
+
+:root {
+  --crombolo-orange: #da987c;
+  --crombolo-orange-light: #e2ae98;
+  --crombolo-ink: #f6ede4;
+  --crombolo-ink-dimmed: #c9b5a5;
+  --crombolo-night: #1f1813;
+  --crombolo-night-surface: #2a211b;
+  --crombolo-night-alt: #342922;
+  --crombolo-night-header: #2b1d15;
+  --crombolo-cocoa-deep: #25160e;
+
+  --uui-color-background: var(--crombolo-night);
+  --uui-color-surface: var(--crombolo-night-surface);
+  --uui-color-surface-alt: var(--crombolo-night-alt);
+  --uui-color-surface-emphasis: #30261f;
+  --uui-color-text: var(--crombolo-ink);
+  --uui-color-text-alt: var(--crombolo-ink-dimmed);
+  --uui-color-interactive: var(--crombolo-ink);
+  --uui-color-interactive-emphasis: var(--crombolo-orange-light);
+
+  /* The accent is light, so what sits on it is dark, as in the light mode. */
+  --uui-color-default: var(--crombolo-orange);
+  --uui-color-default-emphasis: var(--crombolo-orange-light);
+  --uui-color-default-standalone: var(--crombolo-orange);
+  --uui-color-default-contrast: var(--crombolo-cocoa-deep);
+  --uui-color-selected: var(--crombolo-orange);
+  --uui-color-selected-emphasis: var(--crombolo-orange-light);
+  --uui-color-selected-standalone: var(--crombolo-orange);
+  --uui-color-selected-contrast: var(--crombolo-cocoa-deep);
+  --uui-color-current: var(--crombolo-orange);
+  --uui-color-current-emphasis: var(--crombolo-orange-light);
+  --uui-color-current-contrast: var(--crombolo-cocoa-deep);
+  --uui-color-focus: var(--crombolo-orange);
+
+  /* A dark header with cream text; the active section's marker is the accent. */
+  --uui-color-header-surface: var(--crombolo-night-header);
+  --uui-color-header-contrast: rgb(246 237 228 / 80%);
+  --uui-color-header-contrast-emphasis: var(--crombolo-ink);
+  --crombolo-header-current: var(--crombolo-orange);
+
+  /* The SEO view's search-result preview, in Google's dark-mode link blue. */
+  --crombolo-snippet-title: #8ab4f8;
+
+  --uui-color-border: #4a3b31;
+  --uui-color-border-standalone: #8b7564;
+  --uui-color-border-emphasis: #a38c7a;
+  --uui-color-divider: #3a2e26;
+  --uui-color-divider-standalone: #4a3b31;
+  --uui-color-divider-emphasis: #5a4638;
+}

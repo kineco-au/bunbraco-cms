@@ -8,7 +8,7 @@
  * uploads it as a job — which the remote may hold for approval.
  */
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -18,8 +18,10 @@ import {
   extractTarball,
   type MediaStore,
   mediaStoreFor,
+  writeFileAtomic,
 } from '@crombolo/server'
 import { type BundleBlob, loadBundle } from '@crombolo/transfer'
+import { CliError, type ErrorKind } from '../errors.ts'
 import { type Job, problemOf, type RemoteClient, RemoteError, sha256File } from './client.ts'
 
 export type MediaMode = 'included' | 'omitted' | 'referenced'
@@ -27,8 +29,12 @@ export type MediaMode = 'included' | 'omitted' | 'referenced'
 /** A passphrase for one transfer: never shown, never stored. */
 export const transferPassphrase = () => randomBytes(24).toString('base64url')
 
-/** Refused before anything was sent: the CLI's own guard, exit code 2. */
-export class RefusedBeforeSending extends Error {}
+/** Refused before anything was sent: the CLI's own guard. */
+export class RefusedBeforeSending extends CliError {
+  constructor(kind: ErrorKind, message: string, hint?: string) {
+    super(kind, message, { hint })
+  }
+}
 
 export interface PullResult {
   job: Job
@@ -54,15 +60,18 @@ export async function pullFile(
   const env = environments.find((e) => e.id === options.environment)
   if (!env)
     throw new RefusedBeforeSending(
+      'not_found',
       `${client.discovery.name} has no environment "${options.environment}": it has ${environments.map((e) => e.id).join(', ')}.`,
     )
-  if (!env.may.pull) throw new RefusedBeforeSending(`You may not pull from ${env.name}.`)
+  if (!env.may.pull) throw new RefusedBeforeSending('refused', `You may not pull from ${env.name}.`)
   if (options.full && !env.may.pullFull)
     throw new RefusedBeforeSending(
+      'refused',
       `You may not pull a full copy of ${env.name}; pull without --full for an anonymised one.`,
     )
   if (options.media === 'referenced' && !client.discovery.capabilities.includes('media-fetch'))
     throw new RefusedBeforeSending(
+      'refused',
       `${client.discovery.name} does not serve media by reference; pull without --media-info-only.`,
     )
   const passphrase = transferPassphrase()
@@ -163,8 +172,7 @@ export async function fetchReferencedMedia(
     }
     await Promise.all(Array.from({ length: 6 }, worker))
   }
-  mkdirSync(join(options.siteDir, '.crombolo'), { recursive: true })
-  writeFileSync(join(options.siteDir, FETCHED_FILE), `${JSON.stringify(fetched, null, 2)}\n`)
+  writeFileAtomic(join(options.siteDir, FETCHED_FILE), `${JSON.stringify(fetched, null, 2)}\n`)
   return result
 }
 
@@ -192,7 +200,8 @@ export interface PushCheck {
 
 export interface PushResult {
   check: PushCheck
-  job: Job
+  /** Absent for a dry run, which stops after the check. */
+  job?: Job
 }
 
 /**
@@ -209,6 +218,8 @@ export async function pushSite(
     force?: boolean
     autoApprove?: boolean
     mediaInfoOnly?: boolean
+    /** Export and check, then stop: nothing is uploaded. */
+    dryRun?: boolean
     confirm?(check: PushCheck): Promise<boolean>
     onCheck?(check: PushCheck): void
     onProgress?(job: Job): void
@@ -222,15 +233,19 @@ export async function pushSite(
   const env = environments.find((e) => e.id === options.environment)
   if (!env)
     throw new RefusedBeforeSending(
+      'not_found',
       `${client.discovery.name} has no environment "${options.environment}".`,
     )
-  if (!env.may.push) throw new RefusedBeforeSending(`You may not push to ${env.name}.`)
-  if (env.protected && !options.force)
+  if (!env.may.push) throw new RefusedBeforeSending('refused', `You may not push to ${env.name}.`)
+  if (env.protected && !options.force && !options.dryRun)
     throw new RefusedBeforeSending(
-      `${env.name} is protected: pushing replaces what people rely on. Pass --force to go on.`,
+      'confirmation_required',
+      `${env.name} is protected: pushing replaces what people rely on.`,
+      'Pass --force to go on.',
     )
   if (options.mediaInfoOnly && !client.discovery.capabilities.includes('media-fetch'))
     throw new RefusedBeforeSending(
+      'refused',
       `${client.discovery.name} does not take media by reference; push without --media-info-only.`,
     )
 
@@ -280,9 +295,10 @@ export async function pushSite(
           sending,
         }
     options.onCheck?.(check)
+    if (options.dryRun) return { check }
     if (env.protected && !options.autoApprove) {
       const yes = (await options.confirm?.(check)) ?? false
-      if (!yes) throw new RefusedBeforeSending('Nothing was sent.')
+      if (!yes) throw new RefusedBeforeSending('refused', 'Nothing was sent.')
     }
 
     if (options.mediaInfoOnly && manifest.blobs.length > 0) {

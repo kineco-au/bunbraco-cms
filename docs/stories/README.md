@@ -107,6 +107,7 @@ not cover.
 | `032` | Two-factor sign-in | should | M | done | — |
 | `033` | Entra settings bundle | could | M | done | 031 |
 | `034` | An unattended install seeds an API client | should | S | done | 031 |
+| `035` | A member created without a password | should | S | done | 031 |
 
 ### Epic E — Cross-cutting
 
@@ -121,6 +122,7 @@ not cover.
 | `046` | Relations and relation types | could | S | done | 041 |
 | `047` | Diagnostics: health checks, telemetry, profiling and troubleshooting | could | M | done | — |
 | `048` | The rest of the contract | could | M | done | — |
+| `049` | Light and dark in the back office | should | M | done | — |
 
 ### Epic F — Headless
 
@@ -213,3 +215,22 @@ not cover.
 | `142` | Blogging basics: taxonomies, archives and feeds | should | M | ready | — |
 | `143` | Comments with moderation | could | M | ready | — |
 | `144` | Themes configured without code | could | L | ready | — |
+
+### Epic P — The command line
+
+What the CLI lacks against [clispec.dev](https://clispec.dev/) is `150`. The
+rest are what the Management API can do that a script or an operator cannot,
+short of signing in as a person. The CLI does not mirror the API: editing
+content, data types, templates and the rest stays in the back office, or in files
+under `schema/`.
+
+| # | Story | Priority | Size | State | Depends on |
+|---|---|---|---|---|---|
+| `150` | A scriptable CLI | should | L | done | — |
+| `151` | People from the command line | should | M | ready | — |
+| `152` | Operating a running site | should | M | ready | — |
+| `153` | Media in bulk | should | M | ready | — |
+| `154` | Redirects as data | could | S | ready | — |
+| `155` | Members out and in | could | M | ready | — |
+| `156` | The audit log from the command line | could | S | ready | — |
+| `157` | A docs section on the product site | should | M | ready | 150 |

@@ -57,7 +57,7 @@ export interface SyncOptions {
   componentAliases?: ReadonlySet<string>
   /** Retire a type even though documents of it exist. */
   forceRetireTypes?: boolean
-  /** Compute the report and roll back: `schema check`. */
+  /** Compute the report and roll back: `types check`. */
   dryRun?: boolean
   /**
    * `prepared` creates everything under a state no live node has reached, so it
@@ -159,7 +159,7 @@ export async function syncSchema(
     const missing = elementsWithoutKeys(set)
     if (missing.length > 0)
       return emptySyncReport('refused', {
-        reason: `production requires every element to carry a key; run \`crombolo schema sync\` in development to assign them: ${missing.join(', ')}`,
+        reason: `production requires every element to carry a key; run \`crombolo types sync\` in development to assign them: ${missing.join(', ')}`,
       })
   }
   const hash = hashSchemaSet(set)

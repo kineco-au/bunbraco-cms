@@ -39,6 +39,7 @@ import {
   resolveStaticFile,
   serveStaticFile,
 } from '@crombolo/backoffice-host'
+import { servedContract } from '@crombolo/contracts'
 import {
   CHOICE_SOURCE_KINDS,
   type ChoiceSourceKind,
@@ -184,8 +185,6 @@ import { TwoFactorService, USER_TWO_FACTOR_PROVIDER } from './two-factor.ts'
 import { summariseUpgrades } from './upgrade-summary.ts'
 import { assertViewRuntime } from './view-runtime.ts'
 import { bundleEventProblems, createWebhookService, webhookStoreView } from './webhooks.ts'
-
-const CONTRACT_PATH = Bun.resolveSync('@crombolo/contracts/OpenApi.json', import.meta.dir)
 
 export interface ServerHandle {
   config: CromboloConfig
@@ -1712,7 +1711,8 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
 
     if (pathname.startsWith(apiPrefix)) {
       if (pathname === `${apiPrefix}openapi.json`) {
-        return new Response(Bun.file(CONTRACT_PATH), {
+        // Umbraco's contract with crombolo's deliberate differences (contracts/src/overrides.ts).
+        return new Response(servedContract(), {
           headers: { 'content-type': 'application/json' },
         })
       }

@@ -15,6 +15,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { ERROR_KINDS, OUTCOMES } from '../../packages/cli/src/errors.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
@@ -226,7 +227,7 @@ describe('content transfer, end to end through the CLI', () => {
 
     // Both environments get the same schema, which is what a deploy guarantees.
     for (const database of ['source', 'target'] as const) {
-      const synced = await cli(database, 'schema', 'sync')
+      const synced = await cli(database, 'types', 'sync')
       expect(synced.code, synced.out).toBe(0)
     }
     const seeded = await seed('source', 'tree')
@@ -293,7 +294,7 @@ describe('content transfer, end to end through the CLI', () => {
       (await seed('target', 'edit', keys[1] as string, 'Edited at the destination')).code,
     ).toBe(0)
     const refused = await cli('target', 'content', 'import', bundle())
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.refused.exitCode)
     // The message a person reads, not the finding code: it has to name the node
     // and the property, and offer the three ways out.
     expect(refused.out).toContain('"Offer A" is already here and its title differs')
@@ -353,7 +354,7 @@ describe('content transfer, end to end through the CLI', () => {
     expect(reverted.out).toContain('would put it back again')
     // Reverting the same run twice is refused rather than repeated.
     const again = await cli('target', 'content', 'revert', runId)
-    expect(again.code).toBe(1)
+    expect(again.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(again.out).toContain('is reverted, so there is nothing to put back')
     expect(again.out).toContain('Nothing was changed')
   })
@@ -375,10 +376,10 @@ describe('content transfer, end to end through the CLI', () => {
     // Checking must refuse rather than report-and-continue: otherwise a bundle
     // that was copied half-way passes the gate and then gets imported.
     const result = await cli('target', 'content', 'check', broken)
-    expect(result.code, result.out).toBe(1)
+    expect(result.code, result.out).toBe(ERROR_KINDS.refused.exitCode)
     expect(result.out).toContain('integrity does not match')
     const imported = await cli('target', 'content', 'import', broken)
-    expect(imported.code, imported.out).toBe(1)
+    expect(imported.code, imported.out).toBe(ERROR_KINDS.refused.exitCode)
   })
 
   test('a path that names nothing is refused with the candidates', async () => {
@@ -392,7 +393,7 @@ describe('content transfer, end to end through the CLI', () => {
       '--out',
       join(dir, 'x'),
     )
-    expect(result.code).toBe(1)
+    expect(result.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(result.out).toContain('nothing named "Nope"')
     expect(result.out).toContain('Campaigns')
   })
@@ -466,7 +467,7 @@ describe('content transfer, end to end through the CLI', () => {
     // A person has to decide: the metadata can land without the file, but
     // nobody should find that out from a broken image.
     expect(checked.out).toContain('is not in this environment')
-    expect(checked.code).toBe(1)
+    expect(checked.code).toBe(OUTCOMES.blocked.code)
 
     const allowed = await cli('target', 'content', 'check', out, '--allow-missing-blobs')
     expect(allowed.code, allowed.out).toBe(0)
@@ -500,11 +501,11 @@ describe('content transfer, end to end through the CLI', () => {
     passphrase = 'not the passphrase it was given'
     try {
       const wrong = await cli('target', 'content', 'check', sealed)
-      expect(wrong.code).toBe(1)
+      expect(wrong.code).toBe(ERROR_KINDS.auth.exitCode)
       expect(wrong.out).toContain('passphrase does not open this bundle')
       passphrase = ''
       const none = await cli('target', 'content', 'check', sealed)
-      expect(none.code).toBe(1)
+      expect(none.code).toBe(ERROR_KINDS.auth.exitCode)
       expect(none.out).toContain('CROMBOLO_BUNDLE_PASSPHRASE')
     } finally {
       passphrase = PASSPHRASE
@@ -535,7 +536,7 @@ describe('content transfer, end to end through the CLI', () => {
       '--out',
       join(dir, 'x2'),
     )
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.usage.exitCode)
   }, 60_000)
 
   test('publishes a branch, having refused to publish half of one', async () => {
@@ -555,7 +556,7 @@ describe('content transfer, end to end through the CLI', () => {
     // A child on its own is refused: its parent is not published, and nothing
     // in this command would publish it.
     const half = await cli('target', 'content', 'publish', offerA as string)
-    expect(half.code).toBe(1)
+    expect(half.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(half.out).toContain('an ancestor is not published')
     expect(half.out).toContain('nothing was published')
     expect((await read('target', offerA as string)).published).toBe(false)
@@ -571,13 +572,13 @@ describe('content transfer, end to end through the CLI', () => {
 
   test('refuses a page it cannot find, and a date it cannot read', async () => {
     const missing = await cli('target', 'content', 'publish', '/Nowhere')
-    expect(missing.code).toBe(1)
+    expect(missing.code).toBe(ERROR_KINDS.not_found.exitCode)
     expect(missing.out).toContain('Nowhere')
 
     const seeded = await seed('target', 'tree')
     const [root] = (seeded.out.trim().split('\n').at(-1) as string).split(' ')
     const bad = await cli('target', 'content', 'publish', root as string, '--at', 'soon')
-    expect(bad.code).toBe(1)
+    expect(bad.code).toBe(ERROR_KINDS.usage.exitCode)
     expect(bad.out).toContain('not a date')
 
     // A real one is recorded as a schedule rather than published now.
@@ -597,7 +598,7 @@ describe('content transfer, end to end through the CLI', () => {
     const file = join(dir, 'dictionary.udt')
     // Nothing to export from a site with no dictionary items; prove that first.
     const empty = await cli('source', 'dictionary', 'export', '--out', file)
-    expect(empty.code).toBe(1)
+    expect(empty.code).toBe(ERROR_KINDS.not_found.exitCode)
     expect(empty.out).toContain('no dictionary items')
   })
 

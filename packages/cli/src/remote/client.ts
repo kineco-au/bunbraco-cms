@@ -55,19 +55,28 @@ export async function discover(url: string, http: typeof fetch = fetch): Promise
   try {
     response = await http(`${origin}/.well-known/crombolo-remote`)
   } catch (error) {
-    throw new Error(
-      `${origin} could not be reached: ${error instanceof Error ? error.message : error}`,
-    )
+    throw new RemoteError({
+      status: 0,
+      code: 'unreachable',
+      title: `${origin} could not be reached: ${error instanceof Error ? error.message : error}`,
+    })
   }
-  if (response.status === 404) throw new Error(`${origin} is not a crombolo remote.`)
-  if (!response.ok)
-    throw new Error(`${origin} answered ${response.status} for its discovery document.`)
+  const notARemote = () =>
+    new RemoteError({
+      status: 404,
+      code: 'not-a-remote',
+      title: `${origin} is not a crombolo remote.`,
+    })
+  if (response.status === 404) throw notARemote()
+  if (!response.ok) throw await problemOf(response)
   const body = (await response.json()) as Discovery
-  if (body.protocol !== 'crombolo-remote') throw new Error(`${origin} is not a crombolo remote.`)
+  if (body.protocol !== 'crombolo-remote') throw notARemote()
   if (!body.versions?.includes(PROTOCOL_VERSION))
-    throw new Error(
-      `${origin} speaks protocol ${body.versions?.join(', ') || 'none'}; this crombolo speaks ${PROTOCOL_VERSION}.`,
-    )
+    throw new RemoteError({
+      status: 0,
+      code: 'protocol-version',
+      title: `${origin} speaks protocol ${body.versions?.join(', ') || 'none'}; this crombolo speaks ${PROTOCOL_VERSION}.`,
+    })
   return body
 }
 

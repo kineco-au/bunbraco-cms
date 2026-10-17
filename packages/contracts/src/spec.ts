@@ -1,6 +1,7 @@
 /** Loads and indexes the vendored Umbraco Management API OpenAPI contract. */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { applyOverrides } from './overrides.ts'
 
 export const SPEC_PATH = join(import.meta.dir, '../OpenApi.json')
 
@@ -40,10 +41,23 @@ export interface OpenApiSpec {
 }
 
 let cached: OpenApiSpec | undefined
+let served: string | undefined
 
+/** Umbraco's contract exactly as vendored, before crombolo's deliberate differences. */
+export function loadUmbracoSpec(): OpenApiSpec {
+  return JSON.parse(readFileSync(SPEC_PATH, 'utf8')) as OpenApiSpec
+}
+
+/** The contract crombolo answers to: Umbraco's, with `CONTRACT_OVERRIDES` applied. */
 export function loadSpec(): OpenApiSpec {
-  if (!cached) cached = JSON.parse(readFileSync(SPEC_PATH, 'utf8')) as OpenApiSpec
+  if (!cached) cached = applyOverrides(loadUmbracoSpec())
   return cached
+}
+
+/** The contract as `GET …/openapi.json` serves it. */
+export function servedContract(): string {
+  if (!served) served = JSON.stringify(loadSpec())
+  return served
 }
 
 let deliveryCached: OpenApiSpec | undefined
@@ -55,7 +69,7 @@ export function loadDeliverySpec(): OpenApiSpec {
 }
 
 export async function loadSpecAsync(): Promise<OpenApiSpec> {
-  if (!cached) cached = (await Bun.file(SPEC_PATH).json()) as OpenApiSpec
+  if (!cached) cached = applyOverrides((await Bun.file(SPEC_PATH).json()) as OpenApiSpec)
   return cached
 }
 

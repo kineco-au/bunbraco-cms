@@ -33,6 +33,8 @@ import {
   syncSchemaDirectory,
 } from '@crombolo/server'
 import { exportBundle, PAYLOAD_DIR, writeBundle, writeBundlePackage } from '@crombolo/transfer'
+import { buildManifest } from '../packages/cli/src/manifest.ts'
+import { cliReferenceHtml } from '../packages/cli/src/reference.ts'
 import { contentPackage, copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
@@ -276,7 +278,7 @@ const BASIC: Builder = async (site) => {
         '<p>This page is content: it lives in the database and you edit it in the backoffice. ' +
           'Its <em>shape</em> is code — <code>schema/content-types/home-page.toml</code> — and the ' +
           'markup around it is <code>components/homePage.tsx</code>.</p>' +
-          '<p>Add a property to the TOML, run <code>crombolo schema check</code> to see what it would ' +
+          '<p>Add a property to the TOML, run <code>crombolo types check</code> to see what it would ' +
           'do to this page, then <code>crombolo start</code> to apply it.</p>',
       ),
     },
@@ -893,7 +895,7 @@ const CROMBOLO: Builder = async (site) => {
     },
   })
 
-  await page({
+  const developers = await page({
     key: 'fa2dd680-27ba-4811-8dc2-101cb3813c6d',
     type: 'developerPage',
     parent: home,
@@ -913,11 +915,31 @@ const CROMBOLO: Builder = async (site) => {
       steps,
       nextSteps: richtext(
         '<p>The README covers configuration, deployment, importing from Umbraco and the rest ' +
-          'of the toolkit in depth.</p>',
+          'of the toolkit in depth, and the <a href="/developers/command-line/">command line ' +
+          'reference</a> covers every command.</p>',
       ),
     },
   })
+
+  // Written from the CLI's own manifest (story 150): tests/cli-reference.test.ts
+  // fails when the commands change and this page has not been rebuilt.
+  await page({
+    key: CLI_REFERENCE_KEY,
+    type: 'developerPage',
+    parent: developers,
+    name: 'Command line',
+    values: {
+      eyebrow: 'Reference',
+      title: 'The crombolo command line',
+      standfirst:
+        'Every command, what it takes, what it changes and how it fails: the same description the CLI gives a script.',
+      nextSteps: richtext(cliReferenceHtml(await buildManifest())),
+    },
+  })
 }
+
+/** The product site's command line reference page. */
+const CLI_REFERENCE_KEY = '3c1e9b52-7d40-4f18-9a6e-150c11ec0150'
 
 const BUILDERS: Record<string, Builder> = {
   basic: BASIC,

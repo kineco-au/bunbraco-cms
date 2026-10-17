@@ -104,7 +104,7 @@ Crombolo is in active development. What is built and planned is tracked as [stor
 | **Templates** | React-style `.tsx` components rendered on the server, with layouts and partials. Editing one is picked up without a restart |
 | **The editor** | The `@umbraco-cms/backoffice` SPA, vendored unmodified and served by Bun: content, media, members, document and media types, templates, data types, dictionary, log viewer, users and permissions |
 | **The API** | The Management API the backoffice speaks, built contract-first from its OpenAPI document — a handler cannot drift from the contract without failing a test |
-| **Schema as code** | Document and media types as TOML in `schema/`. The backoffice writes the files; `schema sync` applies them |
+| **Schema as code** | Document and media types as TOML in `schema/`. The backoffice writes the files; `types sync` applies them |
 | **Upgrades** | Check, fix, then cut over, with old nodes serving reads throughout a rolling deploy |
 | **Content transfer** | Export, check and import content between environments as a bundle of files |
 | **Bundles** | Every bundle is an npm package whose `crombolo` field declares what it adds: backoffice screens, content (schema, views, content and media) and server endpoints. Build one from a slice of the site and download it as a `.tgz`, install one from the Marketplace or with `bun add`, and apply its content with `bundle install`. Server endpoints run only once the site imports them into `crombolo.config.ts` |
@@ -481,13 +481,13 @@ crombolo/
 │   ├── crombolo/                  # the package a site installs: `crombolo()`, the JSX runtime,
 │   │                              #    a `crombolo` bin that delegates to cli/, and `@crombolo/crombolo/branding`
 │   │                              #    — the marks and the palette, for a surface outside this repo
-│   ├── cli/                       # the command line, installable on its own;
-│   │                              #    templates/ holds `basic`; the distributed sites are staged in at pack time
+│   ├── cli/                       # the command line on oclif, one class per command in src/commands/; `crombolo schema`
+│   │                              #    describes it (clispec); templates/ holds `basic`, the sites staged in at pack time
 │   ├── server/                    # the composition root: config, ports, adapters, createServer, the schema store, git;
 │   │                              #    background jobs, oEmbed, the event hubs, member sign-in and public access,
 │   │                              #    the media store seam (file system, S3, Azure), imaging and the bundle installer
 │   ├── core/                      # domain primitives — problem details, notifications, paging
-│   ├── contracts/                 # OpenApi.json (vendored from Umbraco release-18.2.0) + generated types
+│   ├── contracts/                 # OpenApi.json (vendored from Umbraco release-18.2.0, never edited; src/overrides.ts) + types
 │   ├── data/                      # dialect seam, drivers, migrations, repositories, bundle tables
 │   ├── auth/                      # OAuth2 + PKCE, reference tokens, cookie redaction
 │   ├── api-management/            # contract-first router, authorization, ports, handlers

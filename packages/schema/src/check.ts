@@ -1,6 +1,6 @@
 /**
  * The pre-upgrade check: what would this change do to the data, and what does
- * it need? One function behind `crombolo upgrade check` and `crombolo schema
+ * it need? One function behind `crombolo upgrade check` and `crombolo types
  * check`. Read-only. docs/packaging-and-upgrades.md, "Three kinds of finding".
  */
 import type { ContentTypeAggregate, PropertyTypeModel } from '@crombolo/core'

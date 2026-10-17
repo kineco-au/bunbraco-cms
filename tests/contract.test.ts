@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'bun:test'
-import { findDuplicateOperationIds, listOperations, loadSpec, parsePath } from '@crombolo/contracts'
+import {
+  CONTRACT_OVERRIDES,
+  findDuplicateOperationIds,
+  listOperations,
+  loadSpec,
+  loadUmbracoSpec,
+  parsePath,
+  servedContract,
+} from '@crombolo/contracts'
 
 /**
  * These counts pin the vendored contract to Umbraco release-18.2.0. If they
@@ -59,5 +67,25 @@ describe('vendored OpenAPI contract', () => {
     const ids = new Set(listOperations(spec).map((o) => o.operationId))
     expect(ids).toContain('GetServerStatus')
     expect(ids).toContain('GetServerConfiguration')
+  })
+})
+
+describe('deliberate differences from the contract', () => {
+  const required = (spec: ReturnType<typeof loadSpec>, schema: string) =>
+    (spec.components.schemas[schema] as { required?: string[] }).required ?? []
+
+  test("the vendored file stays exactly Umbraco's; each difference is listed with its reason", () => {
+    expect(required(loadUmbracoSpec(), 'CreateMemberRequestModel')).toContain('password')
+    for (const override of CONTRACT_OVERRIDES) {
+      expect(override.reason.length).toBeGreaterThan(0)
+      expect(loadUmbracoSpec().components.schemas[override.schema]).toBeDefined()
+    }
+  })
+
+  test('a member is created without a password (story 035), in what is loaded and what is served', () => {
+    expect(required(loadSpec(), 'CreateMemberRequestModel')).not.toContain('password')
+    expect(required(loadSpec(), 'CreateMemberRequestModel')).toContain('email')
+    const served = JSON.parse(servedContract()) as ReturnType<typeof loadSpec>
+    expect(required(served, 'CreateMemberRequestModel')).not.toContain('password')
   })
 })

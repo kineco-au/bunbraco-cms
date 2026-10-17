@@ -18,31 +18,36 @@ export default function DeveloperPage(props: PageProps) {
         </div>
       </header>
 
-      <section class="section">
-        <div class="container two-col two-col--top">
-          <div>
-            <h2>{model.text('codeHeading')}</h2>
-            {model.hasValue('codeIntro') ? <p class="lead">{model.text('codeIntro')}</p> : null}
+      {/* A section with no heading is left out, so a reference page shows only its prose. */}
+      {model.hasValue('codeHeading') ? (
+        <section class="section">
+          <div class="container two-col two-col--top">
+            <div>
+              <h2>{model.text('codeHeading')}</h2>
+              {model.hasValue('codeIntro') ? <p class="lead">{model.text('codeIntro')}</p> : null}
+            </div>
+            {/* Text, not markup: the sample is escaped, so its tags show as written. */}
+            {model.hasValue('codeSample') ? (
+              <pre class="code">
+                <code>{model.text('codeSample')}</code>
+              </pre>
+            ) : null}
           </div>
-          {/* Text, not markup: the sample is escaped, so its tags show as written. */}
-          {model.hasValue('codeSample') ? (
-            <pre class="code">
-              <code>{model.text('codeSample')}</code>
-            </pre>
-          ) : null}
-        </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section class="section section--white">
-        <div class="container">
-          <h2>{model.text('toolkitHeading')}</h2>
-          <FeatureCards items={elementsOf(model, 'toolkit')} />
-        </div>
-      </section>
+      {model.hasValue('toolkitHeading') ? (
+        <section class="section section--white">
+          <div class="container">
+            <h2>{model.text('toolkitHeading')}</h2>
+            <FeatureCards items={elementsOf(model, 'toolkit')} />
+          </div>
+        </section>
+      ) : null}
 
       <section id="getting-started" class="section">
         <div class="container narrow">
-          <h2>{model.text('stepsHeading')}</h2>
+          {model.hasValue('stepsHeading') ? <h2>{model.text('stepsHeading')}</h2> : null}
           {steps.length > 0 ? (
             <ol class="steps">
               {steps.map((step) => (

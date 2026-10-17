@@ -22,6 +22,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { ERROR_KINDS, OUTCOMES } from '../../packages/cli/src/errors.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
@@ -427,7 +428,7 @@ describe('the upgrade, end to end through the CLI', () => {
 
   test('the upgrade refuses while the values have not moved, and writes nothing', async () => {
     const refused = await cli('dev', 2, 'upgrade')
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(refused.out).toContain('upgrade refused: 1 outstanding finding(s)')
     expect(refused.out).toContain('Run `crombolo upgrade check --fix`')
     expect(await stateOf('dev')).toEqual({ version: '1.0.0', revision: '1' })
@@ -545,12 +546,12 @@ describe('the upgrade, end to end through the CLI', () => {
 
   test('a change nothing can convert is refused by both the check and the upgrade', async () => {
     const check = await cli('dev', 3, 'upgrade', 'check')
-    expect(check.code).toBe(1)
+    expect(check.code).toBe(OUTCOMES.blocked.code)
     expect(check.out).toContain('change: breaking')
     expect(check.out).toContain('no converter exists')
 
     const refused = await cli('dev', 3, 'upgrade')
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(refused.out).toContain('upgrade refused')
     // Release 2 is still what is live, and still serves.
     expect(await stateOf('dev')).toEqual({ version: '1.1.0', revision: '2' })

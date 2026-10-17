@@ -44,7 +44,7 @@ alias and key does the same. What a site may not do is remove, re-alias or
 retype a field the CMS ships with — `<SeoHead>` and the sitemap read those by
 alias. The validator refuses such a file and names the field; the Management API
 refuses the same change from the backoffice. Labels, descriptions, order and
-culture variance may change. `crombolo schema export` writes the file only once
+culture variance may change. `crombolo types export` writes the file only once
 it differs from what ships.
 
 | Field | Alias | Data type |

@@ -51,7 +51,7 @@
       "segment": null,
       "editor": "Umbraco.RichText",
       "value": {
-        "markup": "<p>The README covers configuration, deployment, importing from Umbraco and the rest of the toolkit in depth.</p>",
+        "markup": "<p>The README covers configuration, deployment, importing from Umbraco and the rest of the toolkit in depth, and the <a href=\"/developers/command-line/\">command line reference</a> covers every command.</p>",
         "blocks": null
       }
     },

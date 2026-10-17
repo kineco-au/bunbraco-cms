@@ -11,6 +11,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { ERROR_KINDS } from '../../packages/cli/src/errors.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
 const CLI = join(ROOT, 'packages/cli/bin/crombolo.ts')
@@ -186,7 +187,7 @@ describe('hostnames, end to end through the CLI', () => {
     // the exit code says the command did not do everything it was asked.
     expect(set.out).toContain('wrote    domains.toml')
     expect(set.out).toContain('SITE_HOST')
-    expect(set.code).toBe(1)
+    expect(set.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(readFile('domains.toml')).toContain(PLACEHOLDER)
 
     const listed = await cli(['domains'])
@@ -241,14 +242,14 @@ describe('hostnames, end to end through the CLI', () => {
   test('refuses a page it cannot find, and writes nothing', async () => {
     const before = existsSync(domainsFile()) ? readFile('domains.toml') : ''
     const refused = await cli(['domains', 'set', '/Nowhere', '--host', 'a.example'])
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.not_found.exitCode)
     expect(refused.out).toContain('Nowhere')
     expect(existsSync(domainsFile()) ? readFile('domains.toml') : '').toBe(before)
   })
 
   test('refuses a set with nothing to set', async () => {
     const refused = await cli(['domains', 'set', '/'])
-    expect(refused.code).toBe(1)
+    expect(refused.code).toBe(ERROR_KINDS.usage.exitCode)
     expect(refused.out).toContain('--host')
   })
 })

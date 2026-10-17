@@ -31,8 +31,8 @@ const STEPS = [
   {
     title: 'Keep the schema in the repository',
     body: html`Content types, data types and templates are also files:
-      <code>schema/*.toml</code>. <code>crombolo schema sync</code> writes changes made in
-      the backoffice back out, and <code>crombolo schema check</code> tells you whether a
+      <code>schema/*.toml</code>. <code>crombolo types sync</code> writes changes made in
+      the backoffice back out, and <code>crombolo types check</code> tells you whether a
       database matches. Schema travels through Git, not a database export.`,
   },
 ]

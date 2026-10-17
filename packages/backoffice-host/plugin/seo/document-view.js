@@ -122,7 +122,8 @@ export default class CromboloSeoDocumentViewElement extends UmbLitElement {
       overflow-wrap: anywhere;
     }
     .snippet .title {
-      color: #1a0dab;
+      /* A search result's link blue: Google's own, light and dark. */
+      color: var(--crombolo-snippet-title, #1a0dab);
       font-size: 20px;
       margin: 4px 0;
     }

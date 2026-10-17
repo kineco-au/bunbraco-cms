@@ -25,6 +25,7 @@ import {
   type NodeRow,
   resolveNodeRef,
 } from '@crombolo/data'
+import { writeFileAtomic } from './atomic-write.ts'
 
 export const DOMAINS_FILE = 'domains.toml'
 
@@ -152,8 +153,8 @@ export async function writeDomains(
   const file = domainsFilePath(siteDir)
   const backup = join(siteDir, DOMAINS_BACKUP_FILE)
   const kept = existsSync(file) ? readFileSync(file, 'utf8') : undefined
-  if (kept !== undefined) await Bun.write(backup, kept)
-  await Bun.write(file, writeDomainsFile(declarations))
+  if (kept !== undefined) writeFileAtomic(backup, kept)
+  writeFileAtomic(file, writeDomainsFile(declarations))
   return { file, backup: kept === undefined ? undefined : backup }
 }
 
@@ -167,10 +168,10 @@ export async function undoDomainsFile(
     return { ok: false, file, message: `there is no ${DOMAINS_BACKUP_FILE} to go back to` }
   const previous = readFileSync(backup, 'utf8')
   const current = existsSync(file) ? readFileSync(file, 'utf8') : undefined
-  await Bun.write(file, previous)
+  writeFileAtomic(file, previous)
   // So that undo is itself undoable, which is what somebody who has just undone
   // the wrong thing needs.
-  await Bun.write(backup, current ?? '')
+  writeFileAtomic(backup, current ?? '')
   return { ok: true, file }
 }
 

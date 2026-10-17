@@ -124,6 +124,7 @@ export default class CromboloTwoFactorSetupElement extends UmbLitElement {
       width: 200px;
       height: 200px;
       margin: var(--uui-size-space-4) auto;
+      /* White in every mode: a scanner reads dark modules on a light ground. */
       background: #fff;
     }
     .secret code,

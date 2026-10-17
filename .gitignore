@@ -24,6 +24,8 @@ logs/
 # Copied beside each manifest while packing; see scripts/publish-packages.ts
 packages/*/LICENSE
 packages/*/NOTICE
+# Built while the CLI packs; see scripts/cli-manifest.ts
+packages/cli/oclif.manifest.json
 # View snapshots: cache, rebuilt from Views/ at boot, per node.
 apps/site/.crombolo/
 

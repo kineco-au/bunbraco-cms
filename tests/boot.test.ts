@@ -83,6 +83,8 @@ describe('boot sequence', () => {
     expect(response.status).toBe(200)
     const spec = await response.json()
     expect(spec.info.title).toBe('Umbraco Management API')
+    // With crombolo's deliberate differences: a member can be created without a password.
+    expect(spec.components.schemas.CreateMemberRequestModel.required).not.toContain('password')
   })
 })
 
@@ -189,7 +191,7 @@ describe.skipIf(!vendored)('vendored assets over HTTP', () => {
  * the handlers exist at all, which outside a container no behaviour reveals.
  */
 describe('shutting down', () => {
-  const cli = readFileSync(join(ROOT, 'packages/cli/bin/crombolo.ts'), 'utf8')
+  const cli = readFileSync(join(ROOT, 'packages/cli/src/support/serve.ts'), 'utf8')
 
   test('handles both signals, because as PID 1 nothing else will', () => {
     // `bun` is PID 1 under `docker compose run`, and an unhandled SIGINT or

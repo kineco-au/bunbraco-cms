@@ -371,7 +371,11 @@ group object ids, which is what the `map` keys are.
   can send `identity_provider=UmbracoMembers.<id>` to go straight to the
   provider. A user gets the backoffice session, and the login page shows a
   button per provider. `allowLocalLogin: false` makes those the only way in.
-- A member with no password shows as External only in the backoffice.
+- A member with no password shows as External only in the backoffice. A
+  provisioning job creates one through `POST /member` by leaving `password` out
+  (story `035`). Such a member cannot use the login form — it refuses them as it
+  refuses a wrong password, without counting the attempt, so guesses never lock
+  out their provider sign-in — until `PUT /member/{id}` sets a `newPassword`.
 
 For a site's own login form, `externalSignInUrl('<id>', returnUrl)` from
 `@crombolo/crombolo` is the link.
@@ -463,6 +467,52 @@ crombolo push [--force [--auto-approve]] [--media-info-only]
 - **Exit codes:** 0 done, 1 the remote refused or failed, 2 refused before
   sending, 3 gave up waiting.
 
+## Scripting the command line
+
+Every command takes `-o json` (or the older `--json`): its result is one JSON
+document on stdout, and everything else — progress, warnings, questions — goes
+to stderr in either mode. Text stays the default when the output is piped, so
+nothing that reads it today changes. `crombolo schema` describes every command
+for a machine as a [clispec](https://clispec.dev) v0.3 document: its arguments,
+whether it changes anything, what it prints, how it fails. `crombolo schema
+content import` narrows it to one. It reads no site, no network and no sign-in.
+
+A command that would ask first refuses at once when there is no terminal, with
+`confirmation_required` and the flag that answers it (`--yes`, or `--auto-approve`
+for a protected push); it never waits on stdin. `--dry-run` on `bundle purge` and
+`push` says what would go and changes nothing. `admin reset-password --stdin`
+reads the new password from a pipe, so it never sits in shell history.
+
+### Exit codes
+
+A failure exits with its kind's code, and in JSON mode the last line of stderr is
+one envelope: `{"kind", "message", "hint"?, "details"?}`. A check that finds what
+it was asked to look for exits with an outcome's code instead, with no envelope:
+its findings are its output. `packages/cli/src/errors.ts` is this table.
+
+| Code | Kind or outcome | When |
+|---|---|---|
+| 0 | | it did what was asked |
+| 1 | `internal` | something unexpected |
+| 2 | `usage` | an unknown command or flag, a missing argument, a bad value |
+| 3 | `timeout` | gave up waiting; a remote job carries on (`crombolo remote job <id>`) |
+| 4 | `auth` | not signed in, a lapsed sign-in, or a missing or wrong passphrase |
+| 5 | `not_found` | no such remote, environment, page, run, bundle, file or account |
+| 6 | `conflict` | someone else is changing it, or it exists with a different value |
+| 7 | `confirmation_required` | it would have asked, and there is no terminal |
+| 8 | `refused` | findings outstanding, a permission, a protected environment |
+| 9 | `unavailable` | the database or the remote could not be reached |
+| 10 | `io` | a file could not be read or written |
+| 20 | outcome `problems_found` | `status`, `types check`, `components check` found problems |
+| 21 | outcome `blocked` | `content check`, `upgrade check`, `import umbraco report`: a person must resolve something first |
+| 130 | `interrupted` | stopped by a signal |
+
+**Changed in 0.15.0.** Before it, nearly every failure exited 1, a refusal before
+sending exited 2, and an unknown command exited 0. A script that tested for 1
+should test for non-zero, or for the kind it means. Schema-as-code moved from
+`crombolo schema …` to `crombolo types …`; the old names still run, with a
+deprecation notice, until the next minor release.
+
 ## Security
 
 The posture is Umbraco's where the contract sets it, and stricter where the
@@ -521,7 +571,7 @@ does; if old renderers drained then, there would be a window with nothing
 healthy to serve. An expand-only change — every minor and patch, since a
 contract may only ship in a major (`packaging-and-upgrades.md`) — leaves an
 old node's reads correct, so it keeps serving until it is replaced. A
-contract (a framework contract, or `schema purge`) is ledgered as one, and a
+contract (a framework contract, or `types purge`) is ledgered as one, and a
 `web` node that is behind drains as soon as it sees one ran after it booted.
 
 ### Pausing editing

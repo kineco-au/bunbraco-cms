@@ -13,6 +13,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { ERROR_KINDS } from '../../packages/cli/src/errors.ts'
 import { DEMO_STORE } from '../support/umbraco-import.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
@@ -165,16 +166,16 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
 
   test('a backup it cannot read, or a missing argument, is refused with the reason', async () => {
     const missing = await cli(dir, 'import', 'umbraco', 'report', 'nothing.bacpac')
-    expect(missing.code).toBe(1)
+    expect(missing.code).toBe(ERROR_KINDS.refused.exitCode)
     expect(missing.out).toContain('No file at nothing.bacpac')
 
     const noOut = await cli(dir, 'import', 'umbraco', 'apply', DEMO_STORE)
-    expect(noOut.code).toBe(1)
-    expect(noOut.out).toContain('needs --out <dir>')
+    expect(noOut.code).toBe(ERROR_KINDS.usage.exitCode)
+    expect(noOut.out).toContain('flag out')
 
     const noBackup = await cli(dir, 'import', 'umbraco', 'report', '--out', 'somewhere')
-    expect(noBackup.code).toBe(1)
-    expect(noBackup.out).toContain('needs the backup')
+    expect(noBackup.code).toBe(ERROR_KINDS.usage.exitCode)
+    expect(noBackup.out).toContain('backup')
   }, 120_000)
 
   test('apply writes a whole site, and says what to do next', () => {
@@ -214,12 +215,12 @@ describe('importing an Umbraco site, end to end through the CLI', () => {
 
   test('apply refuses to write into a directory that already holds something', async () => {
     const again = await cli(dir, 'import', 'umbraco', 'apply', DEMO_STORE, '--out', site)
-    expect(again.code).toBe(1)
+    expect(again.code).toBe(ERROR_KINDS.conflict.exitCode)
     expect(again.out).toContain('is not empty')
   }, 120_000)
 
   test('the schema it wrote is valid, and every view compiles', async () => {
-    const schema = await cli(site, 'schema', 'check', '--static')
+    const schema = await cli(site, 'types', 'check', '--static')
     expect(schema.code, schema.out).toBe(0)
     expect(schema.out).toContain('25 content type(s)')
     const views = await cli(site, 'components', 'check')

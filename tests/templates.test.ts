@@ -394,10 +394,13 @@ describe('the Crombolo product site', () => {
   const template = byId('demo/crombolo')
   const components = join(template.dir, 'files', 'components')
   const nodes = templateBundle(template.dir).set?.nodes ?? []
+  // Across every node of the type: the developer guide and the command line
+  // reference are both developer pages.
   const storedValue = (type: string, alias: string) =>
     nodes
-      .find((node) => node.contentType.alias === type)
-      ?.values.find((value) => value.property === alias)?.value
+      .filter((node) => node.contentType.alias === type)
+      .flatMap((node) => node.values)
+      .find((value) => value.property === alias)?.value
 
   test('points its GitHub links at the project’s repository', () => {
     const repository = 'https://github.com/kineco-au/crombolo-cms'

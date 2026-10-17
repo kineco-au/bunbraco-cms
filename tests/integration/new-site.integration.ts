@@ -22,6 +22,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { ERROR_KINDS, OUTCOMES } from '../../packages/cli/src/errors.ts'
 import { listSites, stageTemplates } from '../../scripts/sites.ts'
 
 const ROOT = resolve(import.meta.dir, '..', '..')
@@ -255,7 +256,7 @@ describe('creating a site, end to end through the CLI', () => {
     expect(list.out).toContain('starter')
 
     const unknown = await cli('bare', 'init', '--template', 'nope')
-    expect(unknown.code).toBe(1)
+    expect(unknown.code).toBe(ERROR_KINDS.not_found.exitCode)
     expect(unknown.out).toContain('No template "nope"')
     expect(unknown.out).toContain('--template list')
   })
@@ -283,14 +284,14 @@ describe('creating a site, end to end through the CLI', () => {
     expect(start).toBe('crombolo start --bundle bundles/basic --publish')
 
     // Exactly what the scaffolded script would run.
-    const first = await serve('basic', ...start.split(' ').slice(1))
+    const first = await serve('basic', ...start.split(' ').slice(2))
     expect(first.banner).toMatch(/bundle\s+\S+: 1 created, 0 updated, 1 published/)
     const html = await page(first, '/')
     expect(html).toContain('A new crombolo site')
     expect(html).toContain('schema/content-types/home-page.toml')
     await first.stop()
 
-    const second = await serve('basic', ...start.split(' ').slice(1))
+    const second = await serve('basic', ...start.split(' ').slice(2))
     expect(second.banner).toContain('already imported')
     expect(second.banner).not.toContain('1 created')
     // And the content is still there, imported once.
@@ -418,9 +419,9 @@ describe('creating a site, end to end through the CLI', () => {
     const scaffolded = await scaffold('scaffold', '--name', 'Scaffold Test')
     expect(scaffolded.code, scaffolded.out).toBe(0)
 
-    // No types at all, which is where `schema new` earns its place: there is
+    // No types at all, which is where `types new` earns its place: there is
     // nothing in the directory to copy from.
-    const created = await cli('scaffold', 'schema', 'new', 'content-type', 'note', '--at-root')
+    const created = await cli('scaffold', 'types', 'new', 'content-type', 'note', '--at-root')
     expect(created.code, created.out).toBe(0)
     expect(created.out).toContain('schema/content-types/note.toml')
     expect(created.out).toContain('components/note.tsx')
@@ -443,7 +444,7 @@ describe('creating a site, end to end through the CLI', () => {
 
     // The file it wrote is one the static check accepts, which is the gate a
     // pull request runs, and `generate` types the property for a view.
-    const check = await cli('scaffold', 'schema', 'check', '--static')
+    const check = await cli('scaffold', 'types', 'check', '--static')
     expect(check.code, check.out).toBe(0)
     const generated = await cli('scaffold', 'generate')
     expect(generated.code, generated.out).toBe(0)
@@ -461,7 +462,7 @@ describe('creating a site, end to end through the CLI', () => {
       '--type',
       'textarea',
     )
-    expect(again.code).toBe(1)
+    expect(again.code).toBe(ERROR_KINDS.conflict.exitCode)
     expect(again.out).toContain('already has a property')
   }, 60_000)
 
@@ -486,7 +487,7 @@ describe('creating a site, end to end through the CLI', () => {
     writeFileSync(view, 'export default function Broken() {\n  return <p>{oops\n}\n')
     try {
       const checked = await cli('demo', 'components', 'check')
-      expect(checked.code).toBe(1)
+      expect(checked.code).toBe(OUTCOMES.problems_found.code)
       expect(checked.out).toMatch(/components\/broken\.tsx:\d+/)
     } finally {
       rmSync(view, { force: true })
@@ -498,7 +499,7 @@ describe('creating a site, end to end through the CLI', () => {
     rmSync(moved)
     try {
       const checked = await cli('demo', 'components', 'check')
-      expect(checked.code).toBe(1)
+      expect(checked.code).toBe(OUTCOMES.problems_found.code)
       expect(checked.out).toContain('declares the component "pages/whiskyList"')
     } finally {
       writeFileSync(moved, kept)
@@ -525,7 +526,7 @@ describe('creating a site, end to end through the CLI', () => {
 
     // Written once: a second attempt refuses rather than overwriting.
     const again = await cli('demo', 'assets', 'new', 'stylesheet', 'print.css')
-    expect(again.code).toBe(1)
+    expect(again.code).toBe(ERROR_KINDS.conflict.exitCode)
     expect(again.out).toContain('already exists')
 
     // It is a component, not a template: no content type names it.
@@ -543,7 +544,7 @@ describe('creating a site, end to end through the CLI', () => {
     const status = await cli('status', 'status')
     // Nothing is installed yet, so it says so and exits non-zero: a deploy step
     // can use this as a gate.
-    expect(status.code).toBe(1)
+    expect(status.code).toBe(OUTCOMES.problems_found.code)
     expect(status.out).toContain('Status Test')
     expect(status.out).toContain('no database yet')
     expect(status.out).toContain('crombolo')
@@ -577,7 +578,7 @@ describe('creating a site, end to end through the CLI', () => {
   }, 60_000)
 
   test('and its schema is valid on its own terms, as a pull request would check', async () => {
-    const check = await cli('demo', 'schema', 'check', '--static')
+    const check = await cli('demo', 'types', 'check', '--static')
     expect(check.code, check.out).toBe(0)
     expect(check.out).toContain('valid')
   })
@@ -648,7 +649,8 @@ describe('creating a site, end to end through the CLI', () => {
       if (done) break
       output += decoder.decode(value)
     }
-    // The handler announces itself; the default death would have said nothing.
+    // The handler announces itself, on stderr; the default death would have said nothing.
+    output += await new Response(proc.stderr as ReadableStream<Uint8Array>).text()
     expect(output, output.slice(-400)).toContain('Stopping (SIGTERM)')
     // A clean stop, not the 128+15 a shell reports for an unhandled SIGTERM.
     expect(code).toBe(0)

@@ -72,6 +72,11 @@ Listed so they are not mistaken for gaps:
   exactly Umbraco's behaviour without a package.
 - **snake_case** rules out importing an existing Umbraco database, **every save is
   a version** (Umbraco versions only on publish), and **rollback appends**.
+- **`POST /member` takes no `password`** for a member who will only sign in
+  through an identity provider, made exactly as external sign-in makes one
+  (story `035`). The served contract marks it optional; `OpenApi.json` itself
+  stays Umbraco's, and each such difference is listed with its reason in
+  `packages/contracts/src/overrides.ts`.
 - **Load balancing** goes through `cache_instruction` polling rather than
   Umbraco's distributed cache, and tokens are hashed database references, so
   there are no data-protection keys to share.

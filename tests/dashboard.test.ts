@@ -80,6 +80,9 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(ours).toBeDefined()
     const aliases = ours?.extensions.map((e) => `${e.type}:${e.alias}`) ?? []
     expect(aliases).toEqual([
+      'theme:Crombolo.Theme.Dark',
+      'theme:Crombolo.Theme.System',
+      'headerApp:Crombolo.HeaderApp.Theme',
       'entityUserPermission:Crombolo.UserPermission.Remote.Pull',
       'entityUserPermission:Crombolo.UserPermission.Remote.PullFull',
       'entityUserPermission:Crombolo.UserPermission.Remote.Push',
@@ -145,7 +148,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     expect(installed?.overwrites).toEqual(['Umb.SectionView.Packages.Installed'])
     const created = ours?.extensions.find((e) => e.alias === 'Crombolo.SectionView.Bundles.Created')
     expect(created?.overwrites).toEqual(['Umb.SectionView.Packages.Builder'])
-    // Four kinds of extension have no module of their own: a `section`, which is
+    // Five kinds of extension have no module of their own: a `theme`, which is a
+    // stylesheet (story 049); a `section`, which is
     // a route and a label, a `propertyEditorSchema`, which declares a
     // server-side editor alias and its default UI; a header app of `kind:
     // 'button'`, whose element the client supplies; and an
@@ -154,6 +158,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
     // class — `api`.
     const moduleless = ours?.extensions.filter((e) => !e.element && !e.js && !e.api) ?? []
     expect(moduleless.map((e) => e.alias)).toEqual([
+      'Crombolo.Theme.Dark',
+      'Crombolo.Theme.System',
       'Crombolo.UserPermission.Remote.Pull',
       'Crombolo.UserPermission.Remote.PullFull',
       'Crombolo.UserPermission.Remote.Push',
@@ -164,6 +170,8 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'Crombolo.Section.Workflow',
     ])
     expect(moduleless.map((e) => e.type)).toEqual([
+      'theme',
+      'theme',
       'entityUserPermission',
       'entityUserPermission',
       'entityUserPermission',

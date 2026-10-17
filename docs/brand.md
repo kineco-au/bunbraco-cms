@@ -40,6 +40,27 @@ is 3.0:1. So the accent fill is a lighter tint that cocoa text clears AA on, at
 4.7:1. The product site's stylesheet (`sites/crombolo/css/site.css`) uses the
 same family, with its own `--terracotta-*` tokens.
 
+### Dark
+
+The back office's dark mode (story 049) is `plugin/branding/theme-dark.css`: the
+vendored `dark.css` for every token, then the brand on top of it.
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `--crombolo-night` | `#1f1813` | The page ground |
+| `--crombolo-night-surface` | `#2a211b` | Panels |
+| `--crombolo-night-alt` | `#342922` | The alternate surface |
+| `--crombolo-night-header` | `#2b1d15` | The header bar |
+| `--crombolo-ink` | `#f6ede4` | Text and icons |
+| `--crombolo-ink-dimmed` | `#c9b5a5` | Secondary text |
+| `--crombolo-orange` | `#da987c` | Accent fill, focus ring and the active section, as in light |
+| `--crombolo-cocoa-deep` | `#25160e` | Text on the accent |
+
+Cream text clears 13:1 on the panels, and the accent's dark text clears 7.3:1.
+`tests/theme.test.ts` checks every pair against WCAG AA. "Match my system"
+(`theme-system.css`) is the dark palette behind `prefers-color-scheme: dark`.
+High contrast stays Umbraco's own.
+
 ## Keeping Umbraco's name out
 
 Nothing a person sees in the backoffice names Umbraco. Three layers do this,

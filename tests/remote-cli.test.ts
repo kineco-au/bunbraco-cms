@@ -252,7 +252,7 @@ describe(`pull, change, push (${dialectUnderTest})`, () => {
 
     const pushed = await pushSite(local, client, { environment: 'production', ...noWait })
     expect(pushed.check.fromRemote).toBe(true)
-    expect(pushed.job.state).toBe('done')
+    expect(pushed.job?.state).toBe('done')
     const after = await h.json<{ variants: { name: string }[] }>(`${V1}/document/${home}`)
     expect(after.variants[0]?.name).toBe('Home, changed locally')
   })
@@ -297,7 +297,7 @@ describe(`pull, change, push (${dialectUnderTest})`, () => {
       ...noWait,
     })
     expect(approval).toContain('/remote-approval?job=')
-    expect(result.job.state).toBe('done')
+    expect(result.job?.state).toBe('done')
   })
 
   test('a person who may not pull is refused before anything is asked for', async () => {
@@ -366,7 +366,7 @@ describe(`media by reference (${dialectUnderTest})`, () => {
       },
       ...noWait,
     })
-    expect(pushed.job.state).toBe('done')
+    expect(pushed.job?.state).toBe('done')
     expect(uploads).toBe(1)
     expect([...((await (await remoteStore.get(key as string))?.bytes()) ?? [])]).toEqual([4, 2])
   })

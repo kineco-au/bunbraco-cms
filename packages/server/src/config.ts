@@ -230,7 +230,7 @@ export interface CromboloConfig {
    * CROMBOLO_SCHEMA_WRITABLE says otherwise outright.
    */
   schemaWritable: boolean
-  /** Sync `schema/` at boot; a pipeline that runs `crombolo schema sync` turns this off. */
+  /** Sync `schema/` at boot; a pipeline that runs `crombolo types sync` turns this off. */
   syncSchemaAtBoot: boolean
   /** Which database engine; from CROMBOLO_DB. */
   dialect: 'sqlite' | 'postgres'
@@ -739,4 +739,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.14.4'
+export const VERSION = '0.15.0'

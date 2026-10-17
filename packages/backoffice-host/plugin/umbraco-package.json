@@ -2,9 +2,31 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo",
   "id": "Crombolo.Core",
-  "version": "0.14.4",
+  "version": "0.15.0",
   "allowPublicAccess": false,
   "extensions": [
+    {
+      "type": "theme",
+      "alias": "Crombolo.Theme.Dark",
+      "name": "Dark",
+      "css": "/crombolo-plugin/branding/theme-dark.css",
+      "weight": 200,
+      "overwrites": "umb-dark-theme"
+    },
+    {
+      "type": "theme",
+      "alias": "Crombolo.Theme.System",
+      "name": "Match my system",
+      "css": "/crombolo-plugin/branding/theme-system.css",
+      "weight": 250
+    },
+    {
+      "type": "headerApp",
+      "alias": "Crombolo.HeaderApp.Theme",
+      "name": "Light or dark",
+      "element": "/crombolo-plugin/theme-switch.js",
+      "weight": 850
+    },
     {
       "type": "entityUserPermission",
       "alias": "Crombolo.UserPermission.Remote.Pull",
@@ -55,7 +77,10 @@
       "name": "Crombolo Signed-in Devices",
       "element": "/crombolo-plugin/signed-in-devices.js",
       "weight": 100,
-      "meta": { "label": "Signed-in devices", "pathname": "devices" }
+      "meta": {
+        "label": "Signed-in devices",
+        "pathname": "devices"
+      }
     },
     {
       "type": "mfaLoginProvider",
@@ -63,7 +88,9 @@
       "name": "Crombolo Authenticator App",
       "forProviderName": "UmbracoUserAppAuthenticator",
       "element": "/crombolo-plugin/two-factor-setup.js",
-      "meta": { "label": "Authenticator app" }
+      "meta": {
+        "label": "Authenticator app"
+      }
     },
     {
       "type": "sectionView",

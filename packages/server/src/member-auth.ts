@@ -359,7 +359,11 @@ export function createMemberAuth(
     // Checked before the password, so the answer never depends on whether the
     // password was right; the same throwaway verify as above keeps the time taken
     // from saying what the response does not.
-    if (member.isLockedOut || !member.isApproved) {
+    // A member with no password signs in only through a provider (story 035).
+    // Refused like a wrong password, in the same time, and not counted: a
+    // stranger's guesses must not lock out the provider sign-in, nor say that
+    // the account has no password.
+    if (member.isLockedOut || !member.isApproved || !member.passwordHash) {
       await verifyPassword(input.password ?? '', await hashPassword(crypto.randomUUID()))
       return failed()
     }

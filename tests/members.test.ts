@@ -11,7 +11,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Principal } from '@crombolo/api-management'
-import { SYSTEM_MEMBER_TYPE } from '@crombolo/data'
+import { MemberRepository, SYSTEM_MEMBER_TYPE } from '@crombolo/data'
 import { createMemberPort } from '@crombolo/server'
 import { type Harness, signedInServer, V1 } from './support/harness.ts'
 
@@ -201,7 +201,6 @@ describe(`members (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
     const { h, create } = await site()
     expect((await create({ username: 'x', password: 'p' })).status).toBe(400)
     expect((await create({ email: 'x@y.z', password: 'p' })).status).toBe(400)
-    expect((await create({ email: 'x@y.z', username: 'x' })).status).toBe(400)
     expect(
       (
         await create({
@@ -213,6 +212,83 @@ describe(`members (${process.env.CROMBOLO_DB ?? 'sqlite'})`, () => {
       ).status,
     ).toBe(404)
     expect((await h.call(`${V1}/member/${crypto.randomUUID()}`)).status).toBe(404)
+  })
+
+  test('a create with no password, or an empty one, makes a member who signs in only through a provider', async () => {
+    const { h, create } = await site()
+    const keys: string[] = []
+    for (const [username, extra] of [
+      ['sso-only', {}],
+      ['sso-empty', { password: '' }],
+    ] as const) {
+      const response = await create({ email: `${username}@example.test`, username, ...extra })
+      expect(response.status, await response.clone().text()).toBe(201)
+      keys.push(response.headers.get('umb-generated-resource') as string)
+    }
+    const members = new MemberRepository(h.server.db)
+    for (const [index, key] of keys.entries()) {
+      const read = await h.json<MemberResponse & { lastPasswordChangeDate: string | null }>(
+        `${V1}/member/${key}`,
+      )
+      expect(read.kind).toBe('ExternalOnly')
+      expect(read.lastPasswordChangeDate).toBeNull()
+      const stored = await members.byUsername(index === 0 ? 'sso-only' : 'sso-empty')
+      expect(stored?.passwordHash ?? null).toBeNull()
+    }
+    // The validate endpoint follows the save.
+    expect(
+      (
+        await h.post(`${V1}/member/validate`, {
+          email: 'another@example.test',
+          username: 'another',
+          memberType: { id: SYSTEM_MEMBER_TYPE.key },
+          isApproved: true,
+          values: [],
+          variants: [{ culture: null, segment: null, name: 'Another' }],
+        })
+      ).status,
+    ).toBe(200)
+  })
+
+  test('a member with no password gets one only when one is set deliberately', async () => {
+    const { h, create } = await site()
+    const make = async (username: string) => {
+      const response = await create({ email: `${username}@example.test`, username })
+      return response.headers.get('umb-generated-resource') as string
+    }
+    const body = (username: string) => ({
+      email: `${username}@example.test`,
+      username,
+      isApproved: true,
+      isLockedOut: false,
+      isTwoFactorEnabled: false,
+      groups: [],
+      values: [],
+      variants: [{ culture: null, segment: null, name: username }],
+    })
+    const given = await make('given')
+    expect(
+      (
+        await h.put(`${V1}/member/${given}`, {
+          ...body('given'),
+          newPassword: 'correct-horse-battery',
+        })
+      ).status,
+    ).toBe(200)
+    expect((await h.json<MemberResponse>(`${V1}/member/${given}`)).kind).toBe('Default')
+
+    // There is no current password to prove, so one offered is wrong.
+    const claimed = await make('claimed')
+    expect(
+      (
+        await h.put(`${V1}/member/${claimed}`, {
+          ...body('claimed'),
+          oldPassword: 'anything at all',
+          newPassword: 'correct-horse-battery',
+        })
+      ).status,
+    ).toBe(400)
+    expect((await h.json<MemberResponse>(`${V1}/member/${claimed}`)).kind).toBe('ExternalOnly')
   })
 
   test('the collection filters by type, group, approval, lockout and text, and orders', async () => {

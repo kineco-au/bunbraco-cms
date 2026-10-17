@@ -1,5 +1,5 @@
 /**
- * `schema new` and `schema add-property`: the model they build.
+ * `types new` and `types add-property`: the model they build.
  *
  * What matters is that the file they produce is one the rest of the system
  * accepts — parsed back to the same type, valid, and carrying the keys

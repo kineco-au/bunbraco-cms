@@ -162,11 +162,11 @@ The files are the source, so somebody has to write the first one. Two commands
 do it rather than leaving a new site to copy a type out of the documentation:
 
 ```bash
-crombolo schema new content-type article --at-root
-crombolo schema add-property article summary --type textarea --mandatory
+crombolo types new content-type article --at-root
+crombolo types add-property article summary --type textarea --mandatory
 ```
 
-`schema new` writes the type with its keys already in it — so the file passes
+`types new` writes the type with its keys already in it — so the file passes
 the production rules on the first deploy rather than needing a development sync
 to fill them in — and the `components/<alias>.tsx` it declares. `--element` writes a
 Library element type, which has no URL and so no template. Media and member
@@ -178,7 +178,7 @@ files, through the same sync a boot runs — which means in production both are
 subject to the same gate as any other schema change: a version bump, or a newer
 revision, or the sync refuses and says so.
 
-The file is re-emitted from the model, exactly as `schema rewrite` does, so a
+The file is re-emitted from the model, exactly as `types rewrite` does, so a
 comment in it is not kept. The command says so when it has removed any, and
 `--dry-run` prints the file instead of writing it.
 
@@ -428,7 +428,7 @@ wrong in a multi-node deployment, so the design is version-gated and locked.
 | Boot | every node, after framework migrations | yes — under a distributed lock, version-gated |
 | File change | development only, single node | yes |
 | Backoffice write-back | development only | writes the file; the watcher syncs it |
-| `crombolo schema sync` | a deploy pipeline step | yes; with `CROMBOLO_SYNC_SCHEMA_AT_BOOT=false`, nodes then only record their state |
+| `crombolo types sync` | a deploy pipeline step | yes; with `CROMBOLO_SYNC_SCHEMA_AT_BOOT=false`, nodes then only record their state |
 | Production | — | files are read-only; schema changes arrive by deploying files |
 
 The last row keeps multi-node coherent: in production the only way schema
@@ -473,12 +473,12 @@ node allowed to write is one whose files are at least as new as the database.
 **Production requires a version bump for any schema change.** Same version,
 different hash, in production: refuse to boot, naming the files that differ.
 In development it simply applies. This makes the first rule airtight and gives
-`crombolo schema check` something concrete to enforce in CI — files parse, keys
+`crombolo types check` something concrete to enforce in CI — files parse, keys
 present, version bumped when content changed.
 
 **Keys are written in development and required in production.** Writing a
 generated `key` back into a file is a development convenience; a production
-node cannot write files. So `schema check` fails any file without a key, and a
+node cannot write files. So `types check` fails any file without a key, and a
 key is never minted on a production node — which is what stops two nodes from
 minting different keys for one alias.
 
@@ -510,13 +510,13 @@ Removing a property from a file does **not** delete anything:
   writes its key back — so "I deleted it; put it back" simply works. If it
   returns with a different data type, `check` flags a data-requiring change,
   and the old values are still there, in the old storage column, to migrate.
-- **Purge is separate, explicit and rare**: `crombolo schema purge
+- **Purge is separate, explicit and rare**: `crombolo types purge
   --older-than 90d` deletes retired property types and their data. It is a
   contract step — ledgered, shown by `upgrade --plan`, never automatic.
 
 Types are stricter, because hiding whole pages is a content decision rather than
 a schema one: a type file disappearing while content of that type exists still
-refuses to boot, as above, unless `crombolo schema sync --force-retire-types`
+refuses to boot, as above, unless `crombolo types sync --force-retire-types`
 retires it deliberately. Its documents stay where they are and still load —
 moving them to the recycle bin is a content decision, made in the backoffice.
 
@@ -566,7 +566,7 @@ inside the 5 s interval.
 
 ### The other direction
 
-`crombolo schema export` writes the database's current definitions as canonical
+`crombolo types export` writes the database's current definitions as canonical
 files. It is how an existing site adopts schema-as-code, and how story `005`'s
 fixtures moved to files in story `011`. Built-in data types are exported only when the
 site changed their editor or configuration; a data type created in the
@@ -612,7 +612,7 @@ output is a diffable text file that developers review like any other change.
   can be typed as `PageProps<HomePage>` (see "Typed pages" in `rendering.md`).
   This replaces the ModelsBuilder idea from `features.md`.
 - **A framework upgrade that changes the vocabulary rewrites the files.** Because
-  we own the canonical writer, `crombolo upgrade schema` can migrate every file
+  we own the canonical writer, `crombolo types rewrite` can migrate every file
   to the new vocabulary, and the result is a reviewable commit.
 
 ## Schema as code
@@ -634,18 +634,18 @@ database under a distributed lock, version-gated (`docs/schema-as-code.md`):
   database runs in compatibility mode: reads only, writes refused with 409.
 
 ```bash
-bunx crombolo schema new content-type article --at-root   # the file, with keys, and its view
-bunx crombolo schema add-property article summary --type textarea --mandatory
-bunx crombolo schema check --static   # parse and validate, no database
-bunx crombolo schema check            # …and report what a sync would do
-bunx crombolo schema sync             # apply (a deploy step, or leave it to boot)
-bunx crombolo schema export           # database → canonical files (adopting an existing site)
+bunx crombolo types new content-type article --at-root   # the file, with keys, and its view
+bunx crombolo types add-property article summary --type textarea --mandatory
+bunx crombolo types check --static   # parse and validate, no database
+bunx crombolo types check            # …and report what a sync would do
+bunx crombolo types sync             # apply (a deploy step, or leave it to boot)
+bunx crombolo types export           # database → canonical files (adopting an existing site)
 bunx crombolo generate                # schema/content-types.d.ts for typed views
 ```
 
-`schema new` writes the type file — keys filled in, so it passes the production
+`types new` writes the type file — keys filled in, so it passes the production
 rules — and the `components/<alias>.tsx` it points at, then applies it. `--element`
 writes a Library element type instead, which has no URL and so no view.
 `add-property` appends one property and applies that; it re-emits the file
-canonically, as `schema rewrite` does, so a comment in it is not kept and the
+canonically, as `types rewrite` does, so a comment in it is not kept and the
 command says so. `--dry-run` prints the file instead of writing it.
