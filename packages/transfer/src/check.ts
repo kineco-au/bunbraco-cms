@@ -256,6 +256,17 @@ export async function checkBundle(
   const nodeState = { version: state.version, revision: state.revision }
   const docs = new DocumentRepository(db, { nodeState })
   const nodes = docs.nodes
+  // Each kind reads through its own repository, as the import writes it: a
+  // document repository reads an element or a media item back without values,
+  // which made every one in a reinstalled bundle look edited here.
+  const byKind = new Map<BundleNode['kind'], DocumentRepository>([['document', docs]])
+  const repoFor = (kind: BundleNode['kind']): DocumentRepository => {
+    const found = byKind.get(kind)
+    if (found) return found
+    const repo = new DocumentRepository(db, { nodeState, kind })
+    byKind.set(kind, repo)
+    return repo
+  }
   const types = new ContentTypeRepository(db)
   // Media types are a separate object type, so a repository reading document
   // types cannot see one. A bundle names its types in one flat list, without
@@ -617,7 +628,7 @@ export async function checkBundle(
     }
 
     // What the bundle would actually change, property by property.
-    const current = await docs.byKey(node.key)
+    const current = await repoFor(node.kind).byKey(node.key)
     const currentByKey = new Map(
       (current?.values ?? []).map((v) => [`${v.alias}|${v.culture ?? ''}|${v.segment ?? ''}`, v]),
     )

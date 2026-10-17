@@ -182,9 +182,11 @@ See [`forms.md`](../../forms.md), "An e-mail template", and
 
 ### Decisions made while building
 
-- **What the picker counts as an e-mail template:** a component whose source
-  names `EmailProps`, plus any alias a form already names. Nothing turns on the
-  folder, as elsewhere; a layout (typed `EmailLayoutProps`) is not offered.
+- **What the picker counts as an e-mail template:** a component in
+  `components/emails/`, plus any alias a form already names; a layout there
+  (typed `EmailLayoutProps`) is not offered. `crombolo components new emails/…`
+  writes the e-mail scaffold on the folder alone. Chosen over detecting
+  `EmailProps` in the source, which offered any shared part that took it.
 - **A left-out field in the default body** reads "(sensitive, not included)",
   so the reader knows there was an answer; in `{alias}` substitution it becomes
   empty rather than staying as written.

@@ -1,0 +1,35 @@
+{
+  "key": "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
+  "kind": "document",
+  "contentType": {
+    "key": "bb2beab4-5b54-4b43-a471-adbd625968d5",
+    "alias": "docsSection"
+  },
+  "parent": "1f9d8eb5-4a8d-448d-bedc-a84f33ddab21",
+  "sortOrder": 1,
+  "template": "pages/docsSection",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Docs",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Guides to building and running a crombolo site, and a reference generated from the product itself."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Crombolo docs"
+    }
+  ]
+}

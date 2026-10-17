@@ -1,0 +1,59 @@
+{
+  "key": "a05f0143-68ce-4242-8266-7db386b6747b",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 5,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Importing from Umbraco",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"import\"><code>crombolo import</code></h2>\n<p>Replace this site with a whole-site file; says what first. Each run acts again.</p>\n<pre><code>crombolo import &lt;file&gt; [--replace] [--replace-all] [--yes] [--allow-missing-media] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>file</code></td><td>A whole-site file (crombolo export --site). Required.</td></tr><tr><td><code>--replace</code></td><td>Replace this site: what it loses is recycled, people kept.</td></tr><tr><td><code>--replace-all</code></td><td>Make it exactly the file: what it loses is deleted, people too.</td></tr><tr><td><code>--yes</code></td><td>With --replace-all: don't ask.</td></tr><tr><td><code>--allow-missing-media</code></td><td>Import media items whose files the file does not carry.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"import-umbraco-apply\"><code>crombolo import umbraco apply</code></h2>\n<p>Write a crombolo site from an Umbraco backup. Each run acts again.</p>\n<pre><code>crombolo import umbraco apply &lt;backup&gt; [--site &lt;site&gt;] [--media &lt;media&gt;] [--name &lt;name&gt;] [--drafts] [--staging &lt;staging&gt;] [--with-members] [--with-users] [--include-content] [--allow-content-unencrypted] --out &lt;out&gt; [--postgres] [--force]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>backup</code></td><td>A .bacpac, or Umbraco's SQLite file. Required.</td></tr><tr><td><code>--site</code></td><td>The Umbraco site's files, for its views, media and plugins.</td></tr><tr><td><code>--media</code></td><td>Where its media files are, if not under --site.</td></tr><tr><td><code>--name</code></td><td>The new site's name.</td></tr><tr><td><code>--drafts</code></td><td>Bring drafts too.</td></tr><tr><td><code>--staging</code></td><td>Where to unpack a .bacpac.</td></tr><tr><td><code>--with-members</code></td><td>Bring members, encrypted.</td></tr><tr><td><code>--with-users</code></td><td>Bring back-office users, encrypted.</td></tr><tr><td><code>--include-content</code></td><td>Bring property values and media files, encrypted under a passphrase.</td></tr><tr><td><code>--allow-content-unencrypted</code></td><td>With --include-content: write them readable.</td></tr><tr><td><code>--out</code></td><td>The site directory to write. Required.</td></tr><tr><td><code>--postgres</code></td><td>Configure Postgres.</td></tr><tr><td><code>--force</code></td><td>Write into a directory that is not empty.</td></tr></tbody></table>\n<h2 id=\"import-umbraco-report\"><code>crombolo import umbraco report</code></h2>\n<p>Read-only: what importing an Umbraco backup would bring, and what it would not. Changes nothing.</p>\n<pre><code>crombolo import umbraco report &lt;backup&gt; [--site &lt;site&gt;] [--media &lt;media&gt;] [--name &lt;name&gt;] [--drafts] [--staging &lt;staging&gt;] [--with-members] [--with-users] [--include-content] [--allow-content-unencrypted] [--out &lt;out&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>backup</code></td><td>A .bacpac, or Umbraco's SQLite file. Required.</td></tr><tr><td><code>--site</code></td><td>The Umbraco site's files, for its views, media and plugins.</td></tr><tr><td><code>--media</code></td><td>Where its media files are, if not under --site.</td></tr><tr><td><code>--name</code></td><td>The new site's name.</td></tr><tr><td><code>--drafts</code></td><td>Bring drafts too.</td></tr><tr><td><code>--staging</code></td><td>Where to unpack a .bacpac.</td></tr><tr><td><code>--with-members</code></td><td>Bring members, encrypted.</td></tr><tr><td><code>--with-users</code></td><td>Bring back-office users, encrypted.</td></tr><tr><td><code>--include-content</code></td><td>Bring property values and media files, encrypted under a passphrase.</td></tr><tr><td><code>--allow-content-unencrypted</code></td><td>With --include-content: write them readable.</td></tr><tr><td><code>--out</code></td><td>Also write report.md and report.json here.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Bring an Umbraco site’s content types, content and media across."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Importing from Umbraco"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "import"
+    }
+  ]
+}

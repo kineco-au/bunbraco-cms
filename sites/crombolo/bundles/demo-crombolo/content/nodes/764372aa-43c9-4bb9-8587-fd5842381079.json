@@ -1,0 +1,28 @@
+{
+  "key": "764372aa-43c9-4bb9-8587-fd5842381079",
+  "kind": "document",
+  "contentType": {
+    "key": "7ac5464d-4ce4-4d47-8b4c-6fc4faf29911",
+    "alias": "searchPage"
+  },
+  "parent": "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
+  "sortOrder": 3,
+  "template": "pages/searchPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Search",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Search the docs"
+    }
+  ]
+}

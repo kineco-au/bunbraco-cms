@@ -1,0 +1,59 @@
+{
+  "key": "43ff870b-8511-477f-8dd0-cc9d2edc5727",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "3d525785-ea12-44ab-890b-fdcb049d9d1b",
+  "sortOrder": 2,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Exit codes",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"codes\">The codes</h2>\n<p>A command that succeeds exits with <code>0</code>. A failure exits with its kind's code, and a check that finds what it looks for exits with an outcome's code, its findings being its output.</p>\n<table><thead><tr><th>Code</th><th>Kind</th><th>When</th></tr></thead><tbody><tr><td>1</td><td><code>internal</code></td><td>Something unexpected went wrong.</td></tr><tr><td>2</td><td><code>usage</code></td><td>The arguments are wrong: an unknown command or flag, or one missing.</td></tr><tr><td>3</td><td><code>timeout</code></td><td>Gave up waiting. A remote job carries on at the remote.</td></tr><tr><td>4</td><td><code>auth</code></td><td>Not signed in, the sign-in has lapsed, or a passphrase is missing or wrong.</td></tr><tr><td>5</td><td><code>not_found</code></td><td>No such remote, environment, page, run, bundle, file or account.</td></tr><tr><td>6</td><td><code>conflict</code></td><td>Someone else is changing it, or it exists with a different value.</td></tr><tr><td>7</td><td><code>confirmation_required</code></td><td>It would have asked first, and there is no terminal to ask on.</td></tr><tr><td>8</td><td><code>refused</code></td><td>The site or the remote said no: findings outstanding, a permission, a protected environment.</td></tr><tr><td>9</td><td><code>unavailable</code></td><td>The database or the remote could not be reached.</td></tr><tr><td>10</td><td><code>io</code></td><td>A file could not be read or written.</td></tr><tr><td>20</td><td><code>problems_found</code></td><td>The check found problems: <code>status</code>, <code>types check</code>, <code>components check</code>.</td></tr><tr><td>21</td><td><code>blocked</code></td><td>Something must be resolved by a person first: <code>content check</code>, <code>upgrade check</code>, <code>import umbraco report</code>.</td></tr><tr><td>130</td><td><code>interrupted</code></td><td>Stopped by a signal.</td></tr></tbody></table>\n<h2 id=\"envelope\">The error envelope</h2>\n<p>With <code>-o json</code>, or whenever stderr is not a terminal, the last line of stderr is a JSON object naming the kind, so a script can tell a missing page from a refused one without reading the message.</p>\n<pre><code>{\n  &quot;error&quot;: {\n    &quot;kind&quot;: &quot;not_found&quot;,\n    &quot;message&quot;: &quot;There is no page at /about/team.&quot;,\n    &quot;hint&quot;: &quot;Check the page's path or key.&quot;,\n    &quot;exit_code&quot;: 5\n  }\n}</code></pre>\n<p><code>hint</code>, <code>details</code> and <code>retryable</code> appear only when there is something to say.</p>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s list of errors"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "What each exit code means, and the error a script can read."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Exit codes"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "exit-codes"
+    }
+  ]
+}

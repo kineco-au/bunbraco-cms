@@ -31,6 +31,7 @@
     "docker:test:sqlite": "docker compose run --rm cms-test-sqlite",
     "docker:up": "docker compose up -d --wait cms",
     "docker:up:attached": "docker compose up cms",
+    "docs:config": "bun run scripts/docs-config.ts",
     "fix": "biome check --write .",
     "format": "biome format --write .",
     "format:check": "biome format .",

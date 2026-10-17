@@ -1,0 +1,59 @@
+{
+  "key": "d4292a2e-c06e-4099-8ddf-e47b593e79c4",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 2,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Content transfer",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>A deploy moves files: your schema, your templates, your config. It never moves content. When a campaign built on staging needs to reach production, or you want a copy of production&#39;s pages to develop against, you move the content as a separate, deliberate step.</p>\n<p>crombolo does that with files. An export writes a <strong>bundle</strong>, the bundle travels however files already travel for you (a CI artifact, a commit, a bucket), and an import at the other end checks it and applies it. There is no connection between environments and no credentials for one stored in another.</p>\n<h2 id=\"bundles\">Bundles</h2>\n<p>A bundle is a folder that is also a private npm package. Each page or media item is one JSON file, keyed by its UUID rather than by a database id, so a bundle can be reviewed in a diff and means the same thing in every environment.</p>\n<pre><code class=\"language-text\">bundles/campaign/\n├── package.json        names the bundle\n└── content/\n    ├── bundle.json     the manifest, with a hash over everything else\n    ├── nodes/          one file per page, element or media item\n    ├── values/         property values, with --include-content\n    └── blobs/          media files, with --with-blobs\n</code></pre>\n<p>A bundle carries the content and names the structure it needs: the content types, templates and languages. Your deploy has already put the same <code>schema/</code> in both environments, so the import only has to confirm they are there.</p>\n<p>The same format carries more. A bundle built in the back office&#39;s <strong>Bundles</strong> section can also carry schema, templates, styles and scripts, so it installs into a site that has none of them. Starter templates bring their content this way, and so does a whole-site export.</p>\n<h2 id=\"exporting\">Exporting</h2>\n<pre><code class=\"language-sh\">bunx crombolo content export --root &quot;/Campaigns/Autumn&quot; --out bundles/campaign\n</code></pre>\n<p><code>--root</code> takes a page by its path or its UUID, and can be repeated. The export takes the page and everything below it (<code>--only</code> takes just the page), and records what the destination must already have: a parent, or a page that a link in the content points at.</p>\n<p>A bundle holds what the site serves. A published page carries its published values; a page that was never published carries its draft and says so. <code>--drafts</code> takes the latest draft of everything, for moving work in progress.</p>\n<h3 id=\"what-is-readable-and-what-is-sealed\">What is readable and what is sealed</h3>\n<p>By default a bundle places and names pages but carries no property values, so it is safe to commit anywhere. To move the content itself:</p>\n<pre><code class=\"language-sh\">bunx crombolo content export --root &quot;/Campaigns/Autumn&quot; --include-content --with-blobs --out bundles/campaign\n</code></pre>\n<p><code>--include-content</code> adds property values, and <code>--with-blobs</code> adds the media files. Both are encrypted under a passphrase, which you are asked for or can give in <code>CROMBOLO_BUNDLE_PASSPHRASE</code>. The structure, names and schema stay readable for review. <code>--allow-content-unencrypted</code> writes the values in the clear, if you need to.</p>\n<p>Members and back-office users travel only when asked for, with <code>--with-members</code> and <code>--with-users</code>, and always encrypted.</p>\n<h3 id=\"what-travels-with-a-page\">What travels with a page</h3>\n<p>Beyond its values, each page carries its rules: who may see it, any publish or unpublish waiting for its time, and the redirects from addresses it used to have. They are re-created once every page in the bundle exists.</p>\n<p>Nothing that belongs to one environment ever travels: domains, sessions, sign-ins, or anything in the recycle bin.</p>\n<h2 id=\"checking\">Checking</h2>\n<p>Before anything is written, see what the import would do:</p>\n<pre><code class=\"language-sh\">bunx crombolo content check bundles/campaign\n</code></pre>\n<p><code>content check</code> changes nothing. It reports how many items would be created, updated or left alone, and sorts anything worth knowing into three kinds:</p>\n<table>\n<thead>\n<tr>\n<th>Kind</th>\n<th>Means</th>\n<th>What to do</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><strong>Blocking</strong></td>\n<td>the site cannot take the bundle as it stands, such as a missing content type or parent</td>\n<td>deploy the missing schema, or place the bundle elsewhere with <code>--under</code></td>\n</tr>\n<tr>\n<td><strong>Needs a person</strong></td>\n<td>importable once someone decides, such as a page edited here since</td>\n<td>answer it</td>\n</tr>\n<tr>\n<td><strong>Automatic</strong></td>\n<td>what the import will do, said out loud</td>\n<td>nothing</td>\n</tr>\n</tbody></table>\n<h3 id=\"answering\">Answering</h3>\n<p>Each decision is <code>take-bundle</code>, <code>keep-local</code> or <code>skip</code>, for a whole page or for one property:</p>\n<pre><code class=\"language-sh\">bunx crombolo content check bundles/campaign --resolve 9a1f3c2e-…=take-bundle\nbunx crombolo content check bundles/campaign --resolve 9a1f3c2e-…/title=keep-local\nbunx crombolo content check bundles/campaign --resolve-all take-bundle --save\n</code></pre>\n<p><code>--save</code> writes the answers into the bundle, so a decision made once on staging goes with the bundle to production rather than being made again. The findings also appear in the back office, on the <strong>Changes</strong> dashboard.</p>\n<p><code>content check</code> exits with code 21 while anything needs a person, so it can gate a pipeline.</p>\n<h2 id=\"importing\">Importing</h2>\n<pre><code class=\"language-sh\">bunx crombolo content import bundles/campaign\n</code></pre>\n<p>The import checks again, takes a backup, and writes everything in one transaction, so a failure leaves nothing behind. On Postgres it needs <code>CROMBOLO_PG_DUMP</code> or <code>--backup-taken</code>; see <a href=\"/docs/guides/operations/\">Operations</a>.</p>\n<p>Pages arrive as drafts, for someone to review and publish. Media is live as soon as it lands. To publish what was live where the bundle came from:</p>\n<pre><code class=\"language-sh\">bunx crombolo content import bundles/campaign --publish --label &quot;autumn campaign&quot;\n</code></pre>\n<p>Values are laid over what is there, so a bundle carrying a page&#39;s title cannot empty its summary. Importing the same bundle twice writes nothing the second time.</p>\n<p>Going live can also be a step of its own:</p>\n<pre><code class=\"language-sh\">bunx crombolo content publish &quot;/Campaigns/Autumn&quot; --descendants\nbunx crombolo content publish &quot;/Campaigns/Autumn&quot; --at 2026-11-01T09:00\n</code></pre>\n<h2 id=\"putting-it-back\">Putting it back</h2>\n<p>Every import is recorded as a run, and every run can be undone:</p>\n<pre><code class=\"language-sh\">bunx crombolo content runs\nbunx crombolo content revert 5192ca80-…\n</code></pre>\n<p>A revert puts the site back to what it served: values and published state are restored, and pages the import created are unpublished and moved to the recycle bin, never deleted. If someone has edited a page since, the revert asks first; <code>--resolve-all discard</code> goes ahead. A revert is a run too, so it can itself be reverted.</p>\n<h2 id=\"the-dictionary\">The dictionary</h2>\n<p>The dictionary stays in each environment&#39;s database, because translators work on the live site. Move it on its own:</p>\n<pre><code class=\"language-sh\">bunx crombolo dictionary export --out dictionary.udt\nbunx crombolo dictionary import dictionary.udt\n</code></pre>\n<h2 id=\"a-whole-site\">A whole site</h2>\n<p>To move everything, schema and templates included, use a whole-site file:</p>\n<pre><code class=\"language-sh\">bunx crombolo export --site --out site.tgz\nbunx crombolo start --from site.tgz            # in an empty folder: a new site, running\nbunx crombolo import site.tgz --replace        # or replace an existing site\n</code></pre>\n<p><code>import</code> says what would change before it changes anything. <code>--replace</code> moves what the file lacks to the recycle bin and keeps this site&#39;s people; <code>--replace-all</code> deletes it, and asks you to type the site&#39;s name first. Domains, the secret key and settings always stay as they are.</p>\n<p>To move a whole site to and from a running site without handling the file yourself, see <a href=\"/docs/guides/remotes/\">Remotes</a>.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/reference/command-line/content/\">The <code>content</code> commands</a>, with every flag</li>\n<li><a href=\"/docs/reference/command-line/import/\">The <code>import</code> commands</a>, for whole-site files</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/content-transfer.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Move content between environments as a bundle of files, check what it would change, import it, and put it back if you need to."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Content transfer"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "content-transfer"
+    }
+  ]
+}

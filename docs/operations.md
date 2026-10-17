@@ -464,8 +464,12 @@ crombolo push [--force [--auto-approve]] [--media-info-only]
   only what changed, and `--lazy-media` fetches each file the first time the
   local site is asked for it.
 - **Sign-ins** live in the operating system's keychain, never in the folder.
-- **Exit codes:** 0 done, 1 the remote refused or failed, 2 refused before
-  sending, 3 gave up waiting.
+- **Exit codes:** as every command's ([Exit codes](#exit-codes)). The ones a
+  pull or push meets most: 3 gave up waiting (the job carries on at the remote;
+  `crombolo remote job <id>` watches it again), 4 not signed in or the sign-in
+  has lapsed, 7 it would have asked and there is no terminal, 8 the remote
+  refused (a permission, a protected environment, an approval declined), 9 the
+  remote could not be reached.
 
 ## Scripting the command line
 

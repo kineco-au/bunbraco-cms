@@ -732,7 +732,9 @@ outright when the file carries no enabled back-office administrator. Both take t
 file's side of every difference, make each node's values exactly the file's, and
 publish what the file says was live. Neither touches domains: `domains.toml`, when
 the site has one, is re-applied afterwards; a domain bound only in the backoffice
-to a page the file does not carry goes with that page.
+to a page the file does not carry goes with that page. A site that others are copied
+onto should declare its hostnames in `domains.toml` for that reason
+(`tests/site-replace.test.ts` › "hostnames").
 
 **All or nothing.** Every import — a replace or an ordinary `content import` — now
 runs in three phases (`installBundleContent`):
@@ -776,8 +778,8 @@ no credentials for one stored in another; the bundle travels as a file does.
 # where the content is
 bunx crombolo content export --root "/Campaigns/Autumn 2026" --out bundles/campaign-x
 bunx crombolo content export --root 9a1f3c2e-… --only --drafts --out bundles/one-page
-bunx crombolo content export --root "/Campaigns" --with-blobs --out bundles/campaign-x
-                                      # …and the media bytes, so the bundle is self-contained
+bunx crombolo content export --root "/Campaigns" --include-content --with-blobs --out bundles/campaign-x
+                                      # values and media bytes, sealed: the bundle is self-contained
 
 # where it is going: read-only, and non-zero while anything is outstanding
 bunx crombolo content check bundles/campaign-x
@@ -799,9 +801,13 @@ bunx crombolo content unpublish "/Campaigns/Autumn 2026"
 `--root` and `--under` both take a path by name or a uuid, and the resolved uuid
 is what lands in the manifest, so the artifact is identity-stable either way. A
 published node carries its **published** values — what the site actually serves —
-and an unpublished one carries its draft and says so. Members never travel, nor
-does anything true of exactly one environment: domains, users, tokens, sessions,
-redirects, schedules or access rules.
+and an unpublished one carries its draft and says so. Each page also carries its
+rules: who may see it, its pending schedule, and the tracked redirects from the
+URLs it used to answer on, which the import re-creates once every node exists.
+Redirect rules declared in `crombolo.config.ts` or added by hand in Settings stay
+where they are. Members and users travel only with `--with-members` or
+`--with-users`, sealed; nothing true of exactly one environment travels at all:
+domains, tokens, sessions, external logins.
 
 `check` is the dry run, and it runs before every import too: nothing is written
 until the conflicts have been named and answered. It sorts each one into

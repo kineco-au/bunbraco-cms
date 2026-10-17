@@ -15,7 +15,7 @@ import { ERROR_KINDS } from '../packages/cli/src/errors.ts'
 import { loadCli } from '../packages/cli/src/load.ts'
 import { manifestOf } from '../packages/cli/src/manifest.ts'
 import * as plugin from '../packages/cli/src/plugin.ts'
-import { cliReferenceHtml } from '../packages/cli/src/reference.ts'
+import { cliReferencePages } from '../packages/cli/src/reference.ts'
 import * as client from '../packages/cli/src/remote/client.ts'
 import { keychain } from '../packages/cli/src/support/remote.ts'
 import { ROOT } from '../scripts/packages.ts'
@@ -80,11 +80,11 @@ describe('installed', () => {
     expect(validate(document), JSON.stringify(validate.errors)).toBe(true)
   })
 
-  test('it is on the reference page, under its topic', async () => {
+  test('it is in the reference, on a page of its own topic', async () => {
     const { config } = await loadCli(withPlugin)
-    const html = cliReferenceHtml(manifestOf(config))
-    expect(html).toContain('<h2 id="cloud">cloud</h2>')
-    expect(html).toContain('<code>crombolo cloud hello</code>')
+    const page = cliReferencePages(manifestOf(config)).find((p) => p.slug === 'cloud')
+    expect(page?.commands).toContain('cloud hello')
+    expect(page?.html).toContain('<code>crombolo cloud hello</code>')
   })
 })
 

@@ -1,0 +1,59 @@
+{
+  "key": "2e8dd4e8-d958-4646-83b9-44879bbcfcc2",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 4,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Deploying",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>A crombolo site in production is the same Bun project you run locally, started with <code>crombolo start</code> and <code>NODE_ENV=production</code>.</p>\n<h2 id=\"what-production-changes\">What production changes</h2>\n<p>Setting <code>NODE_ENV=production</code> turns off the conveniences that make sense only on your own machine:</p>\n<table>\n<thead>\n<tr>\n<th></th>\n<th>Development</th>\n<th>Production</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>Administrator&#39;s password</td>\n<td>generated and printed on every start</td>\n<td>never reset; set once, or set up in the browser</td>\n</tr>\n<tr>\n<td>Schema files</td>\n<td>the back office writes them</td>\n<td>read-only; changes arrive with a deploy</td>\n</tr>\n<tr>\n<td>Schema changes</td>\n<td>applied whenever a file changes</td>\n<td>applied only when the version or revision goes up</td>\n</tr>\n<tr>\n<td>Framework upgrades</td>\n<td>applied at start-up</td>\n<td>never automatic; run <code>crombolo upgrade</code></td>\n</tr>\n<tr>\n<td>E-mail with no provider</td>\n<td>printed to the console</td>\n<td>not sent, and shown as unavailable</td>\n</tr>\n</tbody></table>\n<h2 id=\"choosing-a-database\">Choosing a database</h2>\n<p><strong>SQLite</strong> is a single file and needs no database server. It suits a site that runs as one process on one machine with a disk that lasts: a small server, or a container with a persistent volume. Backups before risky changes are taken for you, as a copy beside the file.</p>\n<p><strong>Postgres</strong> suits everything else: several processes behind a load balancer, containers that start afresh, a managed database you already run. It is also required to split a site into separate roles (below).</p>\n<pre><code class=\"language-sh\">CROMBOLO_DB=postgres\nCROMBOLO_POSTGRES_URL=postgres://crombolo:secret@db.internal:5432/my-site\nCROMBOLO_PG_DUMP=&#39;pg_dump &quot;$CROMBOLO_POSTGRES_URL&quot; -f &quot;/backups/$CROMBOLO_BACKUP_STAMP.sql&quot;&#39;\n</code></pre>\n<p><code>CROMBOLO_PG_DUMP</code> is the command crombolo runs to back up the database before an upgrade, an import or a purge (<a href=\"/docs/guides/operations/\">Operations</a>).</p>\n<h2 id=\"the-settings-a-production-site-needs\">The settings a production site needs</h2>\n<pre><code class=\"language-sh\">NODE_ENV=production\nCROMBOLO_APPLICATION_URL=https://www.example.com\nCROMBOLO_SECRET_KEY=...                     # 32 or more characters, from your secret store\nCROMBOLO_SETUP_CODE=...                     # or CROMBOLO_ADMIN_LOGIN and CROMBOLO_ADMIN_PASSWORD\nCROMBOLO_SCHEMA_REVISION=$BUILD_NUMBER\n</code></pre>\n<p>Add the database settings above, an e-mail provider if you want invitations and password resets, and a media store if your disk does not last. <a href=\"/docs/guides/configuration/\">Configuration</a> explains each.</p>\n<h3 id=\"the-first-administrator\">The first administrator</h3>\n<p>A production site never prints a password. Choose one of these:</p>\n<ul>\n<li><strong>Set it from the pipeline</strong> with <code>CROMBOLO_ADMIN_LOGIN</code> and <code>CROMBOLO_ADMIN_PASSWORD</code>. They are used only when the database is created.</li>\n<li><strong>Set it up in the browser.</strong> Set <code>CROMBOLO_SETUP_CODE</code> to 16 or more characters only you know, and leave the password unset. The first visit to the back office opens <strong>Set up your new site</strong>, which asks for your details and the code. Setup happens once; remove the code afterwards.</li>\n<li><strong>Sign in only through an identity provider.</strong> Set <code>CROMBOLO_API_CLIENT_ID</code> (starting <code>crombolo-back-office-</code>) and <code>CROMBOLO_API_CLIENT_SECRET</code>. The site creates an API client in the administrators group for your pipeline, and no password administrator.</li>\n</ul>\n<h3 id=\"media\">Media</h3>\n<p>By default uploads are stored in the site&#39;s <code>media/</code> folder. On a container whose disk is replaced on every deploy, or across several nodes, put media in a bucket instead:</p>\n<pre><code class=\"language-ts\">import { defineConfig, s3MediaStore } from &#39;@crombolo/crombolo&#39;\n\nexport default defineConfig({\n  mediaStore: s3MediaStore({ bucket: &#39;my-site-media&#39;, region: &#39;ap-southeast-2&#39; }),\n})\n</code></pre>\n<p>S3 and anything that speaks its API (Cloudflare R2, DigitalOcean Spaces, MinIO, Backblaze B2) work through <code>s3MediaStore</code>, and Azure Blob Storage through <code>azureMediaStore</code>. Both can also be chosen from the environment with <code>CROMBOLO_MEDIA_STORE</code>.</p>\n<h2 id=\"running-in-a-container\">Running in a container</h2>\n<p>There is nothing special about the container: it needs Bun, the site&#39;s files and its dependencies.</p>\n<pre><code class=\"language-dockerfile\">FROM oven/bun:1-alpine\nWORKDIR /app\nCOPY package.json bun.lock ./\nRUN bun install --frozen-lockfile --production\nCOPY . .\nENV NODE_ENV=production\nEXPOSE 8080\nCMD [&quot;bun&quot;, &quot;run&quot;, &quot;start&quot;]\n</code></pre>\n<p>On SQLite, mount a volume for the database file and for <code>media/</code>, and point <code>CROMBOLO_SQLITE_FILE</code> at it. Logs go to the console as well as to <code>logs/</code>, so your platform&#39;s log collection works as it is.</p>\n<p>Point your load balancer&#39;s health check at <code>/health</code>. It answers 200 while the node can serve and 503 when it cannot, so traffic is kept away from a node that is starting, misconfigured or out of date.</p>\n<h3 id=\"when-the-site-cannot-start\">When the site cannot start</h3>\n<p>If the database is unreachable, an upgrade is waiting or <code>schema/</code> has an error, <code>crombolo start</code> keeps running rather than exiting at once. It serves a page saying what is wrong and which setting or command fixes it, answers 503 on <code>/health</code>, and retries with a growing delay. After <code>CROMBOLO_BOOT_ATTEMPTS</code> tries (10 by default) it exits with a non-zero code, so your platform&#39;s restart policy and alerts take over. A database that comes up late is picked up without a restart.</p>\n<h2 id=\"roles-one-process-or-two\">Roles: one process or two</h2>\n<p>By default each process does everything. For a busier site you can split it into two kinds of process with <code>CROMBOLO_ROLE</code>:</p>\n<table>\n<thead>\n<tr>\n<th>Role</th>\n<th>Serves</th>\n<th>Also</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>all</code> (default)</td>\n<td>the public site, the back office and its API</td>\n<td>everything below</td>\n</tr>\n<tr>\n<td><code>api</code></td>\n<td>the back office, its API, and preview</td>\n<td>applies the schema, migrates the database, runs background jobs</td>\n</tr>\n<tr>\n<td><code>web</code></td>\n<td>the public site only</td>\n<td>nothing else; refuses to start until an <code>api</code> node has migrated the database</td>\n</tr>\n</tbody></table>\n<p>Run a few <code>web</code> processes for visitors and one or two <code>api</code> processes for editors, all on the same Postgres database. A publish on an <code>api</code> node reaches every <code>web</code> node within seconds.</p>\n<p>On a site of several nodes, also set <code>CROMBOLO_RUNTIME_INSTALLS=false</code>, so bundles are added to <code>package.json</code> and deployed rather than installed on whichever node took the request.</p>\n<h2 id=\"deploying-a-schema-change\">Deploying a schema change</h2>\n<p>A change to <code>schema/</code> deploys with your code. Each node applies it when it starts, under a lock, once the schema version or <code>CROMBOLO_SCHEMA_REVISION</code> has gone up. During a rolling deploy, nodes still on the old files keep serving pages and never write the old schema over the new one.</p>\n<p>To apply the schema as a pipeline step instead, set <code>CROMBOLO_SYNC_SCHEMA_AT_BOOT=false</code> and run <code>crombolo types sync</code> before the new nodes start. <a href=\"/docs/guides/schema-as-code/\">Schema as code</a> has the detail.</p>\n<h2 id=\"upgrading-crombolo\">Upgrading crombolo</h2>\n<p>A production site never upgrades itself: a node started against a database with migrations waiting refuses to start, and says which command to run. An upgrade is check, fix, then upgrade, run with the <strong>new</strong> release&#39;s command line against the production database:</p>\n<pre><code class=\"language-sh\">bun add @crombolo/crombolo@latest          # in the site, then build and deploy as usual\nbunx crombolo upgrade check                # read-only: what the new release needs from your data\nbunx crombolo upgrade check --fix          # back up, then apply what can be applied early\nbunx crombolo upgrade                      # check again, back up, migrate and cut over\n</code></pre>\n<p><code>upgrade check</code> lists anything that needs a person, such as a new mandatory field on existing pages, on the back office&#39;s <strong>Changes</strong> dashboard. Editors fill these in on the live site; <code>--set article.summary=&quot;To follow&quot;</code> fills one value everywhere it is missing. <code>upgrade</code> refuses while anything is outstanding.</p>\n<p>During the cut-over, readers are never interrupted. Old nodes keep serving pages but stop accepting saves. Those that serve editors report themselves unhealthy, so the load balancer sends editors to new nodes, while old <code>web</code> nodes stay in service until they are replaced. Start the new nodes, then stop the old ones.</p>\n<pre><code class=\"language-sh\">bunx crombolo upgrade --plan               # the database changes a pending upgrade would make\nbunx crombolo upgrade ledger               # every migration, schema sync and import applied here\n</code></pre>\n<p>A failed step is rolled back and named, and running <code>upgrade</code> again carries on from it. To roll back a release that converted data, restore the backup taken before it.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/guides/operations/\">Operations</a>: health, backups, pausing editing and rebuilding caches</li>\n<li><a href=\"/docs/reference/configuration/\">The configuration reference</a>: every setting</li>\n<li><a href=\"/docs/reference/command-line/operations/\">The operations commands</a>, with every flag</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/deploying.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Run a site in production on SQLite or Postgres, in a container or on a server, as one process or split in two, and upgrade it without taking it down."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Deploying"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "deploying"
+    }
+  ]
+}

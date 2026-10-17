@@ -3,7 +3,7 @@
  * code and the envelope follow from one table.
  */
 import { MigrationStepError, UpgradeStateError } from '@crombolo/data'
-import { CommandError, PassphraseError } from '@crombolo/server'
+import { CommandError, PassphraseError, setting } from '@crombolo/server'
 import { CliError, ERROR_KINDS, type ErrorKind } from './errors.ts'
 import { RemoteError, TimedOut } from './remote/client.ts'
 
@@ -84,7 +84,7 @@ export function classify(error: unknown): CliError {
   if (typeof code === 'string' && SYSTEM_CODES[code])
     return new CliError(SYSTEM_CODES[code], (error as Error).message)
   return new CliError('internal', error instanceof Error ? error.message : String(error), {
-    details: process.env.CROMBOLO_DEBUG && error instanceof Error ? error.stack : undefined,
+    details: setting('CROMBOLO_DEBUG') && error instanceof Error ? error.stack : undefined,
   })
 }
 

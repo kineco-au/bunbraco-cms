@@ -1,0 +1,59 @@
+{
+  "key": "56c7f79b-2233-46dd-8887-27992f20bc95",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 3,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Remotes, pull and push",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>A <strong>remote</strong> is a running crombolo site that your local copy can pull from and push to. Pulling gives you a working copy of an environment, content and all; pushing replaces an environment with your local site. It works like <code>git pull</code> and <code>git push</code>, but for a whole site: schema, templates, content and media.</p>\n<p>Under the hood it is the same whole-site file described in <a href=\"/docs/guides/content-transfer/\">Content transfer</a>, carried for you over HTTPS under your own sign-in. No environment stores credentials for another.</p>\n<h2 id=\"turning-it-on-at-the-remote\">Turning it on at the remote</h2>\n<p>A site answers pulls and pushes only when it is told to. On the site you want to reach, set:</p>\n<pre><code class=\"language-sh\">CROMBOLO_REMOTE_ENABLED=true\nCROMBOLO_REMOTE_ENVIRONMENT=staging     # what this site calls itself; production by default\nCROMBOLO_REMOTE_PROTECTED=false         # true by default: a push needs extra permission\n</code></pre>\n<table>\n<thead>\n<tr>\n<th>Setting</th>\n<th>Default</th>\n<th>What it does</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>CROMBOLO_REMOTE_ENABLED</code></td>\n<td><code>false</code></td>\n<td>answer pulls and pushes</td>\n</tr>\n<tr>\n<td><code>CROMBOLO_REMOTE_ENVIRONMENT</code></td>\n<td><code>production</code></td>\n<td>the environment&#39;s name, as the command line sees it</td>\n</tr>\n<tr>\n<td><code>CROMBOLO_REMOTE_PROTECTED</code></td>\n<td><code>true</code></td>\n<td>a push here is a push to a protected environment</td>\n</tr>\n<tr>\n<td><code>CROMBOLO_REMOTE_APPROVALS</code></td>\n<td><code>false</code></td>\n<td>a push to a protected environment waits for someone else to approve it; needs <code>CROMBOLO_SECRET_KEY</code></td>\n</tr>\n<tr>\n<td><code>CROMBOLO_REMOTE_MAX_UPLOAD_GB</code></td>\n<td><code>50</code></td>\n<td>the largest file a push may upload</td>\n</tr>\n</tbody></table>\n<h3 id=\"who-may-do-what\">Who may do what</h3>\n<p>Four permissions, under <strong>Moving whole sites</strong> on a user group in the back office:</p>\n<table>\n<thead>\n<tr>\n<th>Permission</th>\n<th>Allows</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>Pull a copy</td>\n<td>download a copy with members and users anonymised</td>\n</tr>\n<tr>\n<td>Pull a full copy</td>\n<td>download a copy that includes members and users</td>\n</tr>\n<tr>\n<td>Push</td>\n<td>replace an unprotected environment</td>\n</tr>\n<tr>\n<td>Push to a protected site</td>\n<td>replace a protected environment, and approve or decline other people&#39;s pushes to it</td>\n</tr>\n</tbody></table>\n<p>A pull or push acts as the person who signed in, with that person&#39;s permissions, and every one is recorded in the audit log.</p>\n<h2 id=\"adding-a-remote\">Adding a remote</h2>\n<p>In your local site&#39;s folder:</p>\n<pre><code class=\"language-sh\">bunx crombolo remote add staging https://staging.example.com --env staging\nbunx crombolo remote list\n</code></pre>\n<p><code>remote add</code> checks that the address really is a crombolo remote before it saves it. Remotes are kept in <code>remotes.toml</code> in the site&#39;s folder, which holds addresses only, so commit it and the rest of your team gets the same remotes.</p>\n<h2 id=\"signing-in\">Signing in</h2>\n<pre><code class=\"language-sh\">bunx crombolo login staging\n</code></pre>\n<p><code>login</code> prints a short code and opens a page in the remote&#39;s back office where you approve it, in a browser where you are already signed in. Your password, two-factor code or identity provider never pass through the terminal. <code>--no-browser</code> prints the address instead of opening it, for a machine without one.</p>\n<p>The sign-in is kept in your operating system&#39;s keychain, never in the site&#39;s folder, and is refreshed as it runs out. You can see every terminal signed in as you under <strong>Signed-in devices</strong> in your back-office profile, and sign any of them out there.</p>\n<pre><code class=\"language-sh\">bunx crombolo whoami staging    # who you are there, and what you may do\nbunx crombolo logout staging    # sign out, here and at the remote\n</code></pre>\n<p>When a site has only one remote, you can leave its name off every command.</p>\n<h2 id=\"pulling\">Pulling</h2>\n<pre><code class=\"language-sh\">bunx crombolo pull staging\n</code></pre>\n<p>What <code>pull</code> does depends on where you run it:</p>\n<ul>\n<li><strong>In an empty folder</strong> it creates a new site from the remote and starts it, printing a fresh administrator&#39;s password.</li>\n<li><strong>In a site</strong> it replaces that site with the remote&#39;s copy. It says first what will be moved to the recycle bin, and asks before going ahead; <code>--yes</code> skips the question.</li>\n</ul>\n<p>A pull is sealed and anonymised unless you ask otherwise: members become placeholders, back-office users are left out, and every e-mail address in the content is replaced. <code>--full</code> brings the real people, and needs the permission for it.</p>\n<p>When a site&#39;s media library is large, you choose how its files come down:</p>\n<table>\n<thead>\n<tr>\n<th>Flag</th>\n<th>Media files</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>none</td>\n<td>downloaded with the site</td>\n</tr>\n<tr>\n<td><code>--media-info-only</code></td>\n<td>fetched one at a time, and only those that changed since your last pull</td>\n</tr>\n<tr>\n<td><code>--lazy-media</code></td>\n<td>fetched the first time your local site is asked for each one</td>\n</tr>\n<tr>\n<td><code>--no-media</code></td>\n<td>left out</td>\n</tr>\n</tbody></table>\n<p>After a lazy pull, <code>crombolo media fetch</code> downloads everything that is still missing.</p>\n<p>Pulling into a Postgres site replaces its database, so it needs a backup first: <code>CROMBOLO_PG_DUMP</code>, or <code>--backup-taken</code>.</p>\n<h2 id=\"pushing\">Pushing</h2>\n<pre><code class=\"language-sh\">bunx crombolo push staging --dry-run\nbunx crombolo push staging\n</code></pre>\n<p><code>push</code> replaces the remote environment with your local site. It always says first what it would move to the recycle bin and which files it would remove there; <code>--dry-run</code> stops at that point. The remote takes a backup where it can, then replaces itself as <code>crombolo import --replace</code> would, so what it loses goes to its recycle bin and its own people are kept.</p>\n<p>A push to a protected environment needs two more things: <code>--force</code>, and the environment&#39;s name typed back to confirm it. In a pipeline, <code>--auto-approve</code> skips the typing.</p>\n<pre><code class=\"language-sh\">bunx crombolo push production --env live --force --auto-approve\n</code></pre>\n<p>If the remote has approvals turned on, the push then waits for someone else with the protected-push permission to approve it in the back office. Nobody can approve their own push, and an approval not given within a day expires.</p>\n<h2 id=\"long-transfers\">Long transfers</h2>\n<p>Each pull and push runs as a job at the remote, so a site behind a load balancer needs nothing special. The command line waits for up to 30 minutes by default (<code>--timeout</code>, in seconds). If it gives up, the job carries on at the remote, and you can pick it up again with the id it printed:</p>\n<pre><code class=\"language-sh\">bunx crombolo remote job 7c0e2d4a-…\n</code></pre>\n<h2 id=\"in-scripts\">In scripts</h2>\n<p>Every command takes <code>-o json</code> and exits with a code a script can branch on. The ones a pull or push meets most often:</p>\n<table>\n<thead>\n<tr>\n<th>Code</th>\n<th>Means</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>0</td>\n<td>done</td>\n</tr>\n<tr>\n<td>3</td>\n<td>gave up waiting; the job carries on at the remote</td>\n</tr>\n<tr>\n<td>4</td>\n<td>not signed in, or the sign-in has lapsed</td>\n</tr>\n<tr>\n<td>7</td>\n<td>it would have asked first, and there is no terminal to ask on</td>\n</tr>\n<tr>\n<td>8</td>\n<td>the remote said no: a permission, a protected environment, a declined approval</td>\n</tr>\n<tr>\n<td>9</td>\n<td>the remote could not be reached</td>\n</tr>\n</tbody></table>\n<p>The rest are in the <a href=\"/docs/reference/exit-codes/\">exit codes</a> reference.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/reference/command-line/remotes/\">The remote commands</a>, with every flag</li>\n<li><a href=\"/docs/guides/content-transfer/\">Content transfer</a>, for moving part of a site rather than all of it</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/remotes.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Connect your local site to a running one, sign in from the terminal, pull a copy down to work on, and push your work back."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Remotes, pull and push"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "remotes"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "key": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
+  "sortOrder": 1,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Guides",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "How the pieces fit together, from the content model to running in production."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Guides"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "guides"
+    }
+  ]
+}

@@ -2,7 +2,13 @@ import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { viewScaffold } from '@crombolo/schema'
-import { componentFileFor, componentScaffold, emailScaffold, isSafeAlias } from '@crombolo/server'
+import {
+  componentFileFor,
+  componentScaffold,
+  EMAIL_FOLDER,
+  emailScaffold,
+  isSafeAlias,
+} from '@crombolo/server'
 import { Args } from '@oclif/core'
 import { BaseCommand } from '../../base.ts'
 import { declaredTypes, formsNamingEmailTemplate } from '../../support/components.ts'
@@ -34,12 +40,15 @@ export default class ComponentsNew extends BaseCommand {
     const file = componentFileFor(config.componentsDir, args.alias)
     if (existsSync(file)) this.fail('conflict', `${here(file)} already exists.`)
     // A content type that names this alias gets the page scaffold, which takes
-    // PageProps; a form's Send email that names it gets the e-mail one, which
-    // takes EmailProps; anything else gets the plain one. Nothing turns on the folder.
+    // PageProps; one in emails/, or one a form's Send email names, gets the
+    // e-mail one, which takes EmailProps; anything else gets the plain one.
     const type = declaredTypes(config).find((candidate) =>
       candidate.components.includes(args.alias),
     )
-    const email = !type && formsNamingEmailTemplate(config, args.alias).length > 0
+    const email =
+      !type &&
+      (args.alias.startsWith(EMAIL_FOLDER) ||
+        formsNamingEmailTemplate(config, args.alias).length > 0)
     if (!type && !email)
       this.say(
         `  note     no content type declares the template "${args.alias}" — add it to one's templates, or \`crombolo types new\``,

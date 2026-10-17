@@ -1,0 +1,59 @@
+{
+  "key": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "3d525785-ea12-44ab-890b-fdcb049d9d1b",
+  "sortOrder": 0,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Command line",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Every command, generated from the CLI itself. Each takes <code>--help</code> for its entry here, and <code>-o json</code> for a result a script can read. <code>crombolo schema</code> prints the same description for a machine, as a <a href=\"https://clispec.dev\">clispec</a> document. A command that fails exits with a code saying why: see the <a href=\"/docs/reference/exit-codes/\">exit codes</a>.</p>\n<h2 id=\"sites\"><a href=\"/docs/reference/command-line/sites/\">Sites</a></h2>\n<p>Create a site, start it, check on it, and describe the command line to a script.</p>\n<ul><li><a href=\"/docs/reference/command-line/sites/#init\"><code>crombolo init</code></a></li><li><a href=\"/docs/reference/command-line/sites/#start\"><code>crombolo start</code></a></li><li><a href=\"/docs/reference/command-line/sites/#status\"><code>crombolo status</code></a></li><li><a href=\"/docs/reference/command-line/sites/#health\"><code>crombolo health</code></a></li><li><a href=\"/docs/reference/command-line/sites/#generate\"><code>crombolo generate</code></a></li><li><a href=\"/docs/reference/command-line/sites/#export\"><code>crombolo export</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema\"><code>crombolo schema</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-add-property\"><code>crombolo schema add-property</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-check\"><code>crombolo schema check</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-export\"><code>crombolo schema export</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-new\"><code>crombolo schema new</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-purge\"><code>crombolo schema purge</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-rewrite\"><code>crombolo schema rewrite</code></a></li><li><a href=\"/docs/reference/command-line/sites/#schema-sync\"><code>crombolo schema sync</code></a></li></ul>\n<h2 id=\"types\"><a href=\"/docs/reference/command-line/types/\">Content types</a></h2>\n<p>Check, apply and change the content model kept in schema/.</p>\n<ul><li><a href=\"/docs/reference/command-line/types/#types-add-property\"><code>crombolo types add-property</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-check\"><code>crombolo types check</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-export\"><code>crombolo types export</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-new\"><code>crombolo types new</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-purge\"><code>crombolo types purge</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-rewrite\"><code>crombolo types rewrite</code></a></li><li><a href=\"/docs/reference/command-line/types/#types-sync\"><code>crombolo types sync</code></a></li></ul>\n<h2 id=\"components\"><a href=\"/docs/reference/command-line/components/\">Components and assets</a></h2>\n<p>Create and check the templates under components/, and the styles and scripts beside them.</p>\n<ul><li><a href=\"/docs/reference/command-line/components/#components-check\"><code>crombolo components check</code></a></li><li><a href=\"/docs/reference/command-line/components/#components-list\"><code>crombolo components list</code></a></li><li><a href=\"/docs/reference/command-line/components/#components-new\"><code>crombolo components new</code></a></li><li><a href=\"/docs/reference/command-line/components/#assets-list\"><code>crombolo assets list</code></a></li><li><a href=\"/docs/reference/command-line/components/#assets-new\"><code>crombolo assets new</code></a></li></ul>\n<h2 id=\"content\"><a href=\"/docs/reference/command-line/content/\">Content and media</a></h2>\n<p>Pages, media, the dictionary, domains and the recycle bin.</p>\n<ul><li><a href=\"/docs/reference/command-line/content/#content-check\"><code>crombolo content check</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-export\"><code>crombolo content export</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-import\"><code>crombolo content import</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-publish\"><code>crombolo content publish</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-revert\"><code>crombolo content revert</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-runs\"><code>crombolo content runs</code></a></li><li><a href=\"/docs/reference/command-line/content/#content-unpublish\"><code>crombolo content unpublish</code></a></li><li><a href=\"/docs/reference/command-line/content/#media-export\"><code>crombolo media export</code></a></li><li><a href=\"/docs/reference/command-line/content/#media-fetch\"><code>crombolo media fetch</code></a></li><li><a href=\"/docs/reference/command-line/content/#media-import\"><code>crombolo media import</code></a></li><li><a href=\"/docs/reference/command-line/content/#dictionary-export\"><code>crombolo dictionary export</code></a></li><li><a href=\"/docs/reference/command-line/content/#dictionary-import\"><code>crombolo dictionary import</code></a></li><li><a href=\"/docs/reference/command-line/content/#domains-apply\"><code>crombolo domains apply</code></a></li><li><a href=\"/docs/reference/command-line/content/#domains-clear\"><code>crombolo domains clear</code></a></li><li><a href=\"/docs/reference/command-line/content/#domains-list\"><code>crombolo domains list</code></a></li><li><a href=\"/docs/reference/command-line/content/#domains-set\"><code>crombolo domains set</code></a></li><li><a href=\"/docs/reference/command-line/content/#domains-undo\"><code>crombolo domains undo</code></a></li><li><a href=\"/docs/reference/command-line/content/#recycle-bin-empty\"><code>crombolo recycle-bin empty</code></a></li></ul>\n<h2 id=\"remotes\"><a href=\"/docs/reference/command-line/remotes/\">Remotes, pull and push</a></h2>\n<p>Sign in to another environment, and move content and schema between them.</p>\n<ul><li><a href=\"/docs/reference/command-line/remotes/#login\"><code>crombolo login</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#logout\"><code>crombolo logout</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#whoami\"><code>crombolo whoami</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#remote-add\"><code>crombolo remote add</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#remote-job\"><code>crombolo remote job</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#remote-list\"><code>crombolo remote list</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#remote-remove\"><code>crombolo remote remove</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#pull\"><code>crombolo pull</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#push\"><code>crombolo push</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#bundle-check\"><code>crombolo bundle check</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#bundle-install\"><code>crombolo bundle install</code></a></li><li><a href=\"/docs/reference/command-line/remotes/#bundle-purge\"><code>crombolo bundle purge</code></a></li></ul>\n<h2 id=\"import\"><a href=\"/docs/reference/command-line/import/\">Importing from Umbraco</a></h2>\n<p>Bring an Umbraco site’s content types, content and media across.</p>\n<ul><li><a href=\"/docs/reference/command-line/import/#import\"><code>crombolo import</code></a></li><li><a href=\"/docs/reference/command-line/import/#import-umbraco-apply\"><code>crombolo import umbraco apply</code></a></li><li><a href=\"/docs/reference/command-line/import/#import-umbraco-report\"><code>crombolo import umbraco report</code></a></li></ul>\n<h2 id=\"users\"><a href=\"/docs/reference/command-line/users/\">Users and access</a></h2>\n<p>Back office users, the administrator’s password and API clients.</p>\n<ul><li><a href=\"/docs/reference/command-line/users/#users-disable\"><code>crombolo users disable</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-enable\"><code>crombolo users enable</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-invite\"><code>crombolo users invite</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-list\"><code>crombolo users list</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-reset-2fa\"><code>crombolo users reset-2fa</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-reset-password\"><code>crombolo users reset-password</code></a></li><li><a href=\"/docs/reference/command-line/users/#users-unlock\"><code>crombolo users unlock</code></a></li><li><a href=\"/docs/reference/command-line/users/#admin-reset-password\"><code>crombolo admin reset-password</code></a></li><li><a href=\"/docs/reference/command-line/users/#api-client-rotate\"><code>crombolo api-client rotate</code></a></li></ul>\n<h2 id=\"operations\"><a href=\"/docs/reference/command-line/operations/\">Operations</a></h2>\n<p>Caches, the search index, maintenance pauses and upgrades.</p>\n<ul><li><a href=\"/docs/reference/command-line/operations/#cache-rebuild\"><code>crombolo cache rebuild</code></a></li><li><a href=\"/docs/reference/command-line/operations/#index-list\"><code>crombolo index list</code></a></li><li><a href=\"/docs/reference/command-line/operations/#index-rebuild\"><code>crombolo index rebuild</code></a></li><li><a href=\"/docs/reference/command-line/operations/#maintenance-pause\"><code>crombolo maintenance pause</code></a></li><li><a href=\"/docs/reference/command-line/operations/#maintenance-resume\"><code>crombolo maintenance resume</code></a></li><li><a href=\"/docs/reference/command-line/operations/#maintenance-status\"><code>crombolo maintenance status</code></a></li><li><a href=\"/docs/reference/command-line/operations/#upgrade\"><code>crombolo upgrade</code></a></li><li><a href=\"/docs/reference/command-line/operations/#upgrade-check\"><code>crombolo upgrade check</code></a></li><li><a href=\"/docs/reference/command-line/operations/#upgrade-ledger\"><code>crombolo upgrade ledger</code></a></li><li><a href=\"/docs/reference/command-line/operations/#upgrade-schema\"><code>crombolo upgrade schema</code></a></li></ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Every crombolo command: what it takes, what it changes and how it fails."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Command line"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "command-line"
+    }
+  ]
+}

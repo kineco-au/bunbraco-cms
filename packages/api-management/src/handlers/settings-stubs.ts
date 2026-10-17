@@ -6,7 +6,7 @@
  * when its story in docs/stories/ lands. Counted
  * separately by `coverage:api`.
  */
-import { invalidSkipTake, notFound, problemResponse } from '@crombolo/core'
+import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { ManagementApiRouter } from '../router.ts'
 import { paging } from './content-type.ts'
 
@@ -34,10 +34,8 @@ const SIBLINGS = [
 /** Lookups of one thing in an empty area: there is nothing to find. */
 const NOT_FOUND: string[] = []
 
-/** Fixed bodies. Umbraco's news dashboard relays umbraco.com; there is no feed to relay here. */
-const FIXED: Record<string, unknown> = {
-  GetNewsDashboard: { items: [] },
-}
+/** Fixed bodies. */
+const FIXED: Record<string, unknown> = {}
 
 export const EMPTY_SETTINGS_OPERATIONS: readonly string[] = [
   ...PAGED,
@@ -64,4 +62,15 @@ export function registerSettingsStubHandlers(router: ManagementApiRouter): void 
   for (const [operation, body] of Object.entries(FIXED)) {
     router.handle(operation, () => Response.json(body))
   }
+  // Umbraco's news dashboard relays umbraco.com's feed. There is no feed here,
+  // and the dashboard is not vendored, so the operation is gone rather than empty.
+  router.handle('GetNewsDashboard', () =>
+    problemResponse(
+      problemDetails({
+        title: 'There is no news feed',
+        detail: 'This site relays no news from anywhere.',
+        status: 410,
+      }),
+    ),
+  )
 }

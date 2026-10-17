@@ -1,0 +1,35 @@
+[content-type]
+key = "bb2beab4-5b54-4b43-a471-adbd625968d5"
+alias = "docsSection"
+name = "Docs Section"
+description = "The front page of the documentation, listing what is in it"
+icon = "icon-book-alt"
+allow-children = ["docsPage", "searchPage"]
+compositions = ["seoFields"]
+components = ["pages/docsSection"]
+default-component = "pages/docsSection"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "34fc701d-3083-410d-87e1-760f0694bd10"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "b6820d05-017d-4a1d-97f4-aaa3921f9bd7"
+alias = "standfirst"
+name = "Standfirst"
+description = "A paragraph under the title"
+type = "textarea"
+
+[[tab.property]]
+key = "9b0a54d1-eb93-4ebc-8263-3535e78984e3"
+alias = "body"
+name = "Body"
+description = "Shown above the list of pages"
+type = "richtext"

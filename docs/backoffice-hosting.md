@@ -184,12 +184,52 @@ pinned release.
   .NET setting. The header logo's alternative text and the sign-in provider's
   label say Crombolo. See [Keeping Umbraco's name out](brand.md#keeping-umbracos-name-out),
   which also covers how every vendored module and dictionary is rebranded.
+- The client's package list no longer loads the telemetry, profiling and news
+  packages, which are not vendored at all. See [Nothing sent out](#nothing-sent-out).
 
 `$UMBRACO_SRC` defaults to `../Umbraco-CMS` and is read only by
 `vendor:refresh-static` — never during an ordinary build, test or run.
 
 **Measured result:** 168 import-map entries, 10 of 10 externals bundled, 27 bare
 dependencies bundled, 103 non-runtime files pruned, 90 MB output.
+
+### Nothing sent out
+
+The back office sends nothing anywhere on its own. Every request it makes goes
+to this site's server, and no screen asks to share usage data.
+
+- **Telemetry consent, profiling and the umbraco.com news feed are not
+  shipped.** Umbraco's Settings section has a "Telemetry data" dashboard asking
+  for consent to send usage data to Umbraco and a Profiling dashboard for .NET's
+  MiniProfiler, and its Content section a dashboard relaying umbraco.com's news.
+  `EXCLUDED_PACKAGES` in `scripts/vendor-backoffice.ts` leaves `packages/telemetry`,
+  `packages/performance-profiling` and `packages/umbraco-news` out of the
+  vendored tree, and a patch removes each one's line from the client's package
+  list in `apps/app/app.element.js`. Removing them at vendor time, rather
+  than unregistering them at runtime, means the code is not served at all. None
+  is in an import-map entry, so nothing else moves.
+- **Umbraco's client never phoned home anyway.** Its telemetry, news feed,
+  version check and help feed are all sent by Umbraco's .NET server. Crombolo's
+  server sends none of them. The telemetry, profiling and news endpoints
+  answer 410 Gone to any Management API client that asks (see
+  [diagnostics](diagnostics.md#telemetry-and-profiling)); the help endpoint
+  answers an empty list. The marketplace iframe of marketplace.umbraco.com is
+  replaced by crombolo's own view.
+- **The installer is unreachable.** Its consent step only posts to the install
+  endpoint, which answers 501 on purpose, and the server always reports the
+  `Run` level, so the client never routes to it. It is left vendored.
+- **Links are not calls.** Help links, the log viewer's "search the web" links
+  and links to documentation open only when someone clicks them.
+- **Dormant strings.** A few dictionaries carry Umbraco's invitation e-mail
+  template, which names an image on umbraco.com. The client never renders it.
+  The code editor's TypeScript worker carries the DOM type declarations,
+  `sendBeacon` among them, for completions. monaco's own telemetry service is the
+  standalone editor's no-op.
+
+`tests/vendor-outbound.test.ts` fails if a re-vendor brings any of this back: the
+telemetry package or its dashboard, `sendBeacon`, a fetch, request, socket,
+script, image or iframe aimed at an absolute address, or the name of an
+analytics collector, in the vendored tree or in crombolo's own plugin.
 
 ## Verifying the result
 
@@ -330,8 +370,9 @@ entries name their modules under the `/crombolo-plugin/*` placeholder, which
 so the manifest on disk need not know where the editor is mounted. To put
 something of ours where one of Umbraco's
 extensions was, the manifest entry names it in `overwrites`: the Welcome
-dashboard declares `overwrites: ['Umb.Dashboard.UmbracoNews']` and so takes the
-place of Umbraco's news dashboard in the Content section.
+dashboard declares `overwrites: ['Umb.Dashboard.UmbracoNews']`, the place
+Umbraco's news dashboard held in the Content section before that package stopped
+being vendored.
 
 Prefer that to the registry's `exclude()` or `unregister()`. `overwrites` is
 resolved by the extension initializer as it reads the manifests, whereas the

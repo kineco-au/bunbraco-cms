@@ -17,7 +17,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { siteMediaTypeFiles } from '@crombolo/schema'
-import { VERSION } from '@crombolo/server'
+import { setting, VERSION } from '@crombolo/server'
 
 /**
  * `templates/`, beside `src/` and `bin/` in the published package.
@@ -25,7 +25,7 @@ import { VERSION } from '@crombolo/server'
  * without writing into the package that other runs read.
  */
 export const TEMPLATES_DIR =
-  process.env.CROMBOLO_TEMPLATES_DIR || join(import.meta.dir, '..', 'templates')
+  setting('CROMBOLO_TEMPLATES_DIR') || join(import.meta.dir, '..', 'templates')
 
 /**
  * A bundle whose server half a template wires into the site it scaffolds: the

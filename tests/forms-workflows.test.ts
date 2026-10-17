@@ -1016,8 +1016,12 @@ export default function AsksForPage() {
     const offered = await h.json<{ items: { alias: string; name: string }[] }>(
       `${BACKOFFICE_FORMS}/email-templates`,
     )
-    // A layout takes EmailLayoutProps and a page PageProps, so neither is offered.
-    expect(offered.items).toEqual([{ alias: 'emails/receipt', name: 'Receipt' }])
+    // Everything in emails/ but the layout, which takes EmailLayoutProps.
+    expect(offered.items).toEqual([
+      { alias: 'emails/asks-for-page', name: 'Asks for page' },
+      { alias: 'emails/broken', name: 'Broken' },
+      { alias: 'emails/receipt', name: 'Receipt' },
+    ])
 
     const form = (await h.json<{ definition: SchemaForm }>(`${BACKOFFICE_FORMS}/${FORM_KEY}`))
       .definition

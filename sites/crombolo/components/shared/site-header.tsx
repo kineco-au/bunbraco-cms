@@ -1,6 +1,6 @@
 import type { Navigation, PublishedContent } from '@crombolo/crombolo'
 import { Logo } from './logo.tsx'
-import { developerPage, homeOf, repositoryUrl } from './site.tsx'
+import { developerPage, docsSection, homeOf, repositoryUrl } from './site.tsx'
 
 /**
  * The masthead. The home page's sections are linked by anchor through the home
@@ -10,6 +10,10 @@ export function SiteHeader({ model, nav }: { model: PublishedContent; nav: Navig
   const home = homeOf(nav)
   if (!home) return null
   const developers = developerPage(nav)
+  const docs = docsSection(nav)
+  const inDocs =
+    docs !== undefined &&
+    (docs.key === model.key || nav.ancestors(model).some((page) => page.key === docs.key))
   return (
     <header class="masthead">
       <div class="container masthead__inner">
@@ -26,6 +30,11 @@ export function SiteHeader({ model, nav }: { model: PublishedContent; nav: Navig
               aria-current={developers.key === model.key ? 'page' : undefined}
             >
               For developers
+            </a>
+          ) : null}
+          {docs ? (
+            <a href={docs.url} aria-current={inDocs ? 'page' : undefined}>
+              Docs
             </a>
           ) : null}
           <a href={repositoryUrl(nav)}>GitHub</a>

@@ -314,6 +314,23 @@ describe('graphics', () => {
     }
   })
 
+  test('each logo has a cream-lettered variant for the dark theme', async () => {
+    const prefix = '/umbraco/management/api/v1/security/back-office/graphics'
+    for (const [name, file] of [
+      ['logo-dark', 'logo-header-dark.svg'],
+      ['logo-alternative-dark', 'logo-surface-dark.svg'],
+      ['login-logo-dark', 'logo-header-dark.svg'],
+      ['login-logo-alternative-dark', 'logo-surface-dark.svg'],
+    ]) {
+      const resolved = resolveGraphic(paths, `${prefix}/${name}`) as string
+      expect([name, resolved.endsWith(`branding/${file}`)]).toEqual([name, true])
+      const svg = await Bun.file(resolved).text()
+      // The lettering is the dark theme's text colour, never the cocoa that vanished on it.
+      expect(svg).toContain('fill="#f6ede4"')
+      expect(svg).not.toContain('fill="#54321f"')
+    }
+  })
+
   test("no longer serves Umbraco's login illustration, which nothing asked for", () => {
     const prefix = '/umbraco/management/api/v1/security/back-office/graphics'
     expect(resolveGraphic(paths, `${prefix}/background`)).toBeUndefined()

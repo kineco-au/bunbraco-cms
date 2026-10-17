@@ -1,0 +1,59 @@
+{
+  "key": "8edc6093-5294-4e95-8d4b-13cda44da5f4",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 2,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Components and assets",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"components-check\"><code>crombolo components check</code></h2>\n<p>Compile every component, and report one a type declares with no file. Changes nothing.</p>\n<pre><code>crombolo components check</code></pre>\n<h2 id=\"components-list\"><code>crombolo components list</code></h2>\n<p>What is in components/, and which type declares each. Changes nothing.</p>\n<pre><code>crombolo components list</code></pre>\n<h2 id=\"components-new\"><code>crombolo components new</code></h2>\n<p>Components/&lt;alias&gt;.tsx; the alias may carry folders. Each run acts again.</p>\n<pre><code>crombolo components new &lt;alias&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>alias</code></td><td>The component's alias. Required.</td></tr></tbody></table>\n<h2 id=\"assets-list\"><code>crombolo assets list</code></h2>\n<p>The stylesheets and scripts this site has. Changes nothing.</p>\n<pre><code>crombolo assets list</code></pre>\n<h2 id=\"assets-new\"><code>crombolo assets new</code></h2>\n<p>Write an empty stylesheet or script in the place the backoffice edits. Each run acts again.</p>\n<pre><code>crombolo assets new &lt;kind&gt; &lt;name&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>kind</code></td><td>Which kind. One of <code>stylesheet</code>, <code>script</code>. Required.</td></tr><tr><td><code>name</code></td><td>Its file name. Required.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Create and check the templates under components/, and the styles and scripts beside them."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Components and assets"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "components"
+    }
+  ]
+}

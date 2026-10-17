@@ -1,0 +1,59 @@
+{
+  "key": "a1a5f5a7-eb6f-4465-848a-1a86b595946e",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
+  "sortOrder": 0,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Getting started",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>A crombolo site is a small Bun project. Your templates are <code>.tsx</code> components, your content model is a folder of TOML files, and the site, the back office and the API run as one process on SQLite or Postgres.</p>\n<h2 id=\"what-you-need\">What you need</h2>\n<table>\n<thead>\n<tr>\n<th></th>\n<th></th>\n</tr>\n</thead>\n<tbody><tr>\n<td><strong>Bun</strong> 1.3 or later</td>\n<td>runs the site, the command line and your tests</td>\n</tr>\n<tr>\n<td><strong>Postgres</strong></td>\n<td>optional. A new site uses SQLite, which needs nothing installed</td>\n</tr>\n</tbody></table>\n<p>There is no Node toolchain, no .NET SDK and no separate database server to set up for a first site.</p>\n<pre><code class=\"language-sh\">curl -fsSL https://bun.sh/install | bash\n</code></pre>\n<h2 id=\"create-a-site\">Create a site</h2>\n<p>Make an empty folder and scaffold a site in it:</p>\n<pre><code class=\"language-sh\">mkdir my-site &amp;&amp; cd my-site\nbunx crombolo init --name &quot;My Site&quot;\nbun install\nbun start\n</code></pre>\n<p><code>init</code> writes a handful of files:</p>\n<table>\n<thead>\n<tr>\n<th>File</th>\n<th>What it is</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>package.json</code></td>\n<td>the site&#39;s dependencies, with <code>bun start</code> running <code>crombolo start</code></td>\n</tr>\n<tr>\n<td><code>crombolo.config.ts</code></td>\n<td>the site&#39;s settings (<a href=\"/docs/guides/configuration/\">Configuration</a>)</td>\n</tr>\n<tr>\n<td><code>server.ts</code></td>\n<td>three lines that start the server</td>\n</tr>\n<tr>\n<td><code>schema/</code></td>\n<td>your content types, as TOML files (<a href=\"/docs/guides/schema-as-code/\">Schema as code</a>)</td>\n</tr>\n<tr>\n<td><code>components/</code></td>\n<td>your templates and the components they share</td>\n</tr>\n</tbody></table>\n<p>Add <code>--postgres</code> to write a <code>.env</code> that points at a Postgres database instead of SQLite.</p>\n<h3 id=\"start-from-a-template\">Start from a template</h3>\n<p>A site with no content types shows a holding page with a link to the back office. To start with something on the page, scaffold a starter template instead:</p>\n<pre><code class=\"language-sh\">bunx crombolo init --template list                # the templates there are\nbunx crombolo init --template basic               # a home page type, a view and one page\nbunx crombolo init --template starter             # a header, a footer and placeholder pages\nbunx crombolo init --template demo/harbourstone   # a whole brochure site, content and all\n</code></pre>\n<p>A template brings its schema, components, styles and images, and its content as a bundle that <code>bun start</code> imports the first time it runs.</p>\n<h2 id=\"sign-in\">Sign in</h2>\n<p>The first start creates the database, then prints where the site is and how to sign in:</p>\n<pre><code class=\"language-text\">┌─────────────────────────────────────────────────────┐\n│ Crombolo is running                                 │\n│                                                     │\n│   backoffice  http://localhost:8080/crombolo        │\n│   site        http://localhost:8080/                │\n│                                                     │\n│   Sign in with                                      │\n│     username  admin@crombolo.local                  │\n│     password  3ojND8TcMF0KjfD3                      │\n└─────────────────────────────────────────────────────┘\n</code></pre>\n<p>On your own machine a fresh password is printed on every start, so what you see is always true. Set <code>CROMBOLO_ADMIN_PASSWORD</code> to keep the same one, or run <code>crombolo start --keep-admin</code> to leave it alone. A production site never does this; see <a href=\"/docs/guides/deploying/\">Deploying</a>.</p>\n<p>If port 8080 is taken, start on another: <code>PORT=3000 bun start</code>.</p>\n<h2 id=\"add-a-content-type\">Add a content type</h2>\n<p>You can create content types in the back office, under <strong>Settings</strong>, and each one is saved as a file in <code>schema/</code>. Or write one from the command line:</p>\n<pre><code class=\"language-sh\">bunx crombolo types new content-type article --at-root\nbunx crombolo types add-property article summary --type textarea --mandatory\n</code></pre>\n<p>The first command writes <code>schema/content-types/article.toml</code> and a starting template at <code>components/article.tsx</code>, then applies the type to the database. The second adds a property to it.</p>\n<h2 id=\"write-the-template\">Write the template</h2>\n<p>Open <code>components/article.tsx</code>. A template is a function from props to JSX, rendered to HTML on the server:</p>\n<pre><code class=\"language-tsx\">import type { PageProps } from &#39;@crombolo/crombolo&#39;\nimport type { Article } from &#39;../schema/content-types&#39;\n\nexport default function ArticlePage({ model }: PageProps&lt;Article&gt;) {\n  return (\n    &lt;html lang=&quot;en&quot;&gt;\n      &lt;body&gt;\n        &lt;h1&gt;{model.text(&#39;title&#39;)}&lt;/h1&gt;\n        &lt;p&gt;{model.text(&#39;summary&#39;)}&lt;/p&gt;\n      &lt;/body&gt;\n    &lt;/html&gt;\n  )\n}\n</code></pre>\n<p>Run <code>bunx crombolo generate</code> to write <code>schema/content-types.d.ts</code>, an interface for each content type, so your editor completes property names and flags a misspelt one. Run it again whenever a type changes.</p>\n<p>There is no React in the browser: no virtual DOM, no hydration, and nothing shipped to the visitor unless you add a script yourself. Components are plain functions called once per request, so there are no hooks or state. Save the file and refresh; a template change needs no restart.</p>\n<h2 id=\"publish-a-page\">Publish a page</h2>\n<ol>\n<li>In the back office, go to <strong>Content</strong>, create an <strong>Article</strong>, fill in the title and summary, and <strong>Save</strong>.</li>\n<li><strong>Publish</strong> it. The first page at the root is the site&#39;s home page, so <code>http://localhost:8080/</code> now renders your template.</li>\n<li>Edit it and save again. The site keeps serving the published version until you publish the change, and <strong>Info → History</strong> lets you roll back.</li>\n</ol>\n<h2 id=\"check-before-you-ship\">Check before you ship</h2>\n<pre><code class=\"language-sh\">bunx crombolo components check   # compile and type-check every template\nbunx crombolo types check --static   # validate schema/ without a database\n</code></pre>\n<p>Both exit with a non-zero code when they find a problem, so they drop straight into CI.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/guides/configuration/\">Configuration</a>: the settings file and the handful of settings you set first</li>\n<li><a href=\"/docs/guides/schema-as-code/\">Schema as code</a>: content types as files, and how they reach production</li>\n<li><a href=\"/docs/guides/deploying/\">Deploying</a>: running a site in production</li>\n<li><a href=\"/docs/reference/command-line/\">The command line</a>: every command and flag</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/getting-started.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Create a site, sign in to the back office, add a content type and a template, and publish your first page."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Getting started"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "getting-started"
+    }
+  ]
+}

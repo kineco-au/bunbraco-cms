@@ -391,7 +391,8 @@ A form's Send email workflow can name a component as its e-mail design, with
 `template = "emails/receipt"` in its settings or the "E-mail design" picker in
 the forms designer ([`forms.md`](forms.md#an-e-mail-template)). The component
 takes `EmailProps` rather than a page's props: the form, its fields in order,
-`value(alias)`, the entry, the site and the subject.
+`value(alias)`, the entry, the site and the subject. The picker offers the
+components in `components/emails/`, other than layouts.
 
 ```tsx
 // components/emails/receipt.tsx

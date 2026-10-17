@@ -1,0 +1,59 @@
+{
+  "key": "c4d3fed5-e5e4-4eaa-836a-60f841ad9d5a",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 4,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Remotes, pull and push",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"login\"><code>crombolo login</code></h2>\n<p>Sign in to a remote with a code you approve in its back office. Each run acts again.</p>\n<pre><code>crombolo login [&lt;remote&gt;] [--no-browser]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr><tr><td><code>--no-browser</code></td><td>Don't open the approval page.</td></tr></tbody></table>\n<h2 id=\"logout\"><code>crombolo logout</code></h2>\n<p>Sign out of a remote, here and at the remote. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo logout [&lt;remote&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr></tbody></table>\n<h2 id=\"whoami\"><code>crombolo whoami</code></h2>\n<p>Who you are signed in as at a remote, and what you may do there. Changes nothing.</p>\n<pre><code>crombolo whoami [&lt;remote&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr></tbody></table>\n<h2 id=\"remote-add\"><code>crombolo remote add</code></h2>\n<p>A remote this site pulls from and pushes to, kept in remotes.toml. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo remote add &lt;name&gt; &lt;url&gt; [--env &lt;env&gt;] [--force]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>name</code></td><td>A name for it: lower case letters, digits and dashes. Required.</td></tr><tr><td><code>url</code></td><td>The site's URL. Required.</td></tr><tr><td><code>--env</code></td><td>The environment it goes to by default.</td></tr><tr><td><code>--force</code></td><td>Replace a remote of the same name.</td></tr></tbody></table>\n<h2 id=\"remote-job\"><code>crombolo remote job</code></h2>\n<p>Watch a pull or push job again, after a wait gave up. Changes nothing.</p>\n<pre><code>crombolo remote job &lt;id&gt; [&lt;remote&gt;] [--timeout &lt;timeout&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>id</code></td><td>The job id the wait printed. Required.</td></tr><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr><tr><td><code>--timeout</code></td><td>Seconds to wait before giving up. Default <code>1800</code>.</td></tr></tbody></table>\n<h2 id=\"remote-list\"><code>crombolo remote list</code></h2>\n<p>The remotes in remotes.toml, and whether you are signed in to each. Changes nothing.</p>\n<pre><code>crombolo remote list</code></pre>\n<h2 id=\"remote-remove\"><code>crombolo remote remove</code></h2>\n<p>Forget a remote; removing one that is not there changes nothing. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo remote remove &lt;name&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>name</code></td><td>The remote's name. Required.</td></tr></tbody></table>\n<h2 id=\"pull\"><code>crombolo pull</code></h2>\n<p>A copy of a remote environment: started here, or replacing this site. Each run acts again.</p>\n<pre><code>crombolo pull [&lt;remote&gt;] [--env &lt;env&gt;] [--full] [--yes] [--no-media] [--media-info-only] [--lazy-media] [--timeout &lt;timeout&gt;] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr><tr><td><code>--env</code></td><td>The environment to pull.</td></tr><tr><td><code>--full</code></td><td>A full copy, people included: needs the permission for it.</td></tr><tr><td><code>--yes</code></td><td>Replace this site without asking.</td></tr><tr><td><code>--no-media</code></td><td>Leave the media files out.</td></tr><tr><td><code>--media-info-only</code></td><td>Fetch media files one at a time, only what changed.</td></tr><tr><td><code>--lazy-media</code></td><td>Fetch each media file the first time it is asked for.</td></tr><tr><td><code>--timeout</code></td><td>Seconds to wait for the remote before giving up. Default <code>1800</code>.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"push\"><code>crombolo push</code></h2>\n<p>Replace a remote environment with this site. Each run acts again.</p>\n<pre><code>crombolo push [&lt;remote&gt;] [--env &lt;env&gt;] [--force] [--auto-approve] [--media-info-only] [--dry-run] [--timeout &lt;timeout&gt;] [--no-browser]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>remote</code></td><td>The remote; the only one, when there is one.</td></tr><tr><td><code>--env</code></td><td>The environment to replace.</td></tr><tr><td><code>--force</code></td><td>Go on to a protected environment.</td></tr><tr><td><code>--auto-approve</code></td><td>With --force: don't ask for its name.</td></tr><tr><td><code>--media-info-only</code></td><td>Send media files one at a time, only what the remote lacks.</td></tr><tr><td><code>--dry-run</code></td><td>Say what it would replace, and send nothing.</td></tr><tr><td><code>--timeout</code></td><td>Seconds to wait for the remote before giving up. Default <code>1800</code>.</td></tr><tr><td><code>--no-browser</code></td><td>Don't open an approval page.</td></tr></tbody></table>\n<h2 id=\"bundle-check\"><code>crombolo bundle check</code></h2>\n<p>Read-only: what installing a bundle's content here would do. Changes nothing.</p>\n<pre><code>crombolo bundle check &lt;bundle&gt; [--under &lt;under&gt;] [--resolve &lt;resolve&gt;] [--resolve-all &lt;resolve-all&gt;] [--allow-missing-blobs] [--publish] [--no-schema] [--no-files] [--replace-files] [--save]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>bundle</code></td><td>A package directory, or the name of a bundle this site depends on. Required.</td></tr><tr><td><code>--under</code></td><td>Place the bundle under this page.</td></tr><tr><td><code>--resolve</code></td><td>Answer a finding: &lt;key&gt;=take-bundle|keep-local|skip, or &lt;key&gt;/&lt;property&gt;[@&lt;culture&gt;]=take-bundle|keep-local.</td></tr><tr><td><code>--resolve-all</code></td><td>Answer every finding the same way. One of <code>take-bundle</code>, <code>keep-local</code>, <code>skip</code>.</td></tr><tr><td><code>--allow-missing-blobs</code></td><td>Import media items whose files the bundle does not carry.</td></tr><tr><td><code>--publish</code></td><td>Publish what it imports.</td></tr><tr><td><code>--no-schema</code></td><td>Decline the schema the bundle carries.</td></tr><tr><td><code>--no-files</code></td><td>Decline the views, styles and scripts it carries.</td></tr><tr><td><code>--replace-files</code></td><td>Allow replacing files this site has; the originals are kept for a revert.</td></tr><tr><td><code>--save</code></td><td>Write the answers into the bundle.</td></tr></tbody></table>\n<h2 id=\"bundle-install\"><code>crombolo bundle install</code></h2>\n<p>Re-check, back up, then apply a bundle's content. Each run acts again.</p>\n<pre><code>crombolo bundle install &lt;bundle&gt; [--under &lt;under&gt;] [--resolve &lt;resolve&gt;] [--resolve-all &lt;resolve-all&gt;] [--allow-missing-blobs] [--publish] [--no-schema] [--no-files] [--replace-files] [--label &lt;label&gt;] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>bundle</code></td><td>A package directory, or the name of a bundle this site depends on. Required.</td></tr><tr><td><code>--under</code></td><td>Place the bundle under this page.</td></tr><tr><td><code>--resolve</code></td><td>Answer a finding: &lt;key&gt;=take-bundle|keep-local|skip, or &lt;key&gt;/&lt;property&gt;[@&lt;culture&gt;]=take-bundle|keep-local.</td></tr><tr><td><code>--resolve-all</code></td><td>Answer every finding the same way. One of <code>take-bundle</code>, <code>keep-local</code>, <code>skip</code>.</td></tr><tr><td><code>--allow-missing-blobs</code></td><td>Import media items whose files the bundle does not carry.</td></tr><tr><td><code>--publish</code></td><td>Publish what it imports.</td></tr><tr><td><code>--no-schema</code></td><td>Decline the schema the bundle carries.</td></tr><tr><td><code>--no-files</code></td><td>Decline the views, styles and scripts it carries.</td></tr><tr><td><code>--replace-files</code></td><td>Allow replacing files this site has; the originals are kept for a revert.</td></tr><tr><td><code>--label</code></td><td>A label for the run.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"bundle-purge\"><code>crombolo bundle purge</code></h2>\n<p>Back up, then drop a bundle's tables and clear its state. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo bundle purge &lt;id&gt; [--yes] [--dry-run] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>id</code></td><td>The bundle's id. Required.</td></tr><tr><td><code>--yes</code></td><td>Don't ask: drop them.</td></tr><tr><td><code>--dry-run</code></td><td>Say what it would do, and change nothing.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Sign in to another environment, and move content and schema between them."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Remotes, pull and push"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "remotes"
+    }
+  ]
+}

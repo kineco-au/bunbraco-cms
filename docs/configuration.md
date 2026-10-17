@@ -3,90 +3,237 @@
 Every setting the server reads, and every command the repository defines. The
 defaults are chosen so that a clone runs with nothing set.
 
+## How a site is configured
+
+A site's settings come from three places, and the first one that gives a value
+wins:
+
+1. **`crombolo.config.ts`**, the site's config file, which exports
+   `defineConfig({...})`. Anything set here is fixed for every environment the
+   site runs in, and the settings that are code — a provider, a bundle, a
+   redirect rule — can only be set here.
+2. **The environment**: the variables below, from the process, a container or a
+   `.env` file beside the site (Bun reads it on start).
+3. **The defaults**, in the tables below.
+
+```ts
+import { defineConfig } from '@crombolo/crombolo'
+
+export default defineConfig({
+  siteName: 'Acme',
+  seo: { titleSuffix: ' | Acme' },
+})
+```
+
+Grouped settings — `seo`, `remote`, `deliveryApi` — merge field by field, so a
+config file that sets the title suffix keeps the environment's sitemap switch.
+Relative paths are resolved against the site's own folder, not wherever the
+process was started.
+
+```sh
+# .env for a site on Postgres, sending e-mail through Resend
+CROMBOLO_DB=postgres
+CROMBOLO_POSTGRES_URL=postgres://crombolo:crombolo@localhost:5432/acme
+CROMBOLO_APPLICATION_URL=https://www.acme.example
+CROMBOLO_EMAIL_PROVIDER=resend
+CROMBOLO_EMAIL_API_KEY=re_…
+CROMBOLO_EMAIL_FROM=no-reply@acme.example
+```
+
 ## Environment variables
 
-| Variable                                    | Default                                        | Purpose                                                                                                |
-| ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `PORT`                                      | `8080`                                         | HTTP port; the backoffice derives its application URL from it                                          |
-| `CROMBOLO_DB`                               | `sqlite`                                       | `sqlite` or `postgres`                                                                                 |
-| `CROMBOLO_SQLITE_FILE`                      | `crombolo.sqlite`                              | SQLite path, or `:memory:`                                                                             |
-| `CROMBOLO_POSTGRES_URL`                     | —                                              | required when `CROMBOLO_DB=postgres`                                                                   |
-| `CROMBOLO_SECRET_KEY`                       | —                                              | seals secrets kept in the database, such as a webhook's headers (32+ characters); without it they are not offered (`docs/webhooks.md`) |
-| `CROMBOLO_API_CLIENT_ID` | — | an API client an unattended install seeds in the administrators group (starts `crombolo-back-office-`); with it, no password administrator is seeded unless `CROMBOLO_ADMIN_PASSWORD` is set (`docs/operations.md`) |
-| `CROMBOLO_API_CLIENT_SECRET` | — | that client's secret; set with the id, never printed, never rotated from here |
-| `CROMBOLO_LOCAL_ADMIN` | `false` | seed the password administrator even with an API client, on localhost only; the demo sites set it |
-| `CROMBOLO_REMOTE_ENABLED` | `false` | answer the remote protocol, so `crombolo pull` and `push` can reach this site (`docs/remote-protocol.md`) |
-| `CROMBOLO_REMOTE_ENVIRONMENT` | `production` | the environment this server is, as the remote protocol names it |
-| `CROMBOLO_REMOTE_PROTECTED` | `true` | a push here needs the protected-push permission |
-| `CROMBOLO_REMOTE_APPROVALS` | `false` | a push to a protected environment waits for someone else to approve it; needs `CROMBOLO_SECRET_KEY` |
-| `CROMBOLO_REMOTE_MAX_UPLOAD_GB` | `50` | the largest push or media file a client may upload; every other request keeps `CROMBOLO_MAX_REQUEST_BODY_MB` |
-| `CROMBOLO_LOCK_TIMEOUT_SECONDS`             | `15`                                           | how long a content write waits for another before answering 503 (`docs/architecture.md`)               |
-| `CROMBOLO_ADMIN_LOGIN`                      | `admin@crombolo.local`                         | seeded administrator                                                                                   |
-| `CROMBOLO_ADMIN_PASSWORD`                   | generated in development                       | the first administrator's password, used only when the database is created; unset in production, the site is set up in the browser |
-| `CROMBOLO_SETUP_CODE`                       | —                                              | guards "Set up your new site" (16+ characters, chosen by you); never printed or shown (`docs/operations.md`) |
-| `CROMBOLO_BOOT_ATTEMPTS`                    | `10`                                           | how many times `crombolo start` tries to boot, with backoff from 2s to 60s, before it exits            |
-| `CROMBOLO_COMPONENTS_DIR`                        | `apps/site/Views`                              | where template views live                                                                              |
-| `CROMBOLO_COMPONENTS_CACHE_DIR`                  | `<site>/.crombolo/components`                  | where components are snapshotted so an edit needs no restart; inside the site, outside `components/` |
-| `CROMBOLO_COMPONENTS_GATE_MS`                    | `5000`, `500` in development                   | how often a node looks for a changed views tree                                                          |
-| `CROMBOLO_COMPONENTS_SWAP_MS`                    | `10000`, `0` in development                    | the floor between generations, which absorbs a flapping sync; an announced save is never delayed by it    |
-| `CROMBOLO_COMPONENTS_GENERATION_LIMIT`           | `250`                                          | generations a node loads before it freezes, keeps serving and refuses newer ones                         |
-| `CROMBOLO_RENDER_TIMEOUT_MS`                     | `10000`                                        | how long a page may take to render, layouts included, before it fails and its `signal` aborts; `0` for no limit |
-| `CROMBOLO_COMPONENTS_KEEP`                       | `3`                                            | generations left on disk, for an instant return to one                                                   |
-| `CROMBOLO_BACKOFFICE_PATH`                  | `/crombolo`                                    | where the editor is mounted; the Management API stays at `/umbraco/management/api/v1`                  |
-| `CROMBOLO_INSECURE_COOKIES`                 | `false`                                        | drops the `__Host-` prefix and `Secure`, for plain-http hosts that are not localhost                   |
-| `CROMBOLO_SCHEMA_DIR`                       | `schema`                                       | where `*.toml` definitions live; sync is skipped when absent                                           |
-| `CROMBOLO_SCHEMA_REVISION`                  | `0`                                            | set by the deploy; orders deploys within one schema version                                            |
-| `CROMBOLO_NODE_ID`                          | `host:pid`                                     | the identity stamped on schema syncs, content changes and the migration ledger                          |
-| `CROMBOLO_SCHEMA_WRITABLE`                  | `true` unless `NODE_ENV=production`            | whether the backoffice may write schema files                                                          |
-| `CROMBOLO_SYNC_SCHEMA_AT_BOOT`              | `true`                                         | `false` when a pipeline runs `crombolo types sync` itself                                             |
-| `CROMBOLO_UPGRADE_POLICY`                   | `strict` in production, else `pending-allowed` | whether findings that need a person gate `upgrade`                                                     |
-| `CROMBOLO_PG_DUMP`                          | —                                              | a shell command that backs up Postgres before `--fix`, `upgrade` and `purge` (else `--backup-taken`)   |
-| `CROMBOLO_MEDIA_DIR`                        | `media`                                        | where uploaded files live, served at `/media/`; resized variants are cached in its `.cache`            |
-| `CROMBOLO_VERSION_CLEANUP`                  | `false`                                        | `true` runs the hourly version cleanup, as Umbraco's `EnableCleanup`                                   |
-| `CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS`    | `7`                                            | keep every version newer than this; a content type's own policy wins                                   |
-| `CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS` | `90`                                           | then keep each day's latest version for this long                                                      |
-| `CROMBOLO_AUDIT_RETENTION_DAYS`            | `365`                                          | how long the audit log keeps an entry; `0` keeps them all ([`audit-log.md`](audit-log.md))            |
-| `CROMBOLO_ACTOR`                            | the account running the command                | who the command line records in the audit log, for a pipeline acting for someone                       |
-| `CROMBOLO_LOGS_DIR`                         | `logs`                                         | where log files are written (Serilog's compact JSON, a file per day), read by the log viewer           |
-| `CROMBOLO_LOG_LEVEL`                        | `info`                                         | the least severe level logged: `trace`, `debug`, `info`, `warning`, `error`, `fatal`                   |
-| `CROMBOLO_LOG_TO_CONSOLE`                   | `true`                                         | whether log events are also printed                                                                    |
-| `CROMBOLO_TRACE_REQUESTS`                   | `false`                                        | a debug line per request as it arrives and as its handler returns, console only                        |
-| `CROMBOLO_HEAP_INTERVAL_SECONDS`            | `0`                                            | every N seconds: heap, RSS, and requests in flight — pending in Bun versus still in a handler          |
-| `CROMBOLO_CSS_DIR`                          | `css`                                          | stylesheets the Settings section edits, served at `/css/`                                              |
-| `CROMBOLO_SCRIPTS_DIR`                      | `scripts`                                      | scripts the Settings section edits, served at `/scripts/`                                              |
-| `CROMBOLO_USERNAME_IS_EMAIL`                | `true`                                         | Umbraco's `UsernameIsEmail`: a backoffice user's login is their e-mail                                 |
-| `CROMBOLO_MAX_REQUEST_BODY_MB`              | `32`                                           | the largest request body read, media uploads included; Bun's own default would be 128                  |
-| `CROMBOLO_APPLICATION_URL`                  | `http://localhost:<port>`                      | the public URL invitation and password-reset links point at                                            |
-| `CROMBOLO_MEDIA_STORE`                      | `filesystem`                                   | where media bytes live: `filesystem`, `s3` or `azure` (see [operations](operations.md#media-storage))            |
-| `CROMBOLO_MEDIA_PUBLIC_URL`                 | —                                              | a CDN in front of the media root; browsers are redirected there instead of being served by this server |
-| `CROMBOLO_ALLOW_MEMBER_REGISTRATION`        | `false`                                        | whether `POST /umbraco/members/register` accepts a registration                                        |
-| `CROMBOLO_MEMBER_REGISTRATION_TYPE`         | `Member`                                       | the member type a registration creates, by alias — a type named in the request is ignored              |
-| `CROMBOLO_MEMBER_REGISTRATION_GROUPS`       | —                                              | comma-separated member group names a registration joins                                                |
-| `CROMBOLO_MEMBER_SESSION_MINUTES`           | `20160` (14 days)                              | how long a member's sign-in is good for                                                                |
-| `CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS`     | `5`                                            | failed member sign-ins before lockout; `0` never locks out                                             |
-| `CROMBOLO_TRACK_REDIRECTS`                  | `true`                                         | whether renaming or moving a page records a redirect from the URL it had                               |
-| `CROMBOLO_APPLY_BUNDLE_CONTENT`             | `true`                                         | whether a Marketplace install also applies the schema, components and content the bundle carries       |
-| `CROMBOLO_RUNTIME_INSTALLS`                 | `true`, `false` with a schema store            | whether the Packages section installs and removes packages on the running node; off, they go in `package.json` and a deploy |
-| `CROMBOLO_INDEXABLE`                        | `true`                                         | `false` keeps search engines out: `Disallow: /`, no sitemap, `noindex` on every page (staging)        |
-| `CROMBOLO_SITEMAP`                          | `true`                                         | whether `/sitemap.xml` is served                                                                       |
-| `CROMBOLO_DELIVERY_API`                     | `false`                                        | whether Umbraco's Delivery API answers ([`delivery-api.md`](delivery-api.md))                          |
-| `CROMBOLO_DELIVERY_API_KEY`                 | unset                                          | the `Api-Key` that unlocks a non-public Delivery API and preview                                       |
-| `CROMBOLO_DELIVERY_API_PUBLIC`              | `true`                                         | `false` makes every Delivery API request need the key                                                  |
-| `CROMBOLO_DELIVERY_API_MEDIA`               | `false`                                        | whether the Delivery API serves media                                                                  |
-| `CROMBOLO_MARKETPLACE_URL`                  | npm search for the keyword                     | where the Bundles section sends someone browsing for bundles                                       |
-| `CROMBOLO_PACKAGE_KEYWORD`                  | `crombolo-bundle`                             | the npm keyword a bundle publishes to be discoverable                                    |
-| `CROMBOLO_NPM_REGISTRY`                     | `https://registry.npmjs.org`                   | the registry the marketplace searches; a mirror or a test fixture                                      |
-| `CROMBOLO_EMAIL_PROVIDER`                   | `none`                                         | how e-mail is sent: `resend`, `postmark`, `ses`, `custom` or `none` (see [E-mail](#e-mail))            |
-| `CROMBOLO_EMAIL_FROM`                       | —                                              | the sender address; required by every provider, and the provider verifies its domain                   |
-| `CROMBOLO_EMAIL_FROM_NAME`                  | —                                              | the display name beside that address                                                                   |
-| `CROMBOLO_EMAIL_API_KEY`                    | —                                              | the provider's key — Resend's API key, Postmark's server token, a bearer token for `custom`            |
-| `CROMBOLO_EMAIL_URL`                        | the provider's own API                         | the endpoint messages are POSTed to; required for `custom`, an override for the others                 |
-| `CROMBOLO_EMAIL_POSTMARK_STREAM`            | `outbound`                                     | `postmark` only: the message stream to send on                                                         |
-| `CROMBOLO_EMAIL_SES_REGION`                 | `AWS_REGION`                                   | `ses` only: the region to send from                                                                    |
-| `CROMBOLO_EMAIL_SES_ACCESS_KEY_ID`          | `AWS_ACCESS_KEY_ID`                            | `ses` only: overrides the standard AWS variable                                                        |
-| `CROMBOLO_EMAIL_SES_SECRET_ACCESS_KEY`      | `AWS_SECRET_ACCESS_KEY`                        | `ses` only: overrides the standard AWS variable                                                        |
-| `CROMBOLO_EMAIL_SES_CONFIGURATION_SET`      | —                                              | `ses` only: the configuration set that governs sending                                                 |
-| `CROMBOLO_EMAIL_SES_ENDPOINT`               | the regional SES host                          | `ses` only: a VPC endpoint, or a fake in a test                                                        |
+Every variable crombolo reads is declared once, in the settings list in
+`packages/server/src/settings.ts`. `loadConfig` reads the environment only
+through that list, and the tables below are generated from it by
+`bun run docs:config` — edit the list, not the tables. A test fails when the
+code reads a variable the list does not declare, when the list declares one
+nothing reads, and when these tables and the list disagree.
+
+Settings marked as read by the command line are used by `crombolo` commands
+rather than the running server. Secret ones are never printed or logged.
+
+<!-- settings:start -->
+
+### Server
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `NODE_ENV` | string | — | `production` turns off the development conveniences: generated admin passwords, writable schema files, e-mail to the console and relaxed upgrade checks. |
+| `PORT` | number | `8080` | The HTTP port. The application URL defaults to localhost on this port. |
+| `CROMBOLO_SITE_NAME` | string | `Crombolo` | The site's name, shown in the back office and used when a page is shared. |
+| `CROMBOLO_APPLICATION_URL` | string | `http://localhost:<port>` | The site's public address, which invitation and password-reset links point at. |
+| `CROMBOLO_ROLE` | `all`, `api`, `web` | `all` | What this process serves: everything, the back office and its API, or the public site alone. Splitting needs Postgres; a misspelt role stops the server. |
+| `CROMBOLO_NODE_ID` | string | `host:pid` | This node's name, stamped on schema syncs, content changes and the upgrade history. |
+| `CROMBOLO_MAX_REQUEST_BODY_MB` | number | `32` | The largest request body the server reads, media uploads included. |
+| `CROMBOLO_INSECURE_COOKIES` | `true` / `false` | `false` | Drops the secure cookie requirements, for a plain-http host that is not localhost. |
+
+### Database
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_DB` | `sqlite`, `postgres` | `sqlite` | Which database engine the site runs on. Read by the server and the command line. |
+| `CROMBOLO_SQLITE_FILE` | string | `crombolo.sqlite` | The SQLite file, relative to the site, or `:memory:`. Read by the server and the command line. |
+| `CROMBOLO_POSTGRES_URL` | string | — | The Postgres connection string. Required when the database is Postgres. Read by the server and the command line. Kept secret: never printed. |
+| `DATABASE_URL` | string | — | Used as the Postgres connection string when `CROMBOLO_POSTGRES_URL` is unset. Read by the server and the command line. Kept secret: never printed. |
+| `CROMBOLO_LOCK_TIMEOUT_SECONDS` | number | `15` | How long a content write waits for another before it gives up and answers 503. Read by the server and the command line. |
+| `CROMBOLO_PG_DUMP` | string | — | A shell command that backs up Postgres before a repair, an upgrade or a purge. It is given `CROMBOLO_BACKUP_STAMP` and `CROMBOLO_BACKUP_REASON`; without it those commands need `--backup-taken`. Read by the server and the command line. |
+| `CROMBOLO_UPGRADE_POLICY` | `strict`, `pending-allowed` | strict in production, else pending-allowed | Whether findings that need a person stop an upgrade. Read by the server and the command line. |
+| `CROMBOLO_VERSION_CLEANUP` | `true` / `false` | `false` | Runs the hourly clean-up of old content versions. |
+| `CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS` | number | `7` | The clean-up keeps every version newer than this many days. A content type's own policy wins. |
+| `CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS` | number | `90` | After that, it keeps each day's latest version for this many days. |
+| `CROMBOLO_AUDIT_RETENTION_DAYS` | number | `365` | How many days the audit log keeps an entry. `0` keeps them all. |
+
+### Sign-in and secrets
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_ADMIN_LOGIN` | string | `admin@crombolo.local` | The login of the first administrator. |
+| `CROMBOLO_ADMIN_PASSWORD` | string | generated in development | The first administrator's password, used only when the database is created. Unset in production, the site is set up in the browser. Kept secret: never printed. |
+| `CROMBOLO_SETUP_CODE` | string | — | Guards "Set up your new site" in production: 16 or more characters, chosen by you. Remove it once the site is set up. Kept secret: never printed. |
+| `CROMBOLO_API_CLIENT_ID` | string | — | An API client an unattended install creates in the administrators group; it starts `crombolo-back-office-`. With it, no password administrator is created unless `CROMBOLO_ADMIN_PASSWORD` is set. Read by the server and the command line. |
+| `CROMBOLO_API_CLIENT_SECRET` | string | — | That client's secret, set together with the id. It is used once, when the client is created. Kept secret: never printed. |
+| `CROMBOLO_LOCAL_ADMIN` | `true` / `false` | `false` | Creates the password administrator even when an API client is set. Honoured only on localhost. |
+| `CROMBOLO_SECRET_KEY` | string | — | Seals secrets kept in the database, such as a webhook's headers and two-factor keys; 32 or more characters. Features that need it are not offered without it. Kept secret: never printed. |
+| `CROMBOLO_USERNAME_IS_EMAIL` | `true` / `false` | `true` | A back office user's login is their e-mail address. |
+
+### Back office and bundles
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_BACKOFFICE_PATH` | string | `/crombolo` | Where the back office is served. |
+| `CROMBOLO_CSS_DIR` | string | `css` | The stylesheets the Settings section edits, served at `/css/`. |
+| `CROMBOLO_SCRIPTS_DIR` | string | `scripts` | The scripts the Settings section edits, served at `/scripts/`. |
+| `CROMBOLO_APPLY_BUNDLE_CONTENT` | `true` / `false` | `true` | Installing a bundle from the Marketplace also applies the schema, components and content it carries. |
+| `CROMBOLO_RUNTIME_INSTALLS` | `true` / `false` | true, false with a schema store | The Packages section installs and removes packages on the running site. Off, they are added to `package.json` and deployed. |
+| `CROMBOLO_MARKETPLACE_URL` | string | `https://www.npmjs.com/search?q=keywords%3Acrombolo-bundle` | Where the Marketplace sends someone browsing for bundles. |
+| `CROMBOLO_PACKAGE_KEYWORD` | string | `crombolo-bundle` | The npm keyword a bundle publishes under to be found by the Marketplace. |
+| `CROMBOLO_NPM_REGISTRY` | string | `https://registry.npmjs.org` | The registry the Marketplace searches, such as a mirror. |
+
+### Schema
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_SCHEMA_DIR` | string | `schema` | Where the schema files live. Nothing is synced when the folder is absent. |
+| `CROMBOLO_SCHEMA_REVISION` | string | `0` | Set by a deploy, to order deploys of the same schema version. |
+| `CROMBOLO_SCHEMA_CACHE_DIR` | string | `<temp>/crombolo-schema` | Where a schema kept in cloud storage is copied to when the server starts. |
+| `CROMBOLO_SCHEMA_WRITABLE` | `true` / `false` | true unless production or with a schema store | Whether the back office may change the schema files. |
+| `CROMBOLO_SYNC_SCHEMA_AT_BOOT` | `true` / `false` | `true` | Syncs the schema files when the server starts. Turn it off when a deploy runs `crombolo types sync` itself. |
+
+### Components
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_COMPONENTS_DIR` | string | `components` | Where the site's page views and components live. |
+| `CROMBOLO_COMPONENTS_CACHE_DIR` | string | `.crombolo/components` | Where components are copied so that an edit is picked up without a restart. Inside the site, and cleared when the server starts. |
+| `CROMBOLO_COMPONENTS_GATE_MS` | number | 5000, 500 in development | How often a node looks for changed components, in milliseconds. |
+| `CROMBOLO_COMPONENTS_SWAP_MS` | number | 10000, 0 in development | The least time between two changes being picked up, in milliseconds. A save made in the back office is never held back by it. |
+| `CROMBOLO_COMPONENTS_GENERATION_LIMIT` | number | `250` | How many changes a node picks up before it stops taking more and keeps serving the last. |
+| `CROMBOLO_COMPONENTS_KEEP` | number | 3, all in development | How many earlier copies are kept on disk, for an instant return to one. |
+| `CROMBOLO_RENDER_TIMEOUT_MS` | number | `10000` | How long a page may take to render, layouts included, before it fails, in milliseconds. `0` for no limit. |
+
+### Media
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_MEDIA_DIR` | string | `media` | Where uploaded files live on this disk, served at `/media/`. |
+| `CROMBOLO_MEDIA_STORE` | `filesystem`, `s3`, `azure` | `filesystem` | Where media files are kept. An unrecognised value falls back to the file system. |
+| `CROMBOLO_MEDIA_PUBLIC_URL` | string | — | A CDN in front of the media folder: browsers are sent there instead of being served by this server. |
+| `CROMBOLO_MEDIA_S3_BUCKET` | string | — | S3: the bucket. |
+| `CROMBOLO_MEDIA_S3_REGION` | string | — | S3: the bucket's region. |
+| `CROMBOLO_MEDIA_S3_ENDPOINT` | string | — | S3: the endpoint, for an S3-compatible store such as R2, Spaces or MinIO. |
+| `CROMBOLO_MEDIA_S3_ACCESS_KEY_ID` | string | — | S3: the access key. Unset, the client's usual credentials are used. |
+| `CROMBOLO_MEDIA_S3_SECRET_ACCESS_KEY` | string | — | S3: the access key's secret. Kept secret: never printed. |
+| `CROMBOLO_MEDIA_S3_SESSION_TOKEN` | string | — | S3: a session token, for temporary credentials. Kept secret: never printed. |
+| `CROMBOLO_MEDIA_S3_PREFIX` | string | — | S3: a folder inside the bucket to keep media under. |
+| `CROMBOLO_MEDIA_S3_PUBLIC_URL` | string | — | S3: a public address for the bucket, such as a CDN, that browsers are sent to. |
+| `CROMBOLO_MEDIA_S3_PRESIGN_SECONDS` | number | — | S3: sends browsers to a signed bucket address that lasts this many seconds. Use this or a public address, not both. |
+| `CROMBOLO_MEDIA_AZURE_ACCOUNT` | string | — | Azure: the storage account. |
+| `CROMBOLO_MEDIA_AZURE_CONTAINER` | string | `media` | Azure: the blob container. |
+| `CROMBOLO_MEDIA_AZURE_KEY` | string | — | Azure: the account's key. Kept secret: never printed. |
+| `CROMBOLO_MEDIA_AZURE_SAS` | string | — | Azure: a shared access signature, instead of the key. Kept secret: never printed. |
+| `CROMBOLO_MEDIA_AZURE_ENDPOINT` | string | — | Azure: the blob endpoint, for a sovereign cloud or a local emulator. |
+| `CROMBOLO_MEDIA_AZURE_PREFIX` | string | — | Azure: a folder inside the container to keep media under. |
+| `CROMBOLO_MEDIA_AZURE_PUBLIC_URL` | string | — | Azure: a public address for the container, such as a CDN, that browsers are sent to. |
+
+### E-mail
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_EMAIL_PROVIDER` | `none`, `resend`, `postmark`, `ses`, `custom` | `none` | How e-mail is sent. Without one, invitations, password resets and form e-mails are unavailable; development prints messages to the console. |
+| `CROMBOLO_EMAIL_FROM` | string | — | The sender address. Every provider needs it, and verifies its domain. |
+| `CROMBOLO_EMAIL_FROM_NAME` | string | — | The name shown beside the sender address. |
+| `CROMBOLO_EMAIL_API_KEY` | string | — | The provider's key: Resend's API key, Postmark's server token, or a bearer token for a custom endpoint. Kept secret: never printed. |
+| `CROMBOLO_EMAIL_URL` | string | the provider's own API | The address messages are sent to. Required for a custom endpoint, an override for the others. Must be HTTPS unless it is on this machine. |
+| `CROMBOLO_EMAIL_POSTMARK_STREAM` | string | `outbound` | Postmark: the message stream to send on. |
+| `CROMBOLO_EMAIL_SES_REGION` | string | `AWS_REGION` | SES: the region to send from. |
+| `CROMBOLO_EMAIL_SES_ACCESS_KEY_ID` | string | `AWS_ACCESS_KEY_ID` | SES: the access key, when it differs from the standard AWS one. |
+| `CROMBOLO_EMAIL_SES_SECRET_ACCESS_KEY` | string | `AWS_SECRET_ACCESS_KEY` | SES: that access key's secret. Kept secret: never printed. |
+| `CROMBOLO_EMAIL_SES_CONFIGURATION_SET` | string | — | SES: the configuration set that governs sending. |
+| `CROMBOLO_EMAIL_SES_ENDPOINT` | string | the regional SES address | SES: a private endpoint to send through instead. |
+
+### Members
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_ALLOW_MEMBER_REGISTRATION` | `true` / `false` | `false` | Lets visitors register as members of the site. |
+| `CROMBOLO_MEMBER_REGISTRATION_TYPE` | string | `Member` | The member type a registration creates, by alias. |
+| `CROMBOLO_MEMBER_REGISTRATION_GROUPS` | list | — | The member groups a registration joins, separated by commas. |
+| `CROMBOLO_MEMBER_SESSION_MINUTES` | number | `20160` | How long a member's sign-in lasts, in minutes. The default is 14 days. |
+| `CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS` | number | `5` | Failed member sign-ins before the member is locked out. `0` never locks out. |
+
+### Public site
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_INDEXABLE` | `true` / `false` | `true` | Off keeps search engines out entirely, for a staging site: robots are refused, there is no sitemap and every page asks not to be indexed. |
+| `CROMBOLO_SITEMAP` | `true` / `false` | `true` | Serves `/sitemap.xml`. |
+| `CROMBOLO_TRACK_REDIRECTS` | `true` / `false` | `true` | Renaming or moving a page records a redirect from the address it had. |
+| `CROMBOLO_DELIVERY_API` | `true` / `false` | `false` | Turns on the Delivery API, which serves content as JSON. |
+| `CROMBOLO_DELIVERY_API_KEY` | string | — | The key that unlocks a private Delivery API, and previews of unpublished content. Kept secret: never printed. |
+| `CROMBOLO_DELIVERY_API_PUBLIC` | `true` / `false` | `true` | Off, every Delivery API request needs the key. |
+| `CROMBOLO_DELIVERY_API_MEDIA` | `true` / `false` | `false` | The Delivery API serves media as well as content. |
+
+### Remote
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_REMOTE_ENABLED` | `true` / `false` | `false` | Lets `crombolo pull` and `crombolo push` reach this site. |
+| `CROMBOLO_REMOTE_ENVIRONMENT` | string | `production` | The name this site goes by for pull and push: lower case letters, digits and dashes. |
+| `CROMBOLO_REMOTE_PROTECTED` | `true` / `false` | `true` | A push here needs the protected-push permission. |
+| `CROMBOLO_REMOTE_APPROVALS` | `true` / `false` | `false` | A push to a protected site waits for someone else to approve it. Needs `CROMBOLO_SECRET_KEY`. |
+| `CROMBOLO_REMOTE_MAX_UPLOAD_GB` | number | `50` | The largest push or media file a client may upload, in gigabytes. Every other request keeps the usual body limit. |
+
+### Logging
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_LOGS_DIR` | string | `logs` | Where log files are written, a file a day, read by the back office log viewer. |
+| `CROMBOLO_LOG_LEVEL` | `trace`, `debug`, `info`, `warning`, `error`, `fatal` | `info` | The least severe level logged. |
+| `CROMBOLO_LOG_TO_CONSOLE` | `true` / `false` | `true` | Log events are also printed to the console. |
+| `CROMBOLO_TRACE_REQUESTS` | `true` / `false` | `false` | Prints a line on the console as each request arrives and as it is answered. |
+| `CROMBOLO_HEAP_INTERVAL_SECONDS` | number | `0` | Every this many seconds, prints the memory in use and the requests in flight. `0` is off. |
+
+### Command line
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `CROMBOLO_BOOT_ATTEMPTS` | number | `10` | How many times `crombolo start` tries to start the site, waiting longer each time, before it exits. Read by the command line. |
+| `CROMBOLO_ACTOR` | string | the account running the command | Who the audit log records for a command, for a pipeline acting for someone. Read by the command line. |
+| `CROMBOLO_BUNDLE_PASSPHRASE` | string | — | The passphrase for an encrypted content file, instead of being asked for it. Read by the command line. Kept secret: never printed. |
+| `CROMBOLO_DEBUG` | `true` / `false` | `false` | Adds the stack trace to an unexpected error. Read by the command line. |
+| `CROMBOLO_TEMPLATES_DIR` | string | the templates the command line ships | Where `crombolo init` finds its site templates, for trying a changed one. Read by the command line. |
+
+### AWS credentials
+
+| Setting | Takes | Default | Description |
+| --- | --- | --- | --- |
+| `AWS_REGION` | string | — | The AWS region, for SES e-mail and the Bedrock assistant when they set none. |
+| `AWS_PROFILE` | string | — | The AWS profile the Bedrock assistant signs in with. |
+| `AWS_ACCESS_KEY_ID` | string | — | A static AWS access key, for SES e-mail and the Bedrock assistant. |
+| `AWS_SECRET_ACCESS_KEY` | string | — | That access key's secret. Kept secret: never printed. |
+| `AWS_SESSION_TOKEN` | string | — | A session token, for temporary AWS credentials. Kept secret: never printed. |
+
+<!-- settings:end -->
 
 ## The sites in this repository
 
@@ -325,6 +472,7 @@ when a link can actually be delivered.
 | `bun add -g @crombolo/cli`                            | the same CLI without a site: `init` somewhere new, or run commands against a site this machine does not serve                                                  |
 | `bun run build:template`                              | regenerate a starter template's content bundle and images (`scripts/build-template.ts`); no argument does every template                                       |
 | `bun run generate:types`                              | regenerate contract types from `contracts/OpenApi.json`                                                                                                       |
+| `bun run docs:config`                                 | regenerate the environment variable tables in this page from the settings list (`packages/server/src/settings.ts`) |
 | `bun run coverage:api`                                | implemented vs. total API operations → `docs/api-coverage.md`                                                                                                 |
 | `bun run vendor:backoffice`                           | build `vendor/backoffice/` from npm                                                                                                                           |
 | `bun run vendor:refresh-static`                       | re-seed `vendor/upstream-static/` from `$UMBRACO_SRC`                                                                                                         |

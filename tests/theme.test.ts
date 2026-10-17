@@ -118,7 +118,10 @@ describe('the themes and the switch', () => {
 })
 
 /** Runs the shell's inline script against a stub page, and says what it linked. */
-function runEarly(stored: string | null, options: { throws?: boolean } = {}) {
+function runEarly(
+  stored: string | null,
+  options: { throws?: boolean; prefersDark?: boolean; logos?: Array<Map<string, string>> } = {},
+) {
   const storage = new Map<string, string>(stored === null ? [] : [[THEME_STORAGE_KEY, stored]])
   const appended: Array<Record<string, string>> = []
   const localStorage = {
@@ -137,8 +140,21 @@ function runEarly(stored: string | null, options: { throws?: boolean } = {}) {
       return element
     },
     head: { appendChild: (element: Record<string, string>) => appended.push(element) },
+    addEventListener: (_event: string, handler: () => void) => loaded.push(handler),
+    querySelectorAll: () =>
+      (options.logos ?? []).map((attributes) => ({
+        getAttribute: (name: string) => attributes.get(name) ?? null,
+        setAttribute: (name: string, value: string) => attributes.set(name, value),
+      })),
   }
-  new Function('localStorage', 'document', earlyThemeScript(paths))(localStorage, document)
+  const loaded: Array<() => void> = []
+  const matchMedia = () => ({ matches: Boolean(options.prefersDark) })
+  new Function('localStorage', 'document', 'matchMedia', earlyThemeScript(paths))(
+    localStorage,
+    document,
+    matchMedia,
+  )
+  for (const handler of loaded) handler()
   return { appended, stored: storage.get(THEME_STORAGE_KEY) ?? null }
 }
 
@@ -164,6 +180,37 @@ describe('the choice before the first paint', () => {
     const result = runEarly('umb-dark-theme')
     expect(result.appended[0]?.href).toBe(sheets[THEME_DARK])
     expect(result.stored).toBe(THEME_DARK)
+  })
+
+  test('a dark theme gives the sign-in screens the cream-lettered logos', () => {
+    const graphics = '/umbraco/management/api/v1/security/back-office/graphics'
+    const card = () =>
+      new Map([
+        ['logo-image', `${graphics}/login-logo`],
+        ['logo-image-alternative', `${graphics}/login-logo-alternative`],
+      ])
+    const dark = card()
+    runEarly(THEME_DARK, { logos: [dark] })
+    expect(dark.get('logo-image')).toBe(`${graphics}/login-logo-dark`)
+    expect(dark.get('logo-image-alternative')).toBe(`${graphics}/login-logo-alternative-dark`)
+
+    const systemDark = card()
+    runEarly(THEME_SYSTEM, { logos: [systemDark], prefersDark: true })
+    expect(systemDark.get('logo-image')).toBe(`${graphics}/login-logo-dark`)
+
+    for (const [alias, prefersDark] of [
+      [THEME_SYSTEM, false],
+      ['umb-light-theme', true],
+      [null, true],
+    ] as const) {
+      const light = card()
+      runEarly(alias, { logos: [light], prefersDark })
+      expect(light.get('logo-image')).toBe(`${graphics}/login-logo`)
+    }
+
+    const other = new Map([['logo-image', '/media/somebody-elses.svg']])
+    runEarly(THEME_DARK, { logos: [other] })
+    expect(other.get('logo-image')).toBe('/media/somebody-elses.svg')
   })
 
   test('storage that cannot be read leaves the page light, with no error', () => {

@@ -77,7 +77,7 @@ and where it sits here:
 
 | Artifact | Umbraco today | Here |
 | --- | --- | --- |
-| ModelsBuilder output | Files: generated `.cs` from DB types | `schema/generated/*.d.ts` from the TOML; commit it so a schema change and its type change are reviewed together |
+| ModelsBuilder output | Files: generated `.cs` from DB types | `schema/content-types.d.ts` from the TOML; commit it so a schema change and its type change are reviewed together |
 | Published cache | Both: `cmsContentNu` and NuCache files | memory |
 | Search index | Files: Examine on disk | FTS5 / `tsvector`, rebuildable |
 | Media files | Files `wwwroot/media/` plus `umbracoMediaVersion.path` | files plus the DB path, as Umbraco |
@@ -196,8 +196,8 @@ allow-at-root = true
 varies-by-culture = false
 compositions = ["seoFields"]
 allow-children = ["textPage", "newsPage"]
-templates = ["homePage"]
-default-template = "homePage"
+components = ["homePage"]
+default-component = "homePage"
 
 [[tab]]
 name = "Content"
@@ -300,7 +300,7 @@ against the framework version. `until` is the symmetric marker for the contract
 side — *removed in 3.0* — and belongs to the same mechanism.
 
 `schema/media-types/*.toml` defines media types with the same vocabulary
-under `[media-type]`, minus `templates`, `default-template` and `cleanup`.
+under `[media-type]`, minus `components`, `default-component` and `cleanup`.
 Aliases are unique across document and media types together (Umbraco's
 `content_type.alias` is), and compositions and allowed children stay within
 a kind.
@@ -313,7 +313,7 @@ A group outside any tab is a top-level `[[group]]` with `[[group.property]]`
 entries; Umbraco's built-in media types each carry one.
 
 `schema/member-types/*.toml` defines member types under `[member-type]`: no
-`templates`, `default-template`, `cleanup` or `allow-children`, and three
+`components`, `default-component`, `cleanup` or `allow-children`, and three
 property keys no other kind accepts — `member-can-view`, `member-can-edit`
 and `sensitive`.
 
@@ -359,7 +359,7 @@ real information. `apps/site` has one of each: `quote.toml` carries both,
 `bullet-list.toml` only the first.
 
 **The keys a route needs are refused on an element type.** `templates`,
-`default-template`, `allow-at-root` and `allow-children` all belong to a type that is
+`default-component`, `allow-at-root` and `allow-children` all belong to a type that is
 addressed by a URL and lives in the content tree; an element type is neither.
 Declaring them is a validation problem naming the file and the key, rather than
 something silently dropped, because a file that says one thing while the editor shows

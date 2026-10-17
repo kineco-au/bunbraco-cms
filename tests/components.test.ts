@@ -222,6 +222,8 @@ describe('the files beside the views', () => {
       'components/emails/shell.tsx':
         "import type { EmailLayoutProps } from '@crombolo/crombolo'\nexport default ({ children }: EmailLayoutProps) => <div>{children}</div>\n",
       'components/pages/home.tsx': GOOD,
+      'components/shared/receipt-table.tsx':
+        "import type { EmailProps } from '@crombolo/crombolo'\nexport const Table = (_: EmailProps) => <table />\n",
     })
     const file = componentFileFor(componentsDir, 'emails/contact-receipt')
     mkdirSync(join(file, '..'), { recursive: true })
@@ -266,7 +268,8 @@ describe('the files beside the views', () => {
         '</table><p>Sent from <a href="https://harbour.example">Harbour Books</a></p></body></html>',
     })
 
-    // Offered by the designer; the layout and the page are not.
+    // Offered by the designer, by its folder; the layout, the page and a part
+    // outside emails/ are not.
     expect(listEmailTemplates(componentsDir)).toEqual([
       { alias: 'emails/contact-receipt', name: 'Contact receipt' },
     ])

@@ -1,0 +1,59 @@
+{
+  "key": "2d05a8a7-9e6c-4e64-8fe7-b2af5f4952b3",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 1,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Schema as code",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>In crombolo your content model lives in your repository. Content types, media types, member types, data types and languages are plain TOML files in the site&#39;s <code>schema/</code> folder, and the database keeps a copy of them that is brought up to date when the site starts.</p>\n<p>That means a schema change is a diff you can review in a pull request, every environment runs the content model its deploy carries, and nothing drifts between staging and production because someone clicked a button in one of them.</p>\n<h2 id=\"what-lives-where\">What lives where</h2>\n<p>The rule is one question: what changes it?</p>\n<table>\n<thead>\n<tr>\n<th>Changes with</th>\n<th>Lives in</th>\n<th>Examples</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>a deploy</td>\n<td>files</td>\n<td>content types, data types, languages, templates, <code>crombolo.config.ts</code></td>\n</tr>\n<tr>\n<td>editing</td>\n<td>the database</td>\n<td>pages, media, members, users, the dictionary</td>\n</tr>\n<tr>\n<td>an environment</td>\n<td>the database</td>\n<td>domains and hostnames, which differ between staging and production</td>\n</tr>\n</tbody></table>\n<h2 id=\"the-layout\">The layout</h2>\n<pre><code class=\"language-text\">schema/\n├── schema.toml              the schema version\n├── content-types/\n│   ├── home-page.toml\n│   └── article.toml\n├── media-types/\n├── member-types/\n├── data-types/\n├── forms/\n└── languages.toml\n</code></pre>\n<p>One type per file. The file name is up to you; the <code>alias</code> inside the file is what counts, and files written by crombolo are named after it.</p>\n<p><code>schema/schema.toml</code> holds the version of the schema the site is at:</p>\n<pre><code class=\"language-toml\">[schema]\nversion = &quot;1.0.0&quot;\n</code></pre>\n<h2 id=\"a-content-type\">A content type</h2>\n<pre><code class=\"language-toml\">[content-type]\nalias = &quot;article&quot;\nname = &quot;Article&quot;\ndescription = &quot;A news story&quot;\nicon = &quot;icon-document&quot;\nallow-at-root = true\ncompositions = [&quot;seoFields&quot;]\ncomponents = [&quot;pages/article&quot;]\ndefault-component = &quot;pages/article&quot;\n\n[[tab]]\nname = &quot;Content&quot;\n\n[[tab.property]]\nalias = &quot;title&quot;\nname = &quot;Title&quot;\ntype = &quot;textstring&quot;\nmandatory = true\n\n[[tab.property]]\nalias = &quot;summary&quot;\nname = &quot;Summary&quot;\ntype = &quot;textarea&quot;\ndefault = &quot;To follow&quot;\n</code></pre>\n<p>A few things worth knowing:</p>\n<ul>\n<li><strong><code>key</code></strong> is each type&#39;s and property&#39;s stable identity, a UUID. Leave it out when you write a file by hand, as above: it is written in for you the first time the file is applied in development. Production refuses a file without one.</li>\n<li><strong><code>components</code></strong> names the templates a page of this type may use, by their path under <code>components/</code>. <code>pages/article</code> is <code>components/pages/article.tsx</code>.</li>\n<li><strong><code>type</code></strong> on a property is a data type alias. The common ones are built in (<code>textstring</code>, <code>textarea</code>, <code>richtext</code>, <code>numeric</code>, <code>trueFalse</code>, <code>datePicker</code>, <code>contentPicker</code>, <code>imageMediaPicker</code>, <code>tags</code> and more); a file in <code>data-types/</code> adds your own or overrides one.</li>\n<li><strong><code>default</code></strong> fills in a new property on pages that already exist. Without one, adding a mandatory property to a type with content leaves each page for a person to fill in.</li>\n<li><strong>Order in the file is the order in the editor.</strong></li>\n<li><strong><code>description</code> and <code>notes</code></strong> are kept when the file is rewritten. Ordinary <code>#</code> comments are not, because the back office writes these files too; put anything you want to keep in <code>notes</code>.</li>\n</ul>\n<p>An element type, the kind block editors hold, is a content type with <code>is-element = true</code>. It has no URL, so it has no template.</p>\n<h2 id=\"writing-files\">Writing files</h2>\n<p>You can write files by hand, but two commands write them with their keys already in:</p>\n<pre><code class=\"language-sh\">bunx crombolo types new content-type article --at-root\nbunx crombolo types add-property article summary --type textarea --mandatory\n</code></pre>\n<p><code>types new</code> writes the type&#39;s file and a starting template at <code>components/article.tsx</code> (<code>--no-view</code> leaves the template out; <code>--element</code> writes an element type). <code>add-property</code> appends a property to a tab. Both apply the change straight away, through the same step a start runs.</p>\n<p>The back office writes the same files. In development, saving a content type under <strong>Settings</strong> writes its <code>.toml</code> file, which you then commit like any other change. In production the files are read-only, and the editor says which file to change in source control.</p>\n<p>If you have a site whose types were made in the back office before you started committing them, <code>types export</code> writes the database&#39;s types out as files. It never deletes a file.</p>\n<h2 id=\"applying-files-to-the-database\">Applying files to the database</h2>\n<p>When the site starts, it compares <code>schema/</code> with what the database has and applies the difference:</p>\n<ul>\n<li><strong>In development</strong> any change is applied, and the folder is watched, so an edit to a file takes effect without a restart.</li>\n<li><strong>In production</strong> a change is applied only when the schema version in <code>schema.toml</code> has gone up, or a newer <code>CROMBOLO_SCHEMA_REVISION</code> is deployed. The same version with different files is refused, naming the files that differ.</li>\n</ul>\n<p><code>CROMBOLO_SCHEMA_REVISION</code> is how a pipeline orders deploys without anyone bumping the version by hand: set it to the build number, or to <code>git rev-list --count HEAD</code>, and each deploy is newer than the last. Keep the version in <code>schema.toml</code> for saying something, such as &quot;this goes live in 2.1&quot;.</p>\n<p>A site of several nodes is safe during a rolling deploy. The apply runs under a lock, a node whose files are older than the database never writes to it, and an older node keeps serving pages until it is replaced.</p>\n<p>To run the apply as a pipeline step rather than at start-up, set <code>CROMBOLO_SYNC_SCHEMA_AT_BOOT=false</code> and run:</p>\n<pre><code class=\"language-sh\">bunx crombolo types sync\n</code></pre>\n<h3 id=\"removing-things\">Removing things</h3>\n<p>Removing a property from a file retires it. Its values stay in the database, out of sight, and putting the property back brings them back. To delete retired properties and their values for good, once you are sure:</p>\n<pre><code class=\"language-sh\">bunx crombolo types purge --older-than 90\n</code></pre>\n<p><code>--older-than</code> is in days. Removing a whole content type that still has pages is refused, because hiding pages is a content decision; <code>types sync --force-retire-types</code> retires it anyway, and its pages stay where they are.</p>\n<h2 id=\"checking-in-ci\">Checking in CI</h2>\n<pre><code class=\"language-sh\">bunx crombolo types check --static   # the files alone: parse, validate, keys present\nbunx crombolo types check            # and what applying them would do to this database\n</code></pre>\n<p><code>--static</code> needs no database, so it belongs on every pull request. <code>types check</code> exits with code 20 when it finds problems, and 21 when something needs a person to decide first. The full list is in the <a href=\"/docs/reference/exit-codes/\">exit codes</a>.</p>\n<h2 id=\"typed-templates\">Typed templates</h2>\n<pre><code class=\"language-sh\">bunx crombolo generate\n</code></pre>\n<p><code>generate</code> writes <code>schema/content-types.d.ts</code>, an interface for each content type with every property it has, compositions included. Name one in <code>PageProps</code> and the template is typed:</p>\n<pre><code class=\"language-tsx\">import type { PageProps } from &#39;@crombolo/crombolo&#39;\nimport type { Article } from &#39;../../schema/content-types&#39;\n\nexport default function ArticlePage({ model }: PageProps&lt;Article&gt;) {\n  return &lt;h1&gt;{model.text(&#39;title&#39;)}&lt;/h1&gt;\n}\n</code></pre>\n<p>A misspelt property name is now a compile error, which <code>crombolo components check</code> reports in CI. Commit the generated file with the schema change, and run <code>generate</code> again whenever a type changes.</p>\n<h2 id=\"after-an-upgrade\">After an upgrade</h2>\n<p>When a crombolo release changes the file format, <code>types rewrite</code> rewrites every file in <code>schema/</code> in the current layout, so the change arrives as one reviewable commit.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/reference/command-line/types/\">The <code>types</code> commands</a>, with every flag</li>\n<li><a href=\"/docs/guides/deploying/\">Deploying</a>: how schema changes and upgrades reach production</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/schema-as-code.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Content types, data types and languages as TOML files in schema/, how they reach the database, and the commands that write and check them."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Schema as code"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "schema-as-code"
+    }
+  ]
+}

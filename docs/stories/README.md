@@ -233,5 +233,6 @@ under `schema/`.
 | `154` | Redirects as data | could | S | ready | — |
 | `155` | Members out and in | could | M | ready | — |
 | `156` | The audit log from the command line | could | S | ready | — |
-| `157` | A docs section on the product site | should | M | ready | 150 |
+| `157` | A docs section on the product site | should | L | done | 150 |
 | `158` | A hosting plugin for the CLI | should | S | done | 150 |
+| `159` | A site file without its hostnames | should | S | done | 104, 105 |

@@ -20,6 +20,14 @@ export function developerPage(nav: Navigation): PublishedContent | undefined {
     : undefined
 }
 
+/** The docs section, found by type as the developer page is. */
+export function docsSection(nav: Navigation): PublishedContent | undefined {
+  const home = homeOf(nav)
+  return home
+    ? nav.children(home).find((child) => child.contentType.alias === 'docsSection')
+    : undefined
+}
+
 /**
  * An element picker always yields a list, as Umbraco's converter does, even
  * where the data type allows a single pick.

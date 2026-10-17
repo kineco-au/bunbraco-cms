@@ -4,7 +4,7 @@
  * confirmation refuses at once, naming the flag that answers it, and never
  * reads stdin.
  */
-import type { CromboloConfig } from '@crombolo/server'
+import { type CromboloConfig, setting } from '@crombolo/server'
 import { CliError } from '../errors.ts'
 import * as ops from '../operations/commands.ts'
 
@@ -83,7 +83,7 @@ export async function passphraseToOpen(
   target: string,
   config: CromboloConfig,
 ): Promise<string | undefined> {
-  const given = process.env[PASSPHRASE_ENV]
+  const given = setting(PASSPHRASE_ENV)
   if (given) return given
   let sealed = false
   try {
@@ -100,14 +100,14 @@ export async function passphraseToOpen(
 /** The passphrase for the people a file carries: the environment's, asked for, or none. */
 export async function passphraseForPeople(): Promise<string | undefined> {
   return (
-    process.env[PASSPHRASE_ENV] ??
+    setting(PASSPHRASE_ENV) ??
     (interactive() ? await readSecret('  Passphrase for its people: ') : undefined)
   )
 }
 
 /** A new passphrase to seal an export with: the environment's, or asked for twice. */
 export async function passphraseToSeal(): Promise<string> {
-  const given = process.env[PASSPHRASE_ENV]
+  const given = setting(PASSPHRASE_ENV)
   if (given) {
     if (given.length < MIN_PASSPHRASE)
       throw new CliError('usage', `${PASSPHRASE_ENV} is shorter than ${MIN_PASSPHRASE} characters.`)

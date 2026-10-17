@@ -397,8 +397,9 @@ failed at components/emails/receipt.tsx:12: …" — the alias, the line of the
 source file, and the message, never a stack or the snapshot path.
 
 **The scaffold** — `crombolo components new emails/receipt` writes an e-mail
-template, typed by `EmailProps`, when a form's Send email names that alias, as
-it writes a page for an alias a content type names.
+template, typed by `EmailProps`, for an alias in `emails/` or one a form's Send
+email names, as it writes a page for an alias a content type names. The picker
+offers what is in `components/emails/`, so keep e-mail templates there.
 
 ### Substitution
 
@@ -652,9 +653,9 @@ Here there is no contract to match, so the API is designed for this CMS.
   including sensitive answers, and an **E-mail design** picker: "Standard" for
   none, then the site's e-mail templates from
   `GET <backoffice>/crombolo/api/forms/email-templates`. A template there is a
-  component whose source names `EmailProps`, plus any a form already names, so
-  the picker never loses the one that is set; a layout takes `EmailLayoutProps`
-  and is not offered. A setting with no field (`cc`, `body`, `map`, …) is kept as
+  component in `components/emails/`, plus any a form already names, so the
+  picker never loses the one that is set; a layout there takes
+  `EmailLayoutProps` and is not offered. A setting with no field (`cc`, `body`, `map`, …) is kept as
   the file has it. What it saves goes through the form save, so the same
   validation answers, and a refusal names the workflow and the field in words
   ("Tell the team: E-mail design") rather than a path.

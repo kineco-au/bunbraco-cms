@@ -67,6 +67,7 @@ import {
   replaceSummary,
   type SiteExportOptions,
   type SiteExportResult,
+  setting,
   syncOptionsFor,
   type TransferInput,
   useSchemaStore,
@@ -723,7 +724,7 @@ export interface CommandAudit {
  * Never fails the command: what it records has already happened.
  */
 export async function recordCommand(config: CromboloConfig, entry: CommandAudit): Promise<void> {
-  let actor = Bun.env.CROMBOLO_ACTOR
+  let actor = setting('CROMBOLO_ACTOR')
   try {
     actor ??= userInfo().username
   } catch {

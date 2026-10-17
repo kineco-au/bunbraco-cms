@@ -176,20 +176,32 @@ describe(`health checks (${dialectUnderTest})`, () => {
 })
 
 describe(`telemetry and profiling (${dialectUnderTest})`, () => {
-  test('collect nothing, and cannot be switched on', async () => {
+  test('telemetry is gone, every way it is asked for', async () => {
     const h = await server()
-    expect(await h.json<unknown>(`${V1}/telemetry/level`)).toEqual({ telemetryLevel: 'Minimal' })
-    expect(await h.json<unknown>(`${V1}/telemetry?skip=0&take=10`)).toEqual({
-      total: 1,
-      items: [{ telemetryLevel: 'Minimal' }],
-    })
-    expect((await h.post(`${V1}/telemetry/level`, { telemetryLevel: 'Detailed' })).status).toBe(400)
-    expect((await h.post(`${V1}/telemetry/level`, { telemetryLevel: 'Minimal' })).status).toBe(200)
+    for (const response of [
+      await h.call(`${V1}/telemetry/level`),
+      await h.call(`${V1}/telemetry?skip=0&take=10`),
+      await h.post(`${V1}/telemetry/level`, { telemetryLevel: 'Detailed' }),
+      await h.post(`${V1}/telemetry/level`, { telemetryLevel: 'Minimal' }),
+    ]) {
+      expect(response.status).toBe(410)
+      expect(await response.json()).toMatchObject({
+        status: 410,
+        title: 'Telemetry is not collected',
+      })
+    }
+  })
 
-    expect(await h.json<unknown>(`${V1}/profiling/status`)).toEqual({ enabled: false })
-    expect((await h.put(`${V1}/profiling/status`, { enabled: true })).status).toBe(400)
-    expect((await h.put(`${V1}/profiling/status`, { enabled: false })).status).toBe(200)
-    expect(await h.json<unknown>(`${V1}/profiling/status`)).toEqual({ enabled: false })
+  test('profiling is gone, read or switched', async () => {
+    const h = await server()
+    for (const response of [
+      await h.call(`${V1}/profiling/status`),
+      await h.put(`${V1}/profiling/status`, { enabled: true }),
+      await h.put(`${V1}/profiling/status`, { enabled: false }),
+    ]) {
+      expect(response.status).toBe(410)
+      expect(await response.json()).toMatchObject({ status: 410, title: 'There is no profiler' })
+    }
   })
 })
 

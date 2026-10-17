@@ -8,7 +8,12 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ContentTypeRepository, DocumentRepository, type NodeRow } from '@crombolo/data'
+import {
+  ContentTypeRepository,
+  currentSchemaState,
+  DocumentRepository,
+  type NodeRow,
+} from '@crombolo/data'
 import {
   type BundleNode,
   type ContentSet,
@@ -40,6 +45,17 @@ name = "Related"
 type = "contentPicker"
 `
 
+const NOTE_TOML = `[content-type]
+alias = "note"
+name = "Note"
+allow-in-library = true
+
+[[property]]
+alias = "text"
+name = "Text"
+type = "textstring"
+`
+
 const VIEW = `export default function Page({ model }) {
   return <main>{model.text('title')}</main>
 }
@@ -51,6 +67,7 @@ function pageSite() {
   mkdirSync(join(root, 'components'), { recursive: true })
   writeFileSync(join(root, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
   writeFileSync(join(root, 'schema', 'content-types', 'page.toml'), PAGE_TOML)
+  writeFileSync(join(root, 'schema', 'content-types', 'note.toml'), NOTE_TOML)
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
   return { schemaDir: join(root, 'schema'), componentsDir: join(root, 'components'), root }
 }
@@ -127,6 +144,37 @@ describe(`checking a bundle (${dialectUnderTest})`, () => {
     const check = await checkBundle(h.server.db, own)
     expect(check.outstanding).toEqual([])
     expect(check.counts).toEqual({ create: 0, update: 0, unchanged: 2, skip: 0 })
+  })
+
+  test('a Library element exported from here imports back unchanged, not edited', async () => {
+    const state = await currentSchemaState(h.server.db)
+    const elements = new DocumentRepository(h.server.db, {
+      kind: 'element',
+      nodeState: { version: state.version, revision: state.revision },
+    })
+    const key = crypto.randomUUID()
+    await elements.create({
+      key,
+      contentTypeKey: (await new ContentTypeRepository(h.server.db).byAlias('note'))?.key as string,
+      componentKey: null,
+      parentKey: null,
+      values: [{ alias: 'text', culture: null, segment: null, value: 'Hello' }],
+      variants: [{ culture: null, segment: null, name: 'A note' }],
+    })
+    await elements.publish(key, null)
+    const { set } = await exportBundle(h.server.db, {
+      roots: [await nodeOf(key)],
+      asGiven: [key],
+      descendants: false,
+      snapshot: 'published',
+      blueprints: false,
+      withBlobs: false,
+      siteName: 'Test',
+      nodeId: 'test',
+    })
+    const check = await checkBundle(h.server.db, set)
+    expect(check.outstanding).toEqual([])
+    expect(check.counts.unchanged).toBe(1)
   })
 
   test('a node that is not here yet is a new node, and arrives as a draft', async () => {

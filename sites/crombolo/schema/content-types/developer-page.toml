@@ -7,6 +7,7 @@ icon = "icon-code"
 compositions = ["seoFields"]
 components = ["pages/developerPage"]
 default-component = "pages/developerPage"
+allow-children = ["developerPage"]
 
 [[tab]]
 name = "Header"
@@ -91,3 +92,13 @@ key = "a03e9c2f-8f37-4e18-82e5-e1ae92bfabda"
 alias = "nextSteps"
 name = "After the steps"
 type = "richtext"
+
+[[tab]]
+name = "Redirect"
+
+[[tab.property]]
+key = "947cf879-ba51-4795-ae59-0f961e8b779a"
+alias = "umbracoRedirect"
+name = "Send visitors to"
+description = "When set, visitors who open this page are taken to the chosen page instead"
+type = "contentPicker"

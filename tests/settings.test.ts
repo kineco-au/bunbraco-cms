@@ -740,7 +740,9 @@ describe('story 021 templates and languages', () => {
       allowedUploadedFileExtensions: [],
       maxFileSize: null,
     })
-    // The Content section's welcome dashboard: no feed, so no items
-    expect(await h.json<{ items: unknown[] }>(`${V1}/news-dashboard`)).toEqual({ items: [] })
+    // Umbraco's news dashboard relays a feed there is none of here: gone, not empty
+    const news = await h.call(`${V1}/news-dashboard`)
+    expect(news.status).toBe(410)
+    expect(await news.json()).toMatchObject({ status: 410, title: 'There is no news feed' })
   })
 })

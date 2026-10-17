@@ -230,10 +230,13 @@ export default function ${name}({ form, fields, site }: EmailProps) {
 `
 }
 
+/** The folder e-mail templates live in, as an alias prefix. */
+export const EMAIL_FOLDER = 'emails/'
+
 /**
- * The components the forms designer offers as e-mail designs: those written
- * over `EmailProps`, and any a form already names, so a picker never loses the
- * one that is set. A layout takes `EmailLayoutProps`, so it is not offered.
+ * The components the forms designer offers as e-mail designs: those in
+ * `components/emails/`, and any a form already names, so a picker never loses
+ * the one that is set. A layout there takes `EmailLayoutProps`, so it is not offered.
  */
 export function listEmailTemplates(
   root: string,
@@ -242,7 +245,11 @@ export function listEmailTemplates(
   const components = listComponents(root)
   const found = new Set<string>()
   for (const component of components)
-    if (/\bEmailProps\b/.test(readFileSync(component.path, 'utf8'))) found.add(component.alias)
+    if (
+      component.alias.startsWith(EMAIL_FOLDER) &&
+      !/\bEmailLayoutProps\b/.test(readFileSync(component.path, 'utf8'))
+    )
+      found.add(component.alias)
   const present = new Set(components.map((component) => component.alias))
   for (const alias of named) if (present.has(alias)) found.add(alias)
   const items = [...found].sort().map((alias) => ({ alias, name: readableName(alias) }))

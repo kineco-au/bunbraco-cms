@@ -2,7 +2,7 @@
   "$schema": "../../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo Sign-in Dialog",
   "id": "Crombolo.SignInDialog",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "allowPublicAccess": true,
   "extensions": [
     {

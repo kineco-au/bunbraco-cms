@@ -24,7 +24,12 @@ import {
   resolveStaticFile,
   VENDORED_ASSETS_PATH,
 } from '@crombolo/backoffice-host'
-import { brandedTitle, brandName } from '../packages/backoffice-host/plugin/branding/branding.js'
+import {
+  brandedTitle,
+  brandName,
+  isDarkTheme,
+  themedLogoUrl,
+} from '../packages/backoffice-host/plugin/branding/branding.js'
 import {
   needsCorrection,
   REQUIRED_PREFIX,
@@ -73,6 +78,30 @@ const doc = (html: string) =>
       return match ? { getAttribute: () => match[1] } : null
     },
   }) as unknown as Document
+
+describe('the logo on a dark theme', () => {
+  const graphics = '/umbraco/management/api/v1/security/back-office/graphics'
+
+  test('Dark, and Match my system on a dark computer, are dark', () => {
+    expect(isDarkTheme('Crombolo.Theme.Dark', false)).toBe(true)
+    expect(isDarkTheme('umb-dark-theme', false)).toBe(true)
+    expect(isDarkTheme('Crombolo.Theme.System', true)).toBe(true)
+    expect(isDarkTheme('Crombolo.Theme.System', false)).toBe(false)
+    expect(isDarkTheme('umb-light-theme', true)).toBe(false)
+    expect(isDarkTheme(null, true)).toBe(false)
+  })
+
+  test('a logo swaps to its cream-lettered variant and back, and nothing else is touched', () => {
+    expect(themedLogoUrl(`${graphics}/logo`, true)).toBe(`${graphics}/logo-dark`)
+    expect(themedLogoUrl(`${graphics}/logo-dark`, true)).toBe(`${graphics}/logo-dark`)
+    expect(themedLogoUrl(`${graphics}/logo-dark`, false)).toBe(`${graphics}/logo`)
+    expect(themedLogoUrl(`${graphics}/login-logo-alternative`, true)).toBe(
+      `${graphics}/login-logo-alternative-dark`,
+    )
+    expect(themedLogoUrl(`${graphics}/login-background`, true)).toBe(`${graphics}/login-background`)
+    expect(themedLogoUrl('/media/logo', true)).toBe('/media/logo')
+  })
+})
 
 describe('the title the client writes', () => {
   test('gets the site’s name in place of the client’s', () => {

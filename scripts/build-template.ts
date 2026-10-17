@@ -30,11 +30,20 @@ import {
   loadConfig,
   mediaStoreFor,
   readBlobs,
+  siteSections,
   syncSchemaDirectory,
 } from '@crombolo/server'
-import { exportBundle, PAYLOAD_DIR, writeBundle, writeBundlePackage } from '@crombolo/transfer'
+import {
+  type BundleFile,
+  exportBundle,
+  PAYLOAD_DIR,
+  writeBundle,
+  writeBundlePackage,
+} from '@crombolo/transfer'
 import { buildManifest } from '../packages/cli/src/manifest.ts'
-import { cliReferenceHtml } from '../packages/cli/src/reference.ts'
+import { createFileSystemPort } from '../packages/server/src/adapters/file-system.ts'
+import { createTemplateFileStore } from '../packages/server/src/adapters/template-files.ts'
+import { CLI_BASE, type DocsPage, docsKey, docsTree } from './docs-site.ts'
 import { contentPackage, copyTemplateFiles, listSites, type RepoSite } from './sites.ts'
 
 const ROOT = join(import.meta.dir, '..')
@@ -92,6 +101,8 @@ async function throwawaySite(template: Target): Promise<Site> {
       sqliteFile: join(dir, 'build.sqlite'),
       schemaDir: join(dir, 'schema'),
       componentsDir: join(dir, 'components'),
+      stylesheetsDir: join(dir, 'css'),
+      scriptsDir: join(dir, 'scripts'),
       mediaDir: join(dir, 'media'),
       development: true,
     },
@@ -914,29 +925,68 @@ const CROMBOLO: Builder = async (site) => {
       stepsHeading: 'Get started',
       steps,
       nextSteps: richtext(
-        '<p>The README covers configuration, deployment, importing from Umbraco and the rest ' +
-          'of the toolkit in depth, and the <a href="/developers/command-line/">command line ' +
-          'reference</a> covers every command.</p>',
+        '<p>The <a href="/docs/">docs</a> cover configuration, deployment, moving content ' +
+          'between environments and the rest of the toolkit in depth, and the ' +
+          `<a href="${CLI_BASE}">command line reference</a> covers every command.</p>`,
       ),
     },
   })
 
-  // Written from the CLI's own manifest (story 150): tests/cli-reference.test.ts
-  // fails when the commands change and this page has not been rebuilt.
+  const docs = await page({
+    key: DOCS_KEY,
+    type: 'docsSection',
+    parent: home,
+    name: 'Docs',
+    values: {
+      title: 'Crombolo docs',
+      standfirst:
+        'Guides to building and running a crombolo site, and a reference generated from the product itself.',
+    },
+  })
+  // tests/docs-site.test.ts fails when a guide, a command or a setting changes
+  // and these pages have not been rebuilt.
+  const write = async (parent: string, item: DocsPage): Promise<void> => {
+    const key = await page({
+      key: docsKey(item.path),
+      type: 'docsPage',
+      parent,
+      name: item.name,
+      values: {
+        title: item.name,
+        standfirst: item.standfirst,
+        body: item.body === undefined ? undefined : richtext(item.body),
+        generatedFrom: item.generatedFrom,
+        editUrl: item.editUrl,
+        umbracoUrlName: item.slug,
+      },
+    })
+    for (const child of item.children) await write(key, child)
+  }
+  for (const item of docsTree(await buildManifest())) await write(docs, item)
+  await page({
+    key: docsKey('search'),
+    type: 'searchPage',
+    parent: docs,
+    name: 'Search',
+    values: { title: 'Search the docs' },
+  })
+
+  // Story 150's single reference page. An import cannot delete or retype a page
+  // a site already has, so it stays, sending visitors on to the docs.
   await page({
     key: CLI_REFERENCE_KEY,
     type: 'developerPage',
     parent: developers,
     name: 'Command line',
     values: {
-      eyebrow: 'Reference',
       title: 'The crombolo command line',
-      standfirst:
-        'Every command, what it takes, what it changes and how it fails: the same description the CLI gives a script.',
-      nextSteps: richtext(cliReferenceHtml(await buildManifest())),
+      umbracoRedirect: `umb://document/${docsKey('reference/command-line').replaceAll('-', '')}`,
     },
   })
 }
+
+/** The docs section's front page. */
+const DOCS_KEY = '3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6'
 
 /** The product site's command line reference page. */
 const CLI_REFERENCE_KEY = '3c1e9b52-7d40-4f18-9a6e-150c11ec0150'
@@ -965,6 +1015,32 @@ const BUNDLE_IDS: Record<string, string> = {
  * machine and minute it was built on — which would otherwise put a developer's
  * hostname in the published package and churn the diff on every rebuild.
  */
+/**
+ * The bundles that carry their site's schema, components and styles as well as
+ * its content: the product site's, which is installed into the platform's copy
+ * of the site, where a new page type has to arrive with the pages that use it.
+ * The templates' bundles stay content-only, since `crombolo init` writes the
+ * files beside them.
+ */
+const CARRIES_SITE = new Set(['demo/crombolo'])
+
+/** Every section of the throwaway site, as `crombolo export --site` gathers them. */
+const sectionsOf = (site: Site): Promise<BundleFile[]> =>
+  siteSections(
+    {
+      db: site.db,
+      componentFiles: createTemplateFileStore(site.config.componentsDir),
+      components: createFileSystemPort(site.config.componentsDir, {
+        extension: '.tsx',
+        rewrites: ['.cshtml'],
+      }),
+      stylesheets: createFileSystemPort(site.config.stylesheetsDir, { extension: '.css' }),
+      scripts: createFileSystemPort(site.config.scriptsDir, { extension: '.js' }),
+      schemaDir: site.config.schemaDir,
+    },
+    'all',
+  )
+
 const PROVENANCE = { createdBy: 'bun run build:template', createdAt: '2026-10-01T00:00:00.000Z' }
 
 // ------------------------------------------------------------------- main
@@ -1020,7 +1096,11 @@ async function build(template: Target): Promise<void> {
 
     // The payload is replaced whole, so a node the content no longer has does not linger.
     rmSync(join(template.bundleDir, PAYLOAD_DIR), { recursive: true, force: true })
-    const files = writeBundlePackage(writeBundle(stable, read.bytes), contentPackage(template))
+    const sections = CARRIES_SITE.has(template.id) ? await sectionsOf(site) : []
+    const files = writeBundlePackage(
+      writeBundle(stable, read.bytes, sections),
+      contentPackage(template),
+    )
     for (const file of files) {
       const target = join(template.bundleDir, file.path)
       mkdirSync(join(target, '..'), { recursive: true })

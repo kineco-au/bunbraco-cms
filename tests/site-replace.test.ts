@@ -14,6 +14,7 @@ import { SYSTEM_MEDIA_TYPE_KEYS } from '@crombolo/core'
 import {
   ContentTypeRepository,
   DictionaryRepository,
+  DomainRepository,
   MemberRepository,
   NodeRepository,
   ObjectTypes,
@@ -368,6 +369,68 @@ async function contents(file: string): Promise<Record<string, unknown>> {
   })
   return out
 }
+
+/** Binds a hostname to a page, as the Culture and Hostnames dialog does. */
+async function bind(h: Harness, key: string, domainName: string): Promise<void> {
+  const node = await new NodeRepository(h.server.db).byKey(key)
+  const language = (
+    await h.server.db.query<{ iso_code: string }>('SELECT iso_code FROM language')
+  )[0]
+  const result = await new DomainRepository(h.server.db).setForNode(node?.id as number, {
+    defaultIsoCode: null,
+    domains: [{ domainName, isoCode: String(language?.iso_code) }],
+  })
+  expect(result).toEqual({ status: 'ok' })
+}
+
+const hostnamesOf = async (h: Harness, key: string) => {
+  const node = await new NodeRepository(h.server.db).byKey(key)
+  return (await new DomainRepository(h.server.db).forNode(node?.id as number)).domains.map(
+    (d) => d.domainName,
+  )
+}
+
+/**
+ * Story 159: hostnames belong to where a site runs. The file never carries
+ * them, so a copy cannot route as the original, and a replace leaves the
+ * target's on every page the file also has.
+ */
+describe(`hostnames (${dialectUnderTest})`, () => {
+  test('never travel in the file, and a replace keeps the target’s', async () => {
+    const a = await site({ types: ['page'], css: 'site.css', pages: ['Home', 'About'] })
+    const home = a.keys[0] as string
+    await bind(a.h, home, 'www.original.example')
+    const file = await exportAndClose(a.h)
+
+    const unpacked = temp('unpacked')
+    await extractTarball(file, unpacked)
+    for (const path of new Bun.Glob('**/*').scanSync({ cwd: unpacked }))
+      expect([
+        path,
+        readFileSync(join(unpacked, path), 'utf8').includes('original.example'),
+      ]).toEqual([path, false])
+
+    // A staging copy: the same pages, by key, answering on its own address.
+    const b = await site({ types: ['page'], css: 'site.css', pages: [] })
+    const first = await contentImport(b.config, {
+      bundle: file,
+      replace: 'replace',
+      backupTaken: true,
+    })
+    expect(first.problems).toEqual([])
+    expect(await hostnamesOf(b.h, home)).toEqual([])
+    await bind(b.h, home, 'staging.example')
+
+    // Copied over again: the pages are the file's, the address stays staging's.
+    const again = await contentImport(b.config, {
+      bundle: file,
+      replace: 'replace',
+      backupTaken: true,
+    })
+    expect(again.problems).toEqual([])
+    expect(await hostnamesOf(b.h, home)).toEqual(['staging.example'])
+  })
+})
 
 describe(`the round trip (${dialectUnderTest})`, () => {
   test('a site exported, started elsewhere and exported again comes out the same', async () => {

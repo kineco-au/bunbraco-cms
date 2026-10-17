@@ -422,7 +422,8 @@ bun run brochureware:publish              # upload, publish, wait
 
 What is sent is the committed bundle under `sites/crombolo/bundles/demo-crombolo`,
 never the site's database, which holds whatever was last done to it locally. The archive is deterministic, so unchanged content
-produces the same bytes and the same hash.
+produces the same bytes and the same hash. It carries the site's schema, views and
+styles too, and its docs section — [`docs/bundles.md`](docs/bundles.md#the-product-sites-bundle).
 
 The `brochureware` job in `.github/workflows/release.yml` runs it after the
 registry publish, and only when the repository variable `BROCHUREWARE_PUBLISH`
@@ -454,7 +455,7 @@ Design documents, in reading order; planned work is in the stories:
 | [assistant](docs/assistant.md) | the optional AI helper, its guardrails and its credentials |
 | [schema-at-runtime](docs/schema-at-runtime.md) | the shared schema store, and importing at runtime |
 | [content-transfer](docs/content-transfer.md) | the bundle format, and moving content between environments |
-| [configuration](docs/configuration.md) | every environment variable, and every script |
+| [configuration](docs/configuration.md) | every environment variable, and every script; the variable tables are generated from `packages/server/src/settings.ts` by `bun run docs:config` |
 | [operations](docs/operations.md) | media storage, redirects, git, security, members; running a cluster: health during upgrades, pausing editing, the commands as functions; the backoffice's health checks and troubleshooting in [diagnostics](docs/diagnostics.md); [webhooks](docs/webhooks.md) |
 | [umbraco-import](docs/umbraco-import.md) | importing an existing Umbraco site: the report, what converts, and what is left |
 | [bundles](docs/bundles.md) | created bundles, extensions as npm dependencies instead of App_Plugins, and bundles with a server half |

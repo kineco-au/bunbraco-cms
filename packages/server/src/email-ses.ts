@@ -30,6 +30,7 @@ import {
   postToProvider,
   validateMessage,
 } from './email.ts'
+import { setting } from './settings.ts'
 
 export interface SesOptions extends EmailAdapterOptions {
   region: string
@@ -228,13 +229,13 @@ export function rawMime(
 
 export function sesEmail(options: SesOptions): EmailPort {
   if (!options.region) throw new Error('An SES e-mail adapter needs a region.')
-  const accessKeyId = options.accessKeyId ?? Bun.env.AWS_ACCESS_KEY_ID ?? ''
-  const secretAccessKey = options.secretAccessKey ?? Bun.env.AWS_SECRET_ACCESS_KEY ?? ''
+  const accessKeyId = options.accessKeyId ?? setting('AWS_ACCESS_KEY_ID') ?? ''
+  const secretAccessKey = options.secretAccessKey ?? setting('AWS_SECRET_ACCESS_KEY') ?? ''
   if (!accessKeyId || !secretAccessKey)
     throw new Error(
       'An SES e-mail adapter needs credentials: pass accessKeyId and secretAccessKey, or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. Instance roles are not resolved.',
     )
-  const sessionToken = options.sessionToken ?? Bun.env.AWS_SESSION_TOKEN ?? undefined
+  const sessionToken = options.sessionToken ?? setting('AWS_SESSION_TOKEN') ?? undefined
   const call = options.fetch ?? fetch
   const base = options.endpoint ?? `https://email.${options.region}.amazonaws.com`
   assertSecureEndpoint(base, 'SES')

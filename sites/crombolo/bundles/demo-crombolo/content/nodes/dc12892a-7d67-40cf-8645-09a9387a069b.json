@@ -1,0 +1,59 @@
+{
+  "key": "dc12892a-7d67-40cf-8645-09a9387a069b",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 5,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Operations",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>Once a site is deployed, most of looking after it is done from the command line in the site&#39;s folder. These commands open the site&#39;s database directly rather than going through the running server, so they work even when the site will not start. In a container, run them with <code>docker exec</code>.</p>\n<p>The commands that change something write an entry in the audit log. Every command takes <code>-o json</code> for scripts, and exits with a code a script can branch on (<a href=\"/docs/reference/exit-codes/\">exit codes</a>).</p>\n<h2 id=\"health\">Health</h2>\n<p>There are three ways to ask whether a site is well, for three different callers.</p>\n<h3 id=\"health-for-a-load-balancer\"><code>/health</code>, for a load balancer</h3>\n<pre><code class=\"language-sh\">curl https://www.example.com/health\n</code></pre>\n<pre><code class=\"language-json\">{ &quot;ok&quot;: true, &quot;readOnly&quot;: false, &quot;paused&quot;: null, &quot;version&quot;: &quot;1.0.0&quot;, &quot;revision&quot;: &quot;4573&quot;, &quot;role&quot;: &quot;all&quot; }\n</code></pre>\n<p>It answers 200 when the node can do its job and 503 when it cannot: while it is starting, when it cannot reach the database, or when it has fallen behind the database during an upgrade and can no longer save. A public-site-only <code>web</code> node that has fallen behind still answers 200 with <code>readOnly: true</code>, because the pages it serves are still correct.</p>\n<h3 id=\"crombolo-status-for-a-deploy-step\"><code>crombolo status</code>, for a deploy step</h3>\n<pre><code class=\"language-sh\">bunx crombolo status\n</code></pre>\n<pre><code class=\"language-text\">  site       My Site   /app\n  database   postgres db:5432/my-site   reachable\n  schema     files 1.1.0  database 1.1.0+4573   up to date\n  framework  no migration pending\n  content    112 document(s), 48 media, 9 element(s)\n  email      resend\n  findings   0 blocking, 0 need a person, 3 automatic, 0 resolved\n</code></pre>\n<p><code>status</code> describes the environment without starting it, and without changing anything; on SQLite it will not even create the file. It exits with code 20 when something would stop the site working: an unreachable database, a migration waiting, or findings that need a person.</p>\n<h3 id=\"crombolo-health-for-a-monitor\"><code>crombolo health</code>, for a monitor</h3>\n<pre><code class=\"language-sh\">bunx crombolo health\nbunx crombolo health --group database\n</code></pre>\n<p>Runs the same checks as <strong>Settings › Health Check</strong> in the back office: the database, media storage, e-mail and the servers that have reported in. <code>--group</code> runs one group. It exits with code 20 when a check fails; a warning is reported but does not fail it.</p>\n<h2 id=\"pausing-editing\">Pausing editing</h2>\n<p>When you need editors to stop saving for a while, to restore a backup or move the database, pause editing for the whole site:</p>\n<pre><code class=\"language-sh\">bunx crombolo maintenance pause --reason &quot;Restoring Monday&#39;s backup&quot;\nbunx crombolo maintenance status\nbunx crombolo maintenance resume\n</code></pre>\n<p>The pause takes effect on every node at once. Editors who try to save are told the reason. Visitors are not affected, no node is taken out of service, and content imports still run, which is what lets a restore go ahead while editors wait.</p>\n<h2 id=\"backups\">Backups</h2>\n<h3 id=\"taken-for-you\">Taken for you</h3>\n<p>Anything that changes the database in bulk takes a backup first: <code>upgrade</code>, <code>upgrade check --fix</code>, <code>content import</code>, <code>content revert</code>, <code>import</code>, <code>pull</code> into an existing site, <code>types purge</code> and <code>bundle purge</code>.</p>\n<ul>\n<li><strong>On SQLite</strong> the backup is a copy of the database file beside it, named with the time and the reason.</li>\n<li><strong>On Postgres</strong> crombolo runs the command in <code>CROMBOLO_PG_DUMP</code>. It is given <code>CROMBOLO_BACKUP_STAMP</code> and <code>CROMBOLO_BACKUP_REASON</code> to name the file with. Without the setting, these commands refuse unless you pass <code>--backup-taken</code> to say you have taken one another way.</li>\n</ul>\n<pre><code class=\"language-sh\">CROMBOLO_PG_DUMP=&#39;pg_dump &quot;$CROMBOLO_POSTGRES_URL&quot; -f &quot;/backups/$CROMBOLO_BACKUP_STAMP-$CROMBOLO_BACKUP_REASON.sql&quot;&#39;\n</code></pre>\n<h3 id=\"routine-backups\">Routine backups</h3>\n<p>Those backups protect a single change. For routine backups, use the tools you would use for any database of its kind: your provider&#39;s snapshots or <code>pg_dump</code> for Postgres, and <code>sqlite3 crombolo.sqlite &quot;.backup backup.sqlite&quot;</code> for SQLite, which is safe while the site is running.</p>\n<p>The database is not the whole site. Back up the media library too: the <code>media/</code> folder, or the bucket if you use one. Your schema, templates and config are in your repository.</p>\n<h3 id=\"a-portable-copy\">A portable copy</h3>\n<pre><code class=\"language-sh\">bunx crombolo export --site --out site-2026-10-17.tgz\n</code></pre>\n<p>A whole-site file holds the schema, templates, styles, every page and media item and the media files, in one file that <code>crombolo start --from</code> or <code>crombolo import</code> can bring back anywhere. It leaves out domains, the secret key and settings, and leaves out members and users unless you add <code>--with-members</code> or <code>--with-users</code>. It is a good way to move a site, and a useful extra copy, but it is not a replacement for a database backup.</p>\n<h2 id=\"rebuilding-the-cache\">Rebuilding the cache</h2>\n<p>Each node keeps the published site in memory and refreshes it when content changes. If a node ever seems to be serving something stale, ask every node to rebuild:</p>\n<pre><code class=\"language-sh\">bunx crombolo cache rebuild\n</code></pre>\n<p>Each node rebuilds within a few seconds, at its next check of the database. Only the database has to be reachable from where you run it.</p>\n<h2 id=\"rebuilding-search\">Rebuilding search</h2>\n<p>The search indexes live in the database, so one rebuild serves every node:</p>\n<pre><code class=\"language-sh\">bunx crombolo index list                     # what each index holds, and what is waiting\nbunx crombolo index rebuild                  # both indexes\nbunx crombolo index rebuild InternalIndex    # just the back office&#39;s content index\n</code></pre>\n<p>Search keeps answering while a rebuild runs. <code>--queue-only</code> queues everything and leaves the indexing to the running site, which is kinder to a busy database.</p>\n<h2 id=\"the-recycle-bin\">The recycle bin</h2>\n<pre><code class=\"language-sh\">bunx crombolo recycle-bin empty --older-than 30 --dry-run\nbunx crombolo recycle-bin empty --older-than 30\n</code></pre>\n<p>Deletes what has been in the recycle bin for more than the given number of days, media files included. It asks first unless you pass <code>--yes</code>, and <code>--dry-run</code> lists what would go. <code>--content</code> or <code>--media</code> limits it to one bin.</p>\n<h2 id=\"logs\">Logs</h2>\n<p>Log files are written to the site&#39;s <code>logs/</code> folder, one file a day, as structured JSON. The back office&#39;s <strong>Log Viewer</strong>, under <strong>Settings</strong>, reads them, so editors with access can search them without a terminal. Events are printed to the console too, for your platform to collect.</p>\n<table>\n<thead>\n<tr>\n<th>Setting</th>\n<th>Default</th>\n<th>What it does</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>CROMBOLO_LOGS_DIR</code></td>\n<td><code>logs</code></td>\n<td>where log files go</td>\n</tr>\n<tr>\n<td><code>CROMBOLO_LOG_LEVEL</code></td>\n<td><code>info</code></td>\n<td>the least severe level logged: <code>trace</code>, <code>debug</code>, <code>info</code>, <code>warning</code>, <code>error</code> or <code>fatal</code></td>\n</tr>\n<tr>\n<td><code>CROMBOLO_LOG_TO_CONSOLE</code></td>\n<td><code>true</code></td>\n<td>print log events to the console as well</td>\n</tr>\n<tr>\n<td><code>CROMBOLO_TRACE_REQUESTS</code></td>\n<td><code>false</code></td>\n<td>a console line as each request arrives and as it is answered, for diagnosing a node</td>\n</tr>\n</tbody></table>\n<p>The audit log, which records who changed what, is kept in the database for a year by default (<code>CROMBOLO_AUDIT_RETENTION_DAYS</code>). A command run from a pipeline on someone&#39;s behalf can name them with <code>CROMBOLO_ACTOR</code>.</p>\n<h2 id=\"users-and-sign-in\">Users and sign-in</h2>\n<p>When someone is locked out or has lost their authenticator, fix it from the command line:</p>\n<pre><code class=\"language-sh\">bunx crombolo users list\nbunx crombolo users unlock sam@example.com\nbunx crombolo users reset-password sam@example.com\nbunx crombolo users reset-2fa sam@example.com\nbunx crombolo users disable sam@example.com\nbunx crombolo admin reset-password\n</code></pre>\n<p><code>reset-password</code> prints a generated password; with <code>--stdin</code> it reads one from a pipe instead, so it never sits in your shell history. On a site with no e-mail, <code>users invite &lt;email&gt; --group &lt;alias&gt;</code> creates the user and prints the link they set a password with. The <a href=\"/docs/reference/command-line/users/\">users commands</a> have the full list.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li><a href=\"/docs/reference/command-line/operations/\">The operations commands</a>, with every flag</li>\n<li><a href=\"/docs/guides/deploying/\">Deploying</a>: upgrades and running several nodes</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/operations.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Keep a running site healthy: health checks, pausing editing, backups, rebuilding the cache and search indexes, logs, and looking after users."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Operations"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "operations"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "key": "82fdcd06-8db5-48de-83ce-76c29947adfe",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 0,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Sites",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"init\"><code>crombolo init</code></h2>\n<p>Scaffold a site in the current directory. Each run acts again.</p>\n<pre><code>crombolo init [--force] [--name &lt;name&gt;] [--postgres] [--template &lt;template&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--force</code></td><td>Overwrite files that are already here.</td></tr><tr><td><code>--name</code></td><td>The site's name.</td></tr><tr><td><code>--postgres</code></td><td>Configure Postgres rather than SQLite.</td></tr><tr><td><code>--template</code></td><td>A starter template, or `list`.</td></tr></tbody></table>\n<h2 id=\"start\"><code>crombolo start</code></h2>\n<p>Boot the site in the current directory. Each run acts again.</p>\n<pre><code>crombolo start [--keep-admin] [--bundle &lt;bundle&gt;] [--from &lt;from&gt;] [--postgres] [--name &lt;name&gt;] [--no-install] [--allow-missing-media] [--label &lt;label&gt;] [--backup-taken] [--under &lt;under&gt;] [--resolve &lt;resolve&gt;] [--resolve-all &lt;resolve-all&gt;] [--allow-missing-blobs] [--publish] [--no-schema] [--no-files] [--replace-files]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--keep-admin</code></td><td>Don't touch the administrator's password.</td></tr><tr><td><code>--bundle</code></td><td>Apply a bundle's content first; repeatable.</td></tr><tr><td><code>--from</code></td><td>In an empty folder: a site from a whole-site file.</td></tr><tr><td><code>--postgres</code></td><td>With --from: configure Postgres.</td></tr><tr><td><code>--name</code></td><td>With --from: the site's name.</td></tr><tr><td><code>--no-install</code></td><td>With --from: skip `bun install`.</td></tr><tr><td><code>--allow-missing-media</code></td><td>With --from: import media items whose files the file does not carry.</td></tr><tr><td><code>--label</code></td><td>A label for a bundle's import run.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr><tr><td><code>--under</code></td><td>Place the bundle under this page.</td></tr><tr><td><code>--resolve</code></td><td>Answer a finding: &lt;key&gt;=take-bundle|keep-local|skip, or &lt;key&gt;/&lt;property&gt;[@&lt;culture&gt;]=take-bundle|keep-local.</td></tr><tr><td><code>--resolve-all</code></td><td>Answer every finding the same way. One of <code>take-bundle</code>, <code>keep-local</code>, <code>skip</code>.</td></tr><tr><td><code>--allow-missing-blobs</code></td><td>Import media items whose files the bundle does not carry.</td></tr><tr><td><code>--publish</code></td><td>Publish what it imports.</td></tr><tr><td><code>--no-schema</code></td><td>Decline the schema the bundle carries.</td></tr><tr><td><code>--no-files</code></td><td>Decline the views, styles and scripts it carries.</td></tr><tr><td><code>--replace-files</code></td><td>Allow replacing files this site has; the originals are kept for a revert.</td></tr></tbody></table>\n<h2 id=\"status\"><code>crombolo status</code></h2>\n<p>What this environment is, and what is wrong with it, without starting it. Changes nothing.</p>\n<pre><code>crombolo status</code></pre>\n<h2 id=\"health\"><code>crombolo health</code></h2>\n<p>Run the site's health checks. Changes nothing.</p>\n<pre><code>crombolo health [--group &lt;group&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--group</code></td><td>Only this group of checks.</td></tr></tbody></table>\n<h2 id=\"generate\"><code>crombolo generate</code></h2>\n<p>TypeScript for the content types in schema/. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo generate</code></pre>\n<h2 id=\"export\"><code>crombolo export</code></h2>\n<p>Write the whole site to one file, to move it to another machine or host. Each run acts again.</p>\n<pre><code>crombolo export --site [--out &lt;out&gt;] [--no-media] [--drafts] [--with-members] [--with-users] [--anonymise] [--name &lt;name&gt;] [--package-version &lt;package-version&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--site</code></td><td>The whole site (required: a part of it is `content export`). Required.</td></tr><tr><td><code>--out</code></td><td>The file to write.</td></tr><tr><td><code>--no-media</code></td><td>Leave the media files out.</td></tr><tr><td><code>--drafts</code></td><td>Drafts too.</td></tr><tr><td><code>--with-members</code></td><td>Members, encrypted.</td></tr><tr><td><code>--with-users</code></td><td>Back-office users, encrypted.</td></tr><tr><td><code>--anonymise</code></td><td>Replace every personal value as it writes.</td></tr><tr><td><code>--name</code></td><td>The package's npm name.</td></tr><tr><td><code>--package-version</code></td><td>The package's version.</td></tr></tbody></table>\n<h2 id=\"schema\"><code>crombolo schema</code></h2>\n<p>This CLI described for machines, as a clispec v0.3 document. Changes nothing.</p>\n<pre><code>crombolo schema</code></pre>\n<h2 id=\"schema-add-property\"><code>crombolo schema add-property</code></h2>\n<p>Append a property to a type, and apply it. Each run acts again.</p>\n<pre><code>crombolo schema add-property &lt;type&gt; &lt;alias&gt; --type &lt;type&gt; [--name &lt;name&gt;] [--description &lt;description&gt;] [--mandatory] [--tab &lt;tab&gt;] [--dry-run]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>type</code></td><td>The type's alias. Required.</td></tr><tr><td><code>alias</code></td><td>The property's alias. Required.</td></tr><tr><td><code>--type</code></td><td>The data type. Required.</td></tr><tr><td><code>--name</code></td><td>The property's name.</td></tr><tr><td><code>--description</code></td><td>The property's description.</td></tr><tr><td><code>--mandatory</code></td><td>An editor must fill it in.</td></tr><tr><td><code>--tab</code></td><td>The tab it goes in.</td></tr><tr><td><code>--dry-run</code></td><td>Say what it would do, and change nothing.</td></tr></tbody></table>\n<h2 id=\"schema-check\"><code>crombolo schema check</code></h2>\n<p>Validate schema/ and report what a sync would do to this database. Changes nothing.</p>\n<pre><code>crombolo schema check [--static]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--static</code></td><td>Validate the files only, no database.</td></tr></tbody></table>\n<h2 id=\"schema-export\"><code>crombolo schema export</code></h2>\n<p>Write the database's definitions as schema/ files. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo schema export</code></pre>\n<h2 id=\"schema-new\"><code>crombolo schema new</code></h2>\n<p>Write a type file, with keys, and the view it points at, then apply it. Each run acts again.</p>\n<pre><code>crombolo schema new &lt;kind&gt; &lt;alias&gt; [--name &lt;name&gt;] [--description &lt;description&gt;] [--icon &lt;icon&gt;] [--at-root] [--element] [--tab &lt;tab&gt;] [--no-view]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>kind</code></td><td>What kind of type. One of <code>content-type</code>, <code>media-type</code>, <code>member-type</code>. Required.</td></tr><tr><td><code>alias</code></td><td>The type's alias. Required.</td></tr><tr><td><code>--name</code></td><td>The type's name.</td></tr><tr><td><code>--description</code></td><td>The type's description.</td></tr><tr><td><code>--icon</code></td><td>The type's icon.</td></tr><tr><td><code>--at-root</code></td><td>Allow it at the root of the tree.</td></tr><tr><td><code>--element</code></td><td>An element type, for blocks.</td></tr><tr><td><code>--tab</code></td><td>The tab its first property goes in.</td></tr><tr><td><code>--no-view</code></td><td>No view: a type nothing renders.</td></tr></tbody></table>\n<h2 id=\"schema-purge\"><code>crombolo schema purge</code></h2>\n<p>Delete properties retired more than N days ago, with their values. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo schema purge --older-than &lt;older-than&gt; [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--older-than</code></td><td>How long, in days, a property must have been retired. Required.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"schema-rewrite\"><code>crombolo schema rewrite</code></h2>\n<p>Rewrite every schema/ file canonically. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo schema rewrite</code></pre>\n<h2 id=\"schema-sync\"><code>crombolo schema sync</code></h2>\n<p>Apply schema/ to the database. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo schema sync [--force-retire-types]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--force-retire-types</code></td><td>Retire a type the files no longer have even though content uses it.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Create a site, start it, check on it, and describe the command line to a script."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Sites"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "sites"
+    }
+  ]
+}

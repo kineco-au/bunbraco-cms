@@ -1,7 +1,7 @@
 # Diagnostics in the backoffice
 
-What the Settings section's health checks, telemetry and profiling screens, and
-the system information dialog, tell an administrator — and why each answer is
+What the Settings section's health checks and the system information dialog
+tell an administrator, what became of Umbraco's telemetry and profiling screens, tell an administrator — and why each answer is
 the one it is. Built in story `047`. For the request trace and heap report that
 `docker compose up` turns on, see [`operations.md`](operations.md); for the log
 viewer, [`stories/05_completed/040-the-log-viewer.md`](stories/05_completed/040-the-log-viewer.md).
@@ -32,12 +32,18 @@ not something a button should do to a running site, so
 
 ## Telemetry and profiling
 
-Both are fixed, deliberate answers rather than missing features:
+Both are gone, deliberately rather than missing: neither screen is vendored
+([Nothing sent out](backoffice-hosting.md#nothing-sent-out)), and their
+endpoints answer **410 Gone** with a problem detail saying why.
 
-- **Telemetry** is always `Minimal`: nothing is collected and nothing is sent
-  anywhere. Asking for `Basic` or `Detailed` is refused with 400 saying so.
-- **Profiling** is always off: there is no profiler (Umbraco's is MiniProfiler,
-  which is .NET). Switching it on is refused with 400; switching it off succeeds.
+- **Telemetry** is not collected, and nothing is sent anywhere. Its three
+  endpoints (`GET /telemetry`, `GET` and `POST /telemetry/level`) answer
+  **410 Gone** with a problem detail saying so, rather than pretending to a
+  level. The back office has no screen for it: Umbraco's consent dashboard is
+  not vendored ([Nothing sent out](backoffice-hosting.md#nothing-sent-out)).
+- **Profiling**: there is no profiler (Umbraco's is MiniProfiler, which is
+  .NET). `GET` and `PUT /profiling/status` answer 410 Gone, and the Settings
+  section has no Profiling dashboard.
 
 ## Troubleshooting
 

@@ -23,6 +23,7 @@ import {
   mediaStoreFor,
   placeBlobs,
   type ServerHandle,
+  setting,
 } from '@crombolo/server'
 import { importBundle } from '@crombolo/transfer'
 import { CliError } from '../errors.ts'
@@ -199,7 +200,7 @@ export async function serveSite(io: Io, options: StartOptions): Promise<Started>
  * platform's restart policy and alerts take over. docs/operations.md.
  */
 async function bootWithRetries(io: Io, config: CromboloConfig, options: StartOptions) {
-  const attempts = Math.max(1, Number(Bun.env.CROMBOLO_BOOT_ATTEMPTS ?? 10) || 10)
+  const attempts = Math.max(1, Number(setting('CROMBOLO_BOOT_ATTEMPTS') ?? 10) || 10)
   const delays = bootRetryDelays(attempts)
   let failure: BootFailure | undefined
   let progress = { attempt: 1, attempts, retryInSeconds: undefined as number | undefined }

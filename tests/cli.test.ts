@@ -285,5 +285,9 @@ name = "Tell the team"
 
     const plain = run(['components', 'new', 'shared/header', '-o', 'json'])
     expect(JSON.parse(plain.out)).toMatchObject({ template: false, email: false })
+
+    // The folder alone is enough, before any form names it.
+    const unnamed = run(['components', 'new', 'emails/welcome', '-o', 'json'])
+    expect(JSON.parse(unnamed.out)).toMatchObject({ template: false, email: true })
   })
 })

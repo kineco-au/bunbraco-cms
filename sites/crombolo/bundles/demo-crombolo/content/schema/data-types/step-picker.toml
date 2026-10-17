@@ -1,0 +1,7 @@
+[data-type]
+key = "45f0a1f5-562d-4b0a-9beb-191181dba9e2"
+alias = "stepPicker"
+name = "Step Picker"
+editor = "Umbraco.ElementPicker"
+editor-ui = "Umb.PropertyEditorUi.ElementPicker"
+config = { allowedContentTypes = "bd46f89c-5685-4048-adb7-b4bd40b65c8a" }

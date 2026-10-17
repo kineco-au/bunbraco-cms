@@ -1327,3 +1327,20 @@ using `context.host.tables`, the dashboard's report, `upgrade --plan`, `check`,
   bundle you import is code you run, exactly like any other dependency in the
   file. What the design buys is that importing it is a decision somebody makes
   and commits.
+
+## The product site's bundle
+
+`sites/crombolo/bundles/demo-crombolo` is the one committed bundle that carries
+its site's schema, components and styles as well as its content, so a new page
+type reaches the platform in the same install as the pages that use it. The
+platform installs it with permission to replace files, so the repository wins
+over an edit made there. The templates' bundles stay content-only, since
+`crombolo init` writes the files beside them.
+
+Its docs section (`/docs/`) is built into it: the guides are Markdown in
+`sites/crombolo/docs/`, and the command line, configuration and exit code
+references are generated from the CLI's manifest and
+`packages/server/src/settings.ts` (`scripts/docs-site.ts`).
+`bun run build:template demo/crombolo` rewrites the lot, and
+`tests/docs-site.test.ts` fails when a guide, a command or a setting has changed
+without a rebuild.

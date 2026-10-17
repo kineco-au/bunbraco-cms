@@ -70,8 +70,101 @@ function correctLogoLink() {
   return true
 }
 
+/** Where Umbraco's theme context keeps the choice, as the shells' early script reads it. */
+const THEME_KEY = 'umb-theme-alias'
+
+/** Whether a theme choice paints the back office dark: Dark, or Match my system on a dark computer. */
+export function isDarkTheme(alias, prefersDark) {
+  return (
+    alias === 'Crombolo.Theme.Dark' ||
+    alias === 'umb-dark-theme' ||
+    (alias === 'Crombolo.Theme.System' && Boolean(prefersDark))
+  )
+}
+
+const GRAPHIC =
+  /(\/security\/back-office\/graphics\/)(logo|logo-alternative|login-logo|login-logo-alternative)(-dark)?$/
+
+/**
+ * A logo's address for the theme: the cream-lettered `-dark` variant on a dark
+ * theme, the plain one otherwise. Anything that is not one of the logos comes
+ * back as it was.
+ */
+export function themedLogoUrl(src, dark) {
+  const match = GRAPHIC.exec(src ?? '')
+  if (!match) return src
+  return `${src.slice(0, match.index)}${match[1]}${match[2]}${dark ? '-dark' : ''}`
+}
+
+const prefersDark = () => {
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  } catch {
+    return false
+  }
+}
+
+const storedTheme = () => {
+  try {
+    return localStorage.getItem(THEME_KEY)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The header's logo, and the wordmark in its popover, in the theme's colours.
+ *
+ * `umb-app-logo` picks its graphic from Umbraco's own theme names, and the
+ * header pins it to the one drawn for an orange bar, so its cocoa lettering
+ * vanished on the dark header. Like the link above, this reaches into the
+ * vendored element and does nothing if it is not what it was.
+ */
+function applyThemedLogos() {
+  const dark = isDarkTheme(storedTheme(), prefersDark())
+  const header = deepQuery('umb-backoffice-header-logo')?.shadowRoot
+  const mark = header?.querySelector('umb-app-logo')?.shadowRoot?.querySelector('img')
+  if (!mark) return false
+  const src = mark.getAttribute('src')
+  const next = themedLogoUrl(src, dark)
+  if (next !== src) mark.setAttribute('src', next)
+  const popover = header.querySelector('img#logo')
+  if (popover) {
+    popover.dataset.lightSrc ??= popover.getAttribute('src') ?? ''
+    const wanted = dark
+      ? next.replace(/graphics\/logo-dark$/, 'graphics/logo-alternative-dark')
+      : popover.dataset.lightSrc
+    if (popover.getAttribute('src') !== wanted) popover.setAttribute('src', wanted)
+  }
+  return true
+}
+
+/** Applies the logos now and on every change of theme: the menu, another tab, or the computer's. */
+function followTheme() {
+  const apply = () => setTimeout(applyThemedLogos, 0)
+  // The theme context swaps the theme's stylesheet in the head when the choice changes.
+  new MutationObserver(apply).observe(document.head, { childList: true })
+  window.addEventListener('storage', (event) => {
+    if (event.key === THEME_KEY) apply()
+  })
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply)
+  } catch {
+    // Without media queries, Match my system stays light.
+  }
+}
+
 export const onInit = () => {
   const brand = brandName()
+  let themed = false
+  const logos = setInterval(() => {
+    if (applyThemedLogos() && !themed) {
+      themed = true
+      clearInterval(logos)
+      followTheme()
+    }
+  }, 250)
+  setTimeout(() => clearInterval(logos), 30_000)
   const correct = () => {
     const corrected = brandedTitle(document.title, brand)
     if (corrected !== document.title) document.title = corrected

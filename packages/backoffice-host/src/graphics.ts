@@ -27,6 +27,13 @@ const GRAPHICS: Record<string, string> = {
   'logo-alternative': 'branding/logo-surface.svg',
   'login-logo': 'branding/logo-header.svg',
   'login-logo-alternative': 'branding/logo-surface.svg',
+  // The same marks with cream lettering, for the dark theme. The client asks
+  // for the plain names whatever the theme, so the plugin and the shells'
+  // early script swap these in (`branding.js`, `theme-early.ts`).
+  'logo-dark': 'branding/logo-header-dark.svg',
+  'logo-alternative-dark': 'branding/logo-surface-dark.svg',
+  'login-logo-dark': 'branding/logo-header-dark.svg',
+  'login-logo-alternative-dark': 'branding/logo-surface-dark.svg',
   'login-background': 'branding/backdrop.svg',
 }
 

@@ -1,15 +1,15 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "id": "ffc7145b-99fa-48da-9daf-12cd61454a22",
   "createdAt": "2026-10-01T00:00:00.000Z",
   "createdBy": "bun run build:template",
-  "integrity": "sha256-6e36bd75be577d9ae4cd8c57d6bf66f966ec71044f9a7ac14bcca0d3baf9a030",
+  "integrity": "sha256-b2abbba3ef92b1556b51b2deb680b3b0decb342597682fa501d994805aa7768f",
   "snapshot": "published",
   "provenance": {
     "siteName": "Crombolo",
     "schemaVersion": "1.0.0",
     "schemaRevision": "0",
-    "schemaHash": "fcce8d906440224616d9c459737ec95e40e9cc7d30ae2d43b4a49bc7cec4d2c2"
+    "schemaHash": "5360b9cb7c85fc7b83b79c9e0d822e308286bfdfc055eba1189cfef4f11ae8f3"
   },
   "selector": {
     "roots": [
@@ -40,6 +40,28 @@
       "276110ee-fb7c-4e1b-8648-89b8f828e161",
       "1f9d8eb5-4a8d-448d-bedc-a84f33ddab21",
       "fa2dd680-27ba-4811-8dc2-101cb3813c6d",
+      "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
+      "a1a5f5a7-eb6f-4465-848a-1a86b595946e",
+      "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+      "6e5fea07-0e58-4f64-8eef-c7ef533d7c98",
+      "2d05a8a7-9e6c-4e64-8fe7-b2af5f4952b3",
+      "d4292a2e-c06e-4099-8ddf-e47b593e79c4",
+      "56c7f79b-2233-46dd-8887-27992f20bc95",
+      "2e8dd4e8-d958-4646-83b9-44879bbcfcc2",
+      "dc12892a-7d67-40cf-8645-09a9387a069b",
+      "3d525785-ea12-44ab-890b-fdcb049d9d1b",
+      "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+      "82fdcd06-8db5-48de-83ce-76c29947adfe",
+      "89ecdb25-4b22-4557-8494-e075e88ae0d3",
+      "8edc6093-5294-4e95-8d4b-13cda44da5f4",
+      "d701c25a-6cca-4875-880b-2d70c0227158",
+      "c4d3fed5-e5e4-4eaa-836a-60f841ad9d5a",
+      "a05f0143-68ce-4242-8266-7db386b6747b",
+      "2603f397-f28b-4a0e-8775-57ba021acc9b",
+      "cb496fd4-b965-43b8-8531-f83c08e8fc80",
+      "030e1fb7-4785-41ce-891b-fed3794e5280",
+      "43ff870b-8511-477f-8dd0-cc9d2edc5727",
+      "764372aa-43c9-4bb9-8587-fd5842381079",
       "3c1e9b52-7d40-4f18-9a6e-150c11ec0150"
     ],
     "descendants": true,
@@ -49,33 +71,55 @@
   },
   "counts": {
     "element": 25,
-    "document": 3
+    "document": 25
   },
   "dependencies": {
     "carried": [
+      "030e1fb7-4785-41ce-891b-fed3794e5280",
       "03ef280b-511e-4778-859b-34e6a48be6f6",
       "05b6bdcb-2635-4a84-96e3-aa51980f368a",
       "1b966f5b-2fa6-4912-92aa-6390e00ac12e",
       "1f9d8eb5-4a8d-448d-bedc-a84f33ddab21",
+      "2603f397-f28b-4a0e-8775-57ba021acc9b",
       "276110ee-fb7c-4e1b-8648-89b8f828e161",
       "28e248bf-609b-4a0e-a2fa-1c2a8cc6846f",
+      "2d05a8a7-9e6c-4e64-8fe7-b2af5f4952b3",
+      "2e8dd4e8-d958-4646-83b9-44879bbcfcc2",
+      "3ae2a2eb-66a7-40a2-bcbf-72d32bc0b5d6",
       "3b2ff4af-b93b-4c28-bf5c-f7ccdc434948",
       "3c1e9b52-7d40-4f18-9a6e-150c11ec0150",
+      "3d525785-ea12-44ab-890b-fdcb049d9d1b",
+      "43ff870b-8511-477f-8dd0-cc9d2edc5727",
       "4d577630-7c9f-46c0-a0d5-f887daef0aa0",
       "566477d3-97a4-446b-b9f1-d9b0f810caa8",
+      "56c7f79b-2233-46dd-8887-27992f20bc95",
       "5846d97d-b99b-4949-951d-43eda14b73ee",
       "6a683488-cad5-4765-b253-044090a86505",
       "6bd08968-76a1-4f96-a7bf-453bad090fdc",
+      "6e5fea07-0e58-4f64-8eef-c7ef533d7c98",
       "6fbd32fd-64ea-4cc1-867d-a453a3fc6d7a",
       "704573e6-9386-4273-b6e8-04110bf6a9eb",
+      "764372aa-43c9-4bb9-8587-fd5842381079",
       "7a0bca8c-36cf-4602-b204-1b6674d2e1ee",
+      "82fdcd06-8db5-48de-83ce-76c29947adfe",
+      "89ecdb25-4b22-4557-8494-e075e88ae0d3",
+      "8edc6093-5294-4e95-8d4b-13cda44da5f4",
       "9249bc6e-4bb3-4161-a538-a7c8008f1c95",
       "9ccf8f41-fdb9-4a17-87d2-69835c42d5bd",
       "9fbf656c-7b94-4f38-9c45-b4a93dea980d",
+      "a05f0143-68ce-4242-8266-7db386b6747b",
+      "a1a5f5a7-eb6f-4465-848a-1a86b595946e",
       "a90cf801-2632-4000-85e6-14056ccacbb4",
       "ad985566-f642-413e-83e5-3e9bb4cdf283",
       "b13339a3-69dd-43a2-a766-9ed92c8e7a28",
+      "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+      "c4d3fed5-e5e4-4eaa-836a-60f841ad9d5a",
       "c7d11c0f-afa9-4269-9f26-c52e8cb09b0e",
+      "cb496fd4-b965-43b8-8531-f83c08e8fc80",
+      "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+      "d4292a2e-c06e-4099-8ddf-e47b593e79c4",
+      "d701c25a-6cca-4875-880b-2d70c0227158",
+      "dc12892a-7d67-40cf-8645-09a9387a069b",
       "e41ed7cc-3023-43a1-93ad-83f1b2ea1559",
       "eda4ab14-74bf-446d-bb3e-064be4e5913b",
       "f6c036de-300b-42d5-aa83-56f60fa26ef2",
@@ -90,6 +134,14 @@
           "alias": "developerPage"
         },
         {
+          "key": "50f0950e-b374-438c-a8a1-540825534a75",
+          "alias": "docsPage"
+        },
+        {
+          "key": "bb2beab4-5b54-4b43-a471-adbd625968d5",
+          "alias": "docsSection"
+        },
+        {
           "key": "06853f7a-4f55-4a20-b74d-5ba39ce6b9c4",
           "alias": "feature"
         },
@@ -98,16 +150,54 @@
           "alias": "homePage"
         },
         {
+          "key": "7ac5464d-4ce4-4d47-8b4c-6fc4faf29911",
+          "alias": "searchPage"
+        },
+        {
           "key": "bd46f89c-5685-4048-adb7-b4bd40b65c8a",
           "alias": "step"
         }
       ],
       "components": [
         "pages/developerPage",
-        "pages/homePage"
+        "pages/docsPage",
+        "pages/docsSection",
+        "pages/homePage",
+        "pages/searchPage"
       ],
       "languages": []
     }
   },
-  "blobs": []
+  "blobs": [],
+  "carries": {
+    "schema": [
+      "schema/content-types/developer-page.toml",
+      "schema/content-types/docs-page.toml",
+      "schema/content-types/docs-section.toml",
+      "schema/content-types/feature.toml",
+      "schema/content-types/home-page.toml",
+      "schema/content-types/search-page.toml",
+      "schema/content-types/step.toml",
+      "schema/data-types/feature-picker.toml",
+      "schema/data-types/step-picker.toml",
+      "schema/schema.toml"
+    ],
+    "components": [
+      "components/pages/developerPage.tsx",
+      "components/pages/docsPage.tsx",
+      "components/pages/docsSection.tsx",
+      "components/pages/homePage.tsx",
+      "components/pages/searchPage.tsx",
+      "components/shared/docs.tsx",
+      "components/shared/features.tsx",
+      "components/shared/layout.tsx",
+      "components/shared/logo.tsx",
+      "components/shared/site-footer.tsx",
+      "components/shared/site-header.tsx",
+      "components/shared/site.tsx"
+    ],
+    "styles": [
+      "styles/site.css"
+    ]
+  }
 }

@@ -425,7 +425,7 @@ describe('the Crombolo product site', () => {
     const types = loadSchemaDirectory(join(template.dir, 'files', 'schema')).set.contentTypes
     const home = types.find((type) => type.alias === 'homePage')
     const developer = types.find((type) => type.alias === 'developerPage')
-    expect(home?.allowChildren).toEqual(['developerPage'])
+    expect(home?.allowChildren).toEqual(['developerPage', 'docsSection'])
     const homeAliases = home ? allProperties(home).map((p) => p.alias) : []
     for (const alias of ['codeSample', 'steps', 'toolkit'])
       expect([alias, homeAliases.includes(alias)]).toEqual([alias, false])

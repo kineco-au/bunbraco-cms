@@ -1,0 +1,59 @@
+{
+  "key": "6e5fea07-0e58-4f64-8eef-c7ef533d7c98",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "bfbe288f-2c69-4228-872f-9977d0ba23ae",
+  "sortOrder": 0,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Configuration",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<p>A new site runs with nothing set. The defaults are chosen so that <code>bun start</code> on a laptop gives you a working site on SQLite, and everything you change from there is either a line in <code>crombolo.config.ts</code> or an environment variable.</p>\n<p>This page covers how the two fit together and the settings most sites set first. Every setting, with its default, is in the <a href=\"/docs/reference/configuration/\">configuration reference</a>.</p>\n<h2 id=\"the-config-file\">The config file</h2>\n<p>Every site has a <code>crombolo.config.ts</code> beside its <code>package.json</code>. It exports the result of <code>defineConfig</code>:</p>\n<pre><code class=\"language-ts\">import { defineConfig } from &#39;@crombolo/crombolo&#39;\n\nexport default defineConfig({\n  siteName: &#39;My Site&#39;,\n  applicationUrl: &#39;https://www.example.com&#39;,\n})\n</code></pre>\n<p>The file is TypeScript, so your editor completes the setting names and checks their types. The server reads it when it starts, and so does the command line, so a command run in the site&#39;s folder acts on the same database and folders the site uses.</p>\n<p>Some settings can only go in the file, because they are code rather than a value:</p>\n<table>\n<thead>\n<tr>\n<th>Setting</th>\n<th>What it is</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>bundles</code></td>\n<td>the server side of the bundles this site runs</td>\n</tr>\n<tr>\n<td><code>redirects</code></td>\n<td>redirect rules, built with <code>redirect()</code></td>\n</tr>\n<tr>\n<td><code>email</code></td>\n<td>an e-mail provider, built with <code>resendEmail()</code>, <code>postmarkEmail()</code>, <code>sesEmail()</code> or <code>customEmail()</code></td>\n</tr>\n<tr>\n<td><code>mediaStore</code></td>\n<td>where uploaded files go, built with <code>s3MediaStore()</code> or <code>azureMediaStore()</code></td>\n</tr>\n<tr>\n<td><code>memberIdentityProviders</code>, <code>backofficeIdentityProviders</code></td>\n<td>sign-in through Entra, AWS Identity Center or any OpenID Connect provider</td>\n</tr>\n<tr>\n<td><code>assistant</code></td>\n<td>the optional AI helper in the back office</td>\n</tr>\n</tbody></table>\n<p><code>bundles</code> in particular has no environment variable on purpose: code reaches a running site only through a reviewed, deployed change to this file.</p>\n<h2 id=\"which-value-wins\">Which value wins</h2>\n<p>Each setting is resolved in this order:</p>\n<ol>\n<li><strong>A value in <code>crombolo.config.ts</code>.</strong> If the file sets it, that is the value.</li>\n<li><strong>The environment.</strong> Otherwise, the matching environment variable, if it is set.</li>\n<li><strong>The default.</strong> Otherwise, the built-in default.</li>\n</ol>\n<p>So the file is for what is true of the site everywhere, and the environment is for what differs between your laptop, staging and production. A setting you want to change per environment should stay out of the file.</p>\n<p>Bun reads a <code>.env</code> file in the site&#39;s folder when it starts, so local settings can live there. <code>crombolo init</code> lists <code>.env</code> in <code>.gitignore</code>; keep it that way, since it is where passwords end up.</p>\n<h3 id=\"development-and-production\">Development and production</h3>\n<p><code>NODE_ENV=production</code> is the switch between the two. In development, which is anything else, crombolo is helpful: it generates and prints an administrator&#39;s password, lets the back office write schema files, prints e-mail to the console, and lets an upgrade proceed with items still waiting for a person. In production it does none of those. Always set <code>NODE_ENV=production</code> on a deployed site.</p>\n<h2 id=\"the-settings-you-set-first\">The settings you set first</h2>\n<h3 id=\"the-database\">The database</h3>\n<p>SQLite is the default, in a file called <code>crombolo.sqlite</code> in the site&#39;s folder. To use Postgres, set two variables:</p>\n<pre><code class=\"language-sh\">CROMBOLO_DB=postgres\nCROMBOLO_POSTGRES_URL=postgres://crombolo:secret@db.internal:5432/my-site\n</code></pre>\n<p><code>DATABASE_URL</code> is used if <code>CROMBOLO_POSTGRES_URL</code> is not set, which suits platforms that provide one. To keep SQLite somewhere else, set <code>CROMBOLO_SQLITE_FILE</code>.</p>\n<p>On Postgres, anything that changes the database in bulk takes a backup first, and it needs to know how. Set <code>CROMBOLO_PG_DUMP</code> to a command that takes one, or pass <code>--backup-taken</code> to say you already have. <a href=\"/docs/guides/operations/\">Operations</a> has the detail.</p>\n<h3 id=\"the-secret-key\">The secret key</h3>\n<pre><code class=\"language-sh\">CROMBOLO_SECRET_KEY=a-long-random-value-of-at-least-32-characters\n</code></pre>\n<p>The secret key seals secrets the site keeps in its database, such as the headers a webhook sends and two-factor sign-in keys, and it is needed for push approvals. A feature that needs it is not offered until it is set. Generate it once per environment, keep it in your secret store, and never commit it.</p>\n<h3 id=\"the-first-administrator\">The first administrator</h3>\n<p>On your own machine an administrator is created for you. In production, choose one of two ways:</p>\n<ul>\n<li><strong>From a pipeline.</strong> Set <code>CROMBOLO_ADMIN_LOGIN</code> and <code>CROMBOLO_ADMIN_PASSWORD</code>. They are used only when the database is created; a later start never resets the password.</li>\n<li><strong>From the browser.</strong> Leave the password unset and set <code>CROMBOLO_SETUP_CODE</code> to a value of 16 or more characters that only you know. The first visit to the back office asks for your name, e-mail, password and that code. Remove the code once the site is set up.</li>\n</ul>\n<p><a href=\"/docs/guides/deploying/\">Deploying</a> covers both, and the option of signing in only through an identity provider.</p>\n<h3 id=\"the-sites-address\">The site&#39;s address</h3>\n<pre><code class=\"language-sh\">CROMBOLO_APPLICATION_URL=https://www.example.com\n</code></pre>\n<p>The public address of the site, which invitation and password-reset links point at. It defaults to <code>http://localhost</code> on the site&#39;s port, which is right on your machine and wrong everywhere else. The port itself is <code>PORT</code>, 8080 by default.</p>\n<h3 id=\"e-mail\">E-mail</h3>\n<p>E-mail is off until you choose a provider. Without one the site still works: inviting users, resetting a forgotten password and form e-mails are shown as unavailable rather than failing. Pick a provider from the environment:</p>\n<pre><code class=\"language-sh\">CROMBOLO_EMAIL_PROVIDER=resend          # or postmark, ses, custom\nCROMBOLO_EMAIL_FROM=no-reply@example.com\nCROMBOLO_EMAIL_FROM_NAME=&quot;My Site&quot;\nCROMBOLO_EMAIL_API_KEY=re_...\n</code></pre>\n<p>Or in the config file:</p>\n<pre><code class=\"language-ts\">import { defineConfig, resendEmail } from &#39;@crombolo/crombolo&#39;\n\nexport default defineConfig({\n  email: resendEmail({\n    apiKey: process.env.RESEND_KEY ?? &#39;&#39;,\n    from: { email: &#39;no-reply@example.com&#39;, name: &#39;My Site&#39; },\n  }),\n})\n</code></pre>\n<p>Every provider is reached over HTTPS; there is no SMTP. <code>crombolo status</code> shows which provider the site will use.</p>\n<h2 id=\"checking-what-a-site-sees\">Checking what a site sees</h2>\n<pre><code class=\"language-sh\">bunx crombolo status\n</code></pre>\n<p><code>status</code> reads the configuration, opens the database without changing it, and reports what it finds: the database, the schema, pending upgrades, e-mail, and anything that would stop the site working. It exits with code 20 when something is wrong, so a deploy step can rely on it.</p>\n<h2 id=\"where-next\">Where next</h2>\n<ul>\n<li>The <a href=\"/docs/reference/configuration/\">configuration reference</a> lists every setting, its default and what it does</li>\n<li><a href=\"/docs/guides/deploying/\">Deploying</a> puts these settings together for production</li>\n</ul>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "editUrl",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "https://github.com/kineco-au/crombolo-cms/edit/main/sites/crombolo/docs/guides/configuration.md"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Where a site's settings live, which source wins when two disagree, and the handful of settings you set first."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Configuration"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "configuration"
+    }
+  ]
+}

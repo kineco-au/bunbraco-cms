@@ -1,0 +1,59 @@
+{
+  "key": "2603f397-f28b-4a0e-8775-57ba021acc9b",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 6,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Users and access",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"users-disable\"><code>crombolo users disable</code></h2>\n<p>Stop a user signing in, and end their sessions. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo users disable &lt;user&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>user</code></td><td>Their e-mail address or username. Required.</td></tr></tbody></table>\n<h2 id=\"users-enable\"><code>crombolo users enable</code></h2>\n<p>Let a disabled user sign in again. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo users enable &lt;user&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>user</code></td><td>Their e-mail address or username. Required.</td></tr></tbody></table>\n<h2 id=\"users-invite\"><code>crombolo users invite</code></h2>\n<p>Create a user and print the link they set their password with. Each run acts again.</p>\n<pre><code>crombolo users invite &lt;email&gt; [--group &lt;group&gt;] [--name &lt;name&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>email</code></td><td>Their e-mail address. Required.</td></tr><tr><td><code>--group</code></td><td>A user group, by alias; repeatable.</td></tr><tr><td><code>--name</code></td><td>Their name; the address when not given.</td></tr></tbody></table>\n<h2 id=\"users-list\"><code>crombolo users list</code></h2>\n<p>The back-office users: who, their groups, their state and last sign-in. Changes nothing.</p>\n<pre><code>crombolo users list [--limit &lt;limit&gt;] [--offset &lt;offset&gt;] [--fields &lt;fields&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--limit</code></td><td>How many to list. Default <code>50</code>.</td></tr><tr><td><code>--offset</code></td><td>How many to skip first. Default <code>0</code>.</td></tr><tr><td><code>--fields</code></td><td>Only these fields of each item, comma-separated.</td></tr></tbody></table>\n<h2 id=\"users-reset-2fa\"><code>crombolo users reset-2fa</code></h2>\n<p>Remove a user's second factors, so their next sign-in sets one up again. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo users reset-2fa &lt;user&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>user</code></td><td>Their e-mail address or username. Required.</td></tr></tbody></table>\n<h2 id=\"users-reset-password\"><code>crombolo users reset-password</code></h2>\n<p>Give a user a new password, and end their sessions. Each run acts again.</p>\n<pre><code>crombolo users reset-password &lt;user&gt; [--stdin]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>user</code></td><td>Their e-mail address or username. Required.</td></tr><tr><td><code>--stdin</code></td><td>Read the new password from stdin.</td></tr></tbody></table>\n<h2 id=\"users-unlock\"><code>crombolo users unlock</code></h2>\n<p>Clear a user's lockout and failed sign-ins. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo users unlock &lt;user&gt;</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>user</code></td><td>Their e-mail address or username. Required.</td></tr></tbody></table>\n<h2 id=\"admin-reset-password\"><code>crombolo admin reset-password</code></h2>\n<p>Reset the administrator's password and print it. Each run acts again.</p>\n<pre><code>crombolo admin reset-password [--stdin]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--stdin</code></td><td>Read the new password from stdin.</td></tr></tbody></table>\n<h2 id=\"api-client-rotate\"><code>crombolo api-client rotate</code></h2>\n<p>Issue a new secret for the API client, and print it once. Each run acts again.</p>\n<pre><code>crombolo api-client rotate [--client &lt;client&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--client</code></td><td>The client id; CROMBOLO_API_CLIENT_ID when not given.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Back office users, the administrator’s password and API clients."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Users and access"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "users"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[content-type]
+key = "50f0950e-b374-438c-a8a1-540825534a75"
+alias = "docsPage"
+name = "Docs Page"
+description = "A page of the documentation, with the section's contents beside it"
+icon = "icon-document"
+allow-children = ["docsPage"]
+compositions = ["seoFields"]
+components = ["pages/docsPage"]
+default-component = "pages/docsPage"
+
+[[tab]]
+name = "Content"
+
+[[tab.property]]
+key = "376d421c-94d2-421f-8b39-243257d7404e"
+alias = "title"
+name = "Title"
+description = "Shown as the page heading"
+type = "textstring"
+mandatory = true
+
+[[tab.property]]
+key = "b388bfce-2632-4f4f-bc93-05dc83102ba1"
+alias = "standfirst"
+name = "Summary"
+description = "A sentence under the title, also shown in the contents"
+type = "textarea"
+
+[[tab.property]]
+key = "6b42bdc9-8049-4c7a-a39e-979efcea737b"
+alias = "body"
+name = "Body"
+description = "Second-level headings are listed as the page's own contents"
+type = "richtext"
+
+[[tab]]
+name = "Source"
+
+[[tab.property]]
+key = "9398b88d-0b36-4da5-81df-39021bf247d4"
+alias = "generatedFrom"
+name = "Generated from"
+description = "Set when the page is written from the product itself, such as the command line; shown at the foot of the page"
+type = "textstring"
+
+[[tab.property]]
+key = "3c3b712e-8d3e-47db-81dd-8c46024a5d00"
+alias = "editUrl"
+name = "Edit link"
+description = "Where to suggest a change to this page; shown at the foot of the page"
+type = "textstring"
+
+[[tab]]
+name = "Address"
+
+[[tab.property]]
+key = "8812977d-6e34-4504-bca9-518482c718a5"
+alias = "umbracoUrlName"
+name = "Address"
+description = "The last part of the page's address; taken from its name when empty"
+type = "textstring"

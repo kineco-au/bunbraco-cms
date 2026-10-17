@@ -1,0 +1,28 @@
+[content-type]
+key = "bd46f89c-5685-4048-adb7-b4bd40b65c8a"
+alias = "step"
+name = "Step"
+description = "One step in a set of instructions, with an optional command to run"
+icon = "icon-terminal"
+is-element = true
+allow-in-library = true
+
+[[property]]
+key = "51ac679b-61c1-4d41-85fc-12a1b700cd74"
+alias = "heading"
+name = "Heading"
+type = "textstring"
+mandatory = true
+
+[[property]]
+key = "b251c7f8-8c4b-4fcd-b904-057fce2f5066"
+alias = "detail"
+name = "Detail"
+type = "textarea"
+
+[[property]]
+key = "84c6be6f-217b-4661-85af-a2d8cdab2d26"
+alias = "command"
+name = "Command"
+description = "Shown as code, ready to copy. Leave empty for a step with nothing to run."
+type = "textarea"

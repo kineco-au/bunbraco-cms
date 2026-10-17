@@ -101,6 +101,22 @@ const NON_RUNTIME_GLOBS = [
   '**/tsconfig.build.tsbuildinfo',
 ]
 
+/**
+ * Upstream packages left out of the vendored client altogether, each a screen
+ * for something this server does not have, whose endpoints answer 410:
+ *
+ * - `telemetry`: the Settings dashboard asking for consent to send usage data
+ *   to Umbraco; nothing is collected here.
+ * - `performance-profiling`: the Settings dashboard switching on Umbraco's
+ *   profiler, which is .NET's MiniProfiler; there is none here.
+ * - `umbraco-news`: the Content welcome dashboard relaying umbraco.com's feed;
+ *   crombolo's own Welcome dashboard takes its place.
+ *
+ * Each one's line in the client's package list is removed by a patch in
+ * `UPSTREAM_PATCHES`.
+ */
+export const EXCLUDED_PACKAGES = ['telemetry', 'performance-profiling', 'umbraco-news'] as const
+
 export const BACKOFFICE_BASE_PATH = '/umbraco/backoffice'
 
 /**
@@ -333,6 +349,13 @@ export const UPSTREAM_PATCHES: UpstreamPatch[] = [
     find: "label: 'Umbraco',",
     replace: "label: 'Crombolo',",
   },
+  // The packages in `EXCLUDED_PACKAGES` are not vendored, so the client's
+  // package list no longer loads them.
+  ...EXCLUDED_PACKAGES.map((name) => ({
+    file: APP_ENTRY,
+    find: `    import('../../packages/${name}/umbraco-package.js'),\n`,
+    replace: '',
+  })),
 ]
 
 /**
@@ -672,6 +695,9 @@ async function main(): Promise<void> {
   // 1. the app itself, straight from npm
   for (const dir of ['apps', 'packages', 'libs', 'assets']) {
     cpSync(join(DIST, dir), join(OUT, dir), { recursive: true })
+  }
+  for (const name of EXCLUDED_PACKAGES) {
+    rmSync(join(OUT, 'packages', name), { recursive: true, force: true })
   }
   let pruned = 0
   for (const pattern of NON_RUNTIME_GLOBS) {

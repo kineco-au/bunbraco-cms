@@ -1,0 +1,59 @@
+{
+  "key": "cb496fd4-b965-43b8-8531-f83c08e8fc80",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 7,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Operations",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"cache-rebuild\"><code>crombolo cache rebuild</code></h2>\n<p>Rebuild the published cache on every node of the site. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo cache rebuild</code></pre>\n<h2 id=\"index-list\"><code>crombolo index list</code></h2>\n<p>The search indexes: what each holds, and what is waiting to be indexed. Changes nothing.</p>\n<pre><code>crombolo index list</code></pre>\n<h2 id=\"index-rebuild\"><code>crombolo index rebuild</code></h2>\n<p>Index every item again, for every node: the index is in the database. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo index rebuild [&lt;index&gt;] [--queue-only]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>index</code></td><td>One index; both when not given. One of <code>InternalIndex</code>, <code>MembersIndex</code>.</td></tr><tr><td><code>--queue-only</code></td><td>Queue everything, and let the site index it.</td></tr></tbody></table>\n<h2 id=\"maintenance-pause\"><code>crombolo maintenance pause</code></h2>\n<p>Refuse every editor's save, on every node, until resumed. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo maintenance pause [--reason &lt;reason&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--reason</code></td><td>What editors are told.</td></tr></tbody></table>\n<h2 id=\"maintenance-resume\"><code>crombolo maintenance resume</code></h2>\n<p>Let editors save again. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo maintenance resume</code></pre>\n<h2 id=\"maintenance-status\"><code>crombolo maintenance status</code></h2>\n<p>Whether editing is paused, by whom and why. Changes nothing.</p>\n<pre><code>crombolo maintenance status</code></pre>\n<h2 id=\"upgrade\"><code>crombolo upgrade</code></h2>\n<p>Back up, apply pending framework migrations, cut over, and record them. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo upgrade [--plan] [--force &lt;force&gt;] [--set &lt;set&gt;] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--plan</code></td><td>Print the DDL pending framework migrations would run, and stop.</td></tr><tr><td><code>--force</code></td><td>Go on over outstanding findings, saying why.</td></tr><tr><td><code>--set</code></td><td>A value for a new mandatory property: &lt;type&gt;.&lt;property&gt;=&lt;value&gt;.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"upgrade-check\"><code>crombolo upgrade check</code></h2>\n<p>What the deployed schema/ would do to this database's data. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo upgrade check [--fix] [--set &lt;set&gt;] [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--fix</code></td><td>Back up, then apply the additive part and every conversion early.</td></tr><tr><td><code>--set</code></td><td>A value for a new mandatory property: &lt;type&gt;.&lt;property&gt;=&lt;value&gt;.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"upgrade-ledger\"><code>crombolo upgrade ledger</code></h2>\n<p>Print migration_history: every migration, sync and import applied here. Changes nothing.</p>\n<pre><code>crombolo upgrade ledger [--limit &lt;limit&gt;] [--offset &lt;offset&gt;] [--fields &lt;fields&gt;]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--limit</code></td><td>How many to list. Default <code>1000</code>.</td></tr><tr><td><code>--offset</code></td><td>How many to skip first. Default <code>0</code>.</td></tr><tr><td><code>--fields</code></td><td>Only these fields of each item, comma-separated.</td></tr></tbody></table>\n<h2 id=\"upgrade-schema\"><code>crombolo upgrade schema</code></h2>\n<p>Rewrite every schema/ file canonically. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo upgrade schema</code></pre>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Caches, the search index, maintenance pauses and upgrades."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Operations"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "operations"
+    }
+  ]
+}

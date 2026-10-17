@@ -1,0 +1,59 @@
+{
+  "key": "89ecdb25-4b22-4557-8494-e075e88ae0d3",
+  "kind": "document",
+  "contentType": {
+    "key": "50f0950e-b374-438c-a8a1-540825534a75",
+    "alias": "docsPage"
+  },
+  "parent": "d1ff5d1b-338a-4ed7-8b12-6bf9d4659da6",
+  "sortOrder": 1,
+  "template": "pages/docsPage",
+  "variants": [
+    {
+      "culture": null,
+      "segment": null,
+      "name": "Content types",
+      "published": true
+    }
+  ],
+  "values": [
+    {
+      "property": "body",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.RichText",
+      "value": {
+        "markup": "<h2 id=\"types-add-property\"><code>crombolo types add-property</code></h2>\n<p>Append a property to a type, and apply it. Each run acts again.</p>\n<pre><code>crombolo types add-property &lt;type&gt; &lt;alias&gt; --type &lt;type&gt; [--name &lt;name&gt;] [--description &lt;description&gt;] [--mandatory] [--tab &lt;tab&gt;] [--dry-run]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>type</code></td><td>The type's alias. Required.</td></tr><tr><td><code>alias</code></td><td>The property's alias. Required.</td></tr><tr><td><code>--type</code></td><td>The data type. Required.</td></tr><tr><td><code>--name</code></td><td>The property's name.</td></tr><tr><td><code>--description</code></td><td>The property's description.</td></tr><tr><td><code>--mandatory</code></td><td>An editor must fill it in.</td></tr><tr><td><code>--tab</code></td><td>The tab it goes in.</td></tr><tr><td><code>--dry-run</code></td><td>Say what it would do, and change nothing.</td></tr></tbody></table>\n<h2 id=\"types-check\"><code>crombolo types check</code></h2>\n<p>Validate schema/ and report what a sync would do to this database. Changes nothing.</p>\n<pre><code>crombolo types check [--static]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--static</code></td><td>Validate the files only, no database.</td></tr></tbody></table>\n<h2 id=\"types-export\"><code>crombolo types export</code></h2>\n<p>Write the database's definitions as schema/ files. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo types export</code></pre>\n<h2 id=\"types-new\"><code>crombolo types new</code></h2>\n<p>Write a type file, with keys, and the view it points at, then apply it. Each run acts again.</p>\n<pre><code>crombolo types new &lt;kind&gt; &lt;alias&gt; [--name &lt;name&gt;] [--description &lt;description&gt;] [--icon &lt;icon&gt;] [--at-root] [--element] [--tab &lt;tab&gt;] [--no-view]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>kind</code></td><td>What kind of type. One of <code>content-type</code>, <code>media-type</code>, <code>member-type</code>. Required.</td></tr><tr><td><code>alias</code></td><td>The type's alias. Required.</td></tr><tr><td><code>--name</code></td><td>The type's name.</td></tr><tr><td><code>--description</code></td><td>The type's description.</td></tr><tr><td><code>--icon</code></td><td>The type's icon.</td></tr><tr><td><code>--at-root</code></td><td>Allow it at the root of the tree.</td></tr><tr><td><code>--element</code></td><td>An element type, for blocks.</td></tr><tr><td><code>--tab</code></td><td>The tab its first property goes in.</td></tr><tr><td><code>--no-view</code></td><td>No view: a type nothing renders.</td></tr></tbody></table>\n<h2 id=\"types-purge\"><code>crombolo types purge</code></h2>\n<p>Delete properties retired more than N days ago, with their values. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo types purge --older-than &lt;older-than&gt; [--backup-taken]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--older-than</code></td><td>How long, in days, a property must have been retired. Required.</td></tr><tr><td><code>--backup-taken</code></td><td>A backup was taken another way: Postgres needs this, or CROMBOLO_PG_DUMP.</td></tr></tbody></table>\n<h2 id=\"types-rewrite\"><code>crombolo types rewrite</code></h2>\n<p>Rewrite every schema/ file canonically. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo types rewrite</code></pre>\n<h2 id=\"types-sync\"><code>crombolo types sync</code></h2>\n<p>Apply schema/ to the database. Safe to run again: a second run changes nothing more.</p>\n<pre><code>crombolo types sync [--force-retire-types]</code></pre>\n<table><thead><tr><th>Argument</th><th>What it is</th></tr></thead><tbody><tr><td><code>--force-retire-types</code></td><td>Retire a type the files no longer have even though content uses it.</td></tr></tbody></table>",
+        "blocks": null
+      }
+    },
+    {
+      "property": "generatedFrom",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "the command line’s own description of its commands"
+    },
+    {
+      "property": "standfirst",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextArea",
+      "value": "Check, apply and change the content model kept in schema/."
+    },
+    {
+      "property": "title",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "Content types"
+    },
+    {
+      "property": "umbracoUrlName",
+      "culture": null,
+      "segment": null,
+      "editor": "Umbraco.TextBox",
+      "value": "types"
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import type { GitConfig } from './git-routes.ts'
 import { checkIdentityProviders, type IdentityProvider } from './identity-providers.ts'
 import type { MediaStore } from './media-store.ts'
 import type { SchemaStore } from './schema-store.ts'
+import { setting } from './settings.ts'
 
 /**
  * Runtime settings for a site. Umbraco's equivalents live in appsettings.json;
@@ -497,11 +498,11 @@ export function loadConfig(
   cwd = process.cwd(),
 ): CromboloConfig {
   const fromEnv: CromboloConfig = {
-    port: Number(Bun.env.PORT ?? DEFAULTS.port),
-    maxRequestBodyBytes: Bun.env.CROMBOLO_MAX_REQUEST_BODY_MB
-      ? Number(Bun.env.CROMBOLO_MAX_REQUEST_BODY_MB) * 1024 * 1024
+    port: Number(setting('PORT') ?? DEFAULTS.port),
+    maxRequestBodyBytes: setting('CROMBOLO_MAX_REQUEST_BODY_MB')
+      ? Number(setting('CROMBOLO_MAX_REQUEST_BODY_MB')) * 1024 * 1024
       : DEFAULTS.maxRequestBodyBytes,
-    backOfficePath: Bun.env.CROMBOLO_BACKOFFICE_PATH ?? DEFAULTS.backOfficePath,
+    backOfficePath: setting('CROMBOLO_BACKOFFICE_PATH') ?? DEFAULTS.backOfficePath,
     defaultUiLanguage: DEFAULTS.defaultUiLanguage,
     keepUserLoggedIn: DEFAULTS.keepUserLoggedIn,
     allowLocalLogin: DEFAULTS.allowLocalLogin,
@@ -509,135 +510,135 @@ export function loadConfig(
     versionCheckPeriod: DEFAULTS.versionCheckPeriod,
     umbracoCssPath: DEFAULTS.umbracoCssPath,
     signalRSkipNegotiation: DEFAULTS.signalRSkipNegotiation,
-    development: Bun.env.NODE_ENV !== 'production',
-    sqliteFile: Bun.env.CROMBOLO_SQLITE_FILE ?? DEFAULTS.sqliteFile,
-    adminLogin: Bun.env.CROMBOLO_ADMIN_LOGIN ?? DEFAULTS.adminLogin,
-    adminPassword: Bun.env.CROMBOLO_ADMIN_PASSWORD,
+    development: setting('NODE_ENV') !== 'production',
+    sqliteFile: setting('CROMBOLO_SQLITE_FILE') ?? DEFAULTS.sqliteFile,
+    adminLogin: setting('CROMBOLO_ADMIN_LOGIN') ?? DEFAULTS.adminLogin,
+    adminPassword: setting('CROMBOLO_ADMIN_PASSWORD'),
     apiClient:
-      Bun.env.CROMBOLO_API_CLIENT_ID || Bun.env.CROMBOLO_API_CLIENT_SECRET
+      setting('CROMBOLO_API_CLIENT_ID') || setting('CROMBOLO_API_CLIENT_SECRET')
         ? {
-            id: Bun.env.CROMBOLO_API_CLIENT_ID ?? '',
-            secret: Bun.env.CROMBOLO_API_CLIENT_SECRET ?? '',
+            id: setting('CROMBOLO_API_CLIENT_ID') ?? '',
+            secret: setting('CROMBOLO_API_CLIENT_SECRET') ?? '',
           }
         : undefined,
-    localAdmin: Bun.env.CROMBOLO_LOCAL_ADMIN === 'true',
-    setupCode: Bun.env.CROMBOLO_SETUP_CODE,
-    secretKey: Bun.env.CROMBOLO_SECRET_KEY,
-    secureCookies: Bun.env.CROMBOLO_INSECURE_COOKIES !== 'true',
-    siteName: Bun.env.CROMBOLO_SITE_NAME ?? DEFAULTS.siteName,
+    localAdmin: setting('CROMBOLO_LOCAL_ADMIN') === 'true',
+    setupCode: setting('CROMBOLO_SETUP_CODE'),
+    secretKey: setting('CROMBOLO_SECRET_KEY'),
+    secureCookies: setting('CROMBOLO_INSECURE_COOKIES') !== 'true',
+    siteName: setting('CROMBOLO_SITE_NAME') ?? DEFAULTS.siteName,
     siteDir: cwd,
-    componentsDir: Bun.env.CROMBOLO_COMPONENTS_DIR ?? DEFAULTS.componentsDir,
-    componentsCacheDir: Bun.env.CROMBOLO_COMPONENTS_CACHE_DIR ?? DEFAULTS.componentsCacheDir,
+    componentsDir: setting('CROMBOLO_COMPONENTS_DIR') ?? DEFAULTS.componentsDir,
+    componentsCacheDir: setting('CROMBOLO_COMPONENTS_CACHE_DIR') ?? DEFAULTS.componentsCacheDir,
     componentsSnapshot: {
-      ...(Bun.env.CROMBOLO_COMPONENTS_GATE_MS
-        ? { gateTtlMs: Number(Bun.env.CROMBOLO_COMPONENTS_GATE_MS) }
+      ...(setting('CROMBOLO_COMPONENTS_GATE_MS')
+        ? { gateTtlMs: Number(setting('CROMBOLO_COMPONENTS_GATE_MS')) }
         : {}),
-      ...(Bun.env.CROMBOLO_COMPONENTS_GENERATION_LIMIT
-        ? { maxGenerations: Number(Bun.env.CROMBOLO_COMPONENTS_GENERATION_LIMIT) }
+      ...(setting('CROMBOLO_COMPONENTS_GENERATION_LIMIT')
+        ? { maxGenerations: Number(setting('CROMBOLO_COMPONENTS_GENERATION_LIMIT')) }
         : {}),
-      ...(Bun.env.CROMBOLO_COMPONENTS_KEEP
-        ? { keep: Number(Bun.env.CROMBOLO_COMPONENTS_KEEP) }
+      ...(setting('CROMBOLO_COMPONENTS_KEEP')
+        ? { keep: Number(setting('CROMBOLO_COMPONENTS_KEEP')) }
         : {}),
-      ...(Bun.env.CROMBOLO_COMPONENTS_SWAP_MS
-        ? { minSwapIntervalMs: Number(Bun.env.CROMBOLO_COMPONENTS_SWAP_MS) }
+      ...(setting('CROMBOLO_COMPONENTS_SWAP_MS')
+        ? { minSwapIntervalMs: Number(setting('CROMBOLO_COMPONENTS_SWAP_MS')) }
         : {}),
     },
-    renderTimeoutMs: Number(Bun.env.CROMBOLO_RENDER_TIMEOUT_MS ?? DEFAULTS.renderTimeoutMs),
-    schemaDir: Bun.env.CROMBOLO_SCHEMA_DIR ?? DEFAULTS.schemaDir,
-    schemaRevision: Bun.env.CROMBOLO_SCHEMA_REVISION ?? DEFAULTS.schemaRevision,
-    nodeId: Bun.env.CROMBOLO_NODE_ID ?? `${hostname()}:${process.pid}`,
-    role: roleFromEnvironment(Bun.env.CROMBOLO_ROLE),
+    renderTimeoutMs: Number(setting('CROMBOLO_RENDER_TIMEOUT_MS') ?? DEFAULTS.renderTimeoutMs),
+    schemaDir: setting('CROMBOLO_SCHEMA_DIR') ?? DEFAULTS.schemaDir,
+    schemaRevision: setting('CROMBOLO_SCHEMA_REVISION') ?? DEFAULTS.schemaRevision,
+    nodeId: setting('CROMBOLO_NODE_ID') ?? `${hostname()}:${process.pid}`,
+    role: roleFromEnvironment(setting('CROMBOLO_ROLE')),
     git: undefined,
     schemaStore: undefined,
-    schemaCacheDir: Bun.env.CROMBOLO_SCHEMA_CACHE_DIR ?? join(tmpdir(), 'crombolo-schema'),
+    schemaCacheDir: setting('CROMBOLO_SCHEMA_CACHE_DIR') ?? join(tmpdir(), 'crombolo-schema'),
     // Resolved again below, once it is known whether a store was configured.
     schemaWritable:
-      Bun.env.CROMBOLO_SCHEMA_WRITABLE !== undefined
-        ? Bun.env.CROMBOLO_SCHEMA_WRITABLE === 'true'
-        : Bun.env.NODE_ENV !== 'production',
-    syncSchemaAtBoot: Bun.env.CROMBOLO_SYNC_SCHEMA_AT_BOOT !== 'false',
-    dialect: Bun.env.CROMBOLO_DB === 'postgres' ? 'postgres' : 'sqlite',
-    pgDump: Bun.env.CROMBOLO_PG_DUMP,
+      setting('CROMBOLO_SCHEMA_WRITABLE') !== undefined
+        ? setting('CROMBOLO_SCHEMA_WRITABLE') === 'true'
+        : setting('NODE_ENV') !== 'production',
+    syncSchemaAtBoot: setting('CROMBOLO_SYNC_SCHEMA_AT_BOOT') !== 'false',
+    dialect: setting('CROMBOLO_DB') === 'postgres' ? 'postgres' : 'sqlite',
+    pgDump: setting('CROMBOLO_PG_DUMP'),
     upgradePolicy:
-      Bun.env.CROMBOLO_UPGRADE_POLICY === 'pending-allowed' ||
-      (Bun.env.CROMBOLO_UPGRADE_POLICY === undefined && Bun.env.NODE_ENV !== 'production')
+      setting('CROMBOLO_UPGRADE_POLICY') === 'pending-allowed' ||
+      (setting('CROMBOLO_UPGRADE_POLICY') === undefined && setting('NODE_ENV') !== 'production')
         ? 'pending-allowed'
         : 'strict',
     versionCleanup: {
-      enabled: Bun.env.CROMBOLO_VERSION_CLEANUP === 'true',
+      enabled: setting('CROMBOLO_VERSION_CLEANUP') === 'true',
       keepAllVersionsNewerThanDays: Number(
-        Bun.env.CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS ?? DEFAULTS.keepAllVersionsNewerThanDays,
+        setting('CROMBOLO_VERSION_CLEANUP_KEEP_ALL_DAYS') ?? DEFAULTS.keepAllVersionsNewerThanDays,
       ),
       keepLatestVersionPerDayForDays: Number(
-        Bun.env.CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS ??
+        setting('CROMBOLO_VERSION_CLEANUP_KEEP_LATEST_DAYS') ??
           DEFAULTS.keepLatestVersionPerDayForDays,
       ),
     },
     auditRetentionDays: nonNegative(
-      Bun.env.CROMBOLO_AUDIT_RETENTION_DAYS,
+      setting('CROMBOLO_AUDIT_RETENTION_DAYS'),
       DEFAULTS.auditRetentionDays,
     ),
-    mediaDir: Bun.env.CROMBOLO_MEDIA_DIR ?? DEFAULTS.mediaDir,
+    mediaDir: setting('CROMBOLO_MEDIA_DIR') ?? DEFAULTS.mediaDir,
     mediaStore: undefined,
-    logsDir: Bun.env.CROMBOLO_LOGS_DIR ?? DEFAULTS.logsDir,
-    logLevel: parseLogLevel(Bun.env.CROMBOLO_LOG_LEVEL),
-    logToConsole: Bun.env.CROMBOLO_LOG_TO_CONSOLE !== 'false',
+    logsDir: setting('CROMBOLO_LOGS_DIR') ?? DEFAULTS.logsDir,
+    logLevel: parseLogLevel(setting('CROMBOLO_LOG_LEVEL')),
+    logToConsole: setting('CROMBOLO_LOG_TO_CONSOLE') !== 'false',
     diagnostics: {
-      traceRequests: Bun.env.CROMBOLO_TRACE_REQUESTS === 'true',
-      heapIntervalSeconds: Math.max(0, Number(Bun.env.CROMBOLO_HEAP_INTERVAL_SECONDS ?? 0) || 0),
+      traceRequests: setting('CROMBOLO_TRACE_REQUESTS') === 'true',
+      heapIntervalSeconds: Math.max(0, Number(setting('CROMBOLO_HEAP_INTERVAL_SECONDS') ?? 0) || 0),
     },
-    stylesheetsDir: Bun.env.CROMBOLO_CSS_DIR ?? DEFAULTS.stylesheetsDir,
-    scriptsDir: Bun.env.CROMBOLO_SCRIPTS_DIR ?? DEFAULTS.scriptsDir,
-    usernameIsEmail: Bun.env.CROMBOLO_USERNAME_IS_EMAIL !== 'false',
-    applicationUrl: Bun.env.CROMBOLO_APPLICATION_URL ?? '',
+    stylesheetsDir: setting('CROMBOLO_CSS_DIR') ?? DEFAULTS.stylesheetsDir,
+    scriptsDir: setting('CROMBOLO_SCRIPTS_DIR') ?? DEFAULTS.scriptsDir,
+    usernameIsEmail: setting('CROMBOLO_USERNAME_IS_EMAIL') !== 'false',
+    applicationUrl: setting('CROMBOLO_APPLICATION_URL') ?? '',
     sendUserLink: undefined,
     email: undefined,
-    allowMemberRegistration: Bun.env.CROMBOLO_ALLOW_MEMBER_REGISTRATION === 'true',
+    allowMemberRegistration: setting('CROMBOLO_ALLOW_MEMBER_REGISTRATION') === 'true',
     memberRegistrationType:
-      Bun.env.CROMBOLO_MEMBER_REGISTRATION_TYPE ?? DEFAULTS.memberRegistrationType,
-    memberRegistrationGroups: (Bun.env.CROMBOLO_MEMBER_REGISTRATION_GROUPS ?? '')
+      setting('CROMBOLO_MEMBER_REGISTRATION_TYPE') ?? DEFAULTS.memberRegistrationType,
+    memberRegistrationGroups: (setting('CROMBOLO_MEMBER_REGISTRATION_GROUPS') ?? '')
       .split(',')
       .map((name) => name.trim())
       .filter(Boolean),
     memberSessionMinutes: Number(
-      Bun.env.CROMBOLO_MEMBER_SESSION_MINUTES ?? DEFAULTS.memberSessionMinutes,
+      setting('CROMBOLO_MEMBER_SESSION_MINUTES') ?? DEFAULTS.memberSessionMinutes,
     ),
     maxFailedPasswordAttempts: Number(
-      Bun.env.CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS ?? DEFAULTS.maxFailedPasswordAttempts,
+      setting('CROMBOLO_MAX_FAILED_PASSWORD_ATTEMPTS') ?? DEFAULTS.maxFailedPasswordAttempts,
     ),
     // No environment variable: a provider is a preset, which is code.
     memberIdentityProviders: [],
     backofficeIdentityProviders: [],
     remote: {
-      enabled: Bun.env.CROMBOLO_REMOTE_ENABLED === 'true',
-      environment: Bun.env.CROMBOLO_REMOTE_ENVIRONMENT || 'production',
-      protected: Bun.env.CROMBOLO_REMOTE_PROTECTED !== 'false',
-      approvals: Bun.env.CROMBOLO_REMOTE_APPROVALS === 'true',
-      maxUploadBytes: Number(Bun.env.CROMBOLO_REMOTE_MAX_UPLOAD_GB ?? 50) * 1024 ** 3,
+      enabled: setting('CROMBOLO_REMOTE_ENABLED') === 'true',
+      environment: setting('CROMBOLO_REMOTE_ENVIRONMENT') || 'production',
+      protected: setting('CROMBOLO_REMOTE_PROTECTED') !== 'false',
+      approvals: setting('CROMBOLO_REMOTE_APPROVALS') === 'true',
+      maxUploadBytes: Number(setting('CROMBOLO_REMOTE_MAX_UPLOAD_GB') ?? 50) * 1024 ** 3,
     },
     redirects: [],
-    trackRedirects: Bun.env.CROMBOLO_TRACK_REDIRECTS !== 'false',
-    applyBundleContentOnInstall: Bun.env.CROMBOLO_APPLY_BUNDLE_CONTENT !== 'false',
+    trackRedirects: setting('CROMBOLO_TRACK_REDIRECTS') !== 'false',
+    applyBundleContentOnInstall: setting('CROMBOLO_APPLY_BUNDLE_CONTENT') !== 'false',
     // Resolved again below, once it is known whether a store was configured.
-    runtimeInstalls: Bun.env.CROMBOLO_RUNTIME_INSTALLS !== 'false',
+    runtimeInstalls: setting('CROMBOLO_RUNTIME_INSTALLS') !== 'false',
     seo: stripUndefined({
-      sitemap: envFlag(Bun.env.CROMBOLO_SITEMAP),
-      indexable: envFlag(Bun.env.CROMBOLO_INDEXABLE),
+      sitemap: envFlag(setting('CROMBOLO_SITEMAP')),
+      indexable: envFlag(setting('CROMBOLO_INDEXABLE')),
     }),
     deliveryApi: stripUndefined({
-      enabled: envFlag(Bun.env.CROMBOLO_DELIVERY_API),
-      apiKey: Bun.env.CROMBOLO_DELIVERY_API_KEY || undefined,
-      publicAccess: envFlag(Bun.env.CROMBOLO_DELIVERY_API_PUBLIC),
+      enabled: envFlag(setting('CROMBOLO_DELIVERY_API')),
+      apiKey: setting('CROMBOLO_DELIVERY_API_KEY') || undefined,
+      publicAccess: envFlag(setting('CROMBOLO_DELIVERY_API_PUBLIC')),
       media:
-        envFlag(Bun.env.CROMBOLO_DELIVERY_API_MEDIA) === undefined
+        envFlag(setting('CROMBOLO_DELIVERY_API_MEDIA')) === undefined
           ? undefined
-          : { enabled: envFlag(Bun.env.CROMBOLO_DELIVERY_API_MEDIA) },
+          : { enabled: envFlag(setting('CROMBOLO_DELIVERY_API_MEDIA')) },
     }),
     // No environment variable: a bundle is an import, which is code.
     bundles: [],
-    marketplaceUrl: Bun.env.CROMBOLO_MARKETPLACE_URL ?? DEFAULTS.marketplaceUrl,
-    packageKeyword: Bun.env.CROMBOLO_PACKAGE_KEYWORD ?? DEFAULTS.packageKeyword,
-    npmRegistry: Bun.env.CROMBOLO_NPM_REGISTRY ?? DEFAULTS.npmRegistry,
+    marketplaceUrl: setting('CROMBOLO_MARKETPLACE_URL') ?? DEFAULTS.marketplaceUrl,
+    packageKeyword: setting('CROMBOLO_PACKAGE_KEYWORD') ?? DEFAULTS.packageKeyword,
+    npmRegistry: setting('CROMBOLO_NPM_REGISTRY') ?? DEFAULTS.npmRegistry,
     // No environment variable: enabling it takes a provider, which is code.
     assistant: undefined,
   }
@@ -661,7 +662,7 @@ export function loadConfig(
   // it — that is the point of configuring one. An explicit setting still wins.
   if (
     merged.schemaStore &&
-    Bun.env.CROMBOLO_SCHEMA_WRITABLE === undefined &&
+    setting('CROMBOLO_SCHEMA_WRITABLE') === undefined &&
     overrides.schemaWritable === undefined
   ) {
     merged.schemaWritable = true
@@ -670,7 +671,7 @@ export function loadConfig(
   // them would not either. An explicit setting still wins.
   if (
     merged.schemaStore &&
-    Bun.env.CROMBOLO_RUNTIME_INSTALLS === undefined &&
+    setting('CROMBOLO_RUNTIME_INSTALLS') === undefined &&
     overrides.runtimeInstalls === undefined
   ) {
     merged.runtimeInstalls = false
@@ -727,7 +728,7 @@ function stripUndefined<T extends object>(value: T): Partial<T> {
  */
 export function describeDatabase(
   config: Pick<CromboloConfig, 'dialect' | 'sqliteFile'>,
-  url: string | undefined = Bun.env.CROMBOLO_POSTGRES_URL ?? Bun.env.DATABASE_URL,
+  url: string | undefined = setting('CROMBOLO_POSTGRES_URL') ?? setting('DATABASE_URL'),
 ): string {
   if (config.dialect !== 'postgres') return config.sqliteFile
   if (!url) return 'postgres'
@@ -739,4 +740,4 @@ export function describeDatabase(
   }
 }
 
-export const VERSION = '0.17.0'
+export const VERSION = '0.18.0'

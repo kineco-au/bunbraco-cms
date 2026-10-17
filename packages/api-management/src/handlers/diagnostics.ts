@@ -1,47 +1,35 @@
 /**
  * Health checks, telemetry, profiling and the server's troubleshooting and
- * upgrade-check answers. Telemetry and profiling are fixed: nothing is
- * collected or sent, and there is no profiler. docs/diagnostics.md.
+ * upgrade-check answers. Telemetry and profiling are gone — nothing is
+ * collected or sent, and there is no profiler — so their endpoints answer 410.
+ * docs/diagnostics.md.
  */
 import { invalidSkipTake, notFound, problemDetails, problemResponse } from '@crombolo/core'
 import type { DiagnosticsPort } from '../ports-diagnostics.ts'
 import type { ManagementApiRouter } from '../router.ts'
 import { paging } from './content-type.ts'
-import { readBody } from './document.ts'
-
-const TELEMETRY_LEVEL = 'Minimal'
 
 const badRequest = (title: string, detail: string) => problemDetails({ title, detail, status: 400 })
 
+/** An operation for something this server has not got, and never will: 410, with why. */
+const gone = (title: string, detail: string) => () =>
+  problemResponse(problemDetails({ title, detail, status: 410 }))
+
+const telemetryGone = gone(
+  'Telemetry is not collected',
+  'This site collects no telemetry and sends nothing anywhere.',
+)
+const profilingGone = gone(
+  'There is no profiler',
+  'This site has no profiler to read or switch on.',
+)
+
 export function registerTelemetryAndProfilingHandlers(router: ManagementApiRouter): void {
-  router.handle('GetTelemetry', (ctx) => {
-    const page = paging(ctx)
-    if (!page) return problemResponse(invalidSkipTake())
-    const items = [{ telemetryLevel: TELEMETRY_LEVEL }]
-    return Response.json({
-      total: items.length,
-      items: items.slice(page.skip, page.skip + page.take),
-    })
-  })
-  router.handle('GetTelemetryLevel', () => Response.json({ telemetryLevel: TELEMETRY_LEVEL }))
-  router.handle('PostTelemetryLevel', async (ctx) => {
-    const { telemetryLevel } = await readBody(ctx)
-    if (telemetryLevel === TELEMETRY_LEVEL) return new Response(null, { status: 200 })
-    return problemResponse(
-      badRequest(
-        'Telemetry cannot be raised',
-        'This site collects no telemetry and sends nothing anywhere, so the level stays at Minimal.',
-      ),
-    )
-  })
-  router.handle('GetProfilingStatus', () => Response.json({ enabled: false }))
-  router.handle('PutProfilingStatus', async (ctx) => {
-    const { enabled } = await readBody(ctx)
-    if (enabled === false) return new Response(null, { status: 200 })
-    return problemResponse(
-      badRequest('Profiling is not available', 'This site has no profiler to switch on.'),
-    )
-  })
+  router.handle('GetTelemetry', telemetryGone)
+  router.handle('GetTelemetryLevel', telemetryGone)
+  router.handle('PostTelemetryLevel', telemetryGone)
+  router.handle('GetProfilingStatus', profilingGone)
+  router.handle('PutProfilingStatus', profilingGone)
 }
 
 export function registerDiagnosticsHandlers(
