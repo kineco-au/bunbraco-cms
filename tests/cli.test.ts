@@ -5,9 +5,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import Ajv2020 from 'ajv/dist/2020'
 import { ERROR_KINDS, OUTCOMES } from '../packages/cli/src/errors.ts'
 import { buildManifest } from '../packages/cli/src/manifest.ts'
@@ -241,5 +241,49 @@ describe('the oclif manifest', () => {
       expect(ids).toContain(id)
     for (const [id, command] of Object.entries(manifest.commands))
       expect((command as { spec?: { effects?: string } }).spec?.effects, id).toBeDefined()
+  })
+})
+
+describe('components new', () => {
+  test("writes an e-mail template when a form's Send email names the alias", () => {
+    mkdirSync(join(dir, 'schema', 'forms'), { recursive: true })
+    writeFileSync(join(dir, 'schema', 'schema.toml'), '[schema]\nversion = "1.0.0"\n')
+    writeFileSync(
+      join(dir, 'schema', 'forms', 'contact-us.toml'),
+      `[form]
+alias = "contactUs"
+name = "Contact us"
+
+[[page]]
+
+  [[page.group]]
+
+    [[page.group.field]]
+    alias = "email"
+    type = "email"
+    caption = "Email"
+
+[[workflow]]
+type = "sendEmail"
+name = "Tell the team"
+
+  [workflow.settings]
+  to = "team@example.com"
+  subject = "Hello"
+  template = "emails/receipt"
+`,
+    )
+    const email = run(['components', 'new', 'emails/receipt', '-o', 'json'])
+    expect(email.code).toBe(0)
+    const result = JSON.parse(email.out) as { created: string }
+    expect(result).toMatchObject({ template: false, email: true })
+    // Wherever the environment puts components/: the suite's own container moves it.
+    expect(result.created).toEndWith('emails/receipt.tsx')
+    const written = readFileSync(resolve(dir, result.created), 'utf8')
+    expect(written).toContain("import type { EmailProps } from '@crombolo/crombolo'")
+    expect(written).toContain('export default function Receipt(')
+
+    const plain = run(['components', 'new', 'shared/header', '-o', 'json'])
+    expect(JSON.parse(plain.out)).toMatchObject({ template: false, email: false })
   })
 })

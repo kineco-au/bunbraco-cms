@@ -2,10 +2,10 @@ import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { viewScaffold } from '@crombolo/schema'
-import { componentFileFor, componentScaffold, isSafeAlias } from '@crombolo/server'
+import { componentFileFor, componentScaffold, emailScaffold, isSafeAlias } from '@crombolo/server'
 import { Args } from '@oclif/core'
 import { BaseCommand } from '../../base.ts'
-import { declaredTypes } from '../../support/components.ts'
+import { declaredTypes, formsNamingEmailTemplate } from '../../support/components.ts'
 import { here } from '../../support/describe.ts'
 import { siteConfig } from '../../support/site.ts'
 
@@ -21,6 +21,7 @@ export default class ComponentsNew extends BaseCommand {
     outputFields: [
       { name: 'created', type: 'string' },
       { name: 'template', type: 'boolean' },
+      { name: 'email', type: 'boolean' },
     ],
     errors: ['usage', 'conflict'],
   } as const
@@ -33,17 +34,22 @@ export default class ComponentsNew extends BaseCommand {
     const file = componentFileFor(config.componentsDir, args.alias)
     if (existsSync(file)) this.fail('conflict', `${here(file)} already exists.`)
     // A content type that names this alias gets the page scaffold, which takes
-    // PageProps; anything else gets the plain one. Nothing turns on the folder.
+    // PageProps; a form's Send email that names it gets the e-mail one, which
+    // takes EmailProps; anything else gets the plain one. Nothing turns on the folder.
     const type = declaredTypes(config).find((candidate) =>
       candidate.components.includes(args.alias),
     )
-    if (!type)
+    const email = !type && formsNamingEmailTemplate(config, args.alias).length > 0
+    if (!type && !email)
       this.say(
         `  note     no content type declares the template "${args.alias}" — add it to one's templates, or \`crombolo types new\``,
       )
     await mkdir(join(file, '..'), { recursive: true })
-    await writeFile(file, type ? viewScaffold(type) : componentScaffold(args.alias))
+    await writeFile(
+      file,
+      type ? viewScaffold(type) : email ? emailScaffold(args.alias) : componentScaffold(args.alias),
+    )
     this.say(`  created  ${here(file)}`)
-    return { created: here(file), template: Boolean(type) }
+    return { created: here(file), template: Boolean(type), email }
   }
 }

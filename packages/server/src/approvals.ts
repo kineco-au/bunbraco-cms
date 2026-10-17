@@ -7,6 +7,7 @@
  * This decides: who may act, what an edit does to a waiting request, when a
  * stage is done, and when the page is published.
  */
+
 import type { Principal } from '@crombolo/api-management'
 import {
   approvalsNeeded,
@@ -36,6 +37,7 @@ import {
   type StoredWorkflow,
   UserGroupRepository,
 } from '@crombolo/data'
+import type { ContentNotifier } from './content-notifications.ts'
 import type { EmailPort } from './email.ts'
 
 /** What publishing and unpublishing go through when approval says yes. */
@@ -57,6 +59,8 @@ export interface ApprovalsOptions {
   email?: EmailPort
   /** Where a link in an e-mail points, e.g. `https://site.example/crombolo`. */
   backOfficeUrl?: string
+  /** Queues the content notifications a publish on approval makes (story 045). */
+  notifier?: ContentNotifier
 }
 
 /** A refusal a person reads: why, and what to do instead. */
@@ -426,6 +430,12 @@ export function createApprovals(options: ApprovalsOptions): Approvals {
       request.action === 'publish' ? 'Published on approval' : 'Unpublished on approval',
       `through "${request.workflow.name}"`,
     )
+    if (request.action === 'publish')
+      await options.notifier?.raise(
+        { actions: ['Umb.Document.Publish'], key: request.nodeKey, keyKind: 'document' },
+        principal ? { key: principal.id, name: principal.name } : null,
+        `approved through "${request.workflow.name}"`,
+      )
     await notify(
       'editor',
       request,

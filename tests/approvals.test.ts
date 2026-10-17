@@ -470,7 +470,8 @@ approvers = ["admin"]
       if (rule === 'keep') expect(tab.request?.state).toBe('waiting')
       else expect(tab.request).toBeUndefined()
     }
-  })
+    // Two sites, booted one after the other: more than the default allows on a busy Postgres.
+  }, 20_000)
 
   test('a branch is covered by the workflow naming it, nearest first; new pages are gated too', async () => {
     const { people, page } = await site(ONE_STAGE({ 'publishers-may-skip': 'false' }))

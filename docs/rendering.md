@@ -824,6 +824,12 @@ compiler: when the site has `typescript` installed — `crombolo init` puts it i
 it cannot. A component is a template only when a content type names it, so a shared one
 belongs in a subdirectory, where the template scan never looks.
 
+`components new` writes a page for an alias a content type names, an e-mail
+template (over `EmailProps`) for one a form's Send email workflow names as its
+`template` ([`forms.md`](forms.md#an-e-mail-template)), and a plain component
+otherwise. An e-mail template renders through `Renderer.renderEmail`, with the
+same time limit and layout chain as a page.
+
 ## Hostnames
 
 Schema travels between environments; hostnames cannot, because they mean

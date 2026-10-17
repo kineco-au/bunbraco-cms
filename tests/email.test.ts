@@ -595,6 +595,7 @@ describe('availability', () => {
       'Inviting backoffice users',
       'Password reset by e-mail',
       "Forms' Send email workflow",
+      'Notifications about page changes',
     ])
   })
 

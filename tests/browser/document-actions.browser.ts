@@ -347,3 +347,43 @@ test('publish with descendants publishes the branch from the workspace', async (
   await expect.poll(() => state(child)).toBe('Published')
   expect(await state(home)).toBe('Published')
 })
+
+test('without e-mail, the notifications dialog says so and its choices are disabled', async ({
+  page,
+}) => {
+  // The suite's site delivers to the console; this answers as a site with no e-mail does.
+  await page.route('**/crombolo/api/email', (route) =>
+    route.fulfill({
+      json: {
+        available: false,
+        provider: null,
+        reason: 'No e-mail provider is configured.',
+        affects: [],
+        canSendUserLinks: false,
+        canSendNotifications: false,
+      },
+    }),
+  )
+  const QUIET = unique('Quiet')
+  await signIn(page)
+  await createPage(page, QUIET)
+  await showContent(page)
+  await openAction(page, QUIET, 'Notifications')
+  const dialog = page.locator('umb-document-notifications-modal')
+  await expect(dialog.getByText("can't send e-mail yet")).toBeVisible()
+  await expect
+    .poll(() =>
+      dialog
+        .locator('uui-toggle')
+        .evaluateAll(
+          (toggles) =>
+            toggles.length > 0 && toggles.every((toggle) => (toggle as HTMLInputElement).disabled),
+        ),
+    )
+    .toBe(true)
+  await expect
+    .poll(() =>
+      modalButton(page, 'Save').evaluate((button) => (button as HTMLButtonElement).disabled),
+    )
+    .toBe(true)
+})

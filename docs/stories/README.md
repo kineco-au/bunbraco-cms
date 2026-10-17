@@ -51,7 +51,7 @@ not cover.
 
 | Order | Story | Why here |
 |---|---|---|
-| 1 | `045` — E-mail delivery | Senders exist, but the eleven content notification subscriptions are stored and never delivered |
+| 1 | `045` — E-mail delivery | done |
 | 2 | `031` — External identity providers | done |
 | 3 | `032` — Two-factor sign-in | done |
 | 4 | `044` — Webhooks | done |
@@ -118,7 +118,7 @@ not cover.
 | `042` | Redirects and the URL tracker | must | M | done | — |
 | `043` | Search over content | must | L | done | — |
 | `044` | Webhooks | should | M | done | — |
-| `045` | E-mail delivery | must | M | ready | — |
+| `045` | E-mail delivery | must | M | done | — |
 | `046` | Relations and relation types | could | S | done | 041 |
 | `047` | Diagnostics: health checks, telemetry, profiling and troubleshooting | could | M | done | — |
 | `048` | The rest of the contract | could | M | done | — |
@@ -167,7 +167,7 @@ not cover.
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `090` | Choices from a prevalue source | should | M | done | — |
-| `091` | An e-mail template for the send-e-mail workflow | should | S | ready | — |
+| `091` | An e-mail template for the send-e-mail workflow | should | M | done | — |
 | `092` | Form entries are deleted on a schedule | should | S | ready | — |
 | `093` | A multi-page form steps a page at a time | could | M | done | — |
 | `094` | The form designer edits layout | should | M | done | — |

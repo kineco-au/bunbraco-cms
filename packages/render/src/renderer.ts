@@ -7,10 +7,11 @@
  * declares it too — in the file, not the database.
  */
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { FormSubmissionState } from '@crombolo/core'
-import { renderScope } from './context.ts'
+import { emailScope, renderScope } from './context.ts'
+import type { EmailProps, EmailRenderResult } from './email.ts'
 import { RawHtml } from './html.ts'
 import { type Child, renderToString } from './jsx-runtime.ts'
 import type { PageProps, PublishedContent, RequestMember } from './model.ts'
@@ -257,16 +258,56 @@ export class Renderer {
     }
   }
 
+  /**
+   * Renders an e-mail template to HTML: resolved in the current views as a
+   * page's template is, under the same time limit, inside its layouts.
+   *
+   * Never throws. A failure comes back as a message a person can act on, naming
+   * the template and the line under `components/` it failed on.
+   */
+  async renderEmail(alias: string, props: Omit<EmailProps, 'signal'>): Promise<EmailRenderResult> {
+    if (!this.componentPath(alias)) return { status: 'missing' }
+    try {
+      const html = await this.#withDeadline(alias, undefined, (signal, rendering) =>
+        emailScope(() => this.#renderLayouts(alias, { ...props, signal }, rendering)),
+      )
+      return html === undefined ? { status: 'missing' } : { status: 'ok', html }
+    } catch (error) {
+      return { status: 'error', message: this.#emailFailure(alias, error) }
+    }
+  }
+
+  /** `The e-mail template 'x' failed at components/x.tsx:12: <what it threw>`. */
+  #emailFailure(alias: string, error: unknown): string {
+    const root = `${this.#componentsDir}${sep}`
+    const shown = `${basename(this.#componentsDir)}/`
+    const readable = (text: string) => this.inSource(text).replaceAll(root, shown)
+    const message = readable(error instanceof Error ? error.message : String(error)).trim()
+    const stack = error instanceof Error ? readable(error.stack ?? '') : ''
+    const escaped = shown.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const frame = new RegExp(`${escaped}[^\\s:()]+\\.[jt]sx?:\\d+`).exec(stack)
+    return `The e-mail template '${alias}' failed${frame ? ` at ${frame[0]}` : ''}: ${message}`
+  }
+
   async #renderContent(
     content: PublishedContent,
     alias: string,
     culture: string | null,
     request: RenderRequest = {},
   ): Promise<string | undefined> {
+    return this.#withDeadline(alias, request.signal, (signal, rendering) =>
+      this.#renderChain(content, alias, culture, request, signal, rendering),
+    )
+  }
+
+  /** Runs a render under the time limit; the signal it hands on aborts when that runs out. */
+  async #withDeadline<T>(
+    alias: string,
+    outer: AbortSignal | undefined,
+    render: (signal: AbortSignal, rendering: { alias: string }) => Promise<T>,
+  ): Promise<T> {
     const deadline = new AbortController()
-    const signal = request.signal
-      ? AbortSignal.any([deadline.signal, request.signal])
-      : deadline.signal
+    const signal = outer ? AbortSignal.any([deadline.signal, outer]) : deadline.signal
     const rendering = { alias }
     const timer =
       this.#renderTimeoutMs > 0
@@ -286,7 +327,7 @@ export class Renderer {
       else signal.addEventListener('abort', fail, { once: true })
     })
     stopped.catch(() => {})
-    const work = this.#renderChain(content, alias, culture, request, signal, rendering)
+    const work = render(signal, rendering)
     // Once the deadline has answered, a late failure has nobody left to tell.
     work.catch(() => {})
     try {
@@ -328,9 +369,10 @@ export class Renderer {
     return renderScope(props, () => this.#renderLayouts(alias, props, rendering), request.search)
   }
 
-  async #renderLayouts(
+  /** Generic over its props: a page's, or an e-mail's. */
+  async #renderLayouts<Props extends object>(
     alias: string,
-    props: PageProps,
+    props: Props,
     rendering: { alias: string },
   ): Promise<string | undefined> {
     let currentAlias: string | undefined = alias
@@ -343,10 +385,8 @@ export class Renderer {
       rendering.alias = currentAlias
       const module = await this.#load(currentAlias)
       if (!module) return depth === 0 || body === undefined ? undefined : withDoctype(body.value)
-      const rendered =
-        body === undefined
-          ? module.default(props)
-          : module.default({ ...props, children: body } as LayoutProps)
+      const render = module.default as unknown as (props: object) => Child | Promise<Child>
+      const rendered = body === undefined ? render(props) : render({ ...props, children: body })
       body = new RawHtml(await renderToString(rendered as Child))
       currentAlias = module.layout
       depth += 1

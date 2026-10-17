@@ -535,6 +535,83 @@ describe('validating forms', () => {
     expect(problems(subject).some((m) => m.includes('nothing to attach'))).toBe(true)
   })
 
+  describe('an e-mail template (story 091)', () => {
+    const mailing = (settings: Record<string, unknown>) =>
+      form({
+        workflows: [
+          {
+            type: 'sendEmail',
+            name: 'w',
+            on: 'submit',
+            settings: { to: 'a@b.com', subject: 's', ...settings },
+          },
+        ],
+      })
+    const components = new Set(['emails/receipt', 'homePage'])
+
+    test('is accepted when a component answers to it, with sensitive answers opted in', () => {
+      expect(
+        validateForms([mailing({ template: 'emails/receipt', 'include-sensitive': true })], {
+          componentAliases: components,
+        }),
+      ).toEqual([])
+    })
+
+    test('naming no component is refused, at the setting', () => {
+      const found = validateForms([mailing({ template: 'emails/nope' })], {
+        componentAliases: components,
+      })
+      expect(found).toEqual([
+        {
+          file: 'schema/forms/basic',
+          path: 'workflow[0].settings.template',
+          message: 'there is no components/emails/nope.tsx',
+        },
+      ])
+    })
+
+    test('is not checked against components when they are not known', () => {
+      expect(validateForms([mailing({ template: 'emails/nope' })])).toEqual([])
+    })
+
+    test('a path that climbs out of components/ is refused, whatever is there', () => {
+      for (const template of ['../secrets', '/etc/passwd', 'emails/receipt.tsx', 'a\\b', 7])
+        expect(
+          validateForms([mailing({ template })], { componentAliases: components }).map(
+            (p) => p.path,
+          ),
+        ).toEqual(['workflow[0].settings.template'])
+    })
+
+    test('a body beside a template is refused: the template writes the body', () => {
+      const found = validateForms([mailing({ template: 'emails/receipt', body: 'Hi' })], {
+        componentAliases: components,
+      })
+      expect(found.map((p) => p.path)).toEqual(['workflow[0].settings.body'])
+      expect(found[0]?.message).toContain('the e-mail template writes the body')
+    })
+
+    test('include-sensitive is a yes or no', () => {
+      expect(
+        validateForms([mailing({ 'include-sensitive': 'yes' })]).map((p) => [p.path, p.message]),
+      ).toEqual([['workflow[0].settings.include-sensitive', 'expected true or false']])
+    })
+
+    test('whole-set validation holds the template to the components it is given', () => {
+      const found = validateSchemaSet(
+        {
+          version: '1.0.0',
+          contentTypes: [],
+          dataTypes: [],
+          languages: [],
+          forms: [mailing({ template: 'emails/gone' })],
+        },
+        { componentAliases: components },
+      )
+      expect(found.some((p) => p.message === 'there is no components/emails/gone.tsx')).toBe(true)
+    })
+  })
+
   test('a form that stores nothing and runs nothing has no effect at all', () => {
     expect(
       problems(form({ storeEntries: false })).some((m) =>

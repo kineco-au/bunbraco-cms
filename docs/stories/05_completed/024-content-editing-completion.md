@@ -86,8 +86,8 @@ rows a kept version still reads.
     (`//example.com/about`).
   - Names are unique site-wide (409), and cultures must exist (400).
 - **Notifications** (`user_notification`). Each user's subscriptions to
-  Umbraco's eleven actions are kept per page. Senders exist now, but nothing
-  delivers these yet: that is the open half of 045.
+  Umbraco's eleven actions are kept per page, and delivered by e-mail since
+  story 045.
 - **Blueprints.**
   - Create, edit, delete and move, with folders, the tree and items.
   - "Create Document Blueprint" from a page.

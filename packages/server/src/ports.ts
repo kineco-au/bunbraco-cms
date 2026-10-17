@@ -74,6 +74,7 @@ import { createWebhookPort } from './adapters/webhooks.ts'
 import { createApprovals } from './approvals.ts'
 import { COMPONENT_SNIPPETS } from './component-snippets.ts'
 import { type CromboloConfig, type UserLinkSender, VERSION } from './config.ts'
+import type { ContentNotifier } from './content-notifications.ts'
 import { type EmailPort, resolveEmailPort } from './email.ts'
 import { createFileIntake } from './file-intake.ts'
 import { formTypesFor } from './form-types.ts'
@@ -405,6 +406,26 @@ export interface DepsOptions {
   onViewsChange?: (alias: string) => void | Promise<void>
   /** Items were queued for the search index; the indexer can start on them now. */
   onSearchQueued?: () => void
+  /** Queues content notifications for changes made outside the router (story 045). */
+  notifier?: ContentNotifier
+}
+
+/** The back office's address, e.g. `https://site.example/crombolo`; undefined when the site's own is not set. */
+export function backOfficeUrl(
+  config: Pick<CromboloConfig, 'applicationUrl' | 'backOfficePath'>,
+): string | undefined {
+  return config.applicationUrl
+    ? `${config.applicationUrl.replace(/\/$/, '')}${config.backOfficePath}`
+    : undefined
+}
+
+/** A page's address in the back office, for a link in an e-mail. */
+export function documentEditUrl(
+  config: Pick<CromboloConfig, 'applicationUrl' | 'backOfficePath'>,
+  key: string,
+): string | undefined {
+  const base = backOfficeUrl(config)
+  return base ? `${base}/section/content/workspace/document/edit/${key}` : undefined
 }
 
 function createTemporaryFilePort(files: MediaFileStore): TemporaryFilePort {
@@ -493,6 +514,15 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
       endSessions: async (userId) => {
         await store.endAllSessionsForUser(userId)
       },
+      onPagePermissionsChanged: (principal, nodeKeys) =>
+        Promise.all(
+          nodeKeys.map((key) =>
+            options.notifier?.raise(
+              { actions: ['Umb.Document.Permissions'], key, keyKind: 'document' },
+              { key: principal.id, name: principal.name },
+            ),
+          ),
+        ).then(() => undefined),
     })
     // Story 032: the authenticator provider, offered only where secrets can be sealed.
     const twoFactor = new TwoFactorService(options.db, {
@@ -620,6 +650,7 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
           enabled: options.config.trackRedirects,
         }),
         options.config.siteDir,
+        Boolean(email),
       )
     if (deps.documents) {
       const documents = deps.documents
@@ -627,6 +658,8 @@ export function createDeps(options: DepsOptions): ManagementApiDeps {
         db: options.db,
         nodeState: options.schema?.nodeState,
         email,
+        backOfficeUrl: backOfficeUrl(options.config),
+        notifier: options.notifier,
         // Through the same port an editor's publish takes, so what approval
         // publishes is cached, tracked and announced as any publish is.
         publisher: {

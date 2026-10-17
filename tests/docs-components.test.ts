@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { ComponentRepository, ContentTypeRepository } from '@crombolo/data'
+import { Renderer } from '@crombolo/render'
 import { generateTypes, loadSchemaDirectory } from '@crombolo/schema'
 import { type Harness, ORIGIN, signedInServer, V1 } from './support/harness.ts'
 
@@ -84,6 +85,8 @@ function siteFromGuide(): string {
 describe('docs/writing-components.md', () => {
   test('has the components the page it builds imports', () => {
     expect([...examples().keys()].sort()).toEqual([
+      'components/emails/receipt.tsx',
+      'components/emails/shell.tsx',
       'components/pages/searchPage.tsx',
       'components/shared/arrow-icon.tsx',
       'components/shared/badge.tsx',
@@ -96,6 +99,54 @@ describe('docs/writing-components.md', () => {
       'components/shared/upcoming-events.tsx',
       'components/showcasePage.tsx',
     ])
+  })
+
+  test('renders the e-mail, inside its shell, with a sensitive answer left out', async () => {
+    const root = siteFromGuide()
+    const renderer = new Renderer({
+      cache: undefined as never,
+      componentsDir: join(root, 'components'),
+    })
+    const form = {
+      alias: 'contactUs',
+      name: 'Contact us',
+      storeEntries: true,
+      requiresApproval: false,
+      honeypot: true,
+      pages: [],
+      workflows: [],
+    }
+    const field = (alias: string, caption: string, values: string[], leftOut = false) => ({
+      alias,
+      caption,
+      type: 'shortAnswer',
+      values,
+      answered: values.length > 0,
+      sensitive: leftOut,
+      leftOut,
+    })
+    const result = await renderer.renderEmail('emails/receipt', {
+      form,
+      fields: [
+        field('name', 'Your name', ['Ada']),
+        field('phone', 'Phone', []),
+        field('card', 'Card number', [], true),
+      ],
+      value: (alias) => (alias === 'name' ? 'Ada' : ''),
+      entry: { id: 'e-1', submittedAt: new Date() },
+      site: { name: 'Harbour Books', url: 'https://harbour.example' },
+      subject: 'Thanks for writing',
+    })
+    expect(result).toEqual({
+      status: 'ok',
+      html:
+        '<!DOCTYPE html><html lang="en"><head><title>Thanks for writing</title></head>' +
+        '<body style="font-family:sans-serif"><h1>Contact us</h1>' +
+        '<p>Thanks, Ada. This is what you sent us.</p><table>' +
+        '<tr><th>Your name</th><td>Ada</td></tr>' +
+        '<tr><th>Card number</th><td>Not included in e-mail</td></tr></table>' +
+        '<p><a href="https://harbour.example">Harbour Books</a></p></body></html>',
+    })
   })
 
   test('type-checks, as a site’s own tsconfig would check it', async () => {

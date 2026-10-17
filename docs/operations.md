@@ -603,6 +603,37 @@ should test for non-zero, or for the kind it means. Schema-as-code moved from
 `crombolo schema …` to `crombolo types …`; the old names still run, with a
 deprecation notice, until the next minor release.
 
+## Notifications about page changes
+
+An editor chooses, in a page's **Notifications**, which of Umbraco's eleven
+actions on it they want to hear about: publish, save, create, move, copy,
+sort, move to the recycle bin, restore, roll back, public access and
+permissions. A subscription covers the pages under it too, as in Umbraco, so
+"create" on a section tells you of every new page in it. Story 045.
+
+- **When.** A change is matched to its subscribers as it happens: the API
+  router raises it after a successful operation, and scheduled publishing, a
+  publish on approval, the CLI's `content publish` and a user-group save that
+  changes a page's permissions raise their own. The person who made the change
+  is never told about it.
+- **The outbox.** Each person's notifications wait a minute in
+  `content_notification`, so a save and a publish arrive as one e-mail; a
+  branch publish is one line, "and 12 pages under it".
+- **Sending.** A job on the nodes that run jobs (`all` and `api`) sends every
+  15 seconds. Each person's rows are claimed by one node, so a cluster sends
+  each e-mail once. Before sending it checks again that the person is still
+  enabled, has an e-mail address and can still see the page; a row that fails
+  that is skipped with the reason. A provider that refuses is retried with
+  backoff, and after five attempts the rows are marked failed with its error.
+  A row a node took and never finished (it died) is retried after 15 minutes.
+  Sent and skipped rows are pruned after 30 days.
+- **The e-mail** is plain text: who did what to which page and when, a link to
+  edit it in the back office when `CROMBOLO_APPLICATION_URL` is set, and why
+  the reader gets it.
+- **Without e-mail** nothing is queued, the dialog says the site can't send
+  e-mail and disables its choices, and the API refuses a new subscription;
+  clearing one still works.
+
 ## Security
 
 The posture is Umbraco's where the contract sets it, and stricter where the

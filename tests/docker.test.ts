@@ -35,14 +35,19 @@ describe('the database a server names', () => {
   })
 
   test('falls back to the dialect when nothing configures a URL', () => {
-    const previous = [Bun.env.CROMBOLO_POSTGRES_URL, Bun.env.DATABASE_URL]
-    Bun.env.CROMBOLO_POSTGRES_URL = undefined
-    Bun.env.DATABASE_URL = undefined
+    // Deleted, not set to undefined: Bun stores that as the string "undefined",
+    // which a later test then reads as a URL.
+    const names = ['CROMBOLO_POSTGRES_URL', 'DATABASE_URL'] as const
+    const previous = names.map((name) => Bun.env[name])
+    for (const name of names) delete Bun.env[name]
     try {
       expect(describeDatabase({ dialect: 'postgres', sqliteFile: 'x.sqlite' })).toBe('postgres')
     } finally {
-      Bun.env.CROMBOLO_POSTGRES_URL = previous[0]
-      Bun.env.DATABASE_URL = previous[1]
+      for (const [index, name] of names.entries()) {
+        const value = previous[index]
+        if (value === undefined) delete Bun.env[name]
+        else Bun.env[name] = value
+      }
     }
   })
 })

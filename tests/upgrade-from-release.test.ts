@@ -13,7 +13,7 @@ import {
   migrate,
   readLedger,
   readState,
-  STATE_REMOTE,
+  STATE_CONTENT_NOTIFICATIONS,
   STATE_TRASHED_DATE,
   seedIdentity,
 } from '@crombolo/data'
@@ -79,11 +79,15 @@ describe('summarising the ledger', () => {
   })
 })
 
-/** Puts a current database back the way 0.15.0 left it, a day ago: before the trashed date (042). */
+/** Puts a current database back the way 0.16.0 left it, a day ago: before content notifications (043). */
 async function asPreviousRelease(db: Db): Promise<void> {
-  await db.exec('ALTER TABLE document DROP COLUMN trashed_date')
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddTrashedDate'")
-  await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [STATE_REMOTE, MIGRATION_STATE_KEY])
+  await db.exec('DROP INDEX IF EXISTS ix_user_notification_node_action')
+  await db.exec('DROP TABLE content_notification')
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddContentNotifications'")
+  await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [
+    STATE_TRASHED_DATE,
+    MIGRATION_STATE_KEY,
+  ])
   const yesterday = new Date(Date.now() - 24 * 3600_000).toISOString()
   await db.exec(`UPDATE migration_history SET applied_at = ?`, [
     db.dialect.name === 'postgres' ? yesterday : yesterday.replace('T', ' ').slice(0, 19),
@@ -108,14 +112,14 @@ describe('upgrading from the previous release', () => {
       passwordConfig: passwordConfigJson(),
     })
     await asPreviousRelease(db)
-    expect(await readState(db)).toBe(STATE_REMOTE)
+    expect(await readState(db)).toBe(STATE_TRASHED_DATE)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual(['AddTrashedDate'])
-    expect(await readState(db)).toBe(STATE_TRASHED_DATE)
-    expect(await db.query('SELECT trashed_date FROM document')).toBeArray()
+    expect(result.applied).toEqual(['AddContentNotifications'])
+    expect(await readState(db)).toBe(STATE_CONTENT_NOTIFICATIONS)
+    expect(await db.query('SELECT id FROM content_notification')).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.16.0', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.17.0', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

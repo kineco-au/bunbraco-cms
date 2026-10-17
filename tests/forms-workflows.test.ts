@@ -7,8 +7,8 @@
  * same queue send one email rather than two.
  */
 import { afterEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import type { SchemaForm } from '@crombolo/core'
 import {
   ComponentRepository,
@@ -17,9 +17,11 @@ import {
   FormWorkflowRepository,
 } from '@crombolo/data'
 import {
+  type CromboloConfig,
   createWorkflowRunner,
   type EmailMessage,
   type EmailPort,
+  emailTemplateProps,
   MAX_WORKFLOW_ATTEMPTS,
   plainSummary,
   retryAfter,
@@ -127,7 +129,15 @@ function recordingEmail(failures = 0): EmailPort & { sent: EmailMessage[]; attem
   return port
 }
 
-async function site(options: { form?: string; extraTypes?: Record<string, string> } = {}) {
+async function site(
+  options: {
+    form?: string
+    extraTypes?: Record<string, string>
+    /** More files under components/, by alias. */
+    components?: Record<string, string>
+    config?: Partial<CromboloConfig>
+  } = {},
+) {
   const root = mkdtempSync(join(process.cwd(), 'output', 'forms-wf-'))
   dirs.push(root)
   for (const dir of ['schema/content-types', 'schema/forms', 'components'])
@@ -141,12 +151,17 @@ async function site(options: { form?: string; extraTypes?: Record<string, string
     options.form ?? definition(EMAIL_WORKFLOW),
   )
   writeFileSync(join(root, 'components', 'page.tsx'), VIEW)
+  for (const [alias, source] of Object.entries(options.components ?? {})) {
+    mkdirSync(dirname(join(root, 'components', alias)), { recursive: true })
+    writeFileSync(join(root, 'components', `${alias}.tsx`), source)
+  }
 
   const h = await signedInServer({
     config: {
       schemaDir: join(root, 'schema'),
       componentsDir: join(root, 'components'),
       mediaDir: join(root, 'media'),
+      ...options.config,
     },
   })
   open.push(h)
@@ -607,5 +622,428 @@ describe('running one workflow directly', () => {
         email: recordingEmail(),
       }),
     ).toEqual({ ok: false, retry: false, error: 'The workflow has no recipient.' })
+  })
+})
+
+describe('sendEmail with a template (story 091)', () => {
+  /** The contact form, with a sensitive field and a Send email carrying `settings`. */
+  const mailForm = (settings = '') => `[form]
+key = "${FORM_KEY}"
+alias = "contactUs"
+name = "Contact us"
+${FIELDS}
+    [[page.group.field]]
+    alias = "orderNumber"
+    type = "shortAnswer"
+    caption = "Order number"
+    sensitive = true
+
+[[workflow]]
+type = "sendEmail"
+name = "Tell the team"
+
+  [workflow.settings]
+  to = "enquiries@example.com"
+  subject = "Contact from {email} about {topic} {orderNumber}"
+${settings}
+`
+
+  const RECEIPT = `import type { EmailProps } from '@crombolo/crombolo'
+
+export const layout = 'emails/shell'
+
+export default function Receipt({ form, fields, value, subject, entry }: EmailProps) {
+  return (
+    <main>
+      <h1>{form.name}</h1>
+      <p class="subject">{subject}</p>
+      <table>
+        {fields.map((field) => (
+          <tr data-alias={field.alias}>
+            <td>{field.caption}</td>
+            <td>{field.leftOut ? 'left out' : field.values.join(', ')}</td>
+          </tr>
+        ))}
+      </table>
+      <p>
+        Reply to <a href={\`mailto:\${value('email')}\`}>{value('email')}</a>
+      </p>
+      <p class="entry">{entry.id ? 'stored' : 'not stored'}</p>
+    </main>
+  )
+}
+`
+
+  const SHELL = `import type { EmailLayoutProps } from '@crombolo/crombolo'
+
+export default function Shell({ children, site }: EmailLayoutProps) {
+  return (
+    <html lang="en">
+      <head>
+        <style>{'p { margin: 0 }'}</style>
+      </head>
+      <body>
+        <header>{site.name}</header>
+        {children}
+        <footer>{site.url}</footer>
+      </body>
+    </html>
+  )
+}
+`
+
+  const BROKEN = `export default function Broken() {
+  throw new Error('the logo is missing')
+}
+`
+
+  const ASKS_FOR_PAGE = `import { usePage } from '@crombolo/crombolo'
+
+export default function AsksForPage() {
+  return <p>{usePage().model.name}</p>
+}
+`
+
+  const COMPONENTS = {
+    'emails/receipt': RECEIPT,
+    'emails/shell': SHELL,
+    'emails/broken': BROKEN,
+    'emails/asks-for-page': ASKS_FOR_PAGE,
+  }
+
+  const mailingSite = async (settings: string, email = recordingEmail()) => {
+    const made = await site({
+      form: mailForm(settings),
+      components: COMPONENTS,
+      config: {
+        email,
+        siteName: 'Harbour Books',
+        applicationUrl: 'https://harbour.example',
+        schemaWritable: true,
+      },
+    })
+    return { ...made, email }
+  }
+
+  const answers = { email: 'a@example.com', topic: 'Sales', orderNumber: 'A-1' }
+
+  test('renders the template inside its layout, with a text part free of tags', async () => {
+    const { post, h, email } = await mailingSite('  template = "emails/receipt"')
+    expect((await post(answers)).status).toBe(200)
+    expect(await h.server.jobs.runFormWorkflows()).toEqual({
+      claimed: 1,
+      done: 1,
+      retrying: 0,
+      failed: 0,
+    })
+    const sent = email.sent[0] as EmailMessage
+    const html = sent.html as string
+    expect(html.startsWith('<!DOCTYPE html><html lang="en">')).toBe(true)
+    // The layout wraps the template, and both read the site from their props.
+    expect(html).toContain('<header>Harbour Books</header><main><h1>Contact us</h1>')
+    expect(html).toContain('<footer>https://harbour.example</footer>')
+    expect(html).toContain('<p class="entry">stored</p>')
+    // Every field in the form's order, with its caption.
+    expect([...html.matchAll(/data-alias="(\w+)"><td>([^<]+)</g)].map((m) => [m[1], m[2]])).toEqual(
+      [
+        ['email', 'Email address'],
+        ['topic', 'Topic'],
+        ['orderNumber', 'Order number'],
+      ],
+    )
+    expect(html).toContain('<td>left out</td>')
+
+    const text = sent.text as string
+    expect(text).not.toMatch(/[<>]/)
+    expect(text).not.toContain('margin')
+    expect(text).toContain('Harbour Books\n\nContact us')
+    expect(text).toContain('Email address  a@example.com')
+    expect(text).toContain('Reply to a@example.com')
+    expect(sent.subject).toBe('Contact from a@example.com about Sales')
+    // Not opted in, so the sensitive answer is nowhere in the message.
+    for (const part of [html, text, sent.subject]) expect(part).not.toContain('A-1')
+  })
+
+  test('sends sensitive answers when the workflow opts in', async () => {
+    const { post, h, email } = await mailingSite(
+      '  template = "emails/receipt"\n  include-sensitive = true',
+    )
+    await post(answers)
+    await h.server.jobs.runFormWorkflows()
+    const sent = email.sent[0] as EmailMessage
+    expect(sent.html).toContain('<tr data-alias="orderNumber"><td>Order number</td><td>A-1</td>')
+    expect(sent.subject).toBe('Contact from a@example.com about Sales A-1')
+  })
+
+  test('without a template there is no HTML, and the default body leaves sensitive answers out', async () => {
+    const { post, h, email } = await mailingSite('')
+    await post(answers)
+    await h.server.jobs.runFormWorkflows()
+    const sent = email.sent[0] as EmailMessage
+    expect(sent.html).toBeUndefined()
+    expect(sent.text).toContain('Email address: a@example.com')
+    expect(sent.text).toContain('Order number: (sensitive, not included)')
+    expect(sent.text).not.toContain('A-1')
+  })
+
+  test('the default body and the attachments carry sensitive answers only when opted in', async () => {
+    const form: SchemaForm = {
+      alias: 'f',
+      name: 'Claims',
+      storeEntries: true,
+      requiresApproval: false,
+      honeypot: true,
+      workflows: [],
+      pages: [
+        {
+          groups: [
+            {
+              columns: 1,
+              fields: [
+                {
+                  alias: 'policy',
+                  type: 'shortAnswer',
+                  caption: 'Policy',
+                  mandatory: false,
+                  sensitive: true,
+                  values: [],
+                  accept: [],
+                },
+                {
+                  alias: 'scan',
+                  type: 'fileUpload',
+                  caption: 'Scan',
+                  mandatory: false,
+                  sensitive: true,
+                  values: [],
+                  accept: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+    const context = {
+      form,
+      values: [
+        { fieldAlias: 'policy', values: ['P-9'] },
+        { fieldAlias: 'scan', values: ['/media/forms/scan.pdf'] },
+      ],
+      entryId: null,
+    }
+    const mediaFiles = {
+      open: async () => ({
+        contentType: 'application/pdf',
+        bytes: async () => new Uint8Array([1]),
+      }),
+    } as never
+    const send = async (settings: Record<string, unknown>) => {
+      const email = recordingEmail()
+      const result = await runWorkflow(
+        {
+          type: 'sendEmail',
+          name: 'w',
+          on: 'submit',
+          settings: {
+            to: 'a@b.com',
+            subject: 'Claim {policy}',
+            'attach-uploads': true,
+            ...settings,
+          },
+        },
+        context,
+        { db: undefined as never, email, mediaFiles },
+      )
+      expect(result).toEqual({ ok: true })
+      return email.sent[0] as EmailMessage
+    }
+
+    const without = await send({})
+    expect(without.subject).toBe('Claim')
+    expect(without.text).toContain('Policy: (sensitive, not included)')
+    expect(without.text).not.toContain('P-9')
+    expect(without.attachments).toBeUndefined()
+
+    const opted = await send({ 'include-sensitive': true })
+    expect(opted.subject).toBe('Claim P-9')
+    expect(opted.text).toContain('Policy: P-9')
+    expect(opted.attachments?.map((file) => file.filename)).toEqual(['scan.pdf'])
+  })
+
+  test('a template that throws is retried with a readable reason, then failed', async () => {
+    const { post, h, runs, email } = await mailingSite('  template = "emails/broken"')
+    await post(answers)
+    let at = Date.now()
+    expect((await h.server.jobs.runFormWorkflows(new Date(at))).retrying).toBe(1)
+    const [first] = await runs.forForm(FORM_KEY)
+    expect(first?.state).toBe('pending')
+    expect(first?.lastError).toBe(
+      "The e-mail template 'emails/broken' failed at components/emails/broken.tsx:2: the logo is missing",
+    )
+    for (let i = 1; i < MAX_WORKFLOW_ATTEMPTS; i++) {
+      at += 2 * 60 * 60_000
+      await h.server.jobs.runFormWorkflows(new Date(at))
+    }
+    const [last] = await runs.forForm(FORM_KEY)
+    expect(last?.state).toBe('failed')
+    expect(last?.attempts).toBe(MAX_WORKFLOW_ATTEMPTS)
+    expect(last?.lastError).toContain('the logo is missing')
+    expect(email.sent).toHaveLength(0)
+  })
+
+  test('a template missing when the run comes round is retried, then failed with why', async () => {
+    const { post, h, runs, forms } = await mailingSite('  template = "emails/receipt"')
+    await post(answers)
+    const email = recordingEmail()
+    // A node whose views have not caught up with the deploy that added it.
+    const runner = createWorkflowRunner({
+      db: h.server.db,
+      forms,
+      email,
+      renderEmail: async () => ({ status: 'missing' }),
+    })
+    let at = Date.now()
+    expect((await runner.runDue(new Date(at))).retrying).toBe(1)
+    for (let i = 1; i < MAX_WORKFLOW_ATTEMPTS; i++) {
+      at += 2 * 60 * 60_000
+      await runner.runDue(new Date(at))
+    }
+    const [run] = await runs.forForm(FORM_KEY)
+    expect(run?.state).toBe('failed')
+    expect(run?.lastError).toContain("There is no e-mail template 'emails/receipt'")
+    expect(email.sent).toHaveLength(0)
+  })
+
+  test('usePage() in an e-mail template says what to do instead', async () => {
+    const { h, forms } = await mailingSite('  template = "emails/receipt"')
+    const props = emailTemplateProps(
+      { form: forms.byKey(FORM_KEY) as SchemaForm, values: [], entryId: null },
+      new Set(),
+      'Hello',
+      { name: 'Harbour Books', url: 'https://harbour.example' },
+    )
+    const result = await h.server.renderer.renderEmail('emails/asks-for-page', props)
+    expect(result.status).toBe('error')
+    expect(result.status === 'error' && result.message).toContain(
+      'an e-mail template has no page; read what it needs from its props',
+    )
+    expect(await h.server.renderer.renderEmail('emails/nothing-here', props)).toEqual({
+      status: 'missing',
+    })
+  })
+
+  test('the props carry each field once, in order, with labels first and left-out flagged', () => {
+    const form = {
+      alias: 'f',
+      name: 'F',
+      storeEntries: true,
+      requiresApproval: false,
+      honeypot: true,
+      workflows: [],
+      pages: [
+        {
+          groups: [
+            {
+              columns: 1,
+              fields: [
+                { alias: 'intro', type: 'titleAndDescription' as const, caption: 'Intro' },
+                { alias: 'branch', type: 'dropdown' as const, caption: 'Branch' },
+                { alias: 'secret', type: 'shortAnswer' as const, caption: '', sensitive: true },
+                { alias: 'notes', type: 'longAnswer' as const, caption: 'Notes' },
+              ].map((field) => ({
+                mandatory: false,
+                sensitive: false,
+                values: [],
+                accept: [],
+                ...field,
+              })),
+            },
+          ],
+        },
+      ],
+    }
+    const props = emailTemplateProps(
+      {
+        form,
+        values: [
+          { fieldAlias: 'branch', values: ['k-1'], labels: ['Hobart'] },
+          { fieldAlias: 'secret', values: ['x'] },
+        ],
+        entryId: 'e-1',
+        submittedAt: new Date('2026-10-17T00:00:00Z'),
+      },
+      new Set(['secret']),
+      'S',
+      { name: 'N', url: 'U' },
+    )
+    expect(props.fields).toEqual([
+      {
+        alias: 'branch',
+        caption: 'Branch',
+        type: 'dropdown',
+        values: ['Hobart'],
+        answered: true,
+        sensitive: false,
+        leftOut: false,
+      },
+      {
+        alias: 'secret',
+        caption: 'secret',
+        type: 'shortAnswer',
+        values: [],
+        answered: false,
+        sensitive: true,
+        leftOut: true,
+      },
+      {
+        alias: 'notes',
+        caption: 'Notes',
+        type: 'longAnswer',
+        values: [],
+        answered: false,
+        sensitive: false,
+        leftOut: false,
+      },
+    ])
+    expect(props.value('BRANCH')).toBe('Hobart')
+    expect(props.value('secret')).toBe('')
+    expect(props.entry).toEqual({ id: 'e-1', submittedAt: new Date('2026-10-17T00:00:00Z') })
+  })
+
+  test('the designer offers the e-mail templates, and saves a workflow only with one that exists', async () => {
+    const { h, root } = await mailingSite('')
+    const offered = await h.json<{ items: { alias: string; name: string }[] }>(
+      `${BACKOFFICE_FORMS}/email-templates`,
+    )
+    // A layout takes EmailLayoutProps and a page PageProps, so neither is offered.
+    expect(offered.items).toEqual([{ alias: 'emails/receipt', name: 'Receipt' }])
+
+    const form = (await h.json<{ definition: SchemaForm }>(`${BACKOFFICE_FORMS}/${FORM_KEY}`))
+      .definition
+    const save = (template: string) =>
+      h.call(BACKOFFICE_FORMS, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...form,
+          workflows: form.workflows.map((workflow) => ({
+            ...workflow,
+            settings: { ...workflow.settings, template },
+          })),
+        }),
+      })
+    const refused = await save('emails/nope')
+    expect(refused.status).toBe(400)
+    expect(((await refused.json()) as { problems: unknown[] }).problems).toEqual([
+      {
+        file: 'schema/forms/contactUs',
+        path: 'workflow[0].settings.template',
+        message: 'there is no components/emails/nope.tsx',
+      },
+    ])
+    expect((await save('emails/receipt')).status).toBe(200)
+    expect(readFileSync(join(root, 'schema', 'forms', 'contact-us.toml'), 'utf8')).toContain(
+      'template = "emails/receipt"',
+    )
   })
 })

@@ -119,6 +119,8 @@ export interface UserPortOptions {
   nodes: NodeLookup
   /** Signs a user out everywhere, as a password change set by someone else does. */
   endSessions: (userId: number) => Promise<void>
+  /** A group save changed what it may do on these pages (story 045: the "rights" notification). */
+  onPagePermissionsChanged?: (principal: Principal, nodeKeys: string[]) => void | Promise<void>
 }
 
 export function createUserPorts(
@@ -661,7 +663,11 @@ export function createUserPorts(
 
   return {
     users: userPort,
-    groups: createUserGroupPort(db, { adminKey, nodes }),
+    groups: createUserGroupPort(db, {
+      adminKey,
+      nodes,
+      onPagePermissionsChanged: options.onPagePermissionsChanged,
+    }),
     userData: createUserDataPort(db),
   }
 }
@@ -763,7 +769,11 @@ function fromPermissions(permissions: UserGroupInput['permissions']): GranularPe
 
 function createUserGroupPort(
   db: Db,
-  deps: { adminKey: () => Promise<string | undefined>; nodes: NodeLookup },
+  deps: {
+    adminKey: () => Promise<string | undefined>
+    nodes: NodeLookup
+    onPagePermissionsChanged?: UserPortOptions['onPagePermissionsChanged']
+  },
 ): UserGroupPort {
   const groups = new UserGroupRepository(db)
   const users = new UserRepository(db)
@@ -825,6 +835,34 @@ function createUserGroupPort(
       }
     }
     return 'Success'
+  }
+
+  /** Each page's verbs for the group, by page key. */
+  const pageVerbs = (group: { granular: GranularPermission[] } | undefined) => {
+    const out = new Map<string, Set<string>>()
+    for (const row of group?.granular ?? [])
+      if (row.context === 'Document' && row.key) {
+        const verbs = out.get(row.key) ?? new Set<string>()
+        verbs.add(row.permission)
+        out.set(row.key, verbs)
+      }
+    return out
+  }
+  /** The pages whose verbs for the group a save changed. */
+  const changedPages = (before: Map<string, Set<string>>, after: Map<string, Set<string>>) =>
+    [...new Set([...before.keys(), ...after.keys()])].filter((key) => {
+      const a = before.get(key) ?? new Set<string>()
+      const b = after.get(key) ?? new Set<string>()
+      return a.size !== b.size || [...a].some((verb) => !b.has(verb))
+    })
+  const announcePermissions = async (
+    principal: Principal,
+    before: Map<string, Set<string>>,
+    key: string,
+  ) => {
+    if (!deps.onPagePermissionsChanged) return
+    const changed = changedPages(before, pageVerbs(await groups.byKey(key)))
+    if (changed.length > 0) await deps.onPagePermissionsChanged(principal, changed)
   }
 
   const save = async (input: UserGroupInput, key: string): Promise<UserGroupStatus> => {
@@ -906,6 +944,7 @@ function createUserGroupPort(
       if (await groups.byKey(key)) return { status: 'DuplicateAlias' }
       const saved = await save(input, key)
       if (saved !== 'Success') return { status: saved }
+      await announcePermissions(principal, new Map(), key)
       // A non-admin who creates a group joins it, as in Umbraco
       if (!principal.isAdmin) await users.addToGroup(key, [principal.id])
       return { status: 'Success', key }
@@ -917,7 +956,10 @@ function createUserGroupPort(
       if (!isMember(principal, group.key)) return 'Forbidden'
       const valid = await validate(principal, input, group)
       if (valid !== 'Success') return valid
-      return save(input, group.key)
+      const before = pageVerbs(group)
+      const saved = await save(input, group.key)
+      if (saved === 'Success') await announcePermissions(principal, before, group.key)
+      return saved
     },
 
     async delete(principal, keys) {

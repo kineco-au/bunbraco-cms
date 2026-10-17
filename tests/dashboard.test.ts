@@ -120,6 +120,7 @@ describe(`changes dashboard (${dialectUnderTest})`, () => {
       'backofficeEntryPoint:Crombolo.EntryPoint.SignIn',
       // The log message menu, aimed at this project rather than Umbraco's.
       'backofficeEntryPoint:Crombolo.EntryPoint.LogViewerMenu',
+      'backofficeEntryPoint:Crombolo.EntryPoint.NotificationsDialog',
       // Keeps the Umbraco mark out of the icon picker.
       'globalContext:Crombolo.GlobalContext.Icons',
       // Approval workflows: Umbraco Workflow's section, in core here (story 028).

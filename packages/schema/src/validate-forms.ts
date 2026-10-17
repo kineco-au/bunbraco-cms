@@ -53,7 +53,15 @@ export interface ValidateFormsOptions {
   contentTypeAliases?: ReadonlySet<string>
   /** The field and workflow types in play: the built-ins, and the wired bundles'. */
   types?: FormTypes
+  /**
+   * The components that exist, by alias: a content type's templates and a Send
+   * email workflow's `template` are held to them. Omit to skip those checks.
+   */
+  componentAliases?: ReadonlySet<string>
 }
+
+/** A component alias is a path under `components/`: folders and names, nothing that climbs. */
+const COMPONENT_ALIAS = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*$/
 
 export function validateForms(
   forms: readonly SchemaForm[],
@@ -303,9 +311,16 @@ function validateCondition(
 const WORKFLOW_SETTINGS: Record<string, { required: string[]; optional: string[] }> = {
   sendEmail: {
     required: ['to', 'subject'],
-    // No `template`: a TSX e-mail template is not built yet, and a setting that
-    // silently does nothing is worse than one that is refused by name.
-    optional: ['cc', 'bcc', 'reply-to', 'from', 'body', 'attach-uploads'],
+    optional: [
+      'cc',
+      'bcc',
+      'reply-to',
+      'from',
+      'body',
+      'template',
+      'attach-uploads',
+      'include-sensitive',
+    ],
   },
   saveAsContent: {
     required: ['content-type', 'parent'],
@@ -347,8 +362,7 @@ function validateWorkflows(
     if (!rules) continue
     const allowed = new Set([...rules.required, ...rules.optional])
     for (const key of rules.required)
-      if (workflow.settings[key] === undefined)
-        add(file, `${path}.settings.${key}`, `is required by a ${workflow.type} workflow`)
+      if (workflow.settings[key] === undefined) add(file, `${path}.settings.${key}`, 'is required')
     for (const key of Object.keys(workflow.settings))
       if (!allowed.has(key))
         add(
@@ -379,6 +393,26 @@ function validateWorkflows(
         add(file, `${path}.settings.name-field`, `unknown field "${nameField}"`)
     }
     if (workflow.type === 'sendEmail') {
+      const template = workflow.settings.template
+      if (template !== undefined) {
+        if (typeof template !== 'string' || !COMPONENT_ALIAS.test(template))
+          add(
+            file,
+            `${path}.settings.template`,
+            'expected the alias of a component: its path under components/, without .tsx',
+          )
+        else if (options.componentAliases && !options.componentAliases.has(template))
+          add(file, `${path}.settings.template`, `there is no components/${template}.tsx`)
+        if (workflow.settings.body !== undefined)
+          add(
+            file,
+            `${path}.settings.body`,
+            'the e-mail template writes the body, so a workflow with a template takes no body',
+          )
+      }
+      for (const key of ['attach-uploads', 'include-sensitive'])
+        if (workflow.settings[key] !== undefined && typeof workflow.settings[key] !== 'boolean')
+          add(file, `${path}.settings.${key}`, 'expected true or false')
       const attach = workflow.settings['attach-uploads']
       if (attach === true && !allFormFields(form).some((field) => field.type === 'fileUpload'))
         add(

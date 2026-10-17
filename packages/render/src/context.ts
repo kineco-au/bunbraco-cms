@@ -16,6 +16,8 @@ import type { SiteSearchPort } from './search.ts'
 
 interface RenderScope {
   page: PageProps | undefined
+  /** An e-mail template is rendering: there is no page to ask for. */
+  email?: boolean
   /** The site search the server scoped to the person asking, when it provides one. */
   search?: SiteSearchPort
   contexts: ReadonlyMap<symbol, unknown>
@@ -37,6 +39,13 @@ export function renderScope<T>(page: PageProps, render: () => T, search?: SiteSe
   return store.run({ page, search, contexts: new Map(), ids: { next: 0 } }, render)
 }
 
+/** Runs an e-mail template's render: ids and context work, and there is no page. */
+export function emailScope<T>(render: () => T): T {
+  return store.run({ page: undefined, email: true, contexts: new Map(), ids: { next: 0 } }, render)
+}
+
+const NO_PAGE_IN_EMAIL = 'an e-mail template has no page; read what it needs from its props.'
+
 function within(caller: string): RenderScope {
   const scope = store.getStore()
   if (!scope)
@@ -53,7 +62,8 @@ function within(caller: string): RenderScope {
  */
 // biome-ignore lint/suspicious/noExplicitAny: an untyped page, as `PageProps` defaults to.
 export function usePage<Properties = any>(): PageProps<Properties> {
-  const { page } = within('usePage()')
+  const { page, email } = within('usePage()')
+  if (email) throw new Error(`usePage() was called while ${NO_PAGE_IN_EMAIL}`)
   if (!page)
     throw new Error('usePage() was called inside a context Provider rendered outside a page.')
   return page as PageProps<Properties>
@@ -62,6 +72,7 @@ export function usePage<Properties = any>(): PageProps<Properties> {
 /** The page and the site search for `search()`, which lives in `search.ts`. */
 export function currentSiteSearch(): { page: PageProps; search: SiteSearchPort | undefined } {
   const scope = within('search()')
+  if (scope.email) throw new Error(`search() was called while ${NO_PAGE_IN_EMAIL}`)
   if (!scope.page)
     throw new Error('search() was called inside a context Provider rendered outside a page.')
   return { page: scope.page, search: scope.search }
@@ -112,7 +123,13 @@ export function createContext<T>(defaultValue: T): Context<T> {
     const contexts = new Map(outer?.contexts)
     contexts.set(key, value)
     return store.run(
-      { page: outer?.page, search: outer?.search, contexts, ids: outer?.ids ?? { next: 0 } },
+      {
+        page: outer?.page,
+        email: outer?.email,
+        search: outer?.search,
+        contexts,
+        ids: outer?.ids ?? { next: 0 },
+      },
       children,
     )
   }

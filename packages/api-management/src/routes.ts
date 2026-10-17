@@ -57,6 +57,7 @@ export interface ManagementApiOptions {
   clientAddress?: RouterOptions['clientAddress']
   onError?: RouterOptions['onError']
   onWebhookEvent?: RouterOptions['onWebhookEvent']
+  onContentChange?: RouterOptions['onContentChange']
 }
 
 export function createManagementApiRouter(options: ManagementApiOptions = {}): ManagementApiRouter {
@@ -70,6 +71,7 @@ export function createManagementApiRouter(options: ManagementApiOptions = {}): M
     clientAddress: options.clientAddress,
     onError: options.onError,
     onWebhookEvent: options.onWebhookEvent,
+    onContentChange: options.onContentChange,
   })
   const { deps } = options
   if (!deps) return router

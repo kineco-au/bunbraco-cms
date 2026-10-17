@@ -395,7 +395,10 @@ three is `(node_id, property_type_id, language_id, segment, id DESC)`.
   'Release' | 'Expire', date)` for scheduled publishing, claimed with
   `DELETE … RETURNING` so a schedule runs once across nodes;
   `user_notification(user_id, node_id, action)` for notification
-  subscriptions; `domain(node_id, language_id, domain_name, sort_order)` for
+  subscriptions, indexed by page and action; `content_notification`, the
+  outbox those subscriptions are delivered from (story 045, migration 043): one
+  row per person per change, with names as they were and no foreign keys, a
+  delivery state, attempts, the last error and when it may run; `domain(node_id, language_id, domain_name, sort_order)` for
   culture and hostnames, names unique (the wildcard is `*<node id>`).
 - **Media and blueprints are documents** of their own object types. The
   document repository takes a `kind` (document, media, blueprint), which picks

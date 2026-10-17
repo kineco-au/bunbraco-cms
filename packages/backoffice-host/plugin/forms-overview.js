@@ -17,6 +17,7 @@ import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element'
 import { UMB_NOTIFICATION_CONTEXT } from '@umbraco-cms/backoffice/notification'
 import {
   deleteForm,
+  listEmailTemplates,
   listForms,
   listFormTypes,
   previewChoices,
@@ -40,6 +41,17 @@ import {
   setPageCaption,
   withLayout,
 } from './forms-layout.js'
+import {
+  addWorkflow,
+  describeProblemPath,
+  removeWorkflow,
+  setWorkflowName,
+  setWorkflowSetting,
+  setWorkflowTrigger,
+  setWorkflowType,
+  switchValue,
+  workflowSettings,
+} from './forms-workflows.js'
 
 /** What a preview depends on, so it survives a layout change that copies the field. */
 const sourceKey = (source) => `${source.kind}|${source.parent}`
@@ -60,6 +72,8 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     _busy: { state: true },
     _choices: { state: true },
     _types: { state: true },
+    _workflowTypes: { state: true },
+    _designs: { state: true },
   }
 
   #notifications
@@ -78,6 +92,10 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
     this._choices = new Map()
     /** Field types by name, as the server has them: built in and from bundles. */
     this._types = new Map()
+    /** Workflow types by name, likewise. */
+    this._workflowTypes = new Map()
+    /** The site's e-mail templates, for a Send email workflow's design. */
+    this._designs = []
   }
 
   connectedCallback() {
@@ -87,9 +105,16 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
 
   async #load() {
     try {
-      const [forms, types] = await Promise.all([listForms(), listFormTypes()])
+      const [forms, types, designs] = await Promise.all([
+        listForms(),
+        listFormTypes(),
+        // The picker can still offer Standard without them.
+        listEmailTemplates().catch(() => []),
+      ])
       this._forms = forms
       this._types = new Map(types.fields.map((info) => [info.type, info]))
+      this._workflowTypes = new Map(types.workflows.map((info) => [info.type, info]))
+      this._designs = designs
     } catch (error) {
       this._forms = []
       this._notice = error.message
@@ -484,6 +509,137 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
         </uui-table>`
   }
 
+  /** What happens after someone sends the form: each workflow with its settings. */
+  #workflows() {
+    const form = this._editing
+    const workflows = form.workflows ?? []
+    const types = [...this._workflowTypes.values()]
+    return html`<uui-box headline="Workflows" class="workflows">
+      <p class="offered">What happens after someone sends this form.</p>
+      ${
+        workflows.length === 0
+          ? html`<p>Nothing happens yet${form.storeEntries === false ? '' : ' beyond keeping the entry'}.</p>`
+          : nothing
+      }
+      ${repeat(
+        workflows,
+        (workflow, index) => workflow.key ?? index,
+        (
+          workflow,
+          index,
+        ) => html`<section class="workflow" aria-label=${workflow.name || `Workflow ${index + 1}`}>
+          <div class="bar">
+            <uui-input
+              label="Workflow name"
+              placeholder="Name"
+              .value=${workflow.name ?? ''}
+              @change=${(event) => this.#apply(setWorkflowName, index, event.target.value)}
+            ></uui-input>
+            <select
+              aria-label="What it does"
+              @change=${(event) => this.#apply(setWorkflowType, index, event.target.value)}
+            >
+              ${types.map(
+                (info) =>
+                  html`<option value=${info.type} ?selected=${info.type === workflow.type}>${info.label}</option>`,
+              )}
+            </select>
+            <select
+              aria-label="When it runs"
+              @change=${(event) => this.#apply(setWorkflowTrigger, index, event.target.value)}
+            >
+              <option value="submit" ?selected=${workflow.on !== 'approve'}>When the form is sent</option>
+              <option value="approve" ?selected=${workflow.on === 'approve'}>When an entry is approved</option>
+            </select>
+            <uui-button compact look="secondary" color="danger" label="Remove workflow"
+              @click=${() => {
+                if (!confirm(`Remove the workflow "${workflow.name || 'untitled'}"?`)) return
+                this.#apply(removeWorkflow, index)
+              }}></uui-button>
+          </div>
+          ${this.#workflowSettings(workflow, index)}
+        </section>`,
+      )}
+      <uui-button
+        look="secondary"
+        label="Add a workflow"
+        @click=${() => {
+          const first = this._workflowTypes.get('sendEmail') ?? types[0]
+          if (first) this.#apply(addWorkflow, first.type, first.label)
+        }}
+      ></uui-button>
+    </uui-box>`
+  }
+
+  #workflowSettings(workflow, index) {
+    const settings = workflowSettings(workflow.type, this._workflowTypes.get(workflow.type))
+    if (settings.length === 0) return nothing
+    const write = (key, value) => this.#apply(setWorkflowSetting, index, key, value)
+    return html`<div class="workflow-settings">
+      ${settings.map((setting) => {
+        const value = workflow.settings?.[setting.key]
+        const label = `${setting.label}${setting.required ? ' *' : ''}`
+        const hint = setting.description
+          ? html`<small class="offered">${setting.description}</small>`
+          : nothing
+        if (setting.kind === 'boolean')
+          return html`<div class="switch">
+            <uui-toggle
+              label=${label}
+              .checked=${value === undefined ? setting.defaultValue === true : value === true}
+              @change=${(event) => write(setting.key, switchValue(setting, event.target.checked))}
+            ></uui-toggle>
+            ${hint}
+          </div>`
+        if (setting.kind === 'design') {
+          const known = this._designs.some((design) => design.alias === value)
+          return html`<label>
+            <span>${label}</span>
+            <select
+              aria-label=${setting.label}
+              @change=${(event) => write(setting.key, event.target.value || undefined)}
+            >
+              <option value="" ?selected=${!value}>Standard</option>
+              ${this._designs.map(
+                (design) =>
+                  html`<option value=${design.alias} ?selected=${design.alias === value}>${design.name}</option>`,
+              )}
+              ${
+                value && !known
+                  ? html`<option value=${value} selected>${value} (not found)</option>`
+                  : nothing
+              }
+            </select>
+            ${hint}
+          </label>`
+        }
+        return html`<label>
+          <span>${label}</span>
+          <uui-input
+            label=${setting.label}
+            type=${setting.kind === 'number' ? 'number' : 'text'}
+            .value=${value === undefined ? '' : Array.isArray(value) ? value.join(', ') : String(value)}
+            @change=${(event) => {
+              const raw = event.target.value.trim()
+              if (raw === '') return write(setting.key, undefined)
+              if (setting.kind === 'number') return write(setting.key, Number(raw))
+              if (setting.kind === 'list')
+                return write(
+                  setting.key,
+                  raw
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                )
+              write(setting.key, raw)
+            }}
+          ></uui-input>
+          ${hint}
+        </label>`
+      })}
+    </div>`
+  }
+
   #touch() {
     // Lit tracks the reference, not what is inside it.
     this._editing = { ...this._editing }
@@ -636,12 +792,22 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
           <uui-button look="secondary" label="Add a page" @click=${() => this.#apply(addPage)}></uui-button>
         </div>
       </uui-box>
+      ${this.#workflows()}
       ${
         this._problems.length > 0
           ? html`<div class="problems" role="alert">
               <p>This form was not saved:</p>
               <ul>
-                ${this._problems.map((problem) => html`<li>${problem.path ? html`<code>${problem.path}</code> ` : nothing}${problem.message}</li>`)}
+                ${this._problems.map((problem) => {
+                  const where = describeProblemPath(form, problem.path, this._workflowTypes)
+                  return html`<li>${
+                    !where
+                      ? nothing
+                      : where === problem.path
+                        ? html`<code>${where}</code> `
+                        : html`<strong>${where}</strong>: `
+                  }${problem.message}</li>`
+                })}
               </ul>
             </div>`
           : nothing
@@ -711,6 +877,25 @@ export default class CromboloFormsOverviewElement extends UmbLitElement {
       margin: var(--uui-size-space-2, 6px) 0 0;
       color: var(--uui-color-text-alt, #555);
       font-size: 0.9em;
+    }
+    .workflows {
+      margin-top: var(--uui-size-layout-1, 24px);
+    }
+    .workflow {
+      border: 1px solid var(--uui-color-border, #ddd);
+      border-radius: var(--uui-border-radius, 3px);
+      padding: var(--uui-size-space-4, 12px);
+      margin: var(--uui-size-space-4, 12px) 0;
+    }
+    .workflow-settings {
+      display: grid;
+      gap: var(--uui-size-space-3, 9px);
+      max-width: 60ch;
+    }
+    .workflow-settings label,
+    .workflow-settings .switch {
+      display: grid;
+      gap: 2px;
     }
     :host {
       display: block;

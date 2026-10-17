@@ -9,15 +9,18 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { Renderer } from '@crombolo/render'
 import {
   assetDirs,
   assetScaffold,
   checkComponents,
   componentFileFor,
   componentScaffold,
+  emailScaffold,
   isSafeAlias,
   listAssets,
   listComponents,
+  listEmailTemplates,
   loadConfig,
 } from '@crombolo/server'
 
@@ -212,6 +215,65 @@ describe('the files beside the views', () => {
     const scaffold = componentScaffold('shared/site-header')
     expect(scaffold).toContain('export function SiteHeader(')
     expect(scaffold).not.toContain('export default')
+  })
+
+  test('scaffolds an e-mail template that renders the answers it is given', async () => {
+    const { componentsDir } = site({
+      'components/emails/shell.tsx':
+        "import type { EmailLayoutProps } from '@crombolo/crombolo'\nexport default ({ children }: EmailLayoutProps) => <div>{children}</div>\n",
+      'components/pages/home.tsx': GOOD,
+    })
+    const file = componentFileFor(componentsDir, 'emails/contact-receipt')
+    mkdirSync(join(file, '..'), { recursive: true })
+    const scaffold = emailScaffold('emails/contact-receipt')
+    expect(scaffold).toContain('export default function ContactReceipt(')
+    writeFileSync(file, scaffold)
+
+    const form = {
+      alias: 'contactUs',
+      name: 'Contact us',
+      storeEntries: true,
+      requiresApproval: false,
+      honeypot: true,
+      pages: [],
+      workflows: [],
+    }
+    const field = (alias: string, values: string[], leftOut = false) => ({
+      alias,
+      caption: alias.toUpperCase(),
+      type: 'shortAnswer',
+      values,
+      answered: values.length > 0,
+      sensitive: leftOut,
+      leftOut,
+    })
+    const renderer = new Renderer({ cache: undefined as never, componentsDir })
+    const result = await renderer.renderEmail('emails/contact-receipt', {
+      form,
+      fields: [field('email', ['a@example.com']), field('topic', []), field('card', [], true)],
+      value: () => '',
+      entry: { id: null, submittedAt: new Date() },
+      site: { name: 'Harbour Books', url: 'https://harbour.example' },
+      subject: 'Hello',
+    })
+    expect(result).toEqual({
+      status: 'ok',
+      html:
+        '<!DOCTYPE html><html lang="en"><body><h1>Contact us</h1><table>' +
+        '<tr><th>EMAIL</th><td>a@example.com</td></tr>' +
+        '<tr><th>TOPIC</th><td>Not answered</td></tr>' +
+        '<tr><th>CARD</th><td>Not included</td></tr>' +
+        '</table><p>Sent from <a href="https://harbour.example">Harbour Books</a></p></body></html>',
+    })
+
+    // Offered by the designer; the layout and the page are not.
+    expect(listEmailTemplates(componentsDir)).toEqual([
+      { alias: 'emails/contact-receipt', name: 'Contact receipt' },
+    ])
+    expect(listEmailTemplates(componentsDir, ['pages/home', 'gone'])).toEqual([
+      { alias: 'emails/contact-receipt', name: 'Contact receipt' },
+      { alias: 'pages/home', name: 'Home' },
+    ])
   })
 
   test('lists stylesheets and scripts from the places the backoffice edits', () => {

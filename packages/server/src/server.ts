@@ -98,6 +98,7 @@ import { CommandError, installBundleContent } from './bundle-install.ts'
 import { bundleChains, bundleTablesReport } from './bundle-tables.ts'
 import { createBundleRedirects, createServerBundles, validateServerBundles } from './bundles.ts'
 import { busyResponse } from './busy.ts'
+import { listEmailTemplates } from './components.ts'
 import {
   type CromboloConfig,
   listeningBodyLimit,
@@ -105,6 +106,7 @@ import {
   type ServerRole,
   VERSION,
 } from './config.ts'
+import { createContentNotificationRunner, createContentNotifier } from './content-notifications.ts'
 import { attachDatabase, bootstrapDatabase } from './database.ts'
 import { createDeliveryMemberSecurity } from './delivery-members.ts'
 import { createDiagnostics } from './diagnostics.ts'
@@ -143,7 +145,7 @@ import { mediaStoreFromEnvironment } from './media-store.ts'
 import { createMemberAuth, MEMBER_ROUTE_PREFIX } from './member-auth.ts'
 import { noNodesPage } from './no-nodes.ts'
 import { NotImplementedLog } from './not-implemented.ts'
-import { createDeps, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
+import { createDeps, documentEditUrl, PREVIEW_COOKIE, resolveUserLinkSender } from './ports.ts'
 import { createRedirectTracker } from './redirects.ts'
 import { createRemote } from './remote.ts'
 import { withRemoteMedia } from './remote-media.ts'
@@ -167,6 +169,7 @@ import { syncConfiguredRedirects } from './redirects.ts'
 import {
   bootSchema,
   CacheInstructionPoller,
+  componentAliasesIn,
   importSchema,
   type SchemaBoot,
   watchSchema,
@@ -751,6 +754,9 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
   // gates the options rather than `emailStatus.available`: development delivers
   // to the console, and that is a working flow for the person using it.
   const canSendUserLinks = Boolean(resolveUserLinkSender(config, email))
+  // Story 045: a change queues the e-mails its subscribers asked for. Nothing is
+  // queued on a site that cannot send; development sends to the console.
+  const notifier = createContentNotifier(db, { canSend: Boolean(email) })
   const mediaFiles = new MediaFileStore(mediaStore)
   const images = new ImageProcessor(mediaStore)
   const webhooks = createWebhookService({
@@ -775,6 +781,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     schema,
     mediaFiles,
     email,
+    notifier,
     onSearchQueued: () => jobs.kickSearchIndexing(),
     // This node looks again at once; the others are told to. The write has
     // already landed wherever `componentsDir` points, so there is nothing to
@@ -811,6 +818,10 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
     // Queued after the response, so a slow receiver never holds an editor up.
     onWebhookEvent: (event) => {
       void webhooks.raise(event)
+    },
+    // After the response too: the subscribers are worked out and queued, and sent a minute later.
+    onContentChange: (change, principal) => {
+      void notifier.raise(change, principal ? { key: principal.id, name: principal.name } : null)
     },
     onServerEvent: (event) => {
       events.broadcast('notify', [event])
@@ -874,7 +885,21 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       nodeId: schema.nodeId,
       onContentChanged: () => cache.invalidate(),
       bundleWorkflows: formTypes.workflows,
+      renderEmail: (alias, props) => renderer.renderEmail(alias, props),
+      site: async () => ({
+        name: (await seo.siteDefaults()).siteName || config.siteName,
+        url: config.applicationUrl,
+      }),
     }),
+    notifier,
+    contentNotifications: email
+      ? createContentNotificationRunner({
+          db,
+          email,
+          siteName: config.siteName,
+          editUrl: (key) => documentEditUrl(config, key),
+        })
+      : undefined,
     onDocumentChanged: (key) =>
       events.broadcast('notify', [
         { eventSource: 'Umbraco:CMS:Document', eventType: 'Updated', key },
@@ -1273,6 +1298,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         reason: emailStatus.reason,
         affects: emailStatus.affects,
         canSendUserLinks,
+        canSendNotifications: Boolean(email),
       })
     }
 
@@ -1329,6 +1355,18 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
       // Hyphenated, so no form alias (letters and digits) can be mistaken for it.
       if (action === 'available-types' && request.method === 'GET')
         return Response.json(describeFormTypes(formTypes.types))
+      // The designer's "E-mail design" picker.
+      if (action === 'email-templates' && request.method === 'GET')
+        return Response.json({
+          items: listEmailTemplates(
+            config.componentsDir,
+            definitions.flatMap((form) =>
+              form.workflows.flatMap((workflow) =>
+                typeof workflow.settings.template === 'string' ? [workflow.settings.template] : [],
+              ),
+            ),
+          ),
+        })
 
       const entries = new FormEntryRepository(db)
       const byKey = formsByKey(definitions)
@@ -1340,6 +1378,7 @@ export async function createServer(config: CromboloConfig = loadConfig()): Promi
         schemaDir: config.schemaDir,
         writable: config.schemaWritable,
         formTypes: formTypes.types,
+        componentAliases: () => componentAliasesIn(config.componentsDir),
         onChanged: config.schemaStore
           ? async () => {
               await publishSchema(config.schemaStore as SchemaStore, config.schemaDir)

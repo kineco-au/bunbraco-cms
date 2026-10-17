@@ -847,7 +847,16 @@ export function registerDocumentHandlers(
       ctx.principal as NonNullable<typeof ctx.principal>,
       ids,
     )
-    if (!saved) return problemResponse(notFound('The document could not be found'))
+    if (saved === 'notFound') return problemResponse(notFound('The document could not be found'))
+    if (saved === 'unavailable')
+      return problemResponse(
+        problemDetails({
+          title: 'Notifications are unavailable',
+          status: 400,
+          detail:
+            "This site can't send e-mail yet, so it can't tell you when pages change. Ask an administrator to set up e-mail.",
+        }),
+      )
     return done(ctx, 'Notification settings saved')
   })
 

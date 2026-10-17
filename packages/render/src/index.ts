@@ -1,4 +1,5 @@
 export * from './context.ts'
+export * from './email.ts'
 export * from './excerpt.ts'
 export * from './form-script.ts'
 export * from './forms.ts'

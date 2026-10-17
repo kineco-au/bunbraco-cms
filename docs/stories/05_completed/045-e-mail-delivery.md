@@ -44,10 +44,10 @@ The roadmap's ranking listed e-mail first, as "no sender; only the
 - [x] Invitations and password resets are sent through it, and are unavailable,
       with a reason a person can read, when no provider is configured.
 - [x] The Forms "Send email" workflow sends through it.
-- [ ] Content notification subscriptions are delivered: an action on a node
+- [x] Content notification subscriptions are delivered: an action on a node
       (publish, delete, move and the rest of the eleven) e-mails the users
       subscribed to it, from a background job, once per cluster.
-- [ ] With no provider, the notifications option is shown as unavailable rather
+- [x] With no provider, the notifications option is shown as unavailable rather
       than silently stored.
 
 ## The eleven actions
@@ -189,3 +189,41 @@ retries), `docs/data-model.md`, `docs/features.md`, and the stale notes in
 ## Out of scope
 
 - SMTP.
+
+## What was built
+
+- **Migration 043, `AddContentNotifications`** (release 0.17.0):
+  `content_notification` and an index on `user_notification (node_id, action)`.
+  `ContentNotificationRepository` enqueues, claims a person's due rows in one
+  `UPDATE … RETURNING`, and finishes, skips, fails, releases stale rows and
+  prunes; `NotificationRepository.subscribersFor` finds who asked on any node of
+  a path.
+- **Capture.** `packages/api-management/src/notification-events.ts` maps fifteen
+  operations to the eleven actions, pure, like the webhook table; the router
+  calls `onContentChange` after a successful one, reading the body only for a
+  sort by parent and a publish (a publish that only sets a schedule notifies
+  nothing until the job publishes). `createContentNotifier`
+  (`packages/server/src/content-notifications.ts`) finds the subscribers on the
+  page's path — for a trashed page, where it was — drops the actor, and queues
+  rows due in a minute; it queues nothing without e-mail and never fails the
+  change. Scheduled publishing ("The schedule"), approvals, `crombolo content
+  publish` ("The command line") and the user-group adapter, which compares each
+  page's verbs before and after a save, raise their own.
+- **Delivery.** `createContentNotificationRunner`, run every 15 seconds by
+  `jobs.ts` on the nodes that run jobs, with an hourly prune. One plain-text
+  e-mail per person per run, through the site's e-mail port; access is checked
+  again with the same start-node and verb rules as the API.
+- **Unavailable.** `/crombolo/api/email` gains `canSendNotifications`, the API
+  refuses a new subscription with a readable reason, and
+  `plugin/notifications-dialog.js` patches Umbraco's dialog: a banner, the
+  toggles and Save disabled. `tests/content-notifications.test.ts` pins the
+  vendored dialog it patches.
+- **Also:** approval e-mails now carry a link to the page (`backOfficeUrl`),
+  which they never had; `jobs.ts` says which nodes run jobs.
+- **Tests:** `tests/content-notifications.test.ts` (the operation table, a
+  publish delivered with its link and not to the actor, inheritance and create,
+  a digest, trash and restore and copy, permissions, scheduled publishing, a
+  disabled person skipped, two nodes sending once, retries then failure and a
+  stale row, a site with no e-mail, the e-mail's wording, the dialog patch);
+  `tests/email.test.ts`; a browser test in `document-actions.browser.ts` that
+  opens the dialog as a site without e-mail sees it.

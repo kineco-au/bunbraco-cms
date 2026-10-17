@@ -25,6 +25,11 @@ import {
   auditReadsBody,
 } from './audit.ts'
 import { authorize, LOCAL_LOGIN_OPERATIONS, type NodeLookup } from './authorization.ts'
+import {
+  changeReadsBody,
+  contentChangeFor,
+  type RaisedContentChange,
+} from './notification-events.ts'
 import { type ServerEvent, serverEventFor } from './server-events.ts'
 import { type RaisedWebhookEvent, webhookEventFor } from './webhook-events.ts'
 
@@ -94,6 +99,8 @@ export interface RouterOptions {
   onError?: (error: unknown) => Response | undefined
   /** Told about every webhook event a successful operation raises. */
   onWebhookEvent?: (event: RaisedWebhookEvent) => void
+  /** A change to a page that people can subscribe to, and who made it (story 045). */
+  onContentChange?: (change: RaisedContentChange, principal: Principal | undefined) => void
 }
 
 export interface ClientAddress {
@@ -130,6 +137,7 @@ export class ManagementApiRouter {
   readonly #clientAddress: (request: Request) => ClientAddress
   readonly #onError: RouterOptions['onError']
   readonly #onWebhookEvent: RouterOptions['onWebhookEvent']
+  readonly #onContentChange: RouterOptions['onContentChange']
 
   constructor(options: RouterOptions = {}) {
     const operations = options.operations ?? listOperations(loadSpec())
@@ -143,6 +151,7 @@ export class ManagementApiRouter {
     this.#clientAddress = options.clientAddress ?? forwardedOnly
     this.#onError = options.onError
     this.#onWebhookEvent = options.onWebhookEvent
+    this.#onContentChange = options.onContentChange
     for (const operation of operations) {
       const segments = operation.path.split('/').filter((s) => s.length > 0)
       const paramNames = segments.map((s) =>
@@ -242,6 +251,13 @@ export class ManagementApiRouter {
     if (!handler) this.#onNotImplemented?.(operation, request)
     const plan = handler && this.#audit ? auditPlanFor(operation.operationId) : undefined
     const audit = plan ? await this.#beforeAudit(plan, params, request) : undefined
+    const changeBody =
+      handler && this.#onContentChange && changeReadsBody(operation.operationId)
+        ? await request
+            .clone()
+            .json()
+            .catch(() => undefined)
+        : undefined
     const response = handler
       ? await this.#run(handler, { request, url, params, operation, notifications, principal })
       : problemResponse(notImplemented(operation.operationId))
@@ -254,6 +270,10 @@ export class ManagementApiRouter {
     if (handler && this.#onWebhookEvent) {
       const event = webhookEventFor(operation.operationId, params, response)
       if (event) this.#onWebhookEvent(event)
+    }
+    if (handler && this.#onContentChange) {
+      const change = contentChangeFor(operation.operationId, params, response, changeBody)
+      if (change) this.#onContentChange(change, principal)
     }
     const headers = new Headers(response.headers)
     applyNotifications(headers, request.method, notifications)

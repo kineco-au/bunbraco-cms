@@ -102,11 +102,11 @@ on = "submit"
   subject = "Contact form: {enquiryType}"
 ```
 
-`{alias}` substitutes a submitted value, in `subject`, `body` and `reply-to`
-alike. There is deliberately no `template` setting: a TSX e-mail template is not
-built, and the validator refuses the key rather than accepting one that would
-silently do nothing — so `body`, or the default summary, is what a workflow
-sends today.
+`{alias}` substitutes a submitted value, in `to`, `subject`, `body` and
+`reply-to` alike. `template = "emails/receipt"` sends a TSX e-mail template
+instead of the plain body ("An e-mail template", below). A sensitive answer is
+left out of every part of the e-mail unless the workflow sets
+`include-sensitive = true`.
 
 `condition` sits on the field, group or page it governs. `workflow.on` is the
 state transition that triggers it, which is what makes an approval flow possible
@@ -278,7 +278,9 @@ form. The backoffice lists orphaned entries under the form's last known name.
 read for anyone without the sensitive-data permission — redacted in the API
 response, not in the UI, so the values never reach a browser that may not see
 them. The same gate covers CSV export, which refuses rather than silently
-exporting blanks.
+exporting blanks. An inbox is outside that permission altogether, so a Send email
+workflow leaves sensitive answers out unless it opts in (story `091`, "An e-mail
+template" below).
 
 `ip_hash` is a salted hash, not an address: enough to rate-limit and spot abuse,
 not enough to be a personal-data liability by accident.
@@ -319,17 +321,84 @@ file and the key.
 **Built.** Three, each a function over the submission:
 
 - **`sendEmail`** — through the email port. `to`, `subject`, `cc`, `bcc`,
-  `reply-to`, `from`, `body`, `attach-uploads`. With no `body` it sends a plain
-  list of captions and answers, which is what most forms want.
+  `reply-to`, `from`, `body`, `template`, `attach-uploads`, `include-sensitive`.
+  With neither `body` nor `template` it sends a plain list of captions and
+  answers, which is what most forms want.
 - **`saveAsContent`** — creates a document of `content-type` from `map` (field alias → property
   alias), named from `name-field`, under `parent`, published when `publish` is
   true.
 - **`sendToUrl`** — POSTs JSON: `{form, formName, entryId, submittedAt, fields}`.
   `method`, `headers` and `include-standard-fields` are configurable.
 
-No `template` setting on `sendEmail` yet. A TSX email template is not built, and
-the validator **refuses the setting by name** rather than accepting one that
-would silently do nothing. A template is story `091`.
+### An e-mail template
+
+**Built** (story `091`). `template` names a component under `components/`, by
+its alias as a content type names a page's: `template = "emails/receipt"` is
+`components/emails/receipt.tsx`. The workflow renders it to HTML and sends a
+plain-text part derived from that HTML beside it, so the template is the only
+thing anybody writes. [`writing-components.md`](writing-components.md#an-e-mail)
+has a worked example.
+
+```tsx
+import type { EmailProps } from '@crombolo/crombolo'
+
+export const layout = 'emails/shell'
+
+export default function Receipt({ form, fields, value, site }: EmailProps) { … }
+```
+
+**What it is given** (`EmailProps`, exported from `@crombolo/crombolo`):
+
+| Prop | What it holds |
+| --- | --- |
+| `form` | the whole `SchemaForm` |
+| `fields` | every field that collects something, in the form's order: `alias`, `caption`, `type`, `values` (a choice's label before its stored value, as `{alias}` shows it), `answered`, `sensitive`, `leftOut` |
+| `value(alias)` | what was entered, joined as `{alias}` joins it; empty for nothing or a field left out |
+| `entry` | `id` (null for a form that stores none) and `submittedAt` — when the run was queued, which for `on = "approve"` is the approval |
+| `site` | `name` (the SEO site name, else `siteName`) and `url` (`applicationUrl`) |
+| `subject` | the subject line, already substituted |
+| `signal` | aborts when the render runs out of time |
+
+- **A layout** — `export const layout` works as it does for a page. The layout
+  gets the same props plus `children`, typed `EmailLayoutProps`, so one branded
+  shell serves every form's e-mail.
+- **No page** — an e-mail has no route, member or navigation. `usePage()` and
+  `search()` throw "an e-mail template has no page; read what it needs from its
+  props". `useId()` and context work.
+- **The renderer is reached through a capability.** The workflow runner is
+  given `renderEmail(alias, props)` rather than the renderer, so the forms code
+  knows nothing of snapshots or modules. `Renderer.renderEmail` resolves the
+  component in the views being served, applies the render time limit and the
+  layout chain, and never throws: a failure comes back as a message.
+- **The text part** — `htmlToText` (`packages/server/src/email-text.ts`):
+  headings, paragraphs and table rows as lines, a row's cells two spaces apart,
+  list items as "- ", links as "text (address)", `head`, `style`, `script` and
+  comments dropped, entities decoded.
+- **`body` with `template` is refused**: the template writes the body. `subject`
+  stays required.
+
+**Sensitive answers are opt-in.** Without `include-sensitive = true`, a field
+marked `sensitive` is left out of the template's props (`leftOut`, empty
+`values`), the default body ("(sensitive, not included)"), `{alias}`
+substitution in every setting, and the attachments. Before story `091` all four
+included them; a form with sensitive fields that relied on that now needs the
+opt-in.
+
+**Validation** holds `template` to a component that exists — at boot, in
+`types check`, in a bundle install and in the designer's save, all from the same
+`componentAliases` option of the forms validator — and refuses one that is not a
+path inside `components/`.
+
+**Failures are retried.** A template that throws, or one missing when the run
+comes round (a node may still be catching up after a deploy), fails the attempt
+and is retried on the usual backoff; after the fifth it is left `failed` with a
+readable reason. A throw is reported as "The e-mail template 'emails/receipt'
+failed at components/emails/receipt.tsx:12: …" — the alias, the line of the
+source file, and the message, never a stack or the snapshot path.
+
+**The scaffold** — `crombolo components new emails/receipt` writes an e-mail
+template, typed by `EmailProps`, when a form's Send email names that alias, as
+it writes a page for an alias a content type names.
 
 ### Substitution
 
@@ -372,6 +441,7 @@ A failure is classified rather than retried blindly:
 | No email provider configured | no, and the error names what to set |
 | A node behind the schema cannot write | yes — the deploy will finish |
 | The form or the workflow is gone from the file | no, and the row says which |
+| An e-mail template that throws, or is missing from the views | yes — the reason names the template and the line |
 
 **Spam queues nothing.** A workflow is an outbound effect, and firing one for a
 submission already judged to be a bot is how a form becomes a relay. The entry
@@ -383,10 +453,10 @@ nothing.
 
 ## The email port
 
-Nothing in this CMS can send email today — `ports.ts:246` *logs* invitation and
-password-reset links. Four of Umbraco's nine workflows are email, so this is a
-prerequisite rather than a detail, and it fixes invites and password resets on the
-way past.
+One port sends every e-mail the CMS sends: the Send email workflow, a bundle
+workflow's `sendEmail`, and invitation and password-reset links. Four of
+Umbraco's nine workflows are email, so it was a prerequisite for Forms rather
+than a detail.
 
 ```ts
 interface EmailPort {
@@ -575,6 +645,19 @@ Here there is no contract to match, so the API is designed for this CMS.
   (picked with the document picker) or a dictionary item's children**, and the
   designer shows what a source offers right now, from
   `POST <backoffice>/crombolo/api/forms/choices` (the Manage permission)
+- The designer edits a form's **workflows** (story `091`): each listed by name,
+  what it does and when it runs, added, retyped and removed, with its settings
+  as fields — `plugin/forms-workflows.js` holds the operations, pure and tested
+  on their own. Send email offers to, subject, reply-to, attaching uploads,
+  including sensitive answers, and an **E-mail design** picker: "Standard" for
+  none, then the site's e-mail templates from
+  `GET <backoffice>/crombolo/api/forms/email-templates`. A template there is a
+  component whose source names `EmailProps`, plus any a form already names, so
+  the picker never loses the one that is set; a layout takes `EmailLayoutProps`
+  and is not offered. A setting with no field (`cc`, `body`, `map`, …) is kept as
+  the file has it. What it saves goes through the form save, so the same
+  validation answers, and a refusal names the workflow and the field in words
+  ("Tell the team: E-mail design") rather than a path.
 - An **entries view** per form with state filtering, search, a spam toggle,
   approve/reject/delete, and CSV export
 
@@ -646,13 +729,13 @@ Built: definitions as files, the closed field-type set, whole-set validation,
 entries with states and sensitive-data redaction, `<Form>` and the submission
 endpoint, server-side validation and conditions, the honeypot and timing
 guards, uploads, choices from a source, the three workflows on a retrying
-queue, and field and workflow types from a bundle.
+queue, field and workflow types from a bundle, and TSX e-mail templates with
+the designer's workflow editor.
 
 Not built yet:
 
 | What | Story |
 | --- | --- |
-| A TSX email template (the setting is refused by name rather than ignored) | `091` |
 | Entry retention and automatic deletion | `092` |
 
 ## Scope change

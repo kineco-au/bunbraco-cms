@@ -385,6 +385,71 @@ export default function ShowcasePage({ model, nav }: PageProps<Page>) {
 its content type, so `model.value('title')` is a `string` and a misspelt alias
 is a type error.
 
+## An e-mail
+
+A form's Send email workflow can name a component as its e-mail design, with
+`template = "emails/receipt"` in its settings or the "E-mail design" picker in
+the forms designer ([`forms.md`](forms.md#an-e-mail-template)). The component
+takes `EmailProps` rather than a page's props: the form, its fields in order,
+`value(alias)`, the entry, the site and the subject.
+
+```tsx
+// components/emails/receipt.tsx
+import type { EmailProps } from '@crombolo/crombolo'
+
+export const layout = 'emails/shell'
+
+export default function Receipt({ form, fields, value }: EmailProps) {
+  return (
+    <>
+      <h1>{form.name}</h1>
+      <p>Thanks{value('name') ? `, ${value('name')}` : ''}. This is what you sent us.</p>
+      <table>
+        {fields
+          .filter((field) => field.answered || field.leftOut)
+          .map((field) => (
+            <tr>
+              <th>{field.caption}</th>
+              <td>{field.leftOut ? 'Not included in e-mail' : field.values.join(', ')}</td>
+            </tr>
+          ))}
+      </table>
+    </>
+  )
+}
+```
+
+```tsx
+// components/emails/shell.tsx
+import type { EmailLayoutProps } from '@crombolo/crombolo'
+
+export default function Shell({ site, subject, children }: EmailLayoutProps) {
+  return (
+    <html lang="en">
+      <head>
+        <title>{subject}</title>
+      </head>
+      <body style={{ fontFamily: 'sans-serif' }}>
+        {children}
+        <p>
+          <a href={site.url}>{site.name}</a>
+        </p>
+      </body>
+    </html>
+  )
+}
+```
+
+- **One shell serves every form.** `export const layout` works as it does for a
+  page: the layout gets the same props plus `children`, the finished template.
+- **There is no page.** No route, no member, no navigation, so `usePage()` and
+  `search()` throw and say so. `useId()` and context work as they do on a page.
+- **The text part is written for you**, from the HTML: headings and paragraphs
+  as lines, table rows as one line each, links as "text (address)".
+- **A field left out** is a sensitive one on a workflow without
+  `include-sensitive = true`: `leftOut` is true and `values` is empty, so the
+  answer cannot reach an inbox by accident.
+
 ## Interactive parts
 
 A page is static HTML: nothing in it runs in the browser, so an `onClick` is

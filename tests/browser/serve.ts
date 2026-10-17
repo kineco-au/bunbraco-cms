@@ -81,6 +81,17 @@ writeFileSync(
 `,
 )
 
+// An e-mail template, for the forms designer's "E-mail design" picker
+mkdirSync(join(root, 'components', 'emails'), { recursive: true })
+writeFileSync(
+  join(root, 'components', 'emails', 'receipt.tsx'),
+  `import type { EmailProps } from '@crombolo/crombolo'
+export default function Receipt({ form }: EmailProps) {
+  return <p>{form.name}</p>
+}
+`,
+)
+
 // An element type that is not allowed in the Library, for the workspace hint.
 // Written here rather than borrowed from the site: the backoffice rewrites the
 // site's own schema whenever someone flips that toggle, and did — the type this

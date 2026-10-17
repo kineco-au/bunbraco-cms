@@ -218,6 +218,7 @@ export const EMAIL_DEPENDENT_FEATURES = [
   'Inviting backoffice users',
   'Password reset by e-mail',
   "Forms' Send email workflow",
+  'Notifications about page changes',
 ]
 
 export const EMAIL_SETUP_HINT =

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve, sep } from 'node:path'
 
 /**
@@ -194,6 +194,75 @@ async function checkTypes(siteDir: string): Promise<ComponentCheckReport['types'
 export function componentFileFor(root: string, alias: string): string {
   if (!isSafeAlias(alias)) throw new Error(`"${alias}" is not a path inside components/`)
   return join(root, `${alias}.tsx`)
+}
+
+/** What an e-mail template looks like: a default export over `EmailProps`. */
+export function emailScaffold(alias: string): string {
+  const name = componentName(alias)
+  return `import type { EmailProps } from '@crombolo/crombolo'
+
+export default function ${name}({ form, fields, site }: EmailProps) {
+  return (
+    <html lang="en">
+      <body>
+        <h1>{form.name}</h1>
+        <table>
+          {fields.map((field) => (
+            <tr>
+              <th>{field.caption}</th>
+              <td>
+                {field.leftOut
+                  ? 'Not included'
+                  : field.answered
+                    ? field.values.join(', ')
+                    : 'Not answered'}
+              </td>
+            </tr>
+          ))}
+        </table>
+        <p>
+          Sent from <a href={site.url}>{site.name}</a>
+        </p>
+      </body>
+    </html>
+  )
+}
+`
+}
+
+/**
+ * The components the forms designer offers as e-mail designs: those written
+ * over `EmailProps`, and any a form already names, so a picker never loses the
+ * one that is set. A layout takes `EmailLayoutProps`, so it is not offered.
+ */
+export function listEmailTemplates(
+  root: string,
+  named: Iterable<string> = [],
+): { alias: string; name: string }[] {
+  const components = listComponents(root)
+  const found = new Set<string>()
+  for (const component of components)
+    if (/\bEmailProps\b/.test(readFileSync(component.path, 'utf8'))) found.add(component.alias)
+  const present = new Set(components.map((component) => component.alias))
+  for (const alias of named) if (present.has(alias)) found.add(alias)
+  const items = [...found].sort().map((alias) => ({ alias, name: readableName(alias) }))
+  // Two folders with the same file name would read alike, so those keep their path.
+  const counts = new Map<string, number>()
+  for (const item of items) counts.set(item.name, (counts.get(item.name) ?? 0) + 1)
+  return items.map((item) =>
+    (counts.get(item.name) ?? 0) > 1 ? { ...item, name: `${item.name} (${item.alias})` } : item,
+  )
+}
+
+/** `emails/contactReceipt` → "Contact receipt". */
+function readableName(alias: string): string {
+  const base = alias.split('/').pop() ?? alias
+  const words = base
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 /** What a component looks like: a function, taking whatever imports it hands it. */

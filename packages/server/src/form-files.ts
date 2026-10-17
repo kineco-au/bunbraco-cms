@@ -30,6 +30,8 @@ export interface FormFileOptions {
   onChanged?: () => Promise<void>
   /** The field and workflow types the site's wired bundles add. */
   formTypes?: FormTypes
+  /** The components on disk, so a Send email `template` is held to one that exists. */
+  componentAliases?: () => ReadonlySet<string>
 }
 
 export type FormWriteResult =
@@ -243,6 +245,7 @@ export async function saveForm(
   const problems = validateForms([...others, form], {
     contentTypeAliases: new Set(loaded.set.contentTypes.map((type) => type.alias)),
     types: options.formTypes,
+    componentAliases: options.componentAliases?.(),
   })
   if (problems.length > 0) return { ok: false, status: 'invalid', problems }
 

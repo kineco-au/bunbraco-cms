@@ -21,10 +21,8 @@ import {
 import { type ValidateFormsOptions, validateForms } from './validate-forms.ts'
 import { validateWorkflows } from './workflows.ts'
 
-export interface ValidateOptions extends ValidateFormsOptions {
-  /** Template aliases that exist as view files; omit to skip template checks. */
-  componentAliases?: ReadonlySet<string>
-}
+/** `componentAliases` lives with the form options: a Send email workflow's template uses it too. */
+export type ValidateOptions = ValidateFormsOptions
 
 const VERSION = /^\d+(\.\d+)*$/
 

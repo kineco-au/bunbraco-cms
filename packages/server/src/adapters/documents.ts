@@ -75,6 +75,8 @@ export function createDocumentPort(
   tracker: RedirectTracker = NO_REDIRECT_TRACKING,
   /** The site's own directory: where `domains.toml` is, when the site keeps one. */
   siteDir?: string,
+  /** Whether the site can send the e-mails a subscription asks for (story 045). */
+  notificationsAvailable = true,
 ): DocumentPort {
   const repo = new DocumentRepository(db, options)
   const domains = new DomainRepository(db)
@@ -415,9 +417,14 @@ export function createDocumentPort(
     async setNotifications(key, principal, actionIds) {
       const node = await repo.nodes.byKey(key)
       const userId = await userIdOf(principal)
-      if (!node || node.objectType !== repo.objectType || userId === undefined) return false
+      if (!node || node.objectType !== repo.objectType || userId === undefined) return 'notFound'
+      // Clearing is always allowed; asking for something the site cannot send is not.
+      if (!notificationsAvailable) {
+        const had = new Set(await notifications.subscribed(userId, node.id))
+        if (actionIds.some((id) => !had.has(id))) return 'unavailable'
+      }
       await notifications.set(userId, node.id, actionIds)
-      return true
+      return 'saved'
     },
 
     versions: (key) => repo.versions(key),

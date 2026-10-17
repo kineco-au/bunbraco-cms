@@ -17,9 +17,9 @@ move, not only parity.
 
 - `Umb.Document.Publish` already separates those who may publish from those who
   may only save (`packages/core/src/permissions.ts`).
-- Notification subscriptions and e-mail exist (story `045`); content
-  notifications are not yet delivered, so approval notices go through the same
-  e-mail port directly.
+- Notification subscriptions and e-mail exist (story `045`). Approval notices go
+  through the e-mail port directly; a publish on approval also notifies the
+  page's subscribers, as story 045 delivers them.
 - The audit log (story `083`) records who did what, and is where the approval
   trail belongs.
 

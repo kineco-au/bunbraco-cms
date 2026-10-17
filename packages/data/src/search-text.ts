@@ -60,17 +60,24 @@ const ENTITIES: Record<string, string> = {
   nbsp: ' ',
 }
 
+/** Decodes numeric entities and the few named ones markup actually carries. */
+export function decodeEntities(text: string): string {
+  return text.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (entity, name: string) => {
+    if (!name.startsWith('#')) return ENTITIES[name.toLowerCase()] ?? entity
+    const code =
+      name[1] === 'x' || name[1] === 'X'
+        ? Number.parseInt(name.slice(2), 16)
+        : Number(name.slice(1))
+    // Past the last code point is not a character; left as written.
+    return code <= 0x10ffff ? String.fromCodePoint(code) : entity
+  })
+}
+
 function stripMarkup(text: string): string {
   if (!text.includes('<') && !text.includes('&')) return text
-  return text
-    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (entity, name: string) => {
-      if (name.startsWith('#x') || name.startsWith('#X'))
-        return String.fromCodePoint(Number.parseInt(name.slice(2), 16))
-      if (name.startsWith('#')) return String.fromCodePoint(Number(name.slice(1)))
-      return ENTITIES[name.toLowerCase()] ?? entity
-    })
+  return decodeEntities(
+    text.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, ' '),
+  )
 }
 
 /** Whether an element type's property is kept out of search: `searchable = false`. */

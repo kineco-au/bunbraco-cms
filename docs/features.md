@@ -125,7 +125,7 @@ tail of 1–3 each.
 - oEmbed proxy — built; `help` and `news-dashboard` answer an honest empty list —
   built, story `048`; document JSON Patch, `is-used`, object types and the
   static-file picker — built, story `048` ([`api-coverage.md`](api-coverage.md))
-- Email sending (invites, resets, notifications) — story `045`
+- Email sending (invites, resets, form workflows, content notifications) — built, story `045`
 - Bulk actions, tree drag-and-drop refinements
 - Multi-server operation — built: roles, and cache instructions that Postgres
   delivers as they are committed, with polling as the fallback
@@ -142,7 +142,10 @@ tail of 1–3 each.
 - ModelsBuilder DLLs, Examine/Lucene, ImageSharp
 - Umbraco Cloud/Deploy, Commerce
 - Umbraco Forms as an add-on: form building is in core instead, with definitions
-  as files ([`forms.md`](forms.md)), choices from a source included (story `090`); what is left is stories `091`–`095`
+  as files ([`forms.md`](forms.md)), choices from a source included (story `090`),
+  and the send-e-mail workflow rendering a TSX e-mail template chosen in the
+  forms designer, with sensitive answers sent only when a workflow opts in
+  (story `091`); what is left is story `092`
 - SQL Server
 - Opening an existing Umbraco database in place — a one-way importer does that
   instead, see [`umbraco-import.md`](umbraco-import.md)

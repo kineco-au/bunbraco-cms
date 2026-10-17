@@ -1,9 +1,11 @@
 /**
  * Background jobs, as Umbraco runs them: scheduled publishing every minute and
  * version cleanup every hour when it is enabled, plus the search indexer
- * draining its queue and the audit log ageing out old entries hourly. Each run can also be called directly, which is
- * how tests drive them. On a multi-node Postgres site every node runs them;
- * each schedule and queued item is claimed atomically, so it runs once.
+ * draining its queue, the audit log ageing out old entries hourly, and the
+ * form, webhook and content notification queues. Each run can also be called
+ * directly, which is how tests drive them. Every node that owns writes (`all`
+ * and `api`) runs them; each schedule and queued item is claimed atomically, so
+ * it runs once.
  */
 
 import type { NodeSchemaState } from '@crombolo/data'
@@ -16,6 +18,11 @@ import {
 } from '@crombolo/data'
 import type { PublishedCache } from '@crombolo/render'
 import { auditRetainedSince, recordAudit } from './adapters/audit.ts'
+import type {
+  ContentNotificationRunner,
+  ContentNotificationRunReport,
+  ContentNotifier,
+} from './content-notifications.ts'
 import type { WorkflowRunner, WorkflowRunReport } from './form-workflows.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
@@ -49,6 +56,11 @@ export interface JobsOptions {
   searchIndexingMs?: number
   /** Days the audit log keeps an entry; 0 or absent keeps them forever. */
   auditRetentionDays?: number
+  /** Content notifications (story 045): queued by changes, sent here. Absent without e-mail. */
+  contentNotifications?: ContentNotificationRunner
+  contentNotificationsMs?: number
+  /** Queues the notifications scheduled publishing makes, as an editor's publish does. */
+  notifier?: ContentNotifier
 }
 
 export interface ScheduledRun {
@@ -63,6 +75,8 @@ export interface BackgroundJobs {
   runFormWorkflows(now?: Date): Promise<WorkflowRunReport>
   /** Delivers the webhook and bundle events that are due. */
   runWebhooks(now?: Date): Promise<WorkflowRunReport>
+  /** Sends the content notifications that are due (story 045). */
+  runContentNotifications(now?: Date): Promise<ContentNotificationRunReport>
   /** Indexes every queued item, and returns how many. docs/search.md. */
   runSearchIndexing(): Promise<number>
   /** Something was queued here: index it shortly, rather than at the next tick. */
@@ -115,11 +129,22 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       }
     }
     if (run.published.length + run.unpublished.length > 0) options.cache.invalidate()
-    for (const key of run.published)
+    for (const key of run.published) {
       await options.webhooks?.raise({ alias: 'Umbraco.ContentPublish', key })
+      await options.notifier?.raise(
+        { actions: ['Umb.Document.Publish'], key, keyKind: 'document' },
+        { key: null, name: 'The schedule' },
+        'scheduled',
+      )
+    }
     for (const key of run.unpublished)
       await options.webhooks?.raise({ alias: 'Umbraco.ContentUnpublish', key })
     return run
+  }
+
+  async function runContentNotifications(now = new Date()): Promise<ContentNotificationRunReport> {
+    const runner = options.contentNotifications
+    return runner ? runner.runDue(now) : { claimed: 0, sent: 0, skipped: 0, retrying: 0, failed: 0 }
   }
 
   async function runAuditRetention(now = new Date()): Promise<number> {
@@ -184,6 +209,7 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
     runAuditRetention,
     runFormWorkflows,
     runWebhooks,
+    runContentNotifications,
     runSearchIndexing,
     kickSearchIndexing() {
       if (timers.length === 0 || kicked) return
@@ -204,6 +230,12 @@ export function createBackgroundJobs(options: JobsOptions): BackgroundJobs {
       if (options.formWorkflows) every(options.formWorkflowsMs ?? 15_000, runFormWorkflows)
       // As often, for the same reason: a receiver that is waiting notices a minute.
       if (options.webhooks) every(options.webhooksMs ?? 15_000, runWebhooks)
+      // A digest waits a minute anyway; this is how soon after that it goes.
+      const notifications = options.contentNotifications
+      if (notifications) {
+        every(options.contentNotificationsMs ?? 15_000, runContentNotifications)
+        every(60 * 60_000, () => notifications.prune(new Date(Date.now() - 30 * 86_400_000)))
+      }
       if (options.versionCleanup.enabled) every(60 * 60_000, runVersionCleanup)
       if (options.auditRetentionDays) every(60 * 60_000, runAuditRetention)
       const files = options.mediaFiles

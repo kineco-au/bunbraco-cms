@@ -135,14 +135,15 @@ describe('the first boot of a self-hosted site', () => {
   test('a database the previous release left is upgraded by `crombolo upgrade`, and then starts', async () => {
     const file = readdirSync(site()).find((name) => name.endsWith('.sqlite')) as string
     const sqlite = new Database(join(site(), file))
-    // As 0.15.0 left it: before the trashed date (042). Every migration since
-    // the last release has to be undone here, or the upgrade replays one
-    // against a column that is already there.
-    sqlite.exec('ALTER TABLE document DROP COLUMN trashed_date')
-    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddTrashedDate'")
+    // As 0.16.0 left it: before content notifications (043). Every migration
+    // since the last release has to be undone here, or the upgrade replays one
+    // against a table that is already there.
+    sqlite.exec('DROP INDEX IF EXISTS ix_user_notification_node_action')
+    sqlite.exec('DROP TABLE content_notification')
+    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddContentNotifications'")
     sqlite
       .query("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'")
-      .run('{2b7e5c91-0041-4f3a-8d26-9c4a1e7b3f51}')
+      .run('{8d3f1a62-0042-4b7e-9c15-2e6a4f0b8d43}')
     sqlite.close()
 
     const run = async (...args: string[]) => {
@@ -166,7 +167,7 @@ describe('the first boot of a self-hosted site', () => {
     const upgraded = await run('upgrade')
     expect(upgraded.code, upgraded.out).toBe(0)
     const ledger = await run('upgrade', 'ledger')
-    expect(ledger.out).toContain('AddTrashedDate')
+    expect(ledger.out).toContain('AddContentNotifications')
 
     const proc = Bun.spawn(['bun', CLI, 'start'], {
       cwd: site(),

@@ -370,7 +370,15 @@ export interface DocumentPort extends TreePort {
     key: string,
     principal: Principal,
   ): Promise<Array<{ actionId: string; alias: string; subscribed: boolean }> | undefined>
-  setNotifications(key: string, principal: Principal, actionIds: string[]): Promise<boolean>
+  /**
+   * Replaces the user's subscriptions. `unavailable` refuses a new one on a
+   * site that cannot send e-mail; clearing them is always allowed.
+   */
+  setNotifications(
+    key: string,
+    principal: Principal,
+    actionIds: string[],
+  ): Promise<'saved' | 'notFound' | 'unavailable'>
   /** The document as it stood at a version. */
   atVersion(
     versionId: string,

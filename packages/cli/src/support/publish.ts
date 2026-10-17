@@ -14,7 +14,7 @@ import {
   describeRefFailure,
   resolveNodeRef,
 } from '@crombolo/data'
-import { bootstrapDatabase } from '@crombolo/server'
+import { bootstrapDatabase, createContentNotifier, resolveEmailPort } from '@crombolo/server'
 import { Args, Flags } from '@oclif/core'
 import { CliError } from '../errors.ts'
 import { many } from './flags.ts'
@@ -124,12 +124,19 @@ export async function publishPages(
         )
     }
 
+    // The people who asked to hear of a publish here hear of this one too (story 045).
+    const notifier = createContentNotifier(db, { canSend: Boolean(resolveEmailPort(config)) })
     for (const node of targets) {
       const result = publishing
         ? await docs.publish(node.key, cultures.length > 0 ? cultures : null)
         : await docs.unpublish(node.key, cultures.length > 0 ? cultures : null)
       items.push({ key: node.key, name: node.text ?? node.key, changed: Boolean(result) })
       if (!result) continue
+      if (publishing)
+        await notifier.raise(
+          { actions: ['Umb.Document.Publish'], key: node.key, keyKind: 'document' },
+          { key: null, name: 'The command line' },
+        )
       io.say(`  ${publishing ? 'published' : 'unpublished'} ${node.text ?? node.key}`)
     }
     io.say(

@@ -202,11 +202,15 @@ Opt-in, and off by default. Nothing is installed, no SMTP is spoken, and a site
 that configures no provider sends no e-mail — which is a supported state, not a
 broken one.
 
-What needs it: inviting backoffice users, resetting a forgotten password, and
-Forms' Send email workflow. Without a provider those are **unavailable rather
-than failing**: the backoffice hides Invite and offers Create (which shows a
-generated first password), the sign-in screen drops "Forgotten password?", and
-`GET /umbraco/crombolo/api/email` tells a signed-in client why. `crombolo status`
+What needs it: inviting backoffice users, resetting a forgotten password,
+Forms' Send email workflow, and notifications about page changes. Without a
+provider those are **unavailable rather than failing**: the backoffice hides
+Invite and offers Create (which shows a generated first password), the sign-in
+screen drops "Forgotten password?", the Notifications dialog says the site
+can't send e-mail and disables its choices, and `GET
+/umbraco/crombolo/api/email` tells a signed-in client why. Subscriptions made
+before stay, and start delivering once a provider is set; development sends to
+the console, so notifications work there as invitations do. `crombolo status`
 has an `email` line, and the boot log says it once.
 
 Set it from the environment, or pass a port as `email` in `crombolo.config.ts`:

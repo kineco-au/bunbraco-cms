@@ -14,6 +14,7 @@
 import {
   allFormFields,
   type FormValueToStore,
+  formFieldType,
   type SchemaForm,
   type SchemaFormWorkflow,
 } from '@crombolo/core'
@@ -25,7 +26,9 @@ import {
   type FormWorkflowRun,
   type NodeSchemaState,
 } from '@crombolo/data'
+import type { EmailField, EmailProps, EmailRenderResult } from '@crombolo/render'
 import type { EmailAttachment, EmailPort } from './email.ts'
+import { htmlToText } from './email-text.ts'
 import type { FormWorkflowTypeDefinition } from './form-types.ts'
 import { logger } from './logging.ts'
 import type { MediaFileStore } from './media-files.ts'
@@ -43,7 +46,12 @@ export interface WorkflowContext {
   entryId: string | null
   /** Which attempt this is, from 1. */
   attempt?: number
+  /** When the run was queued; now when absent. */
+  submittedAt?: Date
 }
+
+/** What an e-mail template is rendered from: its props, less the signal the renderer adds. */
+export type EmailTemplateProps = Omit<EmailProps, 'signal'>
 
 /** How long a bundle's workflow may run before its signal aborts. */
 const BUNDLE_WORKFLOW_TIMEOUT_MS = 60_000
@@ -60,6 +68,10 @@ export interface WorkflowDeps {
   onContentChanged?: () => void
   /** The workflow types wired bundles add, by type. */
   bundleWorkflows?: ReadonlyMap<string, FormWorkflowTypeDefinition>
+  /** Renders a `template` component to HTML; absent, a workflow naming one cannot send. */
+  renderEmail?: (alias: string, props: EmailTemplateProps) => Promise<EmailRenderResult>
+  /** The site's name and address, for an e-mail template. */
+  site?: () => Promise<{ name: string; url: string }>
 }
 
 export type WorkflowResult =
@@ -105,18 +117,92 @@ const asList = (value: unknown): string[] =>
         .filter(Boolean)
     : []
 
-/** The submission as a reader sees it: caption, then what was entered. */
-export function plainSummary(context: WorkflowContext): string {
+/**
+ * The submission as a reader sees it: caption, then what was entered. A field
+ * in `leftOut` (lower-cased aliases) says it was left out rather than showing
+ * its answer.
+ */
+export function plainSummary(
+  context: WorkflowContext,
+  leftOut: ReadonlySet<string> = new Set(),
+): string {
   const captions = new Map(
     allFormFields(context.form).map((field) => [field.alias, field.caption || field.alias]),
   )
   const lines = context.values.map(
     (value) =>
       `${captions.get(value.fieldAlias) ?? value.fieldAlias}: ${
-        value.values.length > 0 ? shown(value).join(', ') : '(not answered)'
+        leftOut.has(value.fieldAlias.toLowerCase())
+          ? '(sensitive, not included)'
+          : value.values.length > 0
+            ? shown(value).join(', ')
+            : '(not answered)'
       }`,
   )
   return [`${context.form.name}`, '', ...lines].join('\n')
+}
+
+/**
+ * The sensitive fields a workflow leaves out, lower-cased: all of them unless it
+ * sets `include-sensitive = true`.
+ */
+export function leftOutFields(form: SchemaForm, workflow: SchemaFormWorkflow): Set<string> {
+  if (workflow.settings['include-sensitive'] === true) return new Set()
+  return new Set(
+    allFormFields(form)
+      .filter((field) => field.sensitive)
+      .map((field) => field.alias.toLowerCase()),
+  )
+}
+
+/** The values with every left-out field emptied, so substitution shows nothing for it. */
+const withoutLeftOut = (
+  values: readonly FormValueToStore[],
+  leftOut: ReadonlySet<string>,
+): FormValueToStore[] =>
+  values.map((value) =>
+    leftOut.has(value.fieldAlias.toLowerCase())
+      ? { fieldAlias: value.fieldAlias, values: [] }
+      : value,
+  )
+
+/** An e-mail template's props: the form, its fields in order, and where it came from. */
+export function emailTemplateProps(
+  context: WorkflowContext,
+  leftOut: ReadonlySet<string>,
+  subject: string,
+  site: { name: string; url: string },
+): EmailTemplateProps {
+  const sent = withoutLeftOut(context.values, leftOut)
+  const byAlias = new Map(sent.map((value) => [value.fieldAlias.toLowerCase(), value]))
+  const fields: EmailField[] = allFormFields(context.form)
+    // A heading or a paragraph collects nothing; a bundle's type is kept, since
+    // only its own declaration could say it is presentational.
+    .filter((field) => formFieldType(field.type)?.presentational !== true)
+    .map((field) => {
+      const found = byAlias.get(field.alias.toLowerCase())
+      const values = found ? shown(found) : []
+      return {
+        alias: field.alias,
+        caption: field.caption || field.alias,
+        type: field.type,
+        values,
+        answered: values.length > 0,
+        sensitive: field.sensitive,
+        leftOut: leftOut.has(field.alias.toLowerCase()),
+      }
+    })
+  return {
+    form: context.form,
+    fields,
+    value: (alias) => {
+      const found = byAlias.get(alias.toLowerCase())
+      return found ? shown(found).join(', ') : ''
+    },
+    entry: { id: context.entryId, submittedAt: context.submittedAt ?? new Date() },
+    site,
+    subject,
+  }
 }
 
 // ------------------------------------------------------------------ send email
@@ -136,8 +222,26 @@ async function sendEmail(
     }
 
   const settings = workflow.settings
-  const to = asList(substitute(asString(settings.to) ?? '', context.values))
+  // Sensitive answers stay out of every part of the e-mail unless the workflow
+  // asks for them: an inbox is not covered by the sensitive-data permission.
+  const leftOut = leftOutFields(context.form, workflow)
+  const values = withoutLeftOut(context.values, leftOut)
+  const to = asList(substitute(asString(settings.to) ?? '', values))
   if (to.length === 0) return { ok: false, retry: false, error: 'The workflow has no recipient.' }
+  const subject = substitute(asString(settings.subject) ?? context.form.name, values).trim()
+
+  let html: string | undefined
+  let text: string
+  const template = asString(settings.template)
+  if (template) {
+    const rendered = await renderTemplate(template, context, leftOut, subject, deps)
+    if (!rendered.ok) return rendered
+    html = rendered.html
+    text = htmlToText(html)
+  } else
+    text = settings.body
+      ? substitute(String(settings.body), values)
+      : plainSummary(context, leftOut)
 
   const attachments: EmailAttachment[] = []
   if (settings['attach-uploads'] === true && deps.mediaFiles) {
@@ -146,7 +250,7 @@ async function sendEmail(
         .filter((field) => field.type === 'fileUpload')
         .map((field) => field.alias),
     )
-    for (const value of context.values) {
+    for (const value of values) {
       if (!uploadAliases.has(value.fieldAlias)) continue
       for (const src of value.values) {
         const file = await deps.mediaFiles.open(src)
@@ -166,19 +270,65 @@ async function sendEmail(
     bcc: asList(asString(settings.bcc) ?? '').map((email) => ({ email })),
     replyTo: (() => {
       const replyTo = asString(settings['reply-to'])
-      const resolved = replyTo ? substitute(replyTo, context.values) : undefined
+      const resolved = replyTo ? substitute(replyTo, values) : undefined
       return resolved ? { email: resolved } : undefined
     })(),
     from: (() => {
       const from = asString(settings.from)
       return from ? { email: from } : undefined
     })(),
-    subject: substitute(asString(settings.subject) ?? context.form.name, context.values),
-    text: settings.body ? substitute(String(settings.body), context.values) : plainSummary(context),
+    subject,
+    text,
+    ...(html === undefined ? {} : { html }),
     attachments: attachments.length > 0 ? attachments : undefined,
   })
   // A provider that refused is worth another go: a 500 or a timeout is weather.
   return result.ok ? { ok: true } : { ok: false, retry: true, error: result.error }
+}
+
+/**
+ * The HTML of a workflow's e-mail template, or why there is none.
+ *
+ * Both failures are retried. A template missing now may be one a node has not
+ * caught up with after a deploy; one that throws may be reading something that
+ * is briefly unavailable. After the last attempt the run is left failed, with
+ * the reason a person can act on.
+ */
+async function renderTemplate(
+  template: string,
+  context: WorkflowContext,
+  leftOut: ReadonlySet<string>,
+  subject: string,
+  deps: WorkflowDeps,
+): Promise<{ ok: true; html: string } | (WorkflowResult & { ok: false })> {
+  if (!deps.renderEmail)
+    return {
+      ok: false,
+      retry: false,
+      error: `The e-mail template '${template}' cannot be rendered here: this server renders no templates.`,
+    }
+  try {
+    const site = (await deps.site?.()) ?? { name: '', url: '' }
+    const rendered = await deps.renderEmail(
+      template,
+      emailTemplateProps(context, leftOut, subject, site),
+    )
+    if (rendered.status === 'ok') return { ok: true, html: rendered.html }
+    return {
+      ok: false,
+      retry: true,
+      error:
+        rendered.status === 'missing'
+          ? `There is no e-mail template '${template}': no components/${template}.tsx in the views this node serves.`
+          : rendered.message,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      retry: true,
+      error: `The e-mail template '${template}' failed: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
 }
 
 // ------------------------------------------------------------------ save as content
@@ -404,6 +554,7 @@ export function createWorkflowRunner(
       values: run.payload,
       entryId: run.entryId,
       attempt: run.attempts,
+      submittedAt: run.createDate,
     }
     let result: WorkflowResult
     try {

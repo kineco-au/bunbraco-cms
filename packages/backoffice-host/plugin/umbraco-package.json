@@ -2,7 +2,7 @@
   "$schema": "../../backoffice-dist/dist/umbraco-package-schema.json",
   "name": "Crombolo",
   "id": "Crombolo.Core",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "allowPublicAccess": false,
   "extensions": [
     {
@@ -417,6 +417,12 @@
       "alias": "Crombolo.EntryPoint.LogViewerMenu",
       "name": "Crombolo Log Viewer Search Menu",
       "js": "/crombolo-plugin/branding/log-viewer-menu.js"
+    },
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "Crombolo.EntryPoint.NotificationsDialog",
+      "name": "Crombolo Notifications Dialog Without E-mail",
+      "js": "/crombolo-plugin/notifications-dialog.js"
     },
     {
       "type": "globalContext",

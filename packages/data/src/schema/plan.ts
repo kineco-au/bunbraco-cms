@@ -23,6 +23,7 @@ import { changeReportMigration } from './change-report.ts'
 import { clientIdPrefixMigration } from './client-id-prefix.ts'
 import { contentMigration } from './content.ts'
 import { contentEditingMigration } from './content-editing.ts'
+import { contentNotificationsMigration } from './content-notifications.ts'
 import { createdPackagesMigration } from './created-packages.ts'
 import { deliveryMemberTokensMigration } from './delivery-member-tokens.ts'
 import { diagnosticsMigration } from './diagnostics.ts'
@@ -99,4 +100,5 @@ export const cromboloPlan = new MigrationPlan([
   twoFactorMigration,
   remoteMigration,
   trashedDateMigration,
+  contentNotificationsMigration,
 ])
