@@ -18,3 +18,13 @@ export async function buildManifest(): Promise<Interfaces.Manifest> {
   // Through JSON, as oclif reads it back: each command's `load` is dropped.
   return JSON.parse(JSON.stringify({ commands, version: config.version })) as Interfaces.Manifest
 }
+
+/** The manifest's shape for any loaded config: the CLI's commands and its plugins'. */
+export function manifestOf(config: Config): Interfaces.Manifest {
+  const commands = Object.fromEntries(
+    config.commands
+      .map((command) => [command.id, command] as const)
+      .sort(([a], [b]) => a.localeCompare(b)),
+  )
+  return JSON.parse(JSON.stringify({ commands, version: config.version })) as Interfaces.Manifest
+}

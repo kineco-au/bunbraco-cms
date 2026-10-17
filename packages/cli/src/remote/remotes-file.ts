@@ -8,7 +8,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { writeFileAtomic } from '@crombolo/server'
+import { writeFileAtomic } from '@crombolo/server/atomic-write'
 
 export const REMOTES_FILE = 'remotes.toml'
 

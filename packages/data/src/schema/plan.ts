@@ -49,6 +49,7 @@ import { siteSearchMigration } from './site-search.ts'
 import { transferAnswersMigration } from './transfer-answers.ts'
 import { transferRunPackageMigration } from './transfer-run-package.ts'
 import { transferRunsMigration } from './transfer-runs.ts'
+import { trashedDateMigration } from './trashed-date.ts'
 import { twoFactorMigration } from './two-factor.ts'
 import { upgradeReportMigration } from './upgrade-report.ts'
 import { usersLocalisationMigration } from './users-localisation.ts'
@@ -97,4 +98,5 @@ export const cromboloPlan = new MigrationPlan([
   siteSearchMigration,
   twoFactorMigration,
   remoteMigration,
+  trashedDateMigration,
 ])

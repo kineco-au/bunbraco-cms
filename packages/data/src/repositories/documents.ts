@@ -1071,10 +1071,14 @@ export class DocumentRepository {
         ).map((row) => Number(row.id))
         const t = tx.dialect.boolValue(true)
         const f = tx.dialect.boolValue(false)
-        await tx.exec('UPDATE document SET original_parent_id = ? WHERE node_id = ?', [
-          node.parentId === SystemNodes.Root ? null : node.parentId,
-          node.id,
-        ])
+        await tx.exec(
+          'UPDATE document SET original_parent_id = ?, trashed_date = ? WHERE node_id = ?',
+          [
+            node.parentId === SystemNodes.Root ? null : node.parentId,
+            DbDate.toDb(new Date()),
+            node.id,
+          ],
+        )
         // The whole branch goes with it, and stays unpublished while trashed.
         await tx.exec('UPDATE node SET trashed = ? WHERE id = ? OR path LIKE ?', [
           t,
@@ -1162,9 +1166,10 @@ export class DocumentRepository {
             node.id,
             `${node.path},%`,
           ])
-          await tx.exec('UPDATE document SET original_parent_id = NULL WHERE node_id = ?', [
-            node.id,
-          ])
+          await tx.exec(
+            'UPDATE document SET original_parent_id = NULL, trashed_date = NULL WHERE node_id = ?',
+            [node.id],
+          )
         }
         await repo.nodes.move(node.id, parentId)
         await tx.exec('UPDATE node SET sort_order = ? WHERE id = ?', [
@@ -1313,7 +1318,10 @@ export class DocumentRepository {
           await repo.#nextSortOrder(parentId, node.id),
           node.id,
         ])
-        await tx.exec('UPDATE document SET original_parent_id = NULL WHERE node_id = ?', [node.id])
+        await tx.exec(
+          'UPDATE document SET original_parent_id = NULL, trashed_date = NULL WHERE node_id = ?',
+          [node.id],
+        )
         return 'restored' as const
       }),
     )
@@ -1641,6 +1649,21 @@ export class DocumentRepository {
   /** Every top-level item in this kind's recycle bin, for emptying it. */
   async trashedRoots(): Promise<NodeRow[]> {
     return (await this.trashed(null, 0, Number.MAX_SAFE_INTEGER)).items
+  }
+
+  /** When each item went into the recycle bin; absent for one trashed before that was recorded. */
+  async trashedDates(nodeIds: readonly number[]): Promise<Map<number, Date>> {
+    if (nodeIds.length === 0) return new Map()
+    const rows = await this.#db.query<{ node_id: number; trashed_date: unknown }>(
+      `SELECT node_id, trashed_date FROM document WHERE trashed_date IS NOT NULL AND node_id IN (${nodeIds.map(() => '?').join(', ')})`,
+      [...nodeIds],
+    )
+    const out = new Map<number, Date>()
+    for (const row of rows) {
+      const date = DbDate.fromDb(row.trashed_date)
+      if (date) out.set(Number(row.node_id), date)
+    }
+    return out
   }
 
   async #nextSortOrder(parentId: number, excludingId: number): Promise<number> {

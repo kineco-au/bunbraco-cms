@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/cli",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "The crombolo command line: scaffolding a site, schema, views, domains, content transfer and upgrades.",
   "license": "MIT",
   "author": "Crombolo",
@@ -19,7 +19,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./bin": "./bin/crombolo.ts"
+    "./bin": "./bin/crombolo.ts",
+    "./plugin": "./src/plugin.ts"
   },
   "bin": {
     "crombolo": "./bin/crombolo.ts"
@@ -35,6 +36,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@crombolo/api-management": "workspace:*",
     "@crombolo/auth": "workspace:*",
     "@crombolo/core": "workspace:*",
     "@crombolo/data": "workspace:*",
@@ -79,7 +81,7 @@
         "description": "pause and resume editors' saves, cluster-wide"
       },
       "media": {
-        "description": "a pulled site's media files"
+        "description": "the media library in bulk: import a folder, export one; a pulled site's files"
       },
       "remote": {
         "description": "the remotes this site pulls from and pushes to (remotes.toml)"
@@ -89,7 +91,25 @@
       },
       "upgrade": {
         "description": "framework migrations: check, plan, apply, ledger"
+      },
+      "users": {
+        "description": "the back-office users: unlock, enable, reset a password or a second factor, invite"
+      },
+      "api-client": {
+        "description": "the API client a site seeds from its environment"
+      },
+      "index": {
+        "description": "the search indexes: what they hold, and rebuilding them"
+      },
+      "cache": {
+        "description": "the published cache on every node"
+      },
+      "recycle-bin": {
+        "description": "what has been deleted, before it is gone for good"
       }
-    }
+    },
+    "optionalPlugins": [
+      "@crombolo/cloud"
+    ]
   }
 }

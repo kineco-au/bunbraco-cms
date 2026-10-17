@@ -14,7 +14,7 @@ import {
   readLedger,
   readState,
   STATE_REMOTE,
-  STATE_TWO_FACTOR,
+  STATE_TRASHED_DATE,
   seedIdentity,
 } from '@crombolo/data'
 import { summariseUpgrades, VERSION } from '@crombolo/server'
@@ -79,15 +79,11 @@ describe('summarising the ledger', () => {
   })
 })
 
-/** Puts a current database back the way 0.14.1 left it, a day ago: before the remote protocol (041). */
+/** Puts a current database back the way 0.15.0 left it, a day ago: before the trashed date (042). */
 async function asPreviousRelease(db: Db): Promise<void> {
-  await db.exec('DROP TABLE remote_job')
-  await db.exec('DROP TABLE device_authorization')
-  await db.exec("DELETE FROM migration_history WHERE name = 'AddRemote'")
-  await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [
-    STATE_TWO_FACTOR,
-    MIGRATION_STATE_KEY,
-  ])
+  await db.exec('ALTER TABLE document DROP COLUMN trashed_date')
+  await db.exec("DELETE FROM migration_history WHERE name = 'AddTrashedDate'")
+  await db.exec('UPDATE key_value SET value = ? WHERE key = ?', [STATE_REMOTE, MIGRATION_STATE_KEY])
   const yesterday = new Date(Date.now() - 24 * 3600_000).toISOString()
   await db.exec(`UPDATE migration_history SET applied_at = ?`, [
     db.dialect.name === 'postgres' ? yesterday : yesterday.replace('T', ' ').slice(0, 19),
@@ -112,14 +108,14 @@ describe('upgrading from the previous release', () => {
       passwordConfig: passwordConfigJson(),
     })
     await asPreviousRelease(db)
-    expect(await readState(db)).toBe(STATE_TWO_FACTOR)
+    expect(await readState(db)).toBe(STATE_REMOTE)
 
     const result = await migrate(db, cromboloPlan, { by: 'upgrade' })
-    expect(result.applied).toEqual(['AddRemote'])
-    expect(await readState(db)).toBe(STATE_REMOTE)
-    expect(await db.query('SELECT id FROM remote_job')).toBeArray()
+    expect(result.applied).toEqual(['AddTrashedDate'])
+    expect(await readState(db)).toBe(STATE_TRASHED_DATE)
+    expect(await db.query('SELECT trashed_date FROM document')).toBeArray()
     const summary = summariseUpgrades(await readLedger(db), VERSION)
-    expect(summary.lastUpgrade).toMatchObject({ release: '0.14.4', steps: 1 })
+    expect(summary.lastUpgrade).toMatchObject({ release: '0.16.0', steps: 1 })
   })
 
   test('the Changes dashboard reports the version, the install and the last upgrade', async () => {

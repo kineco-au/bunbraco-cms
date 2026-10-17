@@ -5,11 +5,9 @@
  * result is the output, and in text mode the command says it as it goes.
  */
 import { Command, Errors, Flags } from '@oclif/core'
-import { classify, reportFailure } from './classify.ts'
 import { CliError, type ErrorKind, exitCodeOf, OUTCOMES, type OutcomeName } from './errors.ts'
-import * as ops from './operations/commands.ts'
+import type * as ops from './operations/commands.ts'
 import type { Io } from './support/site.ts'
-import { siteConfig } from './support/site.ts'
 
 /** A field of one output record, in clispec's closed set of types. */
 export interface OutputField {
@@ -107,6 +105,9 @@ export abstract class BaseCommand extends Command implements Io {
 
   protected override async catch(error: Error): Promise<never> {
     if (error instanceof Errors.ExitError) throw error
+    // Loaded when something fails, so a command — or a plugin's — that succeeds
+    // never pays for the site packages it knows how to name.
+    const { classify, reportFailure } = await import('./classify.ts')
     const failure = classify(error)
     reportFailure(failure, this.jsonEnabled())
     throw new Errors.ExitError(exitCodeOf(failure.kind))
@@ -115,7 +116,11 @@ export abstract class BaseCommand extends Command implements Io {
   protected override async finally(error: Error | undefined): Promise<void> {
     const audit = (this.constructor as typeof BaseCommand).audit
     if (error || !audit || this.changedNothing) return
-    await ops.recordCommand(await siteConfig(), {
+    const [{ recordCommand }, { siteConfig }] = await Promise.all([
+      import('./operations/commands.ts'),
+      import('./support/site.ts'),
+    ])
+    await recordCommand(await siteConfig(), {
       ...audit,
       command: `crombolo ${(this.id ?? '').replaceAll(':', ' ')}`,
       entityKey: this.auditKey,

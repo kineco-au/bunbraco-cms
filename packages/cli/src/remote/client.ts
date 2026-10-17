@@ -6,7 +6,12 @@
  */
 import { createHash } from 'node:crypto'
 import { createWriteStream } from 'node:fs'
-import { freshAccessToken, type Keychain, readSignIn, saveSignIn } from '@crombolo/server'
+import {
+  freshAccessToken,
+  type Keychain,
+  readSignIn,
+  saveSignIn,
+} from '@crombolo/server/remote-credentials'
 
 export const PROTOCOL_VERSION = '1'
 

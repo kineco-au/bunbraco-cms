@@ -5,15 +5,33 @@
  */
 import { Errors, flush, run } from '@oclif/core'
 import { wantsJson } from './base.ts'
-import { classify, reportFailure } from './classify.ts'
-import { exitCodeOf } from './errors.ts'
+import { CliError, exitCodeOf } from './errors.ts'
+import { loadCli } from './load.ts'
 
-export async function main(dir: string, argv: string[] = process.argv.slice(2)): Promise<void> {
+/** The topic each optional plugin brings, and how to add it. */
+const PLUGIN_TOPICS: Record<string, { topic: string; what: string }> = {
+  '@crombolo/cloud': { topic: 'cloud', what: 'Crombolo Cloud' },
+}
+
+export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   try {
-    await run(argv, dir)
+    const { config, missing } = await loadCli()
+    const absent = missing
+      .map((name) => ({ name, ...PLUGIN_TOPICS[name] }))
+      .find((plugin) => plugin.topic && argv[0] === plugin.topic)
+    if (absent)
+      throw new CliError(
+        'usage',
+        `\`crombolo ${absent.topic}\` comes with the ${absent.what} plugin, which is not installed.`,
+        {
+          hint: `Add it to the site: bun add -d ${absent.name}`,
+        },
+      )
+    await run(argv, config)
     await flush()
   } catch (error) {
     if (error instanceof Errors.ExitError) process.exit(error.oclif.exit ?? 0)
+    const { classify, reportFailure } = await import('./classify.ts')
     const failure = classify(error)
     if (failure.kind === 'usage' && !failure.hint)
       Object.assign(failure, { hint: '`crombolo --help` lists the commands.' })

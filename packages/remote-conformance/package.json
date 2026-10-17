@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/remote-conformance",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Checks a server against the Crombolo remote protocol: discovery, sign-in, environments, pulls, pushes and media by reference.",
   "license": "MIT",
   "author": "Crombolo",

@@ -227,10 +227,11 @@ under `schema/`.
 | # | Story | Priority | Size | State | Depends on |
 |---|---|---|---|---|---|
 | `150` | A scriptable CLI | should | L | done | — |
-| `151` | People from the command line | should | M | ready | — |
-| `152` | Operating a running site | should | M | ready | — |
-| `153` | Media in bulk | should | M | ready | — |
+| `151` | People from the command line | should | M | done | — |
+| `152` | Operating a running site | should | M | done | — |
+| `153` | Media in bulk | should | M | done | — |
 | `154` | Redirects as data | could | S | ready | — |
 | `155` | Members out and in | could | M | ready | — |
 | `156` | The audit log from the command line | could | S | ready | — |
 | `157` | A docs section on the product site | should | M | ready | 150 |
+| `158` | A hosting plugin for the CLI | should | S | done | 150 |

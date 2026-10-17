@@ -1,6 +1,6 @@
 {
   "name": "@crombolo/server",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "The crombolo HTTP server: routing, configuration, media stores and background jobs.",
   "license": "MIT",
   "author": "Crombolo",
@@ -18,7 +18,9 @@
   },
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./remote-credentials": "./src/remote-credentials.ts",
+    "./atomic-write": "./src/atomic-write.ts"
   },
   "files": [
     "src",

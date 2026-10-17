@@ -1,0 +1,16 @@
+{
+  "name": "@crombolo/cloud",
+  "version": "0.0.0-test",
+  "private": true,
+  "description": "A stand-in for the Crombolo Cloud plugin, for tests/cli-plugin.test.ts only: never shipped.",
+  "type": "module",
+  "oclif": {
+    "commands": "./src/commands",
+    "topicSeparator": " ",
+    "topics": {
+      "cloud": {
+        "description": "the site on Crombolo Cloud"
+      }
+    }
+  }
+}

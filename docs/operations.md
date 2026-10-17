@@ -483,6 +483,96 @@ for a protected push); it never waits on stdin. `--dry-run` on `bundle purge` an
 `push` says what would go and changes nothing. `admin reset-password --stdin`
 reads the new password from a pipe, so it never sits in shell history.
 
+### Running a site from the command line
+
+These open the site's database directly rather than going through the server,
+so they work when the site will not boot; in a container, run them with `docker
+exec`. Each writes an audit entry, and each takes `-o json`.
+
+**People** (story 151) go through the same rules as the Users section:
+
+| Command | What it does |
+|---|---|
+| `crombolo users list` | everyone, the built-in administrator included: groups, state, last sign-in |
+| `crombolo users unlock <who>` | clears a lockout and the failed sign-ins |
+| `crombolo users disable <who>` / `enable <who>` | stops someone signing in, ending their sessions, and lets them again |
+| `crombolo users reset-password <who> [--stdin]` | a generated password, printed, or one piped in; their sessions end |
+| `crombolo users reset-2fa <who>` | removes their second factors, for a lost authenticator |
+| `crombolo users invite <email> --group <alias>` | creates the user and prints the link they set a password with, for a site with no e-mail |
+| `crombolo api-client rotate [--client <id>]` | a new secret for the seeded API client, printed once; put it in `CROMBOLO_API_CLIENT_SECRET` |
+
+`<who>` is an e-mail address or a username, in any case.
+
+**The running site** (story 152):
+
+- `crombolo index list` shows what each search index holds and what is waiting
+  for it. `crombolo index rebuild [InternalIndex|MembersIndex]` indexes
+  everything again. The index is in the database, so one rebuild serves every
+  node, and search keeps answering meanwhile; `--queue-only` leaves the
+  indexing to the running site.
+- `crombolo cache rebuild` asks every node to rebuild its published cache. It
+  writes a cache instruction, as an editor's save does, stamped as the command
+  line so no node passes it over as its own; each node acts at its next poll.
+  Only the database has to be reachable.
+- `crombolo health [--group <name>]` runs Settings › Health Check, and exits 20
+  when a check fails, for a monitor or a deploy to gate on.
+- `crombolo recycle-bin empty [--content|--media] [--older-than <days>]`
+  deletes what is in the bin for good, media files included, asking first unless
+  `--yes`; `--dry-run` lists it. An item's trash date is recorded from 0.16.0
+  (migration 042); `--older-than` keeps one trashed before that, and says how
+  many it kept.
+
+**Media in bulk** (story 153): `crombolo media import <dir> [--under <folder>]`
+makes a media folder for each directory and an item for each file, typed by its
+extension as an upload is, through the same upload path. Run it again after a
+stop: a file already there with the same bytes is skipped, and one whose bytes
+differ is reported and left. `--dry-run` says what it would create. `crombolo
+media export [<folder>] --out <dir>` writes the files back out as folders.
+
+### Plugins
+
+One plugin extends the CLI: `@crombolo/cloud`, for a site hosted on Crombolo
+Cloud (story 158). Add it to the site — `bun add -d @crombolo/cloud` — or
+install it globally beside the CLI, and its commands appear as `crombolo cloud
+…`, in `crombolo --help`, in `crombolo schema` and on the reference page.
+Without it nothing changes; `crombolo cloud` alone says how to add it, and
+exits 2 as an unknown command does. The CLI's `package.json` names it under
+`oclif.optionalPlugins`, and `packages/cli/src/load.ts` looks for it in the
+site's `node_modules`, then beside the CLI; no other plugin is loaded.
+
+A plugin is an oclif package whose commands come from `@crombolo/cli/plugin`,
+never from the CLI's internal paths:
+
+```ts
+import { BaseCommand, Flags, discover, keychain, RemoteClient } from '@crombolo/cli/plugin'
+
+export default class CloudStatus extends BaseCommand {
+  static override summary = 'what the platform says about this site'
+  static override flags = { url: Flags.string({ required: true }) }
+  static override spec = {
+    effects: 'read_only',
+    cardinality: 'single',
+    outputFields: [{ name: 'state', type: 'string' }],
+  } as const
+
+  async run() {
+    const { flags } = await this.parse(CloudStatus)
+    const client = new RemoteClient(await discover(flags.url), keychain())
+    // …
+    return { state }
+  }
+}
+```
+
+Extending `BaseCommand` gives a command the global `-o json`, the failure
+envelope and exit codes (`this.fail(kind, message, hint)`), and its entry in
+`crombolo schema`, which needs the `spec`. Its own `package.json` sets
+`oclif.commands`, `topicSeparator: " "` and the `cloud` topic. `signIn`,
+`discover`, `RemoteClient` and `keychain` are the ones `crombolo login` and
+`pull` use, so a sign-in made by either is the other's: a person signs in once.
+`tests/fixtures/cloud-plugin` is a working example, used by
+`tests/cli-plugin.test.ts` and never shipped.
+
 ### Exit codes
 
 A failure exits with its kind's code, and in JSON mode the last line of stderr is

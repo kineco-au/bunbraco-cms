@@ -135,15 +135,14 @@ describe('the first boot of a self-hosted site', () => {
   test('a database the previous release left is upgraded by `crombolo upgrade`, and then starts', async () => {
     const file = readdirSync(site()).find((name) => name.endsWith('.sqlite')) as string
     const sqlite = new Database(join(site(), file))
-    // As 0.14.1 left it: before the remote protocol (041). Every migration since
+    // As 0.15.0 left it: before the trashed date (042). Every migration since
     // the last release has to be undone here, or the upgrade replays one
-    // against a table that is already there.
-    sqlite.exec('DROP TABLE remote_job')
-    sqlite.exec('DROP TABLE device_authorization')
-    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddRemote'")
+    // against a column that is already there.
+    sqlite.exec('ALTER TABLE document DROP COLUMN trashed_date')
+    sqlite.exec("DELETE FROM migration_history WHERE name = 'AddTrashedDate'")
     sqlite
       .query("UPDATE key_value SET value = ? WHERE key = 'Crombolo.Core.Upgrader.State'")
-      .run('{4c2e7a90-0040-4d1b-9f63-8a5e2c7b1d40}')
+      .run('{2b7e5c91-0041-4f3a-8d26-9c4a1e7b3f51}')
     sqlite.close()
 
     const run = async (...args: string[]) => {
@@ -167,7 +166,7 @@ describe('the first boot of a self-hosted site', () => {
     const upgraded = await run('upgrade')
     expect(upgraded.code, upgraded.out).toBe(0)
     const ledger = await run('upgrade', 'ledger')
-    expect(ledger.out).toContain('AddRemote')
+    expect(ledger.out).toContain('AddTrashedDate')
 
     const proc = Bun.spawn(['bun', CLI, 'start'], {
       cwd: site(),

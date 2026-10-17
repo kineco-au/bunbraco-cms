@@ -1,9 +1,8 @@
 /** What the remote commands share: the remote a command names, and the browser it opens. */
-import { osKeychain } from '@crombolo/server'
+import { osKeychain } from '@crombolo/server/remote-credentials'
 import { CliError } from '../errors.ts'
 import { discover, RemoteClient } from '../remote/client.ts'
 import { pickRemote, readRemotes } from '../remote/remotes-file.ts'
-import { cwd } from './site.ts'
 
 export const keychain = () => osKeychain()
 
@@ -24,9 +23,9 @@ export function openInBrowser(url: string, disabled: boolean): void {
 
 /** The remote a command names, signed in or not, with the environment it goes to. */
 export async function connectRemote(name: string | undefined, env: string | undefined) {
-  const entry = pickRemote(cwd(), name)
+  const entry = pickRemote(process.cwd(), name)
   if (!entry) {
-    const known = readRemotes(cwd())
+    const known = readRemotes(process.cwd())
     if (known.length === 0)
       throw new CliError('not_found', 'No remotes yet.', {
         hint: '`crombolo remote add <name> <url>` adds one.',
